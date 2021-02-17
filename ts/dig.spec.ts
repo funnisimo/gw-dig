@@ -1,3 +1,4 @@
+import 'jest-extended';
 import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as Dig from './dig';
@@ -118,13 +119,25 @@ describe('Dig', () => {
         return map.get(x, y);
     }
 
+    test('dig on empty map', () => {
+        Dig.start(map);
+
+        const locs = Dig.dig(map, { digger: 'ROOM', tries: 20 });
+
+        // map.dump();
+
+        expect(locs).toBeArray();
+
+        Dig.finish(map);
+
+        expect(map.count(Dig.FLOOR)).toBeGreaterThan(0);
+    });
+
     test('can randomly attach rooms', () => {
         Dig.start(map);
 
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
         let roomCount = 4;
-
-        debugger;
 
         locs = Dig.dig(map, { digger: 'ROOM', locs, tries: 20 });
         if (!locs) {
@@ -158,7 +171,7 @@ describe('Dig', () => {
         expect(tileAt(14, 12)).toEqual(Dig.DOOR);
     });
 
-    test.only('can chain five rooms', () => {
+    test('can chain five rooms', () => {
         Dig.start(map);
 
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];

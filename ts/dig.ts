@@ -21,8 +21,10 @@ export function finish(map: GW.grid.NumGrid) {
 }
 
 // Returns an array of door sites if successful
-export function dig(map: GW.grid.NumGrid, opts: any = {}) {
-    const hallChance = opts.hallChance || opts.hallway || 0;
+export function dig(map: GW.grid.NumGrid, opts: string | any = {}) {
+    if (typeof opts === 'string') {
+        opts = { digger: opts };
+    }
     const diggerId = opts.digger || opts.id || 'SMALL'; // TODO - get random id
 
     const digger = DIGGERS[diggerId];
@@ -30,10 +32,15 @@ export function dig(map: GW.grid.NumGrid, opts: any = {}) {
         GW.utils.ERROR('Failed to find digger: ' + diggerId);
     }
 
-    const config = Object.assign({}, digger, opts);
     let locs = opts.locs || opts.loc || null;
-    if (!Array.isArray(locs)) {
+    if (!locs || !Array.isArray(locs)) {
         locs = null;
+        if (map.count(CONST.FLOOR) === 0) {
+            // empty map
+            const x = Math.floor(map.width / 2);
+            const y = map.height - 2;
+            locs = [[x, y]];
+        }
     } else if (
         locs &&
         locs.length &&
@@ -45,7 +52,9 @@ export function dig(map: GW.grid.NumGrid, opts: any = {}) {
         locs = null;
     }
 
+    const config = Object.assign({}, digger, opts);
     const roomGrid = GW.grid.alloc(map.width, map.height);
+    const hallChance = config.hallChance || config.hallway || 0;
 
     let result: boolean | GW.utils.Loc[] = false;
     let tries = opts.tries || 10;
@@ -57,7 +66,7 @@ export function dig(map: GW.grid.NumGrid, opts: any = {}) {
 
         const doors = chooseRandomDoorSites(roomGrid);
         if (GW.random.chance(hallChance)) {
-            attachHallway(map, doors, config);
+            attachHallway(roomGrid, doors, config);
         }
 
         if (locs) {
@@ -92,6 +101,8 @@ export function fitRoomToMap(
     doorSites: GW.utils.Loc[],
     opts: any = {}
 ) {
+    console.log('fitRoomToMap');
+
     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < SEQ.length; i++) {
         const x = Math.floor(SEQ[i] / map.height);
@@ -146,6 +157,8 @@ export function roomAttachesAt(
 ) {
     let xRoom, yRoom, xSite, ySite, i, j;
 
+    console.log('roomAttachesAt', roomToSiteX, roomToSiteY);
+
     for (xRoom = 0; xRoom < roomGrid.width; xRoom++) {
         for (yRoom = 0; yRoom < roomGrid.height; yRoom++) {
             if (roomGrid[xRoom][yRoom]) {
@@ -159,6 +172,7 @@ export function roomAttachesAt(
                             map.isBoundaryXY(i, j) ||
                             !(map.get(i, j) === CONST.NOTHING)
                         ) {
+                            console.log('- NO');
                             return false;
                         }
                     }
@@ -166,6 +180,7 @@ export function roomAttachesAt(
             }
         }
     }
+    console.log('- YES');
     return true;
 }
 
@@ -176,6 +191,8 @@ export function fitRoomAtXY(
     doors: GW.utils.Loc[],
     opts: any = {}
 ) {
+    console.log('fitRoomAtXY', xy);
+
     // Slide room across map, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < SEQ.length; i++) {
         const x = Math.floor(SEQ[i] / map.height);
@@ -223,6 +240,7 @@ function attachRoomAtMapDoors(
 ): boolean | GW.utils.Loc[] {
     const doorIndexes = GW.random.sequence(mapDoors.length);
 
+    console.log('attachRoomAtMapDoors', mapDoors.join(', '));
     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < doorIndexes.length; i++) {
         const index = doorIndexes[i];
@@ -245,6 +263,8 @@ function attachRoomAtXY(
     opts: any = {}
 ): boolean | GW.utils.Loc[] {
     const dirs = GW.random.sequence(4);
+
+    console.log('attachRoomAtXY', x, y, doorSites.join(', '));
 
     for (let dir of dirs) {
         const oppDir = (dir + 2) % 4;

@@ -9,7 +9,7 @@ import dts from "rollup-plugin-dts";
 // import commonjs from '@rollup/plugin-commonjs';
 
 export default [{
-  input: 'js/gw.js',
+  input: 'js/index.js',
   external: ['gw-utils', 'gw-map'],
   output: [{
     file: 'dist/gw-dig.min.js',
@@ -56,7 +56,7 @@ export default [{
   }]
 },
 {
-  input: "./js/gw.d.ts",
+  input: "./js/index.d.ts",
   output: [{ file: "dist/gw-dig.d.ts", format: "es" }],
   plugins: [dts()],
 },
