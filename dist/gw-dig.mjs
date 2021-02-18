@@ -7,6 +7,65 @@ const WALL = 3;
 const LAKE = 4;
 const BRIDGE = 5;
 
+class Hall {
+    constructor(loc, dir, length, doors) {
+        this.width = 1;
+        this.x = loc[0];
+        this.y = loc[1];
+        const d = utils.DIRS[dir];
+        this.x2 = this.x + length * d[0];
+        this.y2 = this.y + length * d[1];
+        this.dir = dir;
+        this.length = length;
+        this.doors = doors;
+    }
+    translate(dx, dy) {
+        this.x += dx;
+        this.y += dy;
+        this.x2 += dx;
+        this.y2 += dy;
+        if (this.doors) {
+            this.doors.forEach((d) => {
+                if (d[0] < 0 || d[1] < 0)
+                    return;
+                d[0] += dx;
+                d[1] += dy;
+            });
+        }
+    }
+}
+class Room {
+    constructor(digger, x, y, width, height) {
+        this.doors = [];
+        this.hall = null;
+        this.digger = digger;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+    get cx() {
+        return this.x + Math.floor(this.width / 2);
+    }
+    get cy() {
+        return this.y + Math.floor(this.height / 2);
+    }
+    translate(dx, dy) {
+        this.x += dx;
+        this.y += dy;
+        if (this.doors) {
+            this.doors.forEach((d) => {
+                if (d[0] < 0 || d[1] < 0)
+                    return;
+                d[0] += dx;
+                d[1] += dy;
+            });
+        }
+        if (this.hall) {
+            this.hall.translate(dx, dy);
+        }
+    }
+}
 var diggers = {};
 function install(id, fn, config) {
     // @ts-ignore
@@ -83,7 +142,7 @@ function cavern(config, grid$1) {
     // ...and copy it to the master grid.
     grid.offsetZip(grid$1, blobGrid, destX - bounds.x, destY - bounds.y, FLOOR);
     grid.free(blobGrid);
-    return config.id;
+    return new Room(config.id, destX, destY, bounds.width, bounds.height);
 }
 function choiceRoom(config, grid) {
     config = config || {};
@@ -117,8 +176,7 @@ function choiceRoom(config, grid) {
         digConfig = Object.assign({}, digger, config.opts);
     }
     // debug('Chose room: ', id);
-    digger.fn(digConfig, grid);
-    return id;
+    return digger.fn(digConfig, grid);
 }
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
 function entranceRoom(config, grid) {
@@ -137,7 +195,7 @@ function entranceRoom(config, grid) {
     grid.fill(0);
     grid.fillRect(roomX, roomY, roomWidth, roomHeight, FLOOR);
     grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, FLOOR);
-    return config.id;
+    return new Room(config.id, Math.min(roomX, roomX2), Math.min(roomY, roomY2), Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
 }
 function crossRoom(config, grid) {
     config = checkConfig(config, { width: 12, height: 20 });
@@ -161,7 +219,7 @@ function crossRoom(config, grid) {
     grid.fill(0);
     grid.fillRect(roomX - 5, roomY + 5, roomWidth, roomHeight, FLOOR);
     grid.fillRect(roomX2 - 5, roomY2 + 5, roomWidth2, roomHeight2, FLOOR);
-    return config.id;
+    return new Room(config.id, Math.min(roomX, roomX2) - 5, Math.min(roomY, roomY2) - 5, Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
 }
 function symmetricalCrossRoom(config, grid) {
     config = checkConfig(config, { width: 8, height: 5 });
@@ -178,9 +236,13 @@ function symmetricalCrossRoom(config, grid) {
         minorHeight -= 1;
     }
     grid.fill(0);
-    grid.fillRect(Math.floor((grid.width - majorWidth) / 2), Math.floor((grid.height - minorHeight) / 2), majorWidth, minorHeight, FLOOR);
-    grid.fillRect(Math.floor((grid.width - minorWidth) / 2), Math.floor((grid.height - majorHeight) / 2), minorWidth, majorHeight, FLOOR);
-    return config.id;
+    const x = Math.floor((grid.width - majorWidth) / 2);
+    const y = Math.floor((grid.height - minorHeight) / 2);
+    grid.fillRect(x, y, majorWidth, minorHeight, FLOOR);
+    const x2 = Math.floor((grid.width - minorWidth) / 2);
+    const y2 = Math.floor((grid.height - majorHeight) / 2);
+    grid.fillRect(x2, y2, minorWidth, majorHeight, FLOOR);
+    return new Room(config.id, Math.min(x, x2), Math.min(y, y2), Math.max(majorWidth, minorWidth), Math.max(majorHeight, minorHeight));
 }
 function rectangularRoom(config, grid) {
     config = checkConfig(config, { width: 6, height: 4, minPct: 50 });
@@ -189,8 +251,10 @@ function rectangularRoom(config, grid) {
     const width = Math.floor((config.width * random.range(config.minPct, 100)) / 100); // [3,6]
     const height = Math.floor((config.height * random.range(config.minPct, 100)) / 100); // [2,4]
     grid.fill(0);
-    grid.fillRect(Math.floor((grid.width - width) / 2), Math.floor((grid.height - height) / 2), width, height, FLOOR);
-    return config.id;
+    const x = Math.floor((grid.width - width) / 2);
+    const y = Math.floor((grid.height - height) / 2);
+    grid.fillRect(x, y, width, height, FLOOR);
+    return new Room(config.id, x, y, width, height);
 }
 function circularRoom(config, grid) {
     config = checkConfig(config, { width: 6, height: 6 });
@@ -200,10 +264,12 @@ function circularRoom(config, grid) {
         random.range(75, 100)) /
         200); // [3,4]
     grid.fill(0);
+    const x = Math.floor(grid.width / 2);
+    const y = Math.floor(grid.height / 2);
     if (radius > 1) {
-        grid.fillCircle(Math.floor(grid.width / 2), Math.floor(grid.height / 2), radius, FLOOR);
+        grid.fillCircle(x, y, radius, FLOOR);
     }
-    return config.id;
+    return new Room(config.id, x, y, radius * 2, radius * 2);
 }
 function brogueDonut(config, grid) {
     config = checkConfig(config, {
@@ -218,12 +284,14 @@ function brogueDonut(config, grid) {
         return config;
     const radius = Math.floor((Math.min(config.width, config.height) * random.range(75, 100)) / 100); // [5,10]
     grid.fill(0);
-    grid.fillCircle(Math.floor(grid.width / 2), Math.floor(grid.height / 2), radius, FLOOR);
+    const x = Math.floor(grid.width / 2);
+    const y = Math.floor(grid.height / 2);
+    grid.fillCircle(x, y, radius, FLOOR);
     if (radius > config.ringMinWidth + config.holeMinSize &&
         random.chance(config.holeChance)) {
-        grid.fillCircle(Math.floor(grid.width / 2), Math.floor(grid.height / 2), random.range(config.holeMinSize, radius - config.holeMinSize), 0);
+        grid.fillCircle(x, y, random.range(config.holeMinSize, radius - config.holeMinSize), 0);
     }
-    return config.id;
+    return new Room(config.id, x, y, radius * 2, radius * 2);
 }
 function chunkyRoom(config, grid) {
     config = checkConfig(config, { count: 8 });
@@ -258,7 +326,7 @@ function chunkyRoom(config, grid) {
             //            temporaryMessage("Added a chunk:", true);
         }
     }
-    return config.id;
+    return new Room(config.id, minX, minY, maxX - minX + 1, maxY - minY + 1);
 }
 
 const DIRS = utils.DIRS;
@@ -304,37 +372,33 @@ function dig(map, opts = {}) {
     const config = Object.assign({}, digger, opts);
     const roomGrid = grid.alloc(map.width, map.height);
     const hallChance = config.hallChance || config.hallway || 0;
+    // const force = config.force || false;
     let result = false;
-    let tries = opts.tries || 10;
+    let room;
+    let tries = config.tries || 10;
     while (--tries >= 0 && !result) {
         roomGrid.fill(NOTHING);
         // dig the room in the center
-        digger.fn(config, roomGrid);
-        const doors = chooseRandomDoorSites(roomGrid);
-        if (random.chance(hallChance)) {
-            attachHallway(roomGrid, doors, config);
+        room = digger.fn(config, roomGrid);
+        const attachHall = random.chance(hallChance);
+        room.doors = chooseRandomDoorSites(roomGrid);
+        if (attachHall) {
+            room.hall = attachHallway(roomGrid, room, config);
         }
         if (locs) {
             // try the doors first
-            result = attachRoomAtMapDoors(map, locs, roomGrid, doors, config);
-            if (!result) {
-                // otherwise try everywhere
-                for (let i = 0; i < locs.length && !result; ++i) {
-                    if (locs[i][0] > 0) {
-                        result = fitRoomAtXY(map, locs[i], roomGrid, doors, config);
-                    }
-                }
-            }
+            result = attachRoomAtMapDoors(map, locs, roomGrid, room, config);
         }
         else {
-            result = fitRoomToMap(map, roomGrid, doors, config);
+            result = attachRoom(map, roomGrid, room, config);
         }
     }
     grid.free(roomGrid);
-    return result;
+    return room && result ? room : null;
 }
-function fitRoomToMap(map, roomGrid, doorSites, opts = {}) {
-    console.log('fitRoomToMap');
+function attachRoom(map, roomGrid, room, opts = {}) {
+    // console.log('attachRoom');
+    const doorSites = room.hall ? room.hall.doors : room.doors;
     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < SEQ.length; i++) {
         const x = Math.floor(SEQ[i] / map.height);
@@ -347,7 +411,7 @@ function fitRoomToMap(map, roomGrid, doorSites, opts = {}) {
             const offsetX = x - doorSites[oppDir][0];
             const offsetY = y - doorSites[oppDir][1];
             if (doorSites[oppDir][0] != -1 &&
-                roomAttachesAt(map, roomGrid, offsetX, offsetY)) {
+                roomFitsAt(map, roomGrid, offsetX, offsetY)) {
                 // Room fits here.
                 grid.offsetZip(map, roomGrid, offsetX, offsetY, (_d, _s, i, j) => {
                     map[i][j] = opts.tile || FLOOR;
@@ -355,23 +419,18 @@ function fitRoomToMap(map, roomGrid, doorSites, opts = {}) {
                 if (opts.door || opts.placeDoor !== false) {
                     map[x][y] = opts.door || DOOR; // Door site.
                 }
-                doorSites[oppDir][0] = -1;
-                doorSites[oppDir][1] = -1;
-                for (let i = 0; i < doorSites.length; ++i) {
-                    if (doorSites[i][0] > 0) {
-                        doorSites[i][0] += offsetX;
-                        doorSites[i][1] += offsetY;
-                    }
-                }
-                return doorSites;
+                // doorSites[oppDir][0] = -1;
+                // doorSites[oppDir][1] = -1;
+                room.translate(offsetX, offsetY);
+                return true;
             }
         }
     }
     return false;
 }
-function roomAttachesAt(map, roomGrid, roomToSiteX, roomToSiteY) {
+function roomFitsAt(map, roomGrid, roomToSiteX, roomToSiteY) {
     let xRoom, yRoom, xSite, ySite, i, j;
-    console.log('roomAttachesAt', roomToSiteX, roomToSiteY);
+    // console.log('roomFitsAt', roomToSiteX, roomToSiteY);
     for (xRoom = 0; xRoom < roomGrid.width; xRoom++) {
         for (yRoom = 0; yRoom < roomGrid.height; yRoom++) {
             if (roomGrid[xRoom][yRoom]) {
@@ -382,7 +441,7 @@ function roomAttachesAt(map, roomGrid, roomToSiteX, roomToSiteY) {
                         if (!map.hasXY(i, j) ||
                             map.isBoundaryXY(i, j) ||
                             !(map.get(i, j) === NOTHING)) {
-                            console.log('- NO');
+                            // console.log('- NO');
                             return false;
                         }
                     }
@@ -390,11 +449,11 @@ function roomAttachesAt(map, roomGrid, roomToSiteX, roomToSiteY) {
             }
         }
     }
-    console.log('- YES');
+    // console.log('- YES');
     return true;
 }
-function fitRoomAtXY(map, xy, roomGrid, doors, opts = {}) {
-    console.log('fitRoomAtXY', xy);
+function fitRoomAtMapLoc(map, xy, roomGrid, room, opts = {}) {
+    // console.log('fitRoomAtMapLoc', xy);
     // Slide room across map, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < SEQ.length; i++) {
         const x = Math.floor(SEQ[i] / map.height);
@@ -403,48 +462,43 @@ function fitRoomAtXY(map, xy, roomGrid, doors, opts = {}) {
             continue;
         const dir = grid.directionOfDoorSite(roomGrid, x, y, FLOOR);
         if (dir != utils.NO_DIRECTION) {
-            if (roomAttachesAt(map, roomGrid, xy[0] - x, xy[1] - y)) {
-                grid.offsetZip(map, roomGrid, xy[0] - x, xy[1] - y, (_d, _s, i, j) => {
+            const dx = xy[0] - x;
+            const dy = xy[1] - y;
+            if (roomFitsAt(map, roomGrid, dx, dy)) {
+                grid.offsetZip(map, roomGrid, dx, dy, (_d, _s, i, j) => {
                     map[i][j] = opts.tile || FLOOR;
                 });
                 if (opts.door || opts.placeDoor !== false) {
                     map[xy[0]][xy[1]] = opts.door || DOOR; // Door site.
                 }
-                doors[dir][0] = -1;
-                doors[dir][1] = -1;
-                for (let i = 0; i < doors.length; ++i) {
-                    if (doors[i][0] > 0) {
-                        doors[i][0] += xy[0] - x;
-                        doors[i][1] += xy[1] - y;
-                    }
-                }
-                return doors;
+                // TODO - Update doors - we may have to erase one...
+                room.translate(dx, dy);
+                return true;
             }
         }
     }
     return false;
 }
-function attachRoomAtMapDoors(map, mapDoors, roomGrid, roomDoors, opts = {}) {
+function attachRoomAtMapDoors(map, mapDoors, roomGrid, room, opts = {}) {
     const doorIndexes = random.sequence(mapDoors.length);
-    console.log('attachRoomAtMapDoors', mapDoors.join(', '));
+    // console.log('attachRoomAtMapDoors', mapDoors.join(', '));
     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < doorIndexes.length; i++) {
         const index = doorIndexes[i];
         const x = mapDoors[index][0];
         const y = mapDoors[index][1];
-        const doors = attachRoomAtXY(map, x, y, roomGrid, roomDoors, opts);
-        if (doors)
-            return doors;
+        return attachRoomAtXY(map, x, y, roomGrid, room, opts);
     }
     return false;
 }
-function attachRoomAtXY(map, x, y, roomGrid, doorSites, opts = {}) {
+function attachRoomAtXY(map, x, y, roomGrid, room, opts = {}) {
+    const doorSites = room.hall ? room.hall.doors : room.doors;
     const dirs = random.sequence(4);
-    console.log('attachRoomAtXY', x, y, doorSites.join(', '));
+    // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
     for (let dir of dirs) {
         const oppDir = (dir + 2) % 4;
         if (doorSites[oppDir][0] != -1 &&
-            roomAttachesAt(map, roomGrid, x - doorSites[oppDir][0], y - doorSites[oppDir][1])) {
+            roomFitsAt(map, roomGrid, x - doorSites[oppDir][0], y - doorSites[oppDir][1])) {
             // dungeon.debug("attachRoom: ", x, y, oppDir);
             // Room fits here.
             const offX = x - doorSites[oppDir][0];
@@ -455,14 +509,14 @@ function attachRoomAtXY(map, x, y, roomGrid, doorSites, opts = {}) {
             if (opts.door || opts.placeDoor !== false) {
                 map[x][y] = opts.door || DOOR; // Door site.
             }
-            const newDoors = doorSites.map((site) => {
-                const x0 = site[0] + offX;
-                const y0 = site[1] + offY;
-                if (x0 == x && y0 == y)
-                    return [-1, -1];
-                return [x0, y0];
-            });
-            return newDoors;
+            room.translate(offX, offY);
+            // const newDoors = doorSites.map((site) => {
+            //     const x0 = site[0] + offX;
+            //     const y0 = site[1] + offY;
+            //     if (x0 == x && y0 == y) return [-1, -1] as GW.utils.Loc;
+            //     return [x0, y0] as GW.utils.Loc;
+            // });
+            return true;
         }
     }
     return false;
@@ -506,11 +560,9 @@ function chooseRandomDoorSites(sourceGrid) {
     grid.free(grid$1);
     return doorSites;
 }
-function attachHallway(grid, doorSitesArray, opts) {
+function attachHallway(grid, room, opts) {
     let i, x, y, newX, newY;
-    let length;
     let dir, dir2;
-    let allowObliqueHallwayExit;
     opts = opts || {};
     const tile = opts.tile || FLOOR;
     const horizontalLength = utils.firstOpt('horizontalHallLength', opts, [
@@ -521,58 +573,72 @@ function attachHallway(grid, doorSitesArray, opts) {
         2,
         9,
     ]);
+    const obliqueChance = utils.firstOpt('obliqueChance', opts, 15);
+    const doors = room.doors;
     // Pick a direction.
     dir = opts.dir;
     if (dir === undefined) {
         const dirs = random.sequence(4);
         for (i = 0; i < 4; i++) {
             dir = dirs[i];
-            if (doorSitesArray[dir][0] != -1 &&
-                doorSitesArray[dir][1] != -1 &&
-                grid.hasXY(doorSitesArray[dir][0] +
-                    Math.floor(DIRS[dir][0] * horizontalLength[1]), doorSitesArray[dir][1] +
-                    Math.floor(DIRS[dir][1] * verticalLength[1]))) {
+            if (doors[dir][0] != -1 &&
+                doors[dir][1] != -1 &&
+                grid.hasXY(doors[dir][0] +
+                    Math.floor(DIRS[dir][0] * horizontalLength[1]), doors[dir][1] + Math.floor(DIRS[dir][1] * verticalLength[1]))) {
                 break; // That's our direction!
             }
         }
         if (i == 4) {
-            return; // No valid direction for hallways.
+            return null; // No valid direction for hallways.
         }
     }
+    let maxLength = 0;
     if (dir == utils.UP || dir == utils.DOWN) {
-        length = random.range(verticalLength[0], verticalLength[1]);
+        maxLength = random.range(verticalLength[0], verticalLength[1]);
     }
     else {
-        length = random.range(horizontalLength[0], horizontalLength[1]);
+        maxLength = random.range(horizontalLength[0], horizontalLength[1]);
     }
-    x = doorSitesArray[dir][0];
-    y = doorSitesArray[dir][1];
+    x = doors[dir][0];
+    y = doors[dir][1];
     const attachLoc = [x - DIRS[dir][0], y - DIRS[dir][1]];
-    for (i = 0; i < length; i++) {
+    let length = 0;
+    for (length = 0; length < maxLength; length++) {
         if (grid.hasXY(x, y)) {
             grid[x][y] = tile;
+        }
+        else {
+            break;
         }
         x += DIRS[dir][0];
         y += DIRS[dir][1];
     }
+    if (length < 2)
+        return null;
     x = utils.clamp(x - DIRS[dir][0], 0, grid.width - 1);
     y = utils.clamp(y - DIRS[dir][1], 0, grid.height - 1); // Now (x, y) points at the last interior cell of the hallway.
-    allowObliqueHallwayExit = random.chance(15);
+    const allowObliqueHallwayExit = random.chance(obliqueChance);
+    const hallDoors = [
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+    ];
     for (dir2 = 0; dir2 < 4; dir2++) {
         newX = x + DIRS[dir2][0];
         newY = y + DIRS[dir2][1];
         if ((dir2 != dir && !allowObliqueHallwayExit) ||
             !grid.hasXY(newX, newY) ||
             grid[newX][newY]) {
-            doorSitesArray[dir2][0] = -1;
-            doorSitesArray[dir2][1] = -1;
+            hallDoors[dir2][0] = -1;
+            hallDoors[dir2][1] = -1;
         }
         else {
-            doorSitesArray[dir2][0] = newX;
-            doorSitesArray[dir2][1] = newY;
+            hallDoors[dir2][0] = newX;
+            hallDoors[dir2][1] = newY;
         }
     }
-    return attachLoc;
+    return new Hall(attachLoc, dir, length, hallDoors);
 }
 function isPassable(grid, x, y) {
     const v = grid.get(x, y);
@@ -650,9 +716,9 @@ var dig$1 = {
     start: start,
     finish: finish,
     dig: dig,
-    fitRoomToMap: fitRoomToMap,
-    roomAttachesAt: roomAttachesAt,
-    fitRoomAtXY: fitRoomAtXY,
+    attachRoom: attachRoom,
+    roomFitsAt: roomFitsAt,
+    fitRoomAtMapLoc: fitRoomAtMapLoc,
     chooseRandomDoorSites: chooseRandomDoorSites,
     attachHallway: attachHallway,
     isPassable: isPassable,
@@ -666,6 +732,8 @@ var dig$1 = {
     WALL: WALL,
     LAKE: LAKE,
     BRIDGE: BRIDGE,
+    Hall: Hall,
+    Room: Room,
     diggers: diggers,
     install: install,
     checkConfig: checkConfig,

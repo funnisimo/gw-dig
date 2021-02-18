@@ -1,7 +1,100 @@
 import * as GW from 'gw-utils';
 import * as CONST from './gw';
 
-export type DigFn = (config: any, grid: GW.grid.NumGrid) => string;
+export class Hall {
+    public x: number;
+    public y: number;
+    public x2: number;
+    public y2: number;
+    public length: number;
+
+    public dir: number;
+    public width: number = 1;
+
+    public doors: GW.utils.Loc[];
+
+    constructor(
+        loc: GW.utils.Loc,
+        dir: number,
+        length: number,
+        doors: GW.utils.Loc[]
+    ) {
+        this.x = loc[0];
+        this.y = loc[1];
+        const d = GW.utils.DIRS[dir];
+        this.x2 = this.x + length * d[0];
+        this.y2 = this.y + length * d[1];
+        this.dir = dir;
+        this.length = length;
+        this.doors = doors;
+    }
+
+    translate(dx: number, dy: number) {
+        this.x += dx;
+        this.y += dy;
+        this.x2 += dx;
+        this.y2 += dy;
+        if (this.doors) {
+            this.doors.forEach((d) => {
+                if (d[0] < 0 || d[1] < 0) return;
+                d[0] += dx;
+                d[1] += dy;
+            });
+        }
+    }
+}
+
+export class Room {
+    public digger: string;
+    public x: number;
+    public y: number;
+    public width: number;
+    public height: number;
+
+    public doors: GW.utils.Loc[] = [];
+
+    public hall: Hall | null = null;
+
+    constructor(
+        digger: string,
+        x: number,
+        y: number,
+        width: number,
+        height: number
+    ) {
+        this.digger = digger;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    get cx() {
+        return this.x + Math.floor(this.width / 2);
+    }
+    get cy() {
+        return this.y + Math.floor(this.height / 2);
+    }
+
+    translate(dx: number, dy: number) {
+        this.x += dx;
+        this.y += dy;
+
+        if (this.doors) {
+            this.doors.forEach((d) => {
+                if (d[0] < 0 || d[1] < 0) return;
+                d[0] += dx;
+                d[1] += dy;
+            });
+        }
+
+        if (this.hall) {
+            this.hall.translate(dx, dy);
+        }
+    }
+}
+
+export type DigFn = (config: any, grid: GW.grid.NumGrid) => Room;
 interface DigConfig {
     fn: DigFn;
     id: string;
@@ -114,7 +207,7 @@ export function cavern(config: any, grid: GW.grid.NumGrid) {
         CONST.FLOOR
     );
     GW.grid.free(blobGrid);
-    return config.id;
+    return new Room(config.id, destX, destY, bounds.width, bounds.height);
 }
 
 export function choiceRoom(config: any, grid: GW.grid.NumGrid) {
@@ -149,8 +242,7 @@ export function choiceRoom(config: any, grid: GW.grid.NumGrid) {
         digConfig = Object.assign({}, digger, config.opts);
     }
     // debug('Chose room: ', id);
-    digger.fn(digConfig, grid);
-    return id;
+    return digger.fn(digConfig, grid);
 }
 
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
@@ -172,7 +264,13 @@ export function entranceRoom(config: any, grid: GW.grid.NumGrid) {
     grid.fill(0);
     grid.fillRect(roomX, roomY, roomWidth, roomHeight, CONST.FLOOR);
     grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, CONST.FLOOR);
-    return config.id;
+    return new Room(
+        config.id,
+        Math.min(roomX, roomX2),
+        Math.min(roomY, roomY2),
+        Math.max(roomWidth, roomWidth2),
+        Math.max(roomHeight, roomHeight2)
+    );
 }
 
 export function crossRoom(config: any, grid: GW.grid.NumGrid) {
@@ -218,7 +316,13 @@ export function crossRoom(config: any, grid: GW.grid.NumGrid) {
 
     grid.fillRect(roomX - 5, roomY + 5, roomWidth, roomHeight, CONST.FLOOR);
     grid.fillRect(roomX2 - 5, roomY2 + 5, roomWidth2, roomHeight2, CONST.FLOOR);
-    return config.id;
+    return new Room(
+        config.id,
+        Math.min(roomX, roomX2) - 5,
+        Math.min(roomY, roomY2) - 5,
+        Math.max(roomWidth, roomWidth2),
+        Math.max(roomHeight, roomHeight2)
+    );
 }
 
 export function symmetricalCrossRoom(config: any, grid: GW.grid.NumGrid) {
@@ -248,21 +352,19 @@ export function symmetricalCrossRoom(config: any, grid: GW.grid.NumGrid) {
     }
 
     grid.fill(0);
-    grid.fillRect(
-        Math.floor((grid.width - majorWidth) / 2),
-        Math.floor((grid.height - minorHeight) / 2),
-        majorWidth,
-        minorHeight,
-        CONST.FLOOR
+    const x = Math.floor((grid.width - majorWidth) / 2);
+    const y = Math.floor((grid.height - minorHeight) / 2);
+    grid.fillRect(x, y, majorWidth, minorHeight, CONST.FLOOR);
+    const x2 = Math.floor((grid.width - minorWidth) / 2);
+    const y2 = Math.floor((grid.height - majorHeight) / 2);
+    grid.fillRect(x2, y2, minorWidth, majorHeight, CONST.FLOOR);
+    return new Room(
+        config.id,
+        Math.min(x, x2),
+        Math.min(y, y2),
+        Math.max(majorWidth, minorWidth),
+        Math.max(majorHeight, minorHeight)
     );
-    grid.fillRect(
-        Math.floor((grid.width - minorWidth) / 2),
-        Math.floor((grid.height - majorHeight) / 2),
-        minorWidth,
-        majorHeight,
-        CONST.FLOOR
-    );
-    return config.id;
 }
 
 export function rectangularRoom(config: any, grid: GW.grid.NumGrid) {
@@ -277,14 +379,10 @@ export function rectangularRoom(config: any, grid: GW.grid.NumGrid) {
     ); // [2,4]
 
     grid.fill(0);
-    grid.fillRect(
-        Math.floor((grid.width - width) / 2),
-        Math.floor((grid.height - height) / 2),
-        width,
-        height,
-        CONST.FLOOR
-    );
-    return config.id;
+    const x = Math.floor((grid.width - width) / 2);
+    const y = Math.floor((grid.height - height) / 2);
+    grid.fillRect(x, y, width, height, CONST.FLOOR);
+    return new Room(config.id, x, y, width, height);
 }
 
 export function circularRoom(config: any, grid: GW.grid.NumGrid) {
@@ -298,16 +396,13 @@ export function circularRoom(config: any, grid: GW.grid.NumGrid) {
     ); // [3,4]
 
     grid.fill(0);
+    const x = Math.floor(grid.width / 2);
+    const y = Math.floor(grid.height / 2);
     if (radius > 1) {
-        grid.fillCircle(
-            Math.floor(grid.width / 2),
-            Math.floor(grid.height / 2),
-            radius,
-            CONST.FLOOR
-        );
+        grid.fillCircle(x, y, radius, CONST.FLOOR);
     }
 
-    return config.id;
+    return new Room(config.id, x, y, radius * 2, radius * 2);
 }
 
 export function brogueDonut(config: any, grid: GW.grid.NumGrid) {
@@ -326,25 +421,22 @@ export function brogueDonut(config: any, grid: GW.grid.NumGrid) {
     ); // [5,10]
 
     grid.fill(0);
-    grid.fillCircle(
-        Math.floor(grid.width / 2),
-        Math.floor(grid.height / 2),
-        radius,
-        CONST.FLOOR
-    );
+    const x = Math.floor(grid.width / 2);
+    const y = Math.floor(grid.height / 2);
+    grid.fillCircle(x, y, radius, CONST.FLOOR);
 
     if (
         radius > config.ringMinWidth + config.holeMinSize &&
         GW.random.chance(config.holeChance)
     ) {
         grid.fillCircle(
-            Math.floor(grid.width / 2),
-            Math.floor(grid.height / 2),
+            x,
+            y,
             GW.random.range(config.holeMinSize, radius - config.holeMinSize),
             0
         );
     }
-    return config.id;
+    return new Room(config.id, x, y, radius * 2, radius * 2);
 }
 
 export function chunkyRoom(config: any, grid: GW.grid.NumGrid) {
@@ -389,5 +481,5 @@ export function chunkyRoom(config: any, grid: GW.grid.NumGrid) {
             //            temporaryMessage("Added a chunk:", true);
         }
     }
-    return config.id;
+    return new Room(config.id, minX, minY, maxX - minX + 1, maxY - minY + 1);
 }

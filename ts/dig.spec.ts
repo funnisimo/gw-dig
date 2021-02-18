@@ -122,11 +122,11 @@ describe('Dig', () => {
     test('dig on empty map', () => {
         Dig.start(map);
 
-        const locs = Dig.dig(map, { digger: 'ROOM', tries: 20 });
+        const room = Dig.dig(map, { digger: 'ROOM', tries: 20 });
 
         // map.dump();
 
-        expect(locs).toBeArray();
+        expect(room!.doors).toBeArray();
 
         Dig.finish(map);
 
@@ -139,23 +139,23 @@ describe('Dig', () => {
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
         let roomCount = 4;
 
-        locs = Dig.dig(map, { digger: 'ROOM', locs, tries: 20 });
-        if (!locs) {
+        let room = Dig.dig(map, { digger: 'ROOM', locs, tries: 20 });
+        if (!room) {
             fail('Failed on first room!');
         }
 
         for (let i = 0; i < roomCount; ++i) {
-            locs = Dig.dig(map, { digger: 'ROOM', tries: 20 });
-            if (!locs) {
+            room = Dig.dig(map, { digger: 'ROOM', tries: 20 });
+            if (!room) {
                 fail('Failed to dig map on room #' + (i + 1));
             }
         }
 
         // map.dump();
 
-        expect(locs).toEqual([
+        expect(room!.doors).toEqual([
             [8, 26],
-            [-1, -1],
+            [16, 24], // [-1, -1],
             [12, 20],
             [5, 22],
         ]);
@@ -176,26 +176,26 @@ describe('Dig', () => {
 
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
         let roomCount = 5;
+        let room: Dig.Room | null;
 
         for (let i = 0; i < roomCount; ++i) {
-            locs = Dig.dig(map, {
+            room = Dig.dig(map, {
                 digger: 'ROOM',
                 locs,
                 tries: 20,
                 tile: Dig.FLOOR,
             });
-            if (!locs) {
-                fail('Failed to dig map on room #' + (i + 1));
-            }
+            expect(room).toBeObject();
+            locs = room!.doors;
         }
 
         // map.dump();
 
-        expect(locs).toEqual([
-            [-1, -1],
-            [20, 6],
-            [10, 4],
-            [5, 9],
+        expect(room!.doors).toEqual([
+            [31, 16],
+            [32, 8],
+            [25, 6],
+            [18, 12],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
@@ -204,9 +204,9 @@ describe('Dig', () => {
         );
 
         expect(tileAt(30, 23)).toEqual(Dig.DOOR);
-        expect(tileAt(16, 24)).toEqual(Dig.DOOR);
         expect(tileAt(12, 20)).toEqual(Dig.DOOR);
-        expect(tileAt(7, 12)).toEqual(Dig.DOOR);
+        expect(tileAt(14, 14)).toEqual(Dig.DOOR);
+        expect(tileAt(18, 12)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {

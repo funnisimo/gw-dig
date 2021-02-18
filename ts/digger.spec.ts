@@ -1,3 +1,4 @@
+import 'jest-extended';
 import * as GW from 'gw-utils';
 import * as Dig from './dig';
 
@@ -14,10 +15,12 @@ describe('dig', () => {
 
     test('rectangularRoom', () => {
         GW.random.seed(12345);
-        Dig.rectangularRoom(
+        const room = Dig.rectangularRoom(
             { width: grid.width - 2, height: grid.height - 2, minPct: 100 },
             grid
         );
+
+        expect(room).toContainKeys(['digger', 'x', 'y', 'width', 'height']);
 
         grid.forEach((v, i, j) => {
             if (grid.isBoundaryXY(i, j)) {
@@ -31,7 +34,10 @@ describe('dig', () => {
     test('digCavern', () => {
         GW.random.seed(123456);
         expect(grid.count(1)).toEqual(0);
-        Dig.cavern({ width: 10, height: 10 }, grid);
+        const room = Dig.cavern({ width: 10, height: 10 }, grid);
+
+        expect(room).toContainKeys(['digger', 'x', 'y', 'width', 'height']);
+
         // GW.grid.dump(grid);
         expect(grid.count(1)).toBeGreaterThan(0);
     });
