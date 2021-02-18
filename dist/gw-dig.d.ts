@@ -55,7 +55,7 @@ declare function finish(map: grid.NumGrid): void;
 declare function dig(map: grid.NumGrid, opts?: string | any): Room | null;
 declare function attachRoom(map: grid.NumGrid, roomGrid: grid.NumGrid, room: Room, opts?: any): boolean;
 declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
-declare function fitRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts?: any): boolean;
+declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts?: any): boolean;
 declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid): utils.Loc[];
 declare function attachHallway(grid: grid.NumGrid, room: Room, opts: any): Hall | null;
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
@@ -69,7 +69,7 @@ declare const dig_d_finish: typeof finish;
 declare const dig_d_dig: typeof dig;
 declare const dig_d_attachRoom: typeof attachRoom;
 declare const dig_d_roomFitsAt: typeof roomFitsAt;
-declare const dig_d_fitRoomAtMapLoc: typeof fitRoomAtMapLoc;
+declare const dig_d_forceRoomAtMapLoc: typeof forceRoomAtMapLoc;
 declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const dig_d_attachHallway: typeof attachHallway;
 declare const dig_d_isPassable: typeof isPassable;
@@ -107,7 +107,7 @@ declare namespace dig_d {
     dig_d_dig as dig,
     dig_d_attachRoom as attachRoom,
     dig_d_roomFitsAt as roomFitsAt,
-    dig_d_fitRoomAtMapLoc as fitRoomAtMapLoc,
+    dig_d_forceRoomAtMapLoc as forceRoomAtMapLoc,
     dig_d_chooseRandomDoorSites as chooseRandomDoorSites,
     dig_d_attachHallway as attachHallway,
     dig_d_isPassable as isPassable,

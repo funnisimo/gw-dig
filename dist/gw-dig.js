@@ -391,11 +391,25 @@
             }
             if (locs) {
                 // try the doors first
-                result = attachRoomAtMapDoors(map, locs, roomGrid, room, config);
+                result = attachRoomAtMapDoor(map, locs, roomGrid, room, config);
             }
             else {
                 result = attachRoom(map, roomGrid, room, config);
             }
+            // console.log(
+            //     'try',
+            //     room.hall ? 'hall: ' + room.hall.dir : 'no hall',
+            //     result
+            // );
+            // if (!result) {
+            //     roomGrid.dump();
+            //     map.dump();
+            //     console.log(
+            //         'room doors',
+            //         (room.hall ? room.hall.doors : room.doors).join(', ')
+            //     );
+            //     console.log('map locs', locs.join(', '));
+            // }
         }
         GW.grid.free(roomGrid);
         return room && result ? room : null;
@@ -456,8 +470,8 @@
         // console.log('- YES');
         return true;
     }
-    function fitRoomAtMapLoc(map, xy, roomGrid, room, opts = {}) {
-        // console.log('fitRoomAtMapLoc', xy);
+    function forceRoomAtMapLoc(map, xy, roomGrid, room, opts = {}) {
+        // console.log('forceRoomAtMapLoc', xy);
         // Slide room across map, in a random but predetermined order, until the room matches up with a wall.
         for (let i = 0; i < SEQ.length; i++) {
             const x = Math.floor(SEQ[i] / map.height);
@@ -483,15 +497,17 @@
         }
         return false;
     }
-    function attachRoomAtMapDoors(map, mapDoors, roomGrid, room, opts = {}) {
+    function attachRoomAtMapDoor(map, mapDoors, roomGrid, room, opts = {}) {
         const doorIndexes = GW.random.sequence(mapDoors.length);
-        // console.log('attachRoomAtMapDoors', mapDoors.join(', '));
+        // console.log('attachRoomAtMapDoor', mapDoors.join(', '));
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
         for (let i = 0; i < doorIndexes.length; i++) {
             const index = doorIndexes[i];
             const x = mapDoors[index][0];
             const y = mapDoors[index][1];
-            return attachRoomAtXY(map, x, y, roomGrid, room, opts);
+            if (attachRoomAtXY(map, x, y, roomGrid, room, opts)) {
+                return true;
+            }
         }
         return false;
     }
@@ -580,15 +596,16 @@
         const obliqueChance = GW.utils.firstOpt('obliqueChance', opts, 15);
         const doors = room.doors;
         // Pick a direction.
-        dir = opts.dir;
-        if (dir === undefined) {
+        dir = opts.dir || GW.utils.NO_DIRECTION;
+        if (dir == GW.utils.NO_DIRECTION) {
             const dirs = GW.random.sequence(4);
             for (i = 0; i < 4; i++) {
                 dir = dirs[i];
+                const dx = doors[dir][0] + Math.floor(DIRS[dir][0] * horizontalLength[1]);
+                const dy = doors[dir][1] + Math.floor(DIRS[dir][1] * verticalLength[1]);
                 if (doors[dir][0] != -1 &&
                     doors[dir][1] != -1 &&
-                    grid.hasXY(doors[dir][0] +
-                        Math.floor(DIRS[dir][0] * horizontalLength[1]), doors[dir][1] + Math.floor(DIRS[dir][1] * verticalLength[1]))) {
+                    grid.hasXY(dx, dy)) {
                     break; // That's our direction!
                 }
             }
@@ -617,8 +634,9 @@
             x += DIRS[dir][0];
             y += DIRS[dir][1];
         }
-        if (length < 2)
+        if (length < 2) {
             return null;
+        }
         x = GW.utils.clamp(x - DIRS[dir][0], 0, grid.width - 1);
         y = GW.utils.clamp(y - DIRS[dir][1], 0, grid.height - 1); // Now (x, y) points at the last interior cell of the hallway.
         const allowObliqueHallwayExit = GW.random.chance(obliqueChance);
@@ -722,7 +740,7 @@
         dig: dig,
         attachRoom: attachRoom,
         roomFitsAt: roomFitsAt,
-        fitRoomAtMapLoc: fitRoomAtMapLoc,
+        forceRoomAtMapLoc: forceRoomAtMapLoc,
         chooseRandomDoorSites: chooseRandomDoorSites,
         attachHallway: attachHallway,
         isPassable: isPassable,

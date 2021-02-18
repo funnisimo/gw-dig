@@ -192,10 +192,10 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [31, 16],
-            [32, 8],
-            [25, 6],
-            [18, 12],
+            [8, 11],
+            [20, 5],
+            [11, 2],
+            [3, 9],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
@@ -204,9 +204,9 @@ describe('Dig', () => {
         );
 
         expect(tileAt(30, 23)).toEqual(Dig.DOOR);
+        expect(tileAt(16, 24)).toEqual(Dig.DOOR);
         expect(tileAt(12, 20)).toEqual(Dig.DOOR);
-        expect(tileAt(14, 14)).toEqual(Dig.DOOR);
-        expect(tileAt(18, 12)).toEqual(Dig.DOOR);
+        expect(tileAt(8, 11)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {
