@@ -154,21 +154,21 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [8, 26],
-            [16, 24], // [-1, -1],
-            [12, 20],
-            [5, 22],
+            [14, 6],
+            [22, 10], // [-1, -1],
+            [18, 12],
+            [11, 8],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR); // starting door
 
-        map.forRect(31, 22, 19, 6, (_c, i, j) =>
+        map.forRect(38, 22, 19, 6, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(30, 22)).toEqual(Dig.DOOR);
-        expect(tileAt(16, 24)).toEqual(Dig.DOOR);
-        expect(tileAt(17, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(14, 12)).toEqual(Dig.DOOR);
+        expect(tileAt(37, 22)).toEqual(Dig.DOOR);
+        expect(tileAt(33, 18)).toEqual(Dig.DOOR);
+        expect(tileAt(18, 12)).toEqual(Dig.DOOR);
+        expect(tileAt(30, 12)).toEqual(Dig.DOOR);
     });
 
     test('can chain five rooms', () => {
@@ -192,21 +192,21 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [8, 11],
-            [20, 5],
-            [11, 2],
-            [3, 9],
+            [14, 3],
+            [29, 7],
+            [25, 9],
+            [11, 8],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
-        map.forRect(31, 22, 19, 6, (_c, i, j) =>
+        map.forRect(38, 22, 19, 6, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(30, 23)).toEqual(Dig.DOOR);
-        expect(tileAt(16, 24)).toEqual(Dig.DOOR);
-        expect(tileAt(12, 20)).toEqual(Dig.DOOR);
-        expect(tileAt(8, 11)).toEqual(Dig.DOOR);
+        expect(tileAt(37, 23)).toEqual(Dig.DOOR);
+        expect(tileAt(34, 19)).toEqual(Dig.DOOR);
+        expect(tileAt(27, 15)).toEqual(Dig.DOOR);
+        expect(tileAt(25, 9)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {

@@ -11,22 +11,22 @@ export class Hall {
     public dir: number;
     public width: number = 1;
 
-    public doors: GW.utils.Loc[];
+    public doors: GW.utils.Loc[] = [];
 
-    constructor(
-        loc: GW.utils.Loc,
-        dir: number,
-        length: number,
-        doors: GW.utils.Loc[]
-    ) {
+    constructor(loc: GW.utils.Loc, dir: number, length: number, width = 1) {
         this.x = loc[0];
         this.y = loc[1];
         const d = GW.utils.DIRS[dir];
-        this.x2 = this.x + length * d[0];
-        this.y2 = this.y + length * d[1];
-        this.dir = dir;
         this.length = length;
-        this.doors = doors;
+        this.width = width;
+        if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+            this.x2 = this.x + (width - 1);
+            this.y2 = this.y + (length - 1) * d[1];
+        } else {
+            this.x2 = this.x + (length - 1) * d[0];
+            this.y2 = this.y + (width - 1);
+        }
+        this.dir = dir;
     }
 
     translate(dx: number, dy: number) {
@@ -36,6 +36,7 @@ export class Hall {
         this.y2 += dy;
         if (this.doors) {
             this.doors.forEach((d) => {
+                if (!d) return;
                 if (d[0] < 0 || d[1] < 0) return;
                 d[0] += dx;
                 d[1] += dy;
@@ -82,6 +83,7 @@ export class Room {
 
         if (this.doors) {
             this.doors.forEach((d) => {
+                if (!d) return;
                 if (d[0] < 0 || d[1] < 0) return;
                 d[0] += dx;
                 d[1] += dy;

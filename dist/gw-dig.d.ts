@@ -16,7 +16,7 @@ declare class Hall {
     dir: number;
     width: number;
     doors: utils.Loc[];
-    constructor(loc: utils.Loc, dir: number, length: number, doors: utils.Loc[]);
+    constructor(loc: utils.Loc, dir: number, length: number, width?: number);
     translate(dx: number, dy: number): void;
 }
 declare class Room {
@@ -57,7 +57,6 @@ declare function attachRoom(map: grid.NumGrid, roomGrid: grid.NumGrid, room: Roo
 declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
 declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts?: any): boolean;
 declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid): utils.Loc[];
-declare function attachHallway(grid: grid.NumGrid, room: Room, opts: any): Hall | null;
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
@@ -71,7 +70,6 @@ declare const dig_d_attachRoom: typeof attachRoom;
 declare const dig_d_roomFitsAt: typeof roomFitsAt;
 declare const dig_d_forceRoomAtMapLoc: typeof forceRoomAtMapLoc;
 declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
-declare const dig_d_attachHallway: typeof attachHallway;
 declare const dig_d_isPassable: typeof isPassable;
 declare const dig_d_isObstruction: typeof isObstruction;
 declare const dig_d_removeDiagonalOpenings: typeof removeDiagonalOpenings;
@@ -109,7 +107,6 @@ declare namespace dig_d {
     dig_d_roomFitsAt as roomFitsAt,
     dig_d_forceRoomAtMapLoc as forceRoomAtMapLoc,
     dig_d_chooseRandomDoorSites as chooseRandomDoorSites,
-    dig_d_attachHallway as attachHallway,
     dig_d_isPassable as isPassable,
     dig_d_isObstruction as isObstruction,
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
