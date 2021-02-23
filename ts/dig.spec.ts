@@ -7,74 +7,71 @@ describe('Dig', () => {
     let map: GW.grid.NumGrid;
 
     beforeAll(() => {
-        Dig.install('ROOM', Dig.rectangularRoom, {
-            width: 20,
-            height: 10,
+        Dig.room.install('ROOM', Dig.room.rectangular, {
+            width: '5-20',
+            height: '5-10',
         });
-        Dig.install('CROSS', Dig.crossRoom, {
-            width: 12,
-            height: 7,
+        Dig.room.install('CROSS', Dig.room.cross, {
+            width: '9-12',
+            height: '5-7',
         });
-        Dig.install('SYMMETRICAL_CROSS', Dig.symmetricalCrossRoom, {
+        Dig.room.install('SYMMETRICAL_CROSS', Dig.room.symmetricalCross, {
             width: 8,
             height: 5,
         });
-        Dig.install('SMALL_ROOM', Dig.rectangularRoom, {
-            width: 6,
-            height: 4,
+        Dig.room.install('SMALL_ROOM', Dig.room.rectangular, {
+            width: '4-8',
+            height: '4-8',
         });
-        Dig.install('LARGE_ROOM', Dig.rectangularRoom, {
-            width: 40,
-            height: 20,
+        Dig.room.install('LARGE_ROOM', Dig.room.rectangular, {
+            width: '10-40',
+            height: '10-30',
         });
-        Dig.install('HUGE_ROOM', Dig.rectangularRoom, {
-            width: 76,
-            height: 28,
+        Dig.room.install('HUGE_ROOM', Dig.room.rectangular, {
+            width: '40-76',
+            height: '10-28',
         });
-        Dig.install('SMALL_CIRCLE', Dig.circularRoom, {
-            width: 6,
-            height: 6,
+        Dig.room.install('SMALL_CIRCLE', Dig.room.circular, {
+            radius: '2-5',
         });
-        Dig.install('LARGE_CIRCLE', Dig.circularRoom, {
-            width: 10,
-            height: 10,
+        Dig.room.install('LARGE_CIRCLE', Dig.room.circular, {
+            radius: '5-8',
         });
-        Dig.install('BROGUE_DONUT', Dig.brogueDonut, {
-            width: 10,
-            height: 10,
+        Dig.room.install('BROGUE_DONUT', Dig.room.brogueDonut, {
+            radius: '5-8',
             ringMinWidth: 3,
             holeMinSize: 3,
             holeChance: 50,
         });
-        Dig.install('COMPACT_CAVE', Dig.cavern, {
-            width: 12,
-            height: 8,
+        Dig.room.install('COMPACT_CAVE', Dig.room.cavern, {
+            width: '10-15',
+            height: '6-12',
         });
-        Dig.install('LARGE_NS_CAVE', Dig.cavern, {
-            width: 12,
-            height: 27,
+        Dig.room.install('LARGE_NS_CAVE', Dig.room.cavern, {
+            width: '12-15',
+            height: '20-30',
         });
-        Dig.install('LARGE_EW_CAVE', Dig.cavern, {
-            width: 27,
-            height: 8,
+        Dig.room.install('LARGE_EW_CAVE', Dig.room.cavern, {
+            width: '20-40',
+            height: '6-12',
         });
-        Dig.install('BROGUE_CAVE', Dig.choiceRoom, {
+        Dig.room.install('BROGUE_CAVE', Dig.room.choiceRoom, {
             choices: ['COMPACT_CAVE', 'LARGE_NS_CAVE', 'LARGE_EW_CAVE'],
         });
-        Dig.install('HUGE_CAVE', Dig.cavern, {
+        Dig.room.install('HUGE_CAVE', Dig.room.cavern, {
             width: 77,
             height: 27,
         });
-        Dig.install('BROGUE_ENTRANCE', Dig.entranceRoom, {
+        Dig.room.install('BROGUE_ENTRANCE', Dig.room.entrance, {
             width: 20,
             height: 10,
         });
-        Dig.install('CHUNKY', Dig.chunkyRoom, {
-            width: 10,
-            height: 10,
+        Dig.room.install('CHUNKY', Dig.room.chunkyRoom, {
+            width: '8-15',
+            height: '8-14',
         });
 
-        Dig.install('PROFILE', Dig.choiceRoom, {
+        Dig.room.install('PROFILE', Dig.room.choiceRoom, {
             choices: {
                 ROOM: 10,
                 CROSS: 20,
@@ -87,7 +84,7 @@ describe('Dig', () => {
             },
         });
 
-        Dig.install('FIRST_ROOM', Dig.choiceRoom, {
+        Dig.room.install('FIRST_ROOM', Dig.room.choiceRoom, {
             choices: {
                 ROOM: 5,
                 CROSS: 5,
@@ -154,10 +151,10 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [14, 6],
-            [22, 10], // [-1, -1],
-            [18, 12],
-            [11, 8],
+            [17, 18],
+            [21, 22],
+            [19, 24],
+            [15, 20],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR); // starting door
 
@@ -166,12 +163,12 @@ describe('Dig', () => {
         );
 
         expect(tileAt(37, 22)).toEqual(Dig.DOOR);
+        expect(tileAt(17, 18)).toEqual(Dig.DOOR);
         expect(tileAt(33, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(18, 12)).toEqual(Dig.DOOR);
         expect(tileAt(30, 12)).toEqual(Dig.DOOR);
     });
 
-    test('can chain five rooms', () => {
+    test.only('can chain five rooms', () => {
         Dig.start(map);
 
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
@@ -192,10 +189,10 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [14, 3],
-            [29, 7],
-            [25, 9],
-            [11, 8],
+            [8, 9],
+            [21, 11],
+            [17, 19],
+            [7, 16],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
@@ -203,10 +200,10 @@ describe('Dig', () => {
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(37, 23)).toEqual(Dig.DOOR);
-        expect(tileAt(34, 19)).toEqual(Dig.DOOR);
-        expect(tileAt(27, 15)).toEqual(Dig.DOOR);
-        expect(tileAt(25, 9)).toEqual(Dig.DOOR);
+        expect(tileAt(37, 22)).toEqual(Dig.DOOR);
+        expect(tileAt(34, 18)).toEqual(Dig.DOOR);
+        expect(tileAt(30, 14)).toEqual(Dig.DOOR);
+        expect(tileAt(21, 11)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {

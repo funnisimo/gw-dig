@@ -4,8 +4,10 @@ import { attachHallway } from './hall';
 // import * as MAP from 'gw-map.js';
 
 export * from './gw';
-export * from './room';
-import { diggers as DIGGERS, Room } from './room';
+export * as room from './room';
+import { rooms as ROOM_DIGGERS, Room, Hall } from './room';
+
+export { Room, Hall };
 
 const DIRS = GW.utils.DIRS;
 var SEQ: number[];
@@ -31,7 +33,7 @@ export function dig(
     }
     const diggerId = opts.digger || opts.id || 'SMALL'; // TODO - get random id
 
-    const digger = DIGGERS[diggerId];
+    const digger = ROOM_DIGGERS[diggerId];
     if (!digger) {
         GW.utils.ERROR('Failed to find digger: ' + diggerId);
     }

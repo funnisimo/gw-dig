@@ -37,18 +37,55 @@ interface DigConfig {
     fn: DigFn;
     id: string;
 }
-declare var diggers: Record<string, DigConfig>;
+declare var rooms: Record<string, DigConfig>;
 declare function install(id: string, fn: DigFn, config: any): any;
 declare function checkConfig(config: any, opts: any): any;
 declare function cavern(config: any, grid: grid.NumGrid): any;
 declare function choiceRoom(config: any, grid: grid.NumGrid): any;
-declare function entranceRoom(config: any, grid: grid.NumGrid): any;
-declare function crossRoom(config: any, grid: grid.NumGrid): any;
-declare function symmetricalCrossRoom(config: any, grid: grid.NumGrid): any;
-declare function rectangularRoom(config: any, grid: grid.NumGrid): any;
-declare function circularRoom(config: any, grid: grid.NumGrid): any;
+declare function entrance(config: any, grid: grid.NumGrid): any;
+declare function cross(config: any, grid: grid.NumGrid): any;
+declare function symmetricalCross(config: any, grid: grid.NumGrid): any;
+declare function rectangular(config: any, grid: grid.NumGrid): any;
+declare function circular(config: any, grid: grid.NumGrid): any;
 declare function brogueDonut(config: any, grid: grid.NumGrid): any;
 declare function chunkyRoom(config: any, grid: grid.NumGrid): any;
+
+type room_d_Hall = Hall;
+declare const room_d_Hall: typeof Hall;
+type room_d_Room = Room;
+declare const room_d_Room: typeof Room;
+type room_d_DigFn = DigFn;
+declare const room_d_rooms: typeof rooms;
+declare const room_d_install: typeof install;
+declare const room_d_checkConfig: typeof checkConfig;
+declare const room_d_cavern: typeof cavern;
+declare const room_d_choiceRoom: typeof choiceRoom;
+declare const room_d_entrance: typeof entrance;
+declare const room_d_cross: typeof cross;
+declare const room_d_symmetricalCross: typeof symmetricalCross;
+declare const room_d_rectangular: typeof rectangular;
+declare const room_d_circular: typeof circular;
+declare const room_d_brogueDonut: typeof brogueDonut;
+declare const room_d_chunkyRoom: typeof chunkyRoom;
+declare namespace room_d {
+  export {
+    room_d_Hall as Hall,
+    room_d_Room as Room,
+    room_d_DigFn as DigFn,
+    room_d_rooms as rooms,
+    room_d_install as install,
+    room_d_checkConfig as checkConfig,
+    room_d_cavern as cavern,
+    room_d_choiceRoom as choiceRoom,
+    room_d_entrance as entrance,
+    room_d_cross as cross,
+    room_d_symmetricalCross as symmetricalCross,
+    room_d_rectangular as rectangular,
+    room_d_circular as circular,
+    room_d_brogueDonut as brogueDonut,
+    room_d_chunkyRoom as chunkyRoom,
+  };
+}
 
 declare function start(map: grid.NumGrid): void;
 declare function finish(map: grid.NumGrid): void;
@@ -63,6 +100,10 @@ declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
 declare function finishWalls(grid: grid.NumGrid): void;
 
+type dig_d_Room = Room;
+declare const dig_d_Room: typeof Room;
+type dig_d_Hall = Hall;
+declare const dig_d_Hall: typeof Hall;
 declare const dig_d_start: typeof start;
 declare const dig_d_finish: typeof finish;
 declare const dig_d_dig: typeof dig;
@@ -81,25 +122,10 @@ declare const dig_d_DOOR: typeof DOOR;
 declare const dig_d_WALL: typeof WALL;
 declare const dig_d_LAKE: typeof LAKE;
 declare const dig_d_BRIDGE: typeof BRIDGE;
-type dig_d_Hall = Hall;
-declare const dig_d_Hall: typeof Hall;
-type dig_d_Room = Room;
-declare const dig_d_Room: typeof Room;
-type dig_d_DigFn = DigFn;
-declare const dig_d_diggers: typeof diggers;
-declare const dig_d_install: typeof install;
-declare const dig_d_checkConfig: typeof checkConfig;
-declare const dig_d_cavern: typeof cavern;
-declare const dig_d_choiceRoom: typeof choiceRoom;
-declare const dig_d_entranceRoom: typeof entranceRoom;
-declare const dig_d_crossRoom: typeof crossRoom;
-declare const dig_d_symmetricalCrossRoom: typeof symmetricalCrossRoom;
-declare const dig_d_rectangularRoom: typeof rectangularRoom;
-declare const dig_d_circularRoom: typeof circularRoom;
-declare const dig_d_brogueDonut: typeof brogueDonut;
-declare const dig_d_chunkyRoom: typeof chunkyRoom;
 declare namespace dig_d {
   export {
+    dig_d_Room as Room,
+    dig_d_Hall as Hall,
     dig_d_start as start,
     dig_d_finish as finish,
     dig_d_dig as dig,
@@ -112,28 +138,14 @@ declare namespace dig_d {
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,
+    room_d as room,
     dig_d_NOTHING as NOTHING,
     dig_d_FLOOR as FLOOR,
     dig_d_DOOR as DOOR,
     dig_d_WALL as WALL,
     dig_d_LAKE as LAKE,
     dig_d_BRIDGE as BRIDGE,
-    dig_d_Hall as Hall,
-    dig_d_Room as Room,
-    dig_d_DigFn as DigFn,
-    dig_d_diggers as diggers,
-    dig_d_install as install,
-    dig_d_checkConfig as checkConfig,
-    dig_d_cavern as cavern,
-    dig_d_choiceRoom as choiceRoom,
-    dig_d_entranceRoom as entranceRoom,
-    dig_d_crossRoom as crossRoom,
-    dig_d_symmetricalCrossRoom as symmetricalCrossRoom,
-    dig_d_rectangularRoom as rectangularRoom,
-    dig_d_circularRoom as circularRoom,
-    dig_d_brogueDonut as brogueDonut,
-    dig_d_chunkyRoom as chunkyRoom,
   };
 }
 
-export { dig_d as dig, diggers };
+export { dig_d as dig };

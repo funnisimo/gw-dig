@@ -81,60 +81,49 @@ class Room {
         }
     }
 }
-var diggers = {};
+var rooms = {};
 function install(id, fn, config) {
     // @ts-ignore
     config = fn(config || {}); // call to have function setup the config
     config.fn = fn;
     config.id = id;
-    diggers[id] = config;
+    rooms[id] = config;
     return config;
 }
 function checkConfig(config, opts) {
     config = config || {};
     opts = opts || {};
-    if (!config.width || !config.height)
-        GW.utils.ERROR('All diggers require config to include width and height.');
     Object.entries(opts).forEach(([key, expect]) => {
-        const have = config[key];
+        let have = config[key];
+        if (key === 'tile') {
+            if (have === undefined) {
+                config[key] = expect;
+            }
+            return;
+        }
         if (expect === true) {
-            // needs to be a number > 0
-            if (typeof have !== 'number') {
-                GW.utils.ERROR('Invalid configuration for digger: ' +
-                    key +
-                    ' expected number received ' +
-                    typeof have);
+            // needs to be present
+            if (!have) {
+                GW.utils.WARN('Missing required config for digger: ' + key);
+                return;
             }
         }
         else if (typeof expect === 'number') {
             // needs to be a number, this is the default
-            const have = config[key];
-            if (typeof have !== 'number') {
-                config[key] = expect; // provide default
-            }
+            have = have || expect;
         }
         else if (Array.isArray(expect)) {
-            // needs to be an array with this size, these are the defaults
-            if (typeof have === 'number') {
-                config[key] = new Array(expect.length).fill(have);
-            }
-            else if (!Array.isArray(have)) {
-                GW.utils.WARN('Received unexpected config for digger : ' +
-                    key +
-                    ' expected array, received ' +
-                    typeof have +
-                    ', using defaults.');
-                config[key] = expect.slice();
-            }
-            else if (expect.length > have.length) {
-                for (let i = have.length; i < expect.length; ++i) {
-                    have[i] = expect[i];
-                }
-            }
+            have = have || expect;
         }
         else {
             GW.utils.WARN('Unexpected digger configuration parameter: ', key, '' + expect);
+            return;
         }
+        const range = GW.range.make(have);
+        if (!range) {
+            GW.utils.ERROR('Invalid configuration for digger: ' + key);
+        }
+        config[key] = range;
     });
     return config;
 }
@@ -144,18 +133,21 @@ function cavern(config, grid) {
         return config;
     let destX, destY;
     let blobGrid;
+    const width = config.width.value();
+    const height = config.height.value();
+    const tile = config.tile || FLOOR;
     blobGrid = GW.grid.alloc(grid.width, grid.height, 0);
-    const minWidth = Math.floor(0.5 * config.width); // 6
-    const maxWidth = config.width;
-    const minHeight = Math.floor(0.5 * config.height); // 4
-    const maxHeight = config.height;
+    const minWidth = Math.floor(0.5 * width); // 6
+    const maxWidth = width;
+    const minHeight = Math.floor(0.5 * height); // 4
+    const maxHeight = height;
     grid.fill(0);
     const bounds = blobGrid.fillBlob(5, minWidth, minHeight, maxWidth, maxHeight, 55, 'ffffffttt', 'ffffttttt');
     // Position the new cave in the middle of the grid...
     destX = Math.floor((grid.width - bounds.width) / 2);
     destY = Math.floor((grid.height - bounds.height) / 2);
     // ...and copy it to the master grid.
-    GW.grid.offsetZip(grid, blobGrid, destX - bounds.x, destY - bounds.y, FLOOR);
+    GW.grid.offsetZip(grid, blobGrid, destX - bounds.x, destY - bounds.y, tile);
     GW.grid.free(blobGrid);
     return new Room(config.id, destX, destY, bounds.width, bounds.height);
 }
@@ -163,29 +155,21 @@ function choiceRoom(config, grid) {
     config = config || {};
     let choices;
     if (Array.isArray(config.choices)) {
-        choices = config.choices;
+        choices = GW.random.item.bind(GW.random, config.choices);
     }
     else if (typeof config.choices == 'object') {
-        choices = Object.keys(config.choices);
+        choices = GW.random.weighted.bind(GW.random, config.choices);
     }
     else {
-        GW.utils.ERROR('Expected choices to be either array of choices or map { digger: weight }');
-    }
-    for (let choice of choices) {
-        if (!diggers[choice]) {
-            GW.utils.ERROR('Missing digger choice: ' + choice);
-        }
+        return GW.utils.ERROR('Expected choices to be either array of choices or map { digger: weight }');
     }
     if (!grid)
         return config;
-    let id;
-    if (Array.isArray(config.choices)) {
-        id = GW.random.item(config.choices);
+    let id = choices();
+    const digger = rooms[id];
+    if (!digger) {
+        return GW.utils.ERROR('Missing digger choice: ' + id);
     }
-    else {
-        id = GW.random.weighted(config.choices);
-    }
-    const digger = diggers[id];
     let digConfig = digger;
     if (config.opts) {
         digConfig = Object.assign({}, digger, config.opts);
@@ -194,133 +178,141 @@ function choiceRoom(config, grid) {
     return digger.fn(digConfig, grid);
 }
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
-function entranceRoom(config, grid) {
+function entrance(config, grid) {
     config = checkConfig(config, { width: 20, height: 10 });
     if (!grid)
         return config;
-    const roomWidth = Math.floor(0.4 * config.width); // 8
-    const roomHeight = config.height;
-    const roomWidth2 = config.width;
-    const roomHeight2 = Math.floor(0.5 * config.height); // 5
+    const width = config.width.value();
+    const height = config.height.value();
+    const tile = config.tile || FLOOR;
+    const roomWidth = Math.floor(0.4 * width); // 8
+    const roomHeight = height;
+    const roomWidth2 = width;
+    const roomHeight2 = Math.floor(0.5 * height); // 5
     // ALWAYS start at bottom+center of map
     const roomX = Math.floor(grid.width / 2 - roomWidth / 2 - 1);
     const roomY = grid.height - roomHeight - 2;
     const roomX2 = Math.floor(grid.width / 2 - roomWidth2 / 2 - 1);
     const roomY2 = grid.height - roomHeight2 - 2;
     grid.fill(0);
-    grid.fillRect(roomX, roomY, roomWidth, roomHeight, FLOOR);
-    grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, FLOOR);
+    grid.fillRect(roomX, roomY, roomWidth, roomHeight, tile);
+    grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, tile);
     return new Room(config.id, Math.min(roomX, roomX2), Math.min(roomY, roomY2), Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
 }
-function crossRoom(config, grid) {
+function cross(config, grid) {
     config = checkConfig(config, { width: 12, height: 20 });
     if (!grid)
         return config;
-    const roomWidth = Math.max(2, Math.floor((config.width * GW.random.range(15, 60)) / 100)); // [3,12]
-    const roomWidth2 = Math.max(2, Math.floor((config.width * GW.random.range(20, 100)) / 100)); // [4,20]
-    const roomHeight = Math.max(2, Math.floor((config.height * GW.random.range(50, 100)) / 100)); // [3,7]
-    const roomHeight2 = Math.max(2, Math.floor((config.height * GW.random.range(25, 75)) / 100)); // [2,5]
-    const roomX = GW.random.range(Math.max(0, Math.floor(grid.width / 2) - (roomWidth - 1)), Math.min(grid.width, Math.floor(grid.width / 2)));
-    const roomX2 = roomX +
-        Math.floor(roomWidth / 2) +
-        GW.random.range(0, 2) +
-        GW.random.range(0, 2) -
-        3 -
-        Math.floor(roomWidth2 / 2);
-    const roomY = Math.floor(grid.height / 2 - roomHeight);
-    const roomY2 = Math.floor(grid.height / 2 -
-        roomHeight2 -
-        (GW.random.range(0, 2) + GW.random.range(0, 1)));
+    const width = config.width.value();
+    const height = config.height.value();
+    const tile = config.tile || FLOOR;
+    const roomWidth = width;
+    const roomWidth2 = Math.max(3, Math.floor((width * GW.random.range(25, 75)) / 100)); // [4,20]
+    const roomHeight = Math.max(3, Math.floor((height * GW.random.range(25, 75)) / 100)); // [2,5]
+    const roomHeight2 = height;
+    const roomX = Math.floor((grid.width - roomWidth) / 2);
+    const roomX2 = roomX + GW.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
+    const roomY2 = Math.floor((grid.height - roomHeight2) / 2);
+    const roomY = roomY2 + GW.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
     grid.fill(0);
-    grid.fillRect(roomX - 5, roomY + 5, roomWidth, roomHeight, FLOOR);
-    grid.fillRect(roomX2 - 5, roomY2 + 5, roomWidth2, roomHeight2, FLOOR);
-    return new Room(config.id, Math.min(roomX, roomX2) - 5, Math.min(roomY, roomY2) - 5, Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
+    grid.fillRect(roomX, roomY, roomWidth, roomHeight, tile);
+    grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, tile);
+    return new Room(config.id, roomX, roomY2, Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
 }
-function symmetricalCrossRoom(config, grid) {
-    config = checkConfig(config, { width: 8, height: 5 });
+function symmetricalCross(config, grid) {
+    config = checkConfig(config, { width: 7, height: 7 });
     if (!grid)
         return config;
-    let majorWidth = Math.floor((config.width * GW.random.range(50, 100)) / 100); // [4,8]
-    let majorHeight = Math.floor((config.height * GW.random.range(75, 100)) / 100); // [4,5]
-    let minorWidth = Math.max(2, Math.floor((config.width * GW.random.range(25, 50)) / 100)); // [2,4]
-    if (majorHeight % 2 == 0 && minorWidth > 2) {
+    const width = config.width.value();
+    const height = config.height.value();
+    const tile = config.tile || FLOOR;
+    let minorWidth = Math.max(3, Math.floor((width * GW.random.range(25, 50)) / 100)); // [2,4]
+    if (height % 2 == 0 && minorWidth > 2) {
         minorWidth -= 1;
     }
-    let minorHeight = Math.max(2, Math.floor((config.height * GW.random.range(25, 50)) / 100)); // [2,3]?
-    if (majorWidth % 2 == 0 && minorHeight > 2) {
-        minorHeight -= 1;
-    }
+    let minorHeight = Math.max(3, Math.floor((height * GW.random.range(25, 50)) / 100)); // [2,3]?
+    // if (width % 2 == 0 && minorHeight > 2) {
+    //     minorHeight -= 1;
+    // }
     grid.fill(0);
-    const x = Math.floor((grid.width - majorWidth) / 2);
+    const x = Math.floor((grid.width - width) / 2);
     const y = Math.floor((grid.height - minorHeight) / 2);
-    grid.fillRect(x, y, majorWidth, minorHeight, FLOOR);
+    grid.fillRect(x, y, width, minorHeight, tile);
     const x2 = Math.floor((grid.width - minorWidth) / 2);
-    const y2 = Math.floor((grid.height - majorHeight) / 2);
-    grid.fillRect(x2, y2, minorWidth, majorHeight, FLOOR);
-    return new Room(config.id, Math.min(x, x2), Math.min(y, y2), Math.max(majorWidth, minorWidth), Math.max(majorHeight, minorHeight));
+    const y2 = Math.floor((grid.height - height) / 2);
+    grid.fillRect(x2, y2, minorWidth, height, tile);
+    return new Room(config.id, Math.min(x, x2), Math.min(y, y2), Math.max(width, minorWidth), Math.max(height, minorHeight));
 }
-function rectangularRoom(config, grid) {
-    config = checkConfig(config, { width: 6, height: 4, minPct: 50 });
+function rectangular(config, grid) {
+    config = checkConfig(config, { width: [3, 6], height: [3, 6] });
     if (!grid)
         return config;
-    const width = Math.floor((config.width * GW.random.range(config.minPct, 100)) / 100); // [3,6]
-    const height = Math.floor((config.height * GW.random.range(config.minPct, 100)) / 100); // [2,4]
+    const width = config.width.value();
+    const height = config.height.value();
+    const tile = config.tile || FLOOR;
     grid.fill(0);
     const x = Math.floor((grid.width - width) / 2);
     const y = Math.floor((grid.height - height) / 2);
-    grid.fillRect(x, y, width, height, FLOOR);
+    grid.fillRect(x, y, width, height, tile);
     return new Room(config.id, x, y, width, height);
 }
-function circularRoom(config, grid) {
-    config = checkConfig(config, { width: 6, height: 6 });
+function circular(config, grid) {
+    config = checkConfig(config, { radius: [3, 4] });
     if (!grid)
         return config;
-    const radius = Math.floor(((Math.min(config.width, config.height) - 1) *
-        GW.random.range(75, 100)) /
-        200); // [3,4]
+    const radius = config.radius.value();
+    const tile = config.tile || FLOOR;
     grid.fill(0);
     const x = Math.floor(grid.width / 2);
     const y = Math.floor(grid.height / 2);
     if (radius > 1) {
-        grid.fillCircle(x, y, radius, FLOOR);
+        grid.fillCircle(x, y, radius, tile);
     }
     return new Room(config.id, x, y, radius * 2, radius * 2);
 }
 function brogueDonut(config, grid) {
     config = checkConfig(config, {
-        width: 10,
-        height: 10,
-        altChance: 5,
+        radius: [5, 10],
         ringMinWidth: 3,
         holeMinSize: 3,
         holeChance: 50,
     });
     if (!grid)
         return config;
-    const radius = Math.floor((Math.min(config.width, config.height) * GW.random.range(75, 100)) / 100); // [5,10]
+    const radius = config.radius.value();
+    const ringMinWidth = config.ringMinWidth.value();
+    const holeMinSize = config.holeMinSize.value();
+    const tile = config.tile || FLOOR;
     grid.fill(0);
     const x = Math.floor(grid.width / 2);
     const y = Math.floor(grid.height / 2);
-    grid.fillCircle(x, y, radius, FLOOR);
-    if (radius > config.ringMinWidth + config.holeMinSize &&
-        GW.random.chance(config.holeChance)) {
-        grid.fillCircle(x, y, GW.random.range(config.holeMinSize, radius - config.holeMinSize), 0);
+    grid.fillCircle(x, y, radius, tile);
+    if (radius > ringMinWidth + holeMinSize &&
+        GW.random.chance(config.holeChance.value())) {
+        grid.fillCircle(x, y, GW.random.range(holeMinSize, radius - holeMinSize), 0);
     }
-    return new Room(config.id, x, y, radius * 2, radius * 2);
+    return new Room(config.id, x - radius, y - radius, radius * 2 + 1, radius * 2 + 1);
 }
 function chunkyRoom(config, grid) {
-    config = checkConfig(config, { count: 8 });
+    config = checkConfig(config, {
+        count: [2, 12],
+        width: [5, 20],
+        height: [5, 20],
+    });
     if (!grid)
         return config;
     let i, x, y;
     let minX, maxX, minY, maxY;
-    let chunkCount = Math.floor((config.count * GW.random.range(25, 100)) / 100); // [2,8]
-    minX = Math.floor(grid.width / 2) - Math.floor(config.width / 2);
-    maxX = Math.floor(grid.width / 2) + Math.floor(config.width / 2);
-    minY = Math.floor(grid.height / 2) - Math.floor(config.height / 2);
-    maxY = Math.floor(grid.height / 2) + Math.floor(config.height / 2);
+    let chunkCount = config.count.value();
+    const width = config.width.value();
+    const height = config.height.value();
+    const tile = config.tile || FLOOR;
+    minX = Math.floor(grid.width / 2) - Math.floor(width / 2);
+    maxX = Math.floor(grid.width / 2) + Math.floor(width / 2);
+    minY = Math.floor(grid.height / 2) - Math.floor(height / 2);
+    maxY = Math.floor(grid.height / 2) + Math.floor(height / 2);
     grid.fill(0);
-    grid.fillCircle(Math.floor(grid.width / 2), Math.floor(grid.height / 2), 2, FLOOR);
+    grid.fillCircle(Math.floor(grid.width / 2), Math.floor(grid.height / 2), 2, tile);
     for (i = 0; i < chunkCount;) {
         x = GW.random.range(minX, maxX);
         y = GW.random.range(minY, maxY);
@@ -335,14 +327,33 @@ function chunkyRoom(config, grid) {
                 continue;
             if (y + 2 > maxY)
                 continue;
-            grid.fillCircle(x, y, 2, FLOOR);
+            grid.fillCircle(x, y, 2, tile);
             i++;
             //            hiliteGrid(grid, /* Color. */green, 50);
             //            temporaryMessage("Added a chunk:", true);
         }
     }
-    return new Room(config.id, minX, minY, maxX - minX + 1, maxY - minY + 1);
+    const bounds = grid.valueBounds(tile);
+    return new Room(config.id, bounds.x, bounds.y, bounds.width, bounds.height);
 }
+
+var room = {
+    __proto__: null,
+    Hall: Hall,
+    Room: Room,
+    rooms: rooms,
+    install: install,
+    checkConfig: checkConfig,
+    cavern: cavern,
+    choiceRoom: choiceRoom,
+    entrance: entrance,
+    cross: cross,
+    symmetricalCross: symmetricalCross,
+    rectangular: rectangular,
+    circular: circular,
+    brogueDonut: brogueDonut,
+    chunkyRoom: chunkyRoom
+};
 
 const DIRS = GW.utils.DIRS;
 function pickHallLength(dir, opts) {
@@ -370,16 +381,15 @@ function pickHallDirection(grid, room, opts) {
         for (let i = 0; i < 4; i++) {
             dir = dirs[i];
             const length = pickHallLength(dir, opts)[1]; // biggest measurement
-            const dx = doors[dir][0] + Math.floor(DIRS[dir][0] * length);
-            const dy = doors[dir][1] + Math.floor(DIRS[dir][1] * length);
-            if (doors[dir][0] != -1 &&
-                doors[dir][1] != -1 &&
-                grid.hasXY(dx, dy)) {
-                break; // That's our direction!
+            const door = doors[dir];
+            if (door && door[0] != -1 && door[1] != -1) {
+                const dx = door[0] + Math.floor(DIRS[dir][0] * length);
+                const dy = door[1] + Math.floor(DIRS[dir][1] * length);
+                if (grid.hasXY(dx, dy)) {
+                    break; // That's our direction!
+                }
             }
-            else {
-                dir = GW.utils.NO_DIRECTION;
-            }
+            dir = GW.utils.NO_DIRECTION;
         }
     }
     return dir;
@@ -389,23 +399,19 @@ function pickHallExits(grid, x, y, dir, opts) {
     const obliqueChance = GW.utils.firstOpt('obliqueChance', opts, 15);
     const allowObliqueHallwayExit = GW.random.chance(obliqueChance);
     const hallDoors = [
-        [-1, -1],
-        [-1, -1],
-        [-1, -1],
-        [-1, -1],
+    // [-1, -1],
+    // [-1, -1],
+    // [-1, -1],
+    // [-1, -1],
     ];
     for (let dir2 = 0; dir2 < 4; dir2++) {
         newX = x + DIRS[dir2][0];
         newY = y + DIRS[dir2][1];
         if ((dir2 != dir && !allowObliqueHallwayExit) ||
             !grid.hasXY(newX, newY) ||
-            grid[newX][newY]) {
-            hallDoors[dir2][0] = -1;
-            hallDoors[dir2][1] = -1;
-        }
+            grid[newX][newY]) ;
         else {
-            hallDoors[dir2][0] = newX;
-            hallDoors[dir2][1] = newY;
+            hallDoors[dir2] = [newX, newY];
         }
     }
     return hallDoors;
@@ -430,12 +436,7 @@ function digHall(grid, dir, length, room, opts) {
 function digHallTwo(grid, dir, length, room, opts) {
     const door = room.doors[dir];
     const tile = opts.tile || FLOOR;
-    const hallDoors = [
-        [-1, -1],
-        [-1, -1],
-        [-1, -1],
-        [-1, -1],
-    ];
+    const hallDoors = [];
     let x0, y0;
     let hall;
     if (dir === GW.utils.UP) {
@@ -520,7 +521,7 @@ function dig(map, opts = {}) {
         opts = { digger: opts };
     }
     const diggerId = opts.digger || opts.id || 'SMALL'; // TODO - get random id
-    const digger = diggers[diggerId];
+    const digger = rooms[diggerId];
     if (!digger) {
         GW.utils.ERROR('Failed to find digger: ' + diggerId);
     }
@@ -829,6 +830,9 @@ function finishWalls(grid) {
 
 var dig$1 = {
     __proto__: null,
+    room: room,
+    Room: Room,
+    Hall: Hall,
     start: start,
     finish: finish,
     dig: dig,
@@ -846,22 +850,7 @@ var dig$1 = {
     DOOR: DOOR,
     WALL: WALL,
     LAKE: LAKE,
-    BRIDGE: BRIDGE,
-    Hall: Hall,
-    Room: Room,
-    diggers: diggers,
-    install: install,
-    checkConfig: checkConfig,
-    cavern: cavern,
-    choiceRoom: choiceRoom,
-    entranceRoom: entranceRoom,
-    crossRoom: crossRoom,
-    symmetricalCrossRoom: symmetricalCrossRoom,
-    rectangularRoom: rectangularRoom,
-    circularRoom: circularRoom,
-    brogueDonut: brogueDonut,
-    chunkyRoom: chunkyRoom
+    BRIDGE: BRIDGE
 };
 
 exports.dig = dig$1;
-exports.diggers = diggers;
