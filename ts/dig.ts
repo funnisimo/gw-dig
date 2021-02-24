@@ -1,6 +1,6 @@
 import * as GW from 'gw-utils';
 import * as CONST from './gw';
-import { attachHallway } from './hall';
+import * as HALL from './hall';
 // import * as MAP from 'gw-map.js';
 
 export * from './gw';
@@ -76,7 +76,7 @@ export function dig(
 
         room.doors = chooseRandomDoorSites(roomGrid);
         if (attachHall) {
-            room.hall = attachHallway(roomGrid, room, config);
+            room.hall = HALL.dig(roomGrid, room, config);
         }
 
         if (locs) {

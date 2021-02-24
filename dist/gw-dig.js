@@ -356,20 +356,12 @@
     };
 
     const DIRS = GW.utils.DIRS;
-    function pickHallLength(dir, opts) {
-        const horizontalLength = GW.utils.firstOpt('horizontalHallLength', opts, [
-            9,
-            15,
-        ]);
-        const verticalLength = GW.utils.firstOpt('verticalHallLength', opts, [
-            2,
-            9,
-        ]);
+    function pickLengthRange(dir, opts) {
         if (dir == GW.utils.UP || dir == GW.utils.DOWN) {
-            return verticalLength;
+            return GW.range.make(opts.yLength || opts.length || [2, 9]);
         }
         else {
-            return horizontalLength;
+            return GW.range.make(opts.xLength || opts.length || [9, 15]);
         }
     }
     function pickHallDirection(grid, room, opts) {
@@ -380,7 +372,7 @@
             const dirs = GW.random.sequence(4);
             for (let i = 0; i < 4; i++) {
                 dir = dirs[i];
-                const length = pickHallLength(dir, opts)[1]; // biggest measurement
+                const length = pickLengthRange(dir, opts).hi; // biggest measurement
                 const door = doors[dir];
                 if (door && door[0] != -1 && door[1] != -1) {
                     const dx = door[0] + Math.floor(DIRS[dir][0] * length);
@@ -416,7 +408,14 @@
         }
         return hallDoors;
     }
-    function digHall(grid, dir, length, room, opts) {
+    function dig(grid, room, opts) {
+        opts = opts || {};
+        const dir = pickHallDirection(grid, room, opts);
+        if (dir === GW.utils.NO_DIRECTION)
+            return null;
+        console.log('dir', dir);
+        const length = pickLengthRange(dir, opts).value();
+        console.log('length', length);
         const door = room.doors[dir];
         const DIR = DIRS[dir];
         let x = door[0];
@@ -433,76 +432,6 @@
         hall.doors = pickHallExits(grid, x, y, dir, opts);
         return hall;
     }
-    function digHallTwo(grid, dir, length, room, opts) {
-        const door = room.doors[dir];
-        const tile = opts.tile || FLOOR;
-        const hallDoors = [];
-        let x0, y0;
-        let hall;
-        if (dir === GW.utils.UP) {
-            x0 = Math.max(door[0] - 1, room.x);
-            y0 = door[1] - length + 1;
-            for (let x = x0; x < x0 + 2; ++x) {
-                for (let y = y0; y < y0 + length; ++y) {
-                    grid[x][y] = tile;
-                }
-            }
-            hallDoors[dir] = [x0, y0 - 1];
-            hall = new Hall([x0, door[1]], dir, length, 2);
-        }
-        else if (dir === GW.utils.DOWN) {
-            x0 = Math.max(door[0] - 1, room.x);
-            y0 = door[1] + length - 1;
-            for (let x = x0; x < x0 + 2; ++x) {
-                for (let y = y0; y > y0 - length; --y) {
-                    grid[x][y] = tile;
-                }
-            }
-            hallDoors[dir] = [x0, y0 + 1];
-            hall = new Hall([x0, door[1]], dir, length, 2);
-        }
-        else if (dir === GW.utils.LEFT) {
-            x0 = door[0] - length + 1;
-            y0 = Math.max(door[1] - 1, room.y);
-            for (let x = x0; x < x0 + length; ++x) {
-                for (let y = y0; y < y0 + 2; ++y) {
-                    grid[x][y] = tile;
-                }
-            }
-            hallDoors[dir] = [x0 - 1, y0];
-            hall = new Hall([door[0], y0], dir, length, 2);
-        }
-        else {
-            //if (dir === GW.utils.RIGHT) {
-            x0 = door[0] + length - 1;
-            y0 = Math.max(door[1] - 1, room.y);
-            for (let x = x0; x > x0 - length; --x) {
-                for (let y = y0; y < y0 + 2; ++y) {
-                    grid[x][y] = tile;
-                }
-            }
-            hallDoors[dir] = [x0 + 1, y0];
-            hall = new Hall([door[0], y0], dir, length, 2);
-        }
-        hall.doors = hallDoors;
-        hall.width = 2;
-        return hall;
-    }
-    function attachHallway(grid, room, opts) {
-        opts = opts || {};
-        const dir = pickHallDirection(grid, room, opts);
-        if (dir === GW.utils.NO_DIRECTION)
-            return null;
-        console.log('dir', dir);
-        const length = GW.random.range(...pickHallLength(dir, opts));
-        console.log('length', length);
-        const width = opts.width || 1;
-        console.log('width', width);
-        if (width > 1) {
-            return digHallTwo(grid, dir, length, room, opts);
-        }
-        return digHall(grid, dir, length, room, opts);
-    }
 
     const DIRS$1 = GW.utils.DIRS;
     var SEQ;
@@ -516,7 +445,7 @@
         finishDoors(map);
     }
     // Returns an array of door sites if successful
-    function dig(map, opts = {}) {
+    function dig$1(map, opts = {}) {
         if (typeof opts === 'string') {
             opts = { digger: opts };
         }
@@ -558,7 +487,7 @@
             room = digger.fn(config, roomGrid);
             room.doors = chooseRandomDoorSites(roomGrid);
             if (attachHall) {
-                room.hall = attachHallway(roomGrid, room, config);
+                room.hall = dig(roomGrid, room, config);
             }
             if (locs) {
                 // try the doors first
@@ -828,14 +757,14 @@
         });
     }
 
-    var dig$1 = {
+    var dig$2 = {
         __proto__: null,
         room: room,
         Room: Room,
         Hall: Hall,
         start: start,
         finish: finish,
-        dig: dig,
+        dig: dig$1,
         attachRoom: attachRoom,
         roomFitsAt: roomFitsAt,
         forceRoomAtMapLoc: forceRoomAtMapLoc,
@@ -853,7 +782,7 @@
         BRIDGE: BRIDGE
     };
 
-    exports.dig = dig$1;
+    exports.dig = dig$2;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
