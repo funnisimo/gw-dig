@@ -39,16 +39,16 @@ interface RoomData extends RoomConfig {
 }
 declare var rooms: Record<string, RoomData>;
 declare function install(id: string, fn: RoomFn, config?: RoomConfig): RoomData;
-declare function checkConfig(config: RoomConfig, opts: any): RoomConfig;
-declare function cavern(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function checkConfig(config: RoomConfig, expected: any): RoomConfig;
+declare function cavern(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
 declare function choiceRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig | null;
-declare function entrance(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
-declare function cross(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
-declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
-declare function rectangular(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
-declare function circular(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
-declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
-declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function entrance(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function cross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function rectangular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function circular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
 
 type room_d_Hall = Hall;
 declare const room_d_Hall: typeof Hall;

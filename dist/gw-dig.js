@@ -91,10 +91,10 @@
         return data;
     }
     install('DEFAULT', rectangular);
-    function checkConfig(config, opts) {
+    function checkConfig(config, expected) {
         config = config || {};
-        opts = opts || {};
-        Object.entries(opts).forEach(([key, expect]) => {
+        expected = expected || {};
+        Object.entries(expected).forEach(([key, expect]) => {
             let have = config[key];
             if (key === 'tile') {
                 if (have === undefined) {
@@ -105,8 +105,7 @@
             if (expect === true) {
                 // needs to be present
                 if (!have) {
-                    GW.utils.WARN('Missing required config for digger: ' + key);
-                    return;
+                    return GW.utils.ERROR('Missing required config for digger: ' + key);
                 }
             }
             else if (typeof expect === 'number') {
@@ -117,13 +116,10 @@
                 have = have || expect;
             }
             else {
-                GW.utils.WARN('Unexpected digger configuration parameter: ', key, '' + expect);
-                return;
+                // just set the value
+                have = have || expect;
             }
-            const range = GW.range.make(have);
-            if (!range) {
-                GW.utils.ERROR('Invalid configuration for digger: ' + key);
-            }
+            const range = GW.range.make(have); // throws if invalid
             config[key] = range;
         });
         return config;
@@ -162,8 +158,7 @@
             choices = GW.random.weighted.bind(GW.random, config.choices);
         }
         else {
-            GW.utils.ERROR('Expected choices to be either array of choices or map { digger: weight }');
-            return null;
+            GW.utils.ERROR('Expected choices to be either array of room ids or map - ex: { ROOM_ID: weight }');
         }
         if (!grid)
             return config;
@@ -171,7 +166,6 @@
         const digger = rooms[id];
         if (!digger) {
             GW.utils.ERROR('Missing digger choice: ' + id);
-            return null;
         }
         let digConfig = digger;
         if (config.opts) {
@@ -230,9 +224,9 @@
         const height = config.height.value();
         const tile = config.tile || FLOOR;
         let minorWidth = Math.max(3, Math.floor((width * GW.random.range(25, 50)) / 100)); // [2,4]
-        if (height % 2 == 0 && minorWidth > 2) {
-            minorWidth -= 1;
-        }
+        // if (height % 2 == 0 && minorWidth > 2) {
+        //     minorWidth -= 1;
+        // }
         let minorHeight = Math.max(3, Math.floor((height * GW.random.range(25, 50)) / 100)); // [2,3]?
         // if (width % 2 == 0 && minorHeight > 2) {
         //     minorHeight -= 1;
@@ -271,7 +265,7 @@
         if (radius > 1) {
             grid.fillCircle(x, y, radius, tile);
         }
-        return new Room(config.id, x, y, radius * 2, radius * 2);
+        return new Room(config.id, x - radius, y - radius, radius * 2 + 1, radius * 2 + 1);
     }
     function brogueDonut(config, grid) {
         config = checkConfig(config, {
