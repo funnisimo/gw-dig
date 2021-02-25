@@ -96,23 +96,38 @@ export class Room {
     }
 }
 
-export type DigFn = (config: any, grid: GW.grid.NumGrid) => Room;
-interface DigConfig {
-    fn: DigFn;
+export interface RoomConfig {
+    fn?: RoomFn;
+    door?: boolean | number;
+    doorChance?: number;
+    tile?: number;
+    [x: string]: any;
+}
+
+export type RoomFn = (
+    config: RoomConfig,
+    grid: GW.grid.NumGrid
+) => Room | RoomConfig | null;
+
+export interface RoomData extends RoomConfig {
+    fn: RoomFn;
     id: string;
 }
-export var rooms: Record<string, DigConfig> = {};
 
-export function install(id: string, fn: DigFn, config: any) {
+export var rooms: Record<string, RoomData> = {};
+
+export function install(id: string, fn: RoomFn, config?: RoomConfig) {
     // @ts-ignore
-    config = fn(config || {}); // call to have function setup the config
-    config.fn = fn;
-    config.id = id;
-    rooms[id] = config;
-    return config;
+    const data: RoomData = fn(config || {}); // call to have function setup the config
+    data.fn = fn;
+    data.id = id;
+    rooms[id] = data;
+    return data;
 }
 
-export function checkConfig(config: any, opts: any) {
+install('DEFAULT', rectangular);
+
+export function checkConfig(config: RoomConfig, opts: any) {
     config = config || {};
     opts = opts || {};
 
@@ -121,7 +136,7 @@ export function checkConfig(config: any, opts: any) {
 
         if (key === 'tile') {
             if (have === undefined) {
-                config[key] = expect;
+                config[key] = expect as number;
             }
             return;
         }
@@ -155,7 +170,7 @@ export function checkConfig(config: any, opts: any) {
     return config;
 }
 
-export function cavern(config: any, grid: GW.grid.NumGrid) {
+export function cavern(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 12, height: 8 });
     if (!grid) return config;
 
@@ -195,7 +210,10 @@ export function cavern(config: any, grid: GW.grid.NumGrid) {
     return new Room(config.id, destX, destY, bounds.width, bounds.height);
 }
 
-export function choiceRoom(config: any, grid: GW.grid.NumGrid) {
+export function choiceRoom(
+    config: RoomConfig,
+    grid: GW.grid.NumGrid
+): Room | RoomConfig | null {
     config = config || {};
     let choices;
     if (Array.isArray(config.choices)) {
@@ -203,9 +221,10 @@ export function choiceRoom(config: any, grid: GW.grid.NumGrid) {
     } else if (typeof config.choices == 'object') {
         choices = GW.random.weighted.bind(GW.random, config.choices);
     } else {
-        return GW.utils.ERROR(
+        GW.utils.ERROR(
             'Expected choices to be either array of choices or map { digger: weight }'
         );
+        return null;
     }
 
     if (!grid) return config;
@@ -213,7 +232,8 @@ export function choiceRoom(config: any, grid: GW.grid.NumGrid) {
     let id = choices();
     const digger = rooms[id];
     if (!digger) {
-        return GW.utils.ERROR('Missing digger choice: ' + id);
+        GW.utils.ERROR('Missing digger choice: ' + id);
+        return null;
     }
 
     let digConfig = digger;
@@ -225,7 +245,7 @@ export function choiceRoom(config: any, grid: GW.grid.NumGrid) {
 }
 
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
-export function entrance(config: any, grid: GW.grid.NumGrid) {
+export function entrance(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 20, height: 10 });
     if (!grid) return config;
 
@@ -256,7 +276,7 @@ export function entrance(config: any, grid: GW.grid.NumGrid) {
     );
 }
 
-export function cross(config: any, grid: GW.grid.NumGrid) {
+export function cross(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 12, height: 20 });
     if (!grid) return config;
 
@@ -296,7 +316,7 @@ export function cross(config: any, grid: GW.grid.NumGrid) {
     );
 }
 
-export function symmetricalCross(config: any, grid: GW.grid.NumGrid) {
+export function symmetricalCross(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 7, height: 7 });
     if (!grid) return config;
 
@@ -335,7 +355,7 @@ export function symmetricalCross(config: any, grid: GW.grid.NumGrid) {
     );
 }
 
-export function rectangular(config: any, grid: GW.grid.NumGrid) {
+export function rectangular(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: [3, 6], height: [3, 6] });
     if (!grid) return config;
 
@@ -350,7 +370,7 @@ export function rectangular(config: any, grid: GW.grid.NumGrid) {
     return new Room(config.id, x, y, width, height);
 }
 
-export function circular(config: any, grid: GW.grid.NumGrid) {
+export function circular(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { radius: [3, 4] });
     if (!grid) return config;
 
@@ -367,7 +387,7 @@ export function circular(config: any, grid: GW.grid.NumGrid) {
     return new Room(config.id, x, y, radius * 2, radius * 2);
 }
 
-export function brogueDonut(config: any, grid: GW.grid.NumGrid) {
+export function brogueDonut(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, {
         radius: [5, 10],
         ringMinWidth: 3,
@@ -406,7 +426,7 @@ export function brogueDonut(config: any, grid: GW.grid.NumGrid) {
     );
 }
 
-export function chunkyRoom(config: any, grid: GW.grid.NumGrid) {
+export function chunkyRoom(config: RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, {
         count: [2, 12],
         width: [5, 20],

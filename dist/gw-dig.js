@@ -84,12 +84,13 @@
     var rooms = {};
     function install(id, fn, config) {
         // @ts-ignore
-        config = fn(config || {}); // call to have function setup the config
-        config.fn = fn;
-        config.id = id;
-        rooms[id] = config;
-        return config;
+        const data = fn(config || {}); // call to have function setup the config
+        data.fn = fn;
+        data.id = id;
+        rooms[id] = data;
+        return data;
     }
+    install('DEFAULT', rectangular);
     function checkConfig(config, opts) {
         config = config || {};
         opts = opts || {};
@@ -161,14 +162,16 @@
             choices = GW.random.weighted.bind(GW.random, config.choices);
         }
         else {
-            return GW.utils.ERROR('Expected choices to be either array of choices or map { digger: weight }');
+            GW.utils.ERROR('Expected choices to be either array of choices or map { digger: weight }');
+            return null;
         }
         if (!grid)
             return config;
         let id = choices();
         const digger = rooms[id];
         if (!digger) {
-            return GW.utils.ERROR('Missing digger choice: ' + id);
+            GW.utils.ERROR('Missing digger choice: ' + id);
+            return null;
         }
         let digConfig = digger;
         if (config.opts) {
@@ -356,12 +359,29 @@
     };
 
     const DIRS = GW.utils.DIRS;
+    var halls = {};
+    function install$1(id, fn, config = {}) {
+        // @ts-ignore
+        const data = fn(config || {}); // call to have function setup the config
+        data.fn = fn;
+        data.id = id;
+        halls[id] = data;
+        return data;
+    }
+    install$1('DEFAULT', dig, { chance: 15 });
     function pickLengthRange(dir, opts) {
-        if (dir == GW.utils.UP || dir == GW.utils.DOWN) {
-            return GW.range.make(opts.yLength || opts.length || [2, 9]);
+        if (!opts.length)
+            opts.length = [];
+        if (Array.isArray(opts.length)) {
+            if (dir == GW.utils.UP || dir == GW.utils.DOWN) {
+                return GW.range.make(opts.length[1] || [2, 9]);
+            }
+            else {
+                return GW.range.make(opts.length[0] || [9, 15]);
+            }
         }
         else {
-            return GW.range.make(opts.xLength || opts.length || [9, 15]);
+            return GW.range.make(opts.length);
         }
     }
     function pickHallDirection(grid, room, opts) {
@@ -408,14 +428,16 @@
         }
         return hallDoors;
     }
-    function dig(grid, room, opts) {
+    function dig(opts, grid, room) {
         opts = opts || {};
+        opts.width = 1;
+        if (!grid) {
+            return opts;
+        }
         const dir = pickHallDirection(grid, room, opts);
         if (dir === GW.utils.NO_DIRECTION)
             return null;
-        console.log('dir', dir);
         const length = pickLengthRange(dir, opts).value();
-        console.log('length', length);
         const door = room.doors[dir];
         const DIR = DIRS[dir];
         let x = door[0];
@@ -445,16 +467,38 @@
         finishDoors(map);
     }
     // Returns an array of door sites if successful
-    function dig$1(map, opts = {}) {
+    function dig$1(map, opts) {
+        opts = opts || { room: 'DEFAULT', hall: 'DEFAULT', tries: 10 };
         if (typeof opts === 'string') {
-            opts = { digger: opts };
+            opts = { room: opts };
         }
-        const diggerId = opts.digger || opts.id || 'SMALL'; // TODO - get random id
-        const digger = rooms[diggerId];
-        if (!digger) {
-            GW.utils.ERROR('Failed to find digger: ' + diggerId);
+        if (opts.loc) {
+            opts.locs = [opts.loc];
         }
-        let locs = opts.locs || opts.loc || null;
+        if (!opts.room)
+            opts.room = 'DEFAULT';
+        if (typeof opts.room === 'string') {
+            const name = opts.room;
+            opts.room = rooms[name];
+            if (!opts.room) {
+                GW.utils.ERROR('Failed to find room: ' + name);
+            }
+        }
+        const roomConfig = opts.room;
+        if (opts.hall === true)
+            opts.hall = 'DEFAULT';
+        if (opts.hall !== false && !opts.hall)
+            opts.hall = 'DEFAULT';
+        if (typeof opts.hall === 'string') {
+            const name = opts.hall;
+            opts.hall = halls[name];
+            if (!opts.hall) {
+                GW.utils.ERROR('Failed to find hall: ' + name);
+                return null;
+            }
+        }
+        const hallConfig = opts.hall ? opts.hall : null;
+        let locs = opts.locs || null;
         if (!locs || !Array.isArray(locs)) {
             locs = null;
             if (map.count(FLOOR) === 0) {
@@ -468,33 +512,37 @@
             locs.length &&
             locs.length == 2 &&
             typeof locs[0] == 'number') {
+            // @ts-ignore
             locs = [locs];
         }
         else if (locs.length == 0) {
             locs = null;
         }
-        const config = Object.assign({}, digger, opts);
+        const digger = opts.room;
         const roomGrid = GW.grid.alloc(map.width, map.height);
-        const hallChance = config.hallChance || config.hallway || 0;
-        const attachHall = GW.random.chance(hallChance);
+        let attachHall = false;
+        if (hallConfig) {
+            let hallChance = hallConfig.chance !== undefined ? hallConfig.chance : 15;
+            attachHall = GW.random.chance(hallChance);
+        }
         // const force = config.force || false;
         let result = false;
-        let room;
-        let tries = config.tries || 10;
+        let room$1;
+        let tries = opts.tries || 10;
         while (--tries >= 0 && !result) {
             roomGrid.fill(NOTHING);
             // dig the room in the center
-            room = digger.fn(config, roomGrid);
-            room.doors = chooseRandomDoorSites(roomGrid);
+            room$1 = digger.fn(roomConfig, roomGrid);
+            room$1.doors = chooseRandomDoorSites(roomGrid);
             if (attachHall) {
-                room.hall = dig(roomGrid, room, config);
+                room$1.hall = dig(hallConfig, roomGrid, room$1);
             }
             if (locs) {
                 // try the doors first
-                result = attachRoomAtMapDoor(map, locs, roomGrid, room, config);
+                result = attachRoomAtMapDoor(map, locs, roomGrid, room$1, opts);
             }
             else {
-                result = attachRoom(map, roomGrid, room, config);
+                result = attachRoom(map, roomGrid, room$1, opts);
             }
             // console.log(
             //     'try',
@@ -512,9 +560,9 @@
             // }
         }
         GW.grid.free(roomGrid);
-        return room && result ? room : null;
+        return room$1 && result ? room$1 : null;
     }
-    function attachRoom(map, roomGrid, room, opts = {}) {
+    function attachRoom(map, roomGrid, room, opts) {
         // console.log('attachRoom');
         const doorSites = room.hall ? room.hall.doors : room.doors;
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
@@ -526,19 +574,24 @@
             const dir = GW.grid.directionOfDoorSite(map, x, y, FLOOR);
             if (dir != GW.utils.NO_DIRECTION) {
                 const oppDir = (dir + 2) % 4;
-                const offsetX = x - doorSites[oppDir][0];
-                const offsetY = y - doorSites[oppDir][1];
-                if (doorSites[oppDir][0] != -1 &&
-                    roomFitsAt(map, roomGrid, offsetX, offsetY)) {
+                const door = doorSites[oppDir];
+                if (!door)
+                    continue;
+                const offsetX = x - door[0];
+                const offsetY = y - door[1];
+                if (door[0] != -1 && roomFitsAt(map, roomGrid, offsetX, offsetY)) {
                     // Room fits here.
                     GW.grid.offsetZip(map, roomGrid, offsetX, offsetY, (_d, _s, i, j) => {
-                        map[i][j] = opts.tile || FLOOR;
+                        map[i][j] = opts.room.tile || FLOOR;
                     });
-                    if (opts.door || opts.placeDoor !== false) {
-                        map[x][y] = opts.door || DOOR; // Door site.
+                    if (opts.room.door !== false) {
+                        const door = opts.room.door === true || !opts.room.door
+                            ? DOOR
+                            : opts.room.door;
+                        map[x][y] = door; // Door site.
                     }
-                    // doorSites[oppDir][0] = -1;
-                    // doorSites[oppDir][1] = -1;
+                    // door[0] = -1;
+                    // door[1] = -1;
                     room.translate(offsetX, offsetY);
                     return true;
                 }
@@ -570,7 +623,7 @@
         // console.log('- YES');
         return true;
     }
-    function forceRoomAtMapLoc(map, xy, roomGrid, room, opts = {}) {
+    function forceRoomAtMapLoc(map, xy, roomGrid, room, opts) {
         // console.log('forceRoomAtMapLoc', xy);
         // Slide room across map, in a random but predetermined order, until the room matches up with a wall.
         for (let i = 0; i < SEQ.length; i++) {
@@ -584,10 +637,13 @@
                 const dy = xy[1] - y;
                 if (roomFitsAt(map, roomGrid, dx, dy)) {
                     GW.grid.offsetZip(map, roomGrid, dx, dy, (_d, _s, i, j) => {
-                        map[i][j] = opts.tile || FLOOR;
+                        map[i][j] = opts.room.tile || FLOOR;
                     });
-                    if (opts.door || opts.placeDoor !== false) {
-                        map[xy[0]][xy[1]] = opts.door || DOOR; // Door site.
+                    if (opts.room.door !== false) {
+                        const door = opts.room.door === true || !opts.room.door
+                            ? DOOR
+                            : opts.room.door;
+                        map[xy[0]][xy[1]] = door; // Door site.
                     }
                     // TODO - Update doors - we may have to erase one...
                     room.translate(dx, dy);
@@ -597,7 +653,7 @@
         }
         return false;
     }
-    function attachRoomAtMapDoor(map, mapDoors, roomGrid, room, opts = {}) {
+    function attachRoomAtMapDoor(map, mapDoors, roomGrid, room, opts) {
         const doorIndexes = GW.random.sequence(mapDoors.length);
         // console.log('attachRoomAtMapDoor', mapDoors.join(', '));
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
@@ -614,7 +670,7 @@
         }
         return false;
     }
-    function attachRoomAtXY(map, x, y, roomGrid, room, opts = {}) {
+    function attachRoomAtXY(map, x, y, roomGrid, room, opts) {
         const doorSites = room.hall ? room.hall.doors : room.doors;
         const dirs = GW.random.sequence(4);
         // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
@@ -630,10 +686,13 @@
                 const offX = x - door[0];
                 const offY = y - door[1];
                 GW.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
-                    map[i][j] = opts.tile || FLOOR;
+                    map[i][j] = opts.room.tile || FLOOR;
                 });
-                if (opts.door || opts.placeDoor !== false) {
-                    map[x][y] = opts.door || DOOR; // Door site.
+                if (opts.room.door !== false) {
+                    const door = opts.room.door === true || !opts.room.door
+                        ? DOOR
+                        : opts.room.door;
+                    map[x][y] = door; // Door site.
                 }
                 room.translate(offX, offY);
                 // const newDoors = doorSites.map((site) => {
@@ -760,8 +819,6 @@
     var dig$2 = {
         __proto__: null,
         room: room,
-        Room: Room,
-        Hall: Hall,
         start: start,
         finish: finish,
         dig: dig$1,
@@ -774,6 +831,8 @@
         removeDiagonalOpenings: removeDiagonalOpenings,
         finishDoors: finishDoors,
         finishWalls: finishWalls,
+        Room: Room,
+        Hall: Hall,
         NOTHING: NOTHING,
         FLOOR: FLOOR,
         DOOR: DOOR,

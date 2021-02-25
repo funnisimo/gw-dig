@@ -22,7 +22,11 @@ describe('dig', () => {
             height: '5-9',
         });
         expect(Dig.room.rooms.TEST).toBe(config);
-        expect(Dig.room.rooms.TEST.fn).toBe(Dig.room.rectangular);
+        expect(Dig.room.rooms.TEST).toMatchObject({
+            width: expect.any(GW.range.Range),
+            height: expect.any(GW.range.Range),
+            fn: Dig.room.rectangular,
+        });
     });
 
     test('checkConfig', () => {

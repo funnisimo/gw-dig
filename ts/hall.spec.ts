@@ -15,34 +15,34 @@ describe('Hall', () => {
 
     describe('pickWidth', () => {
         test('number', () => {
-            expect(Hall.pickHallWidth({})).toEqual(1);
-            expect(Hall.pickHallWidth(1)).toEqual(1);
-            expect(Hall.pickHallWidth({ width: 0 })).toEqual(1);
-            expect(Hall.pickHallWidth({ width: 1 })).toEqual(1);
-            expect(Hall.pickHallWidth({ width: 2 })).toEqual(2);
-            expect(Hall.pickHallWidth({ width: 4 })).toEqual(3);
+            expect(Hall.pickWidth({})).toEqual(1);
+            expect(Hall.pickWidth(1)).toEqual(1);
+            expect(Hall.pickWidth({ width: 0 })).toEqual(1);
+            expect(Hall.pickWidth({ width: 1 })).toEqual(1);
+            expect(Hall.pickWidth({ width: 2 })).toEqual(2);
+            expect(Hall.pickWidth({ width: 4 })).toEqual(3);
         });
 
         test('array', () => {
             expect(
-                UTILS.results(() => Hall.pickHallWidth({ width: [70, 30] }))
+                UTILS.results(() => Hall.pickWidth({ width: [70, 30] }))
             ).toEqual([1, 2]);
 
             expect(
-                UTILS.results(() => Hall.pickHallWidth({ width: [50, 30, 20] }))
+                UTILS.results(() => Hall.pickWidth({ width: [50, 30, 20] }))
             ).toEqual([1, 2, 3]);
         });
 
         test('object', () => {
             expect(
                 UTILS.results(() =>
-                    Hall.pickHallWidth({ width: { 0: 70, 2: 30, 4: 20 } })
+                    Hall.pickWidth({ width: { 0: 70, 2: 30, 4: 20 } })
                 )
             ).toEqual([1, 2, 3]);
 
             expect(
                 UTILS.results(() =>
-                    Hall.pickHallWidth({
+                    Hall.pickWidth({
                         width: { 0: 50, 1: 30, 2: 20, 5: 10 },
                     })
                 )
@@ -62,22 +62,19 @@ describe('Hall', () => {
             expect(l.hi).toEqual(10);
 
             l = Hall.pickLengthRange(GW.utils.UP, {
-                length: '7-10',
-                yLength: '5-9',
+                length: ['7-10', '5-9'],
             });
             expect(l.lo).toEqual(5);
             expect(l.hi).toEqual(9);
 
             l = Hall.pickLengthRange(GW.utils.RIGHT, {
-                length: [7, 10],
-                yLength: '5-9',
+                length: [[7, 10], '5-9'],
             });
             expect(l.lo).toEqual(7);
             expect(l.hi).toEqual(10);
 
             l = Hall.pickLengthRange(GW.utils.LEFT, {
-                length: '7-10',
-                xLength: [5, 9],
+                length: [[5, 9], '7-10'],
             });
             expect(l.lo).toEqual(5);
             expect(l.hi).toEqual(9);
@@ -93,6 +90,15 @@ describe('Hall', () => {
             l = Hall.pickLengthRange(GW.utils.RIGHT, {});
             expect(l.lo).toEqual(9);
             expect(l.hi).toEqual(15);
+        });
+    });
+
+    describe('install', () => {
+        test('basic', () => {
+            const a = Hall.install('DEFAULT', Hall.dig);
+            expect(a.fn).toBe(Hall.dig);
+            expect(a.id).toEqual('DEFAULT');
+            expect(Hall.halls.DEFAULT).toBe(a);
         });
     });
 
@@ -117,13 +123,13 @@ describe('Hall', () => {
         });
 
         test('no room doors - no hall', () => {
-            const hall = Hall.dig(grid, room, {});
+            const hall = Hall.dig({}, grid, room);
             expect(hall).toBeNull();
         });
 
         test('basic hall - down', () => {
             room.doors[GW.utils.DOWN] = [25, 30];
-            const hall = Hall.dig(grid, room, {});
+            const hall = Hall.dig({}, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(25);
@@ -137,7 +143,7 @@ describe('Hall', () => {
 
         test('basic hall - up', () => {
             room.doors[GW.utils.UP] = [25, 19];
-            const hall = Hall.dig(grid, room, {});
+            const hall = Hall.dig({}, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(25);
@@ -151,7 +157,7 @@ describe('Hall', () => {
 
         test('basic hall - left', () => {
             room.doors[GW.utils.LEFT] = [19, 25];
-            const hall = Hall.dig(grid, room, {});
+            const hall = Hall.dig({}, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(19);
@@ -170,7 +176,7 @@ describe('Hall', () => {
 
         test('basic hall - right', () => {
             room.doors[GW.utils.RIGHT] = [30, 25];
-            const hall = Hall.dig(grid, room, {});
+            const hall = Hall.dig({}, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(30);
@@ -184,7 +190,7 @@ describe('Hall', () => {
 
         test('basic hall - down, width:2', () => {
             room.doors[GW.utils.DOWN] = [25, 30];
-            const hall = Hall.digWide(grid, room, { width: 2 });
+            const hall = Hall.digWide({ width: 2 }, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(24);
@@ -198,7 +204,7 @@ describe('Hall', () => {
 
         test('basic hall - up, width:2', () => {
             room.doors[GW.utils.UP] = [25, 19];
-            const hall = Hall.digWide(grid, room, {});
+            const hall = Hall.digWide({}, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(24);
@@ -212,7 +218,7 @@ describe('Hall', () => {
 
         test('basic hall - left, width:2', () => {
             room.doors[GW.utils.LEFT] = [19, 25];
-            const hall = Hall.digWide(grid, room, { width: 2 });
+            const hall = Hall.digWide({ width: 2 }, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(19);
@@ -231,7 +237,7 @@ describe('Hall', () => {
 
         test('basic hall - right, width:3', () => {
             room.doors[GW.utils.RIGHT] = [30, 25];
-            const hall = Hall.digWide(grid, room, { width: 3 });
+            const hall = Hall.digWide({ width: 3 }, grid, room);
             // grid.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(30);

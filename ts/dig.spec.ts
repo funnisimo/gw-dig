@@ -119,7 +119,7 @@ describe('Dig', () => {
     test('dig on empty map', () => {
         Dig.start(map);
 
-        const room = Dig.dig(map, { digger: 'ROOM', tries: 20 });
+        const room = Dig.dig(map, { room: 'ROOM', tries: 20 });
 
         // map.dump();
 
@@ -136,13 +136,13 @@ describe('Dig', () => {
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
         let roomCount = 4;
 
-        let room = Dig.dig(map, { digger: 'ROOM', locs, tries: 20 });
+        let room = Dig.dig(map, { room: 'ROOM', locs, tries: 20 });
         if (!room) {
             fail('Failed on first room!');
         }
 
         for (let i = 0; i < roomCount; ++i) {
-            room = Dig.dig(map, { digger: 'ROOM', tries: 20 });
+            room = Dig.dig(map, { room: 'ROOM', tries: 20 });
             if (!room) {
                 fail('Failed to dig map on room #' + (i + 1));
             }
@@ -151,24 +151,24 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [17, 18],
-            [21, 22],
-            [19, 24],
-            [15, 20],
+            [11, 9],
+            [15, 10],
+            [3, 18],
+            [1, 15],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR); // starting door
 
-        map.forRect(38, 22, 19, 6, (_c, i, j) =>
+        map.forRect(37, 21, 10, 7, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(37, 22)).toEqual(Dig.DOOR);
+        expect(tileAt(36, 24)).toEqual(Dig.DOOR);
+        expect(tileAt(18, 21)).toEqual(Dig.DOOR);
+        expect(tileAt(3, 18)).toEqual(Dig.DOOR);
         expect(tileAt(17, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(33, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(30, 12)).toEqual(Dig.DOOR);
     });
 
-    test.only('can chain five rooms', () => {
+    test('can chain five rooms', () => {
         Dig.start(map);
 
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
@@ -177,10 +177,9 @@ describe('Dig', () => {
 
         for (let i = 0; i < roomCount; ++i) {
             room = Dig.dig(map, {
-                digger: 'ROOM',
+                room: 'ROOM',
                 locs,
                 tries: 20,
-                tile: Dig.FLOOR,
             });
             expect(room).toBeObject();
             locs = room!.doors;
@@ -189,21 +188,21 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [8, 9],
-            [21, 11],
-            [17, 19],
-            [7, 16],
+            [45, 2],
+            [48, 6],
+            [43, 9],
+            [42, 4],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
-        map.forRect(38, 22, 19, 6, (_c, i, j) =>
+        map.forRect(37, 21, 10, 7, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(37, 22)).toEqual(Dig.DOOR);
-        expect(tileAt(34, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(30, 14)).toEqual(Dig.DOOR);
-        expect(tileAt(21, 11)).toEqual(Dig.DOOR);
+        expect(tileAt(47, 21)).toEqual(Dig.DOOR);
+        expect(tileAt(55, 20)).toEqual(Dig.DOOR);
+        expect(tileAt(60, 16)).toEqual(Dig.DOOR);
+        expect(tileAt(59, 6)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {
@@ -214,7 +213,7 @@ describe('Dig', () => {
 
     //     for (let i = 0; i < roomCount; ++i) {
     //         const ok = Dig.dig(map, {
-    //             digger: 'ROOM',
+    //             room: 'ROOM',
     //             locs,
     //             tile: Dig.FLOOR,
     //             width: 14,
@@ -269,7 +268,7 @@ describe('Dig', () => {
     //     let roomCount = 0;
 
     //     Dig.dig(map, {
-    //         digger: 'FIRST_ROOM',
+    //         room: 'FIRST_ROOM',
     //         loc,
     //         tries: 20,
     //         placeDoor: false,
@@ -279,7 +278,7 @@ describe('Dig', () => {
     //     while (fails < 20) {
     //         if (
     //             !Dig.dig(map, {
-    //                 digger: 'PROFILE',
+    //                 room: 'PROFILE',
     //                 tries: 1,
     //                 hallChance: 10,
     //             })

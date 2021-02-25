@@ -1,13 +1,13 @@
 import * as GW from 'gw-utils';
 import * as CONST from './gw';
 import * as HALL from './hall';
+import * as ROOM from './room';
 // import * as MAP from 'gw-map.js';
 
 export * from './gw';
 export * as room from './room';
-import { rooms as ROOM_DIGGERS, Room, Hall } from './room';
 
-export { Room, Hall };
+export { Room, Hall } from './room';
 
 const DIRS = GW.utils.DIRS;
 var SEQ: number[];
@@ -23,22 +23,56 @@ export function finish(map: GW.grid.NumGrid) {
     finishDoors(map);
 }
 
+export interface DigConfig {
+    room: string | any;
+    hall?: string | HALL.HallConfig | boolean;
+    tries?: number;
+    locs?: GW.utils.Loc[];
+    loc?: GW.utils.Loc;
+}
+
+export interface DigInfo {
+    room: ROOM.RoomData;
+    hall: HALL.HallData | null;
+    tries: number;
+    locs: GW.utils.Loc[] | null;
+}
+
 // Returns an array of door sites if successful
 export function dig(
     map: GW.grid.NumGrid,
-    opts: string | any = {}
-): Room | null {
+    opts?: string | DigConfig
+): ROOM.Room | null {
+    opts = opts || { room: 'DEFAULT', hall: 'DEFAULT', tries: 10 };
     if (typeof opts === 'string') {
-        opts = { digger: opts };
+        opts = { room: opts };
     }
-    const diggerId = opts.digger || opts.id || 'SMALL'; // TODO - get random id
-
-    const digger = ROOM_DIGGERS[diggerId];
-    if (!digger) {
-        GW.utils.ERROR('Failed to find digger: ' + diggerId);
+    if (opts.loc) {
+        opts.locs = [opts.loc];
     }
+    if (!opts.room) opts.room = 'DEFAULT';
+    if (typeof opts.room === 'string') {
+        const name = opts.room;
+        opts.room = ROOM.rooms[name];
+        if (!opts.room) {
+            GW.utils.ERROR('Failed to find room: ' + name);
+        }
+    }
+    const roomConfig = opts.room as ROOM.RoomConfig;
 
-    let locs = opts.locs || opts.loc || null;
+    if (opts.hall === true) opts.hall = 'DEFAULT';
+    if (opts.hall !== false && !opts.hall) opts.hall = 'DEFAULT';
+    if (typeof opts.hall === 'string') {
+        const name = opts.hall;
+        opts.hall = HALL.halls[name];
+        if (!opts.hall) {
+            GW.utils.ERROR('Failed to find hall: ' + name);
+            return null;
+        }
+    }
+    const hallConfig: HALL.HallConfig | null = opts.hall ? opts.hall : null;
+
+    let locs = opts.locs || null;
     if (!locs || !Array.isArray(locs)) {
         locs = null;
         if (map.count(CONST.FLOOR) === 0) {
@@ -53,37 +87,49 @@ export function dig(
         locs.length == 2 &&
         typeof locs[0] == 'number'
     ) {
+        // @ts-ignore
         locs = [locs];
     } else if (locs.length == 0) {
         locs = null;
     }
 
-    const config = Object.assign({}, digger, opts);
+    const digger = opts.room;
+
     const roomGrid = GW.grid.alloc(map.width, map.height);
-    const hallChance = config.hallChance || config.hallway || 0;
-    const attachHall = GW.random.chance(hallChance);
+    let attachHall = false;
+    if (hallConfig) {
+        let hallChance =
+            hallConfig.chance !== undefined ? hallConfig.chance : 15;
+        attachHall = GW.random.chance(hallChance);
+    }
 
     // const force = config.force || false;
 
     let result: boolean | GW.utils.Loc[] = false;
     let room;
-    let tries = config.tries || 10;
+    let tries = opts.tries || 10;
     while (--tries >= 0 && !result) {
         roomGrid.fill(CONST.NOTHING);
 
         // dig the room in the center
-        room = digger.fn(config, roomGrid);
+        room = digger.fn(roomConfig, roomGrid);
 
         room.doors = chooseRandomDoorSites(roomGrid);
         if (attachHall) {
-            room.hall = HALL.dig(roomGrid, room, config);
+            room.hall = HALL.dig(hallConfig!, roomGrid, room);
         }
 
         if (locs) {
             // try the doors first
-            result = attachRoomAtMapDoor(map, locs, roomGrid, room, config);
+            result = attachRoomAtMapDoor(
+                map,
+                locs,
+                roomGrid,
+                room,
+                opts as DigInfo
+            );
         } else {
-            result = attachRoom(map, roomGrid, room, config);
+            result = attachRoom(map, roomGrid, room, opts as DigInfo);
         }
 
         // console.log(
@@ -109,8 +155,8 @@ export function dig(
 export function attachRoom(
     map: GW.grid.NumGrid,
     roomGrid: GW.grid.NumGrid,
-    room: Room,
-    opts: any = {}
+    room: ROOM.Room,
+    opts: DigInfo
 ) {
     // console.log('attachRoom');
     const doorSites = room.hall ? room.hall.doors : room.doors;
@@ -124,14 +170,13 @@ export function attachRoom(
         const dir = GW.grid.directionOfDoorSite(map, x, y, CONST.FLOOR);
         if (dir != GW.utils.NO_DIRECTION) {
             const oppDir = (dir + 2) % 4;
+            const door = doorSites[oppDir];
+            if (!door) continue;
 
-            const offsetX = x - doorSites[oppDir][0];
-            const offsetY = y - doorSites[oppDir][1];
+            const offsetX = x - door[0];
+            const offsetY = y - door[1];
 
-            if (
-                doorSites[oppDir][0] != -1 &&
-                roomFitsAt(map, roomGrid, offsetX, offsetY)
-            ) {
+            if (door[0] != -1 && roomFitsAt(map, roomGrid, offsetX, offsetY)) {
                 // Room fits here.
                 GW.grid.offsetZip(
                     map,
@@ -139,14 +184,18 @@ export function attachRoom(
                     offsetX,
                     offsetY,
                     (_d, _s, i, j) => {
-                        map[i][j] = opts.tile || CONST.FLOOR;
+                        map[i][j] = opts.room.tile || CONST.FLOOR;
                     }
                 );
-                if (opts.door || opts.placeDoor !== false) {
-                    map[x][y] = opts.door || CONST.DOOR; // Door site.
+                if (opts.room.door !== false) {
+                    const door =
+                        opts.room.door === true || !opts.room.door
+                            ? CONST.DOOR
+                            : opts.room.door;
+                    map[x][y] = door; // Door site.
                 }
-                // doorSites[oppDir][0] = -1;
-                // doorSites[oppDir][1] = -1;
+                // door[0] = -1;
+                // door[1] = -1;
                 room.translate(offsetX, offsetY);
                 return true;
             }
@@ -195,8 +244,8 @@ export function forceRoomAtMapLoc(
     map: GW.grid.NumGrid,
     xy: GW.utils.Loc,
     roomGrid: GW.grid.NumGrid,
-    room: Room,
-    opts: any = {}
+    room: ROOM.Room,
+    opts: DigConfig
 ) {
     // console.log('forceRoomAtMapLoc', xy);
 
@@ -213,10 +262,14 @@ export function forceRoomAtMapLoc(
             const dy = xy[1] - y;
             if (roomFitsAt(map, roomGrid, dx, dy)) {
                 GW.grid.offsetZip(map, roomGrid, dx, dy, (_d, _s, i, j) => {
-                    map[i][j] = opts.tile || CONST.FLOOR;
+                    map[i][j] = opts.room.tile || CONST.FLOOR;
                 });
-                if (opts.door || opts.placeDoor !== false) {
-                    map[xy[0]][xy[1]] = opts.door || CONST.DOOR; // Door site.
+                if (opts.room.door !== false) {
+                    const door =
+                        opts.room.door === true || !opts.room.door
+                            ? CONST.DOOR
+                            : opts.room.door;
+                    map[xy[0]][xy[1]] = door; // Door site.
                 }
                 // TODO - Update doors - we may have to erase one...
                 room.translate(dx, dy);
@@ -232,8 +285,8 @@ function attachRoomAtMapDoor(
     map: GW.grid.NumGrid,
     mapDoors: GW.utils.Loc[],
     roomGrid: GW.grid.NumGrid,
-    room: Room,
-    opts: any = {}
+    room: ROOM.Room,
+    opts: DigInfo
 ): boolean | GW.utils.Loc[] {
     const doorIndexes = GW.random.sequence(mapDoors.length);
 
@@ -259,8 +312,8 @@ function attachRoomAtXY(
     x: number,
     y: number,
     roomGrid: GW.grid.NumGrid,
-    room: Room,
-    opts: any = {}
+    room: ROOM.Room,
+    opts: DigInfo
 ): boolean | GW.utils.Loc[] {
     const doorSites = room.hall ? room.hall.doors : room.doors;
     const dirs = GW.random.sequence(4);
@@ -282,10 +335,14 @@ function attachRoomAtXY(
             const offX = x - door[0];
             const offY = y - door[1];
             GW.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
-                map[i][j] = opts.tile || CONST.FLOOR;
+                map[i][j] = opts.room.tile || CONST.FLOOR;
             });
-            if (opts.door || opts.placeDoor !== false) {
-                map[x][y] = opts.door || CONST.DOOR; // Door site.
+            if (opts.room.door !== false) {
+                const door =
+                    opts.room.door === true || !opts.room.door
+                        ? CONST.DOOR
+                        : opts.room.door;
+                map[x][y] = door; // Door site.
             }
             room.translate(offX, offY);
             // const newDoors = doorSites.map((site) => {
