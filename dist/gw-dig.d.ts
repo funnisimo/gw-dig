@@ -40,15 +40,15 @@ interface RoomData extends RoomConfig {
 declare var rooms: Record<string, RoomData>;
 declare function install(id: string, fn: RoomFn, config?: RoomConfig): RoomData;
 declare function checkConfig(config: RoomConfig, expected: any): RoomConfig;
-declare function cavern(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function cavern(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
 declare function choiceRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig | null;
-declare function entrance(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function cross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function rectangular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function circular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function entrance(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function cross(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function rectangular(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function circular(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
 
 type room_d_Hall = Hall;
 declare const room_d_Hall: typeof Hall;
@@ -104,6 +104,40 @@ interface HallData extends HallConfig {
     fn: HallFn;
     id: string;
 }
+declare var halls: Record<string, HallData>;
+declare function install$1(id: string, fn: HallFn, config?: HallConfig): HallData;
+declare function pickWidth(opts?: any): number;
+declare function pickLengthRange(dir: number, opts: any): range.Range;
+declare function pickHallDirection(grid: grid.NumGrid, room: Room, opts: any): number;
+declare function pickHallExits(grid: grid.NumGrid, x: number, y: number, dir: number, opts: any): [number, number][];
+declare function digWide(opts: HallConfig, grid: grid.NumGrid, room: Room): Hall | HallConfig | null;
+declare function dig(opts: HallConfig, grid: grid.NumGrid, room: Room): Hall | HallConfig | null;
+
+type hall_d_HallFn = HallFn;
+type hall_d_HallConfig = HallConfig;
+type hall_d_HallData = HallData;
+declare const hall_d_halls: typeof halls;
+declare const hall_d_pickWidth: typeof pickWidth;
+declare const hall_d_pickLengthRange: typeof pickLengthRange;
+declare const hall_d_pickHallDirection: typeof pickHallDirection;
+declare const hall_d_pickHallExits: typeof pickHallExits;
+declare const hall_d_digWide: typeof digWide;
+declare const hall_d_dig: typeof dig;
+declare namespace hall_d {
+  export {
+    hall_d_HallFn as HallFn,
+    hall_d_HallConfig as HallConfig,
+    hall_d_HallData as HallData,
+    hall_d_halls as halls,
+    install$1 as install,
+    hall_d_pickWidth as pickWidth,
+    hall_d_pickLengthRange as pickLengthRange,
+    hall_d_pickHallDirection as pickHallDirection,
+    hall_d_pickHallExits as pickHallExits,
+    hall_d_digWide as digWide,
+    hall_d_dig as dig,
+  };
+}
 
 declare const NOTHING = 0;
 declare const FLOOR = 1;
@@ -120,15 +154,18 @@ interface DigConfig {
     tries?: number;
     locs?: utils.Loc[];
     loc?: utils.Loc;
+    door?: number | boolean;
 }
 interface DigInfo {
     room: RoomData;
     hall: HallData | null;
     tries: number;
     locs: utils.Loc[] | null;
+    door: number;
 }
-declare function dig(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
+declare function dig$1(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
 declare function attachRoom(map: grid.NumGrid, roomGrid: grid.NumGrid, room: Room, opts: DigInfo): boolean;
+declare function attachDoor(map: grid.NumGrid, room: Room, opts: DigInfo, x: number, y: number, dir: number): void;
 declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
 declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts: DigConfig): boolean;
 declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid): utils.Loc[];
@@ -136,14 +173,14 @@ declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
-declare function finishWalls(grid: grid.NumGrid): void;
+declare function finishWalls(grid: grid.NumGrid, tile?: number): void;
 
 declare const dig_d_start: typeof start;
 declare const dig_d_finish: typeof finish;
 type dig_d_DigConfig = DigConfig;
 type dig_d_DigInfo = DigInfo;
-declare const dig_d_dig: typeof dig;
 declare const dig_d_attachRoom: typeof attachRoom;
+declare const dig_d_attachDoor: typeof attachDoor;
 declare const dig_d_roomFitsAt: typeof roomFitsAt;
 declare const dig_d_forceRoomAtMapLoc: typeof forceRoomAtMapLoc;
 declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
@@ -168,8 +205,9 @@ declare namespace dig_d {
     dig_d_finish as finish,
     dig_d_DigConfig as DigConfig,
     dig_d_DigInfo as DigInfo,
-    dig_d_dig as dig,
+    dig$1 as dig,
     dig_d_attachRoom as attachRoom,
+    dig_d_attachDoor as attachDoor,
     dig_d_roomFitsAt as roomFitsAt,
     dig_d_forceRoomAtMapLoc as forceRoomAtMapLoc,
     dig_d_chooseRandomDoorSites as chooseRandomDoorSites,
@@ -179,6 +217,7 @@ declare namespace dig_d {
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,
     room_d as room,
+    hall_d as hall,
     dig_d_Room as Room,
     dig_d_Hall as Hall,
     dig_d_NOTHING as NOTHING,

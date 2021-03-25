@@ -307,4 +307,102 @@ describe('Dig', () => {
     //     // expect(tileAt(31, 7)).toEqual(3);  // BRIDGE
     //     // expect(tileAt(32, 7)).not.toEqual(3);  // BRIDGE
     // });
+
+    describe('attachRoom', () => {
+        let map: GW.grid.NumGrid;
+        let grid: GW.grid.NumGrid;
+
+        beforeEach(() => {
+            map = GW.grid.alloc(80, 30);
+            grid = GW.grid.alloc(map.width, map.height);
+            expect(map).not.toBe(grid);
+            Dig.start(map);
+        });
+
+        afterEach(() => {
+            GW.grid.free(grid);
+            GW.grid.free(map);
+        });
+
+        test('room to room', () => {
+            map.fillRect(35, 10, 10, 10, 1); // 35-44, 10-19
+            const room: Dig.Room = Dig.room.rectangular(
+                { width: 5, height: 5 },
+                grid
+            ) as Dig.Room;
+            expect(room.doors).toEqual([]);
+            room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
+
+            expect(
+                Dig.attachRoom(map, grid, room, {
+                    // @ts-ignore
+                    room: {},
+                    hall: null,
+                    tries: 10,
+                    locs: null,
+                })
+            ).toBeTrue();
+
+            // map.dump();
+            expect(map[45][17]).toEqual(2);
+        });
+
+        test('room with hall to room', () => {
+            map.fillRect(35, 10, 10, 10, 1); // 35-44, 10-19
+            const room: Dig.Room = Dig.room.rectangular(
+                { width: 5, height: 5 },
+                grid
+            ) as Dig.Room;
+            expect(room.doors).toEqual([]);
+            room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
+            room.hall = Dig.hall.dig({ chance: 100 }, grid, room) as Dig.Hall;
+
+            expect(
+                Dig.attachRoom(map, grid, room, {
+                    // @ts-ignore
+                    room: {},
+                    hall: null,
+                    tries: 10,
+                    locs: null,
+                })
+            ).toBeTrue();
+
+            // map.dump();
+            expect(map[45][17]).toEqual(2);
+        });
+
+        test('room with wide hall to room', () => {
+            map.fillRect(35, 10, 10, 10, 1); // 35-44, 10-19
+            const room: Dig.Room = Dig.room.rectangular(
+                { width: 5, height: 5 },
+                grid
+            ) as Dig.Room;
+            expect(room.doors).toEqual([]);
+            room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
+            room.hall = Dig.hall.digWide(
+                { chance: 100, width: 2 },
+                grid,
+                room
+            ) as Dig.Hall;
+
+            expect(
+                Dig.attachRoom(map, grid, room, {
+                    // @ts-ignore
+                    room: {},
+                    // @ts-ignore
+                    hall: { width: 2 },
+                    door: 2,
+                    tries: 10,
+                    locs: null,
+                })
+            ).toBeTrue();
+
+            // map.dump();
+            expect(room.x).toEqual(55);
+            expect(room.y).toEqual(15);
+
+            expect(map[45][17]).toEqual(2);
+            expect(map[45][18]).toEqual(2);
+        });
+    });
 });

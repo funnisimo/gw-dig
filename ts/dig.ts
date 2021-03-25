@@ -6,6 +6,7 @@ import * as ROOM from './room';
 
 export * from './gw';
 export * as room from './room';
+export * as hall from './hall';
 
 export { Room, Hall } from './room';
 
@@ -29,6 +30,7 @@ export interface DigConfig {
     tries?: number;
     locs?: GW.utils.Loc[];
     loc?: GW.utils.Loc;
+    door?: number | boolean;
 }
 
 export interface DigInfo {
@@ -36,6 +38,7 @@ export interface DigInfo {
     hall: HALL.HallData | null;
     tries: number;
     locs: GW.utils.Loc[] | null;
+    door: number;
 }
 
 // Returns an array of door sites if successful
@@ -51,6 +54,7 @@ export function dig(
         opts.locs = [opts.loc];
     }
     if (!opts.room) opts.room = 'DEFAULT';
+    if (typeof opts.room === 'function') opts.room = { fn: opts.room };
     if (typeof opts.room === 'string') {
         const name = opts.room;
         opts.room = ROOM.rooms[name];
@@ -60,8 +64,10 @@ export function dig(
     }
     const roomConfig = opts.room as ROOM.RoomConfig;
 
+    let hallConfig: HALL.HallData | null = null;
     if (opts.hall === true) opts.hall = 'DEFAULT';
     if (opts.hall !== false && !opts.hall) opts.hall = 'DEFAULT';
+    if (typeof opts.hall === 'function') opts.hall = { fn: opts.hall };
     if (typeof opts.hall === 'string') {
         const name = opts.hall;
         opts.hall = HALL.halls[name];
@@ -69,8 +75,18 @@ export function dig(
             GW.utils.ERROR('Failed to find hall: ' + name);
             return null;
         }
+        hallConfig = opts.hall as HALL.HallData;
+    } else {
+        if (opts.hall && opts.hall.fn) {
+            hallConfig = opts.hall as HALL.HallData;
+        }
     }
-    const hallConfig: HALL.HallConfig | null = opts.hall ? opts.hall : null;
+
+    if (opts.door === false) {
+        opts.door = CONST.FLOOR;
+    } else if (opts.door === true || !opts.door) {
+        opts.door = CONST.DOOR;
+    }
 
     let locs = opts.locs || null;
     if (!locs || !Array.isArray(locs)) {
@@ -115,8 +131,8 @@ export function dig(
         room = digger.fn(roomConfig, roomGrid);
 
         room.doors = chooseRandomDoorSites(roomGrid);
-        if (attachHall) {
-            room.hall = HALL.dig(hallConfig!, roomGrid, room);
+        if (attachHall && hallConfig) {
+            room.hall = hallConfig.fn(hallConfig!, roomGrid, room);
         }
 
         if (locs) {
@@ -187,13 +203,9 @@ export function attachRoom(
                         map[i][j] = opts.room.tile || CONST.FLOOR;
                     }
                 );
-                if (opts.room.door !== false) {
-                    const door =
-                        opts.room.door === true || !opts.room.door
-                            ? CONST.DOOR
-                            : opts.room.door;
-                    map[x][y] = door; // Door site.
-                }
+
+                attachDoor(map, room, opts, x, y, oppDir);
+
                 // door[0] = -1;
                 // door[1] = -1;
                 room.translate(offsetX, offsetY);
@@ -203,6 +215,64 @@ export function attachRoom(
     }
 
     return false;
+}
+
+export function attachDoor(
+    map: GW.grid.NumGrid,
+    room: ROOM.Room,
+    opts: DigInfo,
+    x: number,
+    y: number,
+    dir: number
+) {
+    const tile = opts.door || CONST.DOOR;
+    map[x][y] = tile; // Door site.
+    // most cases...
+    if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
+        return;
+    }
+
+    if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+        let didSomething = true;
+        let k = 1;
+        while (didSomething) {
+            didSomething = false;
+
+            if (map.get(x - k, y) === 0) {
+                if (map.get(x - k, y - 1) && map.get(x - k, y + 1)) {
+                    map[x - k][y] = tile;
+                    didSomething = true;
+                }
+            }
+            if (map.get(x + k, y) === 0) {
+                if (map.get(x + k, y - 1) && map.get(x + k, y + 1)) {
+                    map[x + k][y] = tile;
+                    didSomething = true;
+                }
+            }
+            ++k;
+        }
+    } else {
+        let didSomething = true;
+        let k = 1;
+        while (didSomething) {
+            didSomething = false;
+
+            if (map.get(x, y - k) === 0) {
+                if (map.get(x - 1, y - k) && map.get(x + 1, y - k)) {
+                    map[x][y - k] = opts.door;
+                    didSomething = true;
+                }
+            }
+            if (map.get(x, y + k) === 0) {
+                if (map.get(x - 1, y + k) && map.get(x + 1, y + k)) {
+                    map[x][y + k] = opts.door;
+                    didSomething = true;
+                }
+            }
+            ++k;
+        }
+    }
 }
 
 export function roomFitsAt(
@@ -337,13 +407,7 @@ function attachRoomAtXY(
             GW.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
                 map[i][j] = opts.room.tile || CONST.FLOOR;
             });
-            if (opts.room.door !== false) {
-                const door =
-                    opts.room.door === true || !opts.room.door
-                        ? CONST.DOOR
-                        : opts.room.door;
-                map[x][y] = door; // Door site.
-            }
+            attachDoor(map, room, opts, x, y, oppDir);
             room.translate(offX, offY);
             // const newDoors = doorSites.map((site) => {
             //     const x0 = site[0] + offX;
@@ -370,7 +434,7 @@ export function chooseRandomDoorSites(
     for (i = 0; i < grid.width; i++) {
         for (j = 0; j < grid.height; j++) {
             if (!grid[i][j]) {
-                dir = GW.grid.directionOfDoorSite(grid, i, j, 1);
+                dir = GW.grid.directionOfDoorSite(grid, i, j, CONST.FLOOR);
                 if (dir != GW.utils.NO_DIRECTION) {
                     // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                     // If it does, it's not a valid door site.
@@ -442,7 +506,7 @@ export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
                             y1 = j + 1;
                         }
                         diagonalCornerRemoved = true;
-                        grid[x1][y1] = CONST.FLOOR;
+                        grid[x1][y1] = CONST.FLOOR; // todo - pick one of the passable tiles around it...
                     }
                 }
             }
@@ -454,8 +518,10 @@ export function finishDoors(grid: GW.grid.NumGrid) {
     grid.forEach((cell, x, y) => {
         if (grid.isBoundaryXY(x, y)) return;
 
+        // todo - isDoorway...
         if (cell == CONST.DOOR) {
             if (
+                // TODO - isPassable
                 (grid.get(x + 1, y) == CONST.FLOOR ||
                     grid.get(x - 1, y) == CONST.FLOOR) &&
                 (grid.get(x, y + 1) == CONST.FLOOR ||
@@ -463,8 +529,9 @@ export function finishDoors(grid: GW.grid.NumGrid) {
             ) {
                 // If there's passable terrain to the left or right, and there's passable terrain
                 // above or below, then the door is orphaned and must be removed.
-                grid[x][y] = CONST.FLOOR;
+                grid[x][y] = CONST.FLOOR; // todo - take passable neighbor value
             } else if (
+                // todo - isPassable
                 (grid.get(x + 1, y) !== CONST.FLOOR ? 1 : 0) +
                     (grid.get(x - 1, y) !== CONST.FLOOR ? 1 : 0) +
                     (grid.get(x, y + 1) !== CONST.FLOOR ? 1 : 0) +
@@ -473,16 +540,16 @@ export function finishDoors(grid: GW.grid.NumGrid) {
             ) {
                 // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                 // then the door is orphaned and must be removed.
-                grid[x][y] = CONST.FLOOR;
+                grid[x][y] = CONST.FLOOR; // todo - take passable neighbor
             }
         }
     });
 }
 
-export function finishWalls(grid: GW.grid.NumGrid) {
+export function finishWalls(grid: GW.grid.NumGrid, tile: number = CONST.WALL) {
     grid.forEach((cell, i, j) => {
         if (cell == CONST.NOTHING) {
-            grid[i][j] = CONST.WALL;
+            grid[i][j] = tile;
         }
     });
 }

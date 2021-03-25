@@ -363,6 +363,31 @@ function install$1(id, fn, config = {}) {
     return data;
 }
 install$1('DEFAULT', dig, { chance: 15 });
+function pickWidth(opts = {}) {
+    return GW.utils.clamp(_pickWidth(opts), 1, 3);
+}
+function _pickWidth(opts) {
+    if (!opts)
+        return 1;
+    if (typeof opts === 'number')
+        return opts;
+    if (opts.width === undefined)
+        return 1;
+    let width = opts.width;
+    if (typeof width === 'number')
+        return width;
+    else if (Array.isArray(width)) {
+        // @ts-ignore
+        width = GW.random.weighted(width) + 1;
+    }
+    else if (typeof width === 'string') {
+        width = GW.range.make(width).value();
+    }
+    else {
+        width = Number.parseInt(GW.random.weighted(width));
+    }
+    return width;
+}
 function pickLengthRange(dir, opts) {
     if (!opts.length)
         opts.length = [];
@@ -422,6 +447,73 @@ function pickHallExits(grid, x, y, dir, opts) {
     }
     return hallDoors;
 }
+function digWide(opts, grid, room) {
+    opts = opts || {};
+    if (!opts.width) {
+        opts.width = 2;
+    }
+    if (!grid) {
+        return opts;
+    }
+    const dir = pickHallDirection(grid, room, opts);
+    if (dir === GW.utils.NO_DIRECTION)
+        return null;
+    const length = pickLengthRange(dir, opts).value();
+    const width = pickWidth(opts) || 2;
+    const door = room.doors[dir];
+    const tile = opts.tile || FLOOR;
+    const hallDoors = [];
+    let x0, y0;
+    let hall;
+    if (dir === GW.utils.UP) {
+        x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
+        y0 = door[1] - length + 1;
+        for (let x = x0; x < x0 + width; ++x) {
+            for (let y = y0; y < y0 + length; ++y) {
+                grid[x][y] = tile;
+            }
+        }
+        hallDoors[dir] = [x0, y0 - 1];
+        hall = new Hall([x0, door[1]], dir, length, 2);
+    }
+    else if (dir === GW.utils.DOWN) {
+        x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
+        y0 = door[1] + length - 1;
+        for (let x = x0; x < x0 + width; ++x) {
+            for (let y = y0; y > y0 - length; --y) {
+                grid[x][y] = tile;
+            }
+        }
+        hallDoors[dir] = [x0, y0 + 1];
+        hall = new Hall([x0, door[1]], dir, length, 2);
+    }
+    else if (dir === GW.utils.LEFT) {
+        x0 = door[0] - length + 1;
+        y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
+        for (let x = x0; x < x0 + length; ++x) {
+            for (let y = y0; y < y0 + width; ++y) {
+                grid[x][y] = tile;
+            }
+        }
+        hallDoors[dir] = [x0 - 1, y0];
+        hall = new Hall([door[0], y0], dir, length, 2);
+    }
+    else {
+        //if (dir === GW.utils.RIGHT) {
+        x0 = door[0] + length - 1;
+        y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
+        for (let x = x0; x > x0 - length; --x) {
+            for (let y = y0; y < y0 + width; ++y) {
+                grid[x][y] = tile;
+            }
+        }
+        hallDoors[dir] = [x0 + 1, y0];
+        hall = new Hall([door[0], y0], dir, length, width);
+    }
+    hall.doors = hallDoors;
+    hall.width = width;
+    return hall;
+}
 function dig(opts, grid, room) {
     opts = opts || {};
     opts.width = 1;
@@ -449,6 +541,18 @@ function dig(opts, grid, room) {
     return hall;
 }
 
+var hall = {
+    __proto__: null,
+    halls: halls,
+    install: install$1,
+    pickWidth: pickWidth,
+    pickLengthRange: pickLengthRange,
+    pickHallDirection: pickHallDirection,
+    pickHallExits: pickHallExits,
+    digWide: digWide,
+    dig: dig
+};
+
 const DIRS$1 = GW.utils.DIRS;
 var SEQ;
 function start(map) {
@@ -471,6 +575,8 @@ function dig$1(map, opts) {
     }
     if (!opts.room)
         opts.room = 'DEFAULT';
+    if (typeof opts.room === 'function')
+        opts.room = { fn: opts.room };
     if (typeof opts.room === 'string') {
         const name = opts.room;
         opts.room = rooms[name];
@@ -479,10 +585,13 @@ function dig$1(map, opts) {
         }
     }
     const roomConfig = opts.room;
+    let hallConfig = null;
     if (opts.hall === true)
         opts.hall = 'DEFAULT';
     if (opts.hall !== false && !opts.hall)
         opts.hall = 'DEFAULT';
+    if (typeof opts.hall === 'function')
+        opts.hall = { fn: opts.hall };
     if (typeof opts.hall === 'string') {
         const name = opts.hall;
         opts.hall = halls[name];
@@ -490,8 +599,19 @@ function dig$1(map, opts) {
             GW.utils.ERROR('Failed to find hall: ' + name);
             return null;
         }
+        hallConfig = opts.hall;
     }
-    const hallConfig = opts.hall ? opts.hall : null;
+    else {
+        if (opts.hall && opts.hall.fn) {
+            hallConfig = opts.hall;
+        }
+    }
+    if (opts.door === false) {
+        opts.door = FLOOR;
+    }
+    else if (opts.door === true || !opts.door) {
+        opts.door = DOOR;
+    }
     let locs = opts.locs || null;
     if (!locs || !Array.isArray(locs)) {
         locs = null;
@@ -528,8 +648,8 @@ function dig$1(map, opts) {
         // dig the room in the center
         room$1 = digger.fn(roomConfig, roomGrid);
         room$1.doors = chooseRandomDoorSites(roomGrid);
-        if (attachHall) {
-            room$1.hall = dig(hallConfig, roomGrid, room$1);
+        if (attachHall && hallConfig) {
+            room$1.hall = hallConfig.fn(hallConfig, roomGrid, room$1);
         }
         if (locs) {
             // try the doors first
@@ -578,12 +698,7 @@ function attachRoom(map, roomGrid, room, opts) {
                 GW.grid.offsetZip(map, roomGrid, offsetX, offsetY, (_d, _s, i, j) => {
                     map[i][j] = opts.room.tile || FLOOR;
                 });
-                if (opts.room.door !== false) {
-                    const door = opts.room.door === true || !opts.room.door
-                        ? DOOR
-                        : opts.room.door;
-                    map[x][y] = door; // Door site.
-                }
+                attachDoor(map, room, opts, x, y, oppDir);
                 // door[0] = -1;
                 // door[1] = -1;
                 room.translate(offsetX, offsetY);
@@ -592,6 +707,54 @@ function attachRoom(map, roomGrid, room, opts) {
         }
     }
     return false;
+}
+function attachDoor(map, room, opts, x, y, dir) {
+    const tile = opts.door || DOOR;
+    map[x][y] = tile; // Door site.
+    // most cases...
+    if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
+        return;
+    }
+    if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+        let didSomething = true;
+        let k = 1;
+        while (didSomething) {
+            didSomething = false;
+            if (map.get(x - k, y) === 0) {
+                if (map.get(x - k, y - 1) && map.get(x - k, y + 1)) {
+                    map[x - k][y] = tile;
+                    didSomething = true;
+                }
+            }
+            if (map.get(x + k, y) === 0) {
+                if (map.get(x + k, y - 1) && map.get(x + k, y + 1)) {
+                    map[x + k][y] = tile;
+                    didSomething = true;
+                }
+            }
+            ++k;
+        }
+    }
+    else {
+        let didSomething = true;
+        let k = 1;
+        while (didSomething) {
+            didSomething = false;
+            if (map.get(x, y - k) === 0) {
+                if (map.get(x - 1, y - k) && map.get(x + 1, y - k)) {
+                    map[x][y - k] = opts.door;
+                    didSomething = true;
+                }
+            }
+            if (map.get(x, y + k) === 0) {
+                if (map.get(x - 1, y + k) && map.get(x + 1, y + k)) {
+                    map[x][y + k] = opts.door;
+                    didSomething = true;
+                }
+            }
+            ++k;
+        }
+    }
 }
 function roomFitsAt(map, roomGrid, roomToSiteX, roomToSiteY) {
     let xRoom, yRoom, xSite, ySite, i, j;
@@ -682,12 +845,7 @@ function attachRoomAtXY(map, x, y, roomGrid, room, opts) {
             GW.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
                 map[i][j] = opts.room.tile || FLOOR;
             });
-            if (opts.room.door !== false) {
-                const door = opts.room.door === true || !opts.room.door
-                    ? DOOR
-                    : opts.room.door;
-                map[x][y] = door; // Door site.
-            }
+            attachDoor(map, room, opts, x, y, oppDir);
             room.translate(offX, offY);
             // const newDoors = doorSites.map((site) => {
             //     const x0 = site[0] + offX;
@@ -709,7 +867,7 @@ function chooseRandomDoorSites(sourceGrid) {
     for (i = 0; i < grid.width; i++) {
         for (j = 0; j < grid.height; j++) {
             if (!grid[i][j]) {
-                dir = GW.grid.directionOfDoorSite(grid, i, j, 1);
+                dir = GW.grid.directionOfDoorSite(grid, i, j, FLOOR);
                 if (dir != GW.utils.NO_DIRECTION) {
                     // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                     // If it does, it's not a valid door site.
@@ -770,7 +928,7 @@ function removeDiagonalOpenings(grid) {
                             y1 = j + 1;
                         }
                         diagonalCornerRemoved = true;
-                        grid[x1][y1] = FLOOR;
+                        grid[x1][y1] = FLOOR; // todo - pick one of the passable tiles around it...
                     }
                 }
             }
@@ -781,31 +939,36 @@ function finishDoors(grid) {
     grid.forEach((cell, x, y) => {
         if (grid.isBoundaryXY(x, y))
             return;
+        // todo - isDoorway...
         if (cell == DOOR) {
-            if ((grid.get(x + 1, y) == FLOOR ||
+            if (
+            // TODO - isPassable
+            (grid.get(x + 1, y) == FLOOR ||
                 grid.get(x - 1, y) == FLOOR) &&
                 (grid.get(x, y + 1) == FLOOR ||
                     grid.get(x, y - 1) == FLOOR)) {
                 // If there's passable terrain to the left or right, and there's passable terrain
                 // above or below, then the door is orphaned and must be removed.
-                grid[x][y] = FLOOR;
+                grid[x][y] = FLOOR; // todo - take passable neighbor value
             }
-            else if ((grid.get(x + 1, y) !== FLOOR ? 1 : 0) +
+            else if (
+            // todo - isPassable
+            (grid.get(x + 1, y) !== FLOOR ? 1 : 0) +
                 (grid.get(x - 1, y) !== FLOOR ? 1 : 0) +
                 (grid.get(x, y + 1) !== FLOOR ? 1 : 0) +
                 (grid.get(x, y - 1) !== FLOOR ? 1 : 0) >=
                 3) {
                 // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                 // then the door is orphaned and must be removed.
-                grid[x][y] = FLOOR;
+                grid[x][y] = FLOOR; // todo - take passable neighbor
             }
         }
     });
 }
-function finishWalls(grid) {
+function finishWalls(grid, tile = WALL) {
     grid.forEach((cell, i, j) => {
         if (cell == NOTHING) {
-            grid[i][j] = WALL;
+            grid[i][j] = tile;
         }
     });
 }
@@ -813,10 +976,12 @@ function finishWalls(grid) {
 var dig$2 = {
     __proto__: null,
     room: room,
+    hall: hall,
     start: start,
     finish: finish,
     dig: dig$1,
     attachRoom: attachRoom,
+    attachDoor: attachDoor,
     roomFitsAt: roomFitsAt,
     forceRoomAtMapLoc: forceRoomAtMapLoc,
     chooseRandomDoorSites: chooseRandomDoorSites,
