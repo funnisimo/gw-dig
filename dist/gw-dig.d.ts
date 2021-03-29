@@ -167,6 +167,7 @@ declare function dig$1(map: grid.NumGrid, opts?: string | DigConfig): Room | nul
 declare function attachRoom(map: grid.NumGrid, roomGrid: grid.NumGrid, room: Room, opts: DigInfo): boolean;
 declare function attachDoor(map: grid.NumGrid, room: Room, opts: DigInfo, x: number, y: number, dir: number): void;
 declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
+declare function directionOfDoorSite(grid: grid.NumGrid, x: number, y: number, isOpen: number): number;
 declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts: DigConfig): boolean;
 declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid): utils.Loc[];
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
@@ -182,6 +183,7 @@ type dig_d_DigInfo = DigInfo;
 declare const dig_d_attachRoom: typeof attachRoom;
 declare const dig_d_attachDoor: typeof attachDoor;
 declare const dig_d_roomFitsAt: typeof roomFitsAt;
+declare const dig_d_directionOfDoorSite: typeof directionOfDoorSite;
 declare const dig_d_forceRoomAtMapLoc: typeof forceRoomAtMapLoc;
 declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const dig_d_isPassable: typeof isPassable;
@@ -209,6 +211,7 @@ declare namespace dig_d {
     dig_d_attachRoom as attachRoom,
     dig_d_attachDoor as attachDoor,
     dig_d_roomFitsAt as roomFitsAt,
+    dig_d_directionOfDoorSite as directionOfDoorSite,
     dig_d_forceRoomAtMapLoc as forceRoomAtMapLoc,
     dig_d_chooseRandomDoorSites as chooseRandomDoorSites,
     dig_d_isPassable as isPassable,

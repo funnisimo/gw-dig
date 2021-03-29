@@ -405,4 +405,19 @@ describe('Dig', () => {
             expect(map[45][18]).toEqual(2);
         });
     });
+
+    test('directionOfDoorSite', () => {
+        const a = GW.grid.alloc(10, 10, 0);
+
+        a.fillRect(2, 2, 3, 3, 1);
+        expect(Dig.directionOfDoorSite(a, 2, 4, 1)).toEqual(
+            GW.utils.NO_DIRECTION
+        );
+        expect(Dig.directionOfDoorSite(a, 1, 3, 1)).toEqual(GW.utils.LEFT);
+        expect(Dig.directionOfDoorSite(a, 5, 3, 1)).toEqual(GW.utils.RIGHT);
+        expect(Dig.directionOfDoorSite(a, 3, 1, 1)).toEqual(GW.utils.UP);
+        expect(Dig.directionOfDoorSite(a, 3, 5, 1)).toEqual(GW.utils.DOWN);
+
+        GW.grid.free(a);
+    });
 });

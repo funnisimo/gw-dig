@@ -681,7 +681,7 @@ function attachRoom(map, roomGrid, room, opts) {
         const y = SEQ[i] % map.height;
         if (!(map.get(x, y) == NOTHING))
             continue;
-        const dir = grid.directionOfDoorSite(map, x, y, FLOOR);
+        const dir = directionOfDoorSite(map, x, y, FLOOR);
         if (dir != utils.NO_DIRECTION) {
             const oppDir = (dir + 2) % 4;
             const door = doorSites[oppDir];
@@ -776,6 +776,34 @@ function roomFitsAt(map, roomGrid, roomToSiteX, roomToSiteY) {
     // console.log('- YES');
     return true;
 }
+// If the indicated tile is a wall on the room stored in grid, and it could be the site of
+// a door out of that room, then return the outbound direction that the door faces.
+// Otherwise, return def.NO_DIRECTION.
+function directionOfDoorSite(grid, x, y, isOpen) {
+    let dir, solutionDir;
+    let newX, newY, oppX, oppY;
+    const fnOpen = typeof isOpen === 'function'
+        ? isOpen
+        : (v) => v == isOpen;
+    solutionDir = utils.NO_DIRECTION;
+    for (dir = 0; dir < 4; dir++) {
+        newX = x + DIRS$1[dir][0];
+        newY = y + DIRS$1[dir][1];
+        oppX = x - DIRS$1[dir][0];
+        oppY = y - DIRS$1[dir][1];
+        if (grid.hasXY(oppX, oppY) &&
+            grid.hasXY(newX, newY) &&
+            fnOpen(grid[oppX][oppY], oppX, oppY, grid)) {
+            // This grid cell would be a valid tile on which to place a door that, facing outward, points dir.
+            if (solutionDir != utils.NO_DIRECTION) {
+                // Already claimed by another direction; no doors here!
+                return utils.NO_DIRECTION;
+            }
+            solutionDir = dir;
+        }
+    }
+    return solutionDir;
+}
 function forceRoomAtMapLoc(map, xy, roomGrid, room, opts) {
     // console.log('forceRoomAtMapLoc', xy);
     // Slide room across map, in a random but predetermined order, until the room matches up with a wall.
@@ -784,7 +812,7 @@ function forceRoomAtMapLoc(map, xy, roomGrid, room, opts) {
         const y = SEQ[i] % map.height;
         if (roomGrid[x][y])
             continue;
-        const dir = grid.directionOfDoorSite(roomGrid, x, y, FLOOR);
+        const dir = directionOfDoorSite(roomGrid, x, y, FLOOR);
         if (dir != utils.NO_DIRECTION) {
             const dx = xy[0] - x;
             const dy = xy[1] - y;
@@ -863,7 +891,7 @@ function chooseRandomDoorSites(sourceGrid) {
     for (i = 0; i < grid$1.width; i++) {
         for (j = 0; j < grid$1.height; j++) {
             if (!grid$1[i][j]) {
-                dir = grid.directionOfDoorSite(grid$1, i, j, FLOOR);
+                dir = directionOfDoorSite(grid$1, i, j, FLOOR);
                 if (dir != utils.NO_DIRECTION) {
                     // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                     // If it does, it's not a valid door site.
@@ -979,6 +1007,7 @@ var dig$2 = {
     attachRoom: attachRoom,
     attachDoor: attachDoor,
     roomFitsAt: roomFitsAt,
+    directionOfDoorSite: directionOfDoorSite,
     forceRoomAtMapLoc: forceRoomAtMapLoc,
     chooseRandomDoorSites: chooseRandomDoorSites,
     isPassable: isPassable,

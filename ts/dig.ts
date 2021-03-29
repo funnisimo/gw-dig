@@ -183,7 +183,7 @@ export function attachRoom(
         const y = SEQ[i] % map.height;
 
         if (!(map.get(x, y) == CONST.NOTHING)) continue;
-        const dir = GW.grid.directionOfDoorSite(map, x, y, CONST.FLOOR);
+        const dir = directionOfDoorSite(map, x, y, CONST.FLOOR);
         if (dir != GW.utils.NO_DIRECTION) {
             const oppDir = (dir + 2) % 4;
             const door = doorSites[oppDir];
@@ -310,6 +310,45 @@ export function roomFitsAt(
     return true;
 }
 
+// If the indicated tile is a wall on the room stored in grid, and it could be the site of
+// a door out of that room, then return the outbound direction that the door faces.
+// Otherwise, return def.NO_DIRECTION.
+export function directionOfDoorSite(
+    grid: GW.grid.NumGrid,
+    x: number,
+    y: number,
+    isOpen: number
+): number {
+    let dir, solutionDir;
+    let newX, newY, oppX, oppY;
+
+    const fnOpen: GW.grid.GridMatch<number> =
+        typeof isOpen === 'function'
+            ? (isOpen as GW.grid.GridMatch<number>)
+            : (v: number) => v == isOpen;
+
+    solutionDir = GW.utils.NO_DIRECTION;
+    for (dir = 0; dir < 4; dir++) {
+        newX = x + DIRS[dir][0];
+        newY = y + DIRS[dir][1];
+        oppX = x - DIRS[dir][0];
+        oppY = y - DIRS[dir][1];
+        if (
+            grid.hasXY(oppX, oppY) &&
+            grid.hasXY(newX, newY) &&
+            fnOpen(grid[oppX][oppY], oppX, oppY, grid)
+        ) {
+            // This grid cell would be a valid tile on which to place a door that, facing outward, points dir.
+            if (solutionDir != GW.utils.NO_DIRECTION) {
+                // Already claimed by another direction; no doors here!
+                return GW.utils.NO_DIRECTION;
+            }
+            solutionDir = dir;
+        }
+    }
+    return solutionDir;
+}
+
 export function forceRoomAtMapLoc(
     map: GW.grid.NumGrid,
     xy: GW.utils.Loc,
@@ -326,7 +365,7 @@ export function forceRoomAtMapLoc(
 
         if (roomGrid[x][y]) continue;
 
-        const dir = GW.grid.directionOfDoorSite(roomGrid, x, y, CONST.FLOOR);
+        const dir = directionOfDoorSite(roomGrid, x, y, CONST.FLOOR);
         if (dir != GW.utils.NO_DIRECTION) {
             const dx = xy[0] - x;
             const dy = xy[1] - y;
@@ -434,7 +473,7 @@ export function chooseRandomDoorSites(
     for (i = 0; i < grid.width; i++) {
         for (j = 0; j < grid.height; j++) {
             if (!grid[i][j]) {
-                dir = GW.grid.directionOfDoorSite(grid, i, j, CONST.FLOOR);
+                dir = directionOfDoorSite(grid, i, j, CONST.FLOOR);
                 if (dir != GW.utils.NO_DIRECTION) {
                     // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                     // If it does, it's not a valid door site.
