@@ -130,7 +130,8 @@ export function dig(
         // dig the room in the center
         room = digger.fn(roomConfig, roomGrid);
 
-        room.doors = chooseRandomDoorSites(roomGrid);
+        // TODO - Allow choice of floor tile...
+        room.doors = chooseRandomDoorSites(roomGrid, CONST.FLOOR);
         if (attachHall && hallConfig) {
             room.hall = hallConfig.fn(hallConfig!, roomGrid, room);
         }
@@ -461,11 +462,13 @@ function attachRoomAtXY(
 }
 
 export function chooseRandomDoorSites(
-    sourceGrid: GW.grid.NumGrid
+    sourceGrid: GW.grid.NumGrid,
+    floorTile?: number
 ): GW.utils.Loc[] {
     let i, j, k, newX, newY;
     let dir;
     let doorSiteFailed;
+    floorTile = floorTile || CONST.FLOOR;
 
     const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
     grid.copy(sourceGrid);
@@ -473,7 +476,7 @@ export function chooseRandomDoorSites(
     for (i = 0; i < grid.width; i++) {
         for (j = 0; j < grid.height; j++) {
             if (!grid[i][j]) {
-                dir = directionOfDoorSite(grid, i, j, CONST.FLOOR);
+                dir = directionOfDoorSite(grid, i, j, floorTile);
                 if (dir != GW.utils.NO_DIRECTION) {
                     // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                     // If it does, it's not a valid door site.
@@ -515,9 +518,167 @@ export function isPassable(grid: GW.grid.NumGrid, x: number, y: number) {
     return v === CONST.FLOOR || v === CONST.DOOR || v === CONST.BRIDGE;
 }
 
+export function isDoor(grid: GW.grid.NumGrid, x: number, y: number) {
+    const v = grid.get(x, y);
+    return v === CONST.DOOR;
+}
+
 export function isObstruction(grid: GW.grid.NumGrid, x: number, y: number) {
     const v = grid.get(x, y);
     return v === CONST.NOTHING || v === CONST.WALL;
+}
+
+function fillCostGrid(source: GW.grid.NumGrid, costGrid: GW.grid.NumGrid) {
+    source.forEach((_v, x, y) => {
+        costGrid[x][y] = isPassable(source, x, y) ? 1 : GW.path.OBSTRUCTION;
+    });
+}
+
+// Add some loops to the otherwise simply connected network of rooms.
+export function addLoops(
+    grid: GW.grid.NumGrid,
+    minimumPathingDistance: number,
+    maxConnectionLength: number
+) {
+    let startX, startY, endX, endY;
+    let i, j, d, x, y;
+
+    minimumPathingDistance =
+        minimumPathingDistance ||
+        Math.floor(Math.min(grid.width, grid.height) / 2);
+    maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
+
+    const siteGrid = grid;
+    const pathGrid = GW.grid.alloc(grid.width, grid.height);
+    const costGrid = GW.grid.alloc(grid.width, grid.height);
+
+    const dirCoords: [number, number][] = [
+        [1, 0],
+        [0, 1],
+    ];
+
+    fillCostGrid(grid, costGrid);
+
+    function isValidTunnelStart(x: number, y: number, dir: [number, number]) {
+        if (!grid.hasXY(x, y)) return false;
+        if (!grid.hasXY(x + dir[1], y + dir[0])) return false;
+        if (!grid.hasXY(x - dir[1], y - dir[0])) return false;
+        if (grid.get(x, y)) return false;
+        if (grid.get(x + dir[1], y + dir[0])) return false;
+        if (grid.get(x - dir[1], y - dir[0])) return false;
+        return true;
+    }
+
+    function isValidTunnelEnd(x: number, y: number, dir: [number, number]) {
+        if (!grid.hasXY(x, y)) return false;
+        if (!grid.hasXY(x + dir[1], y + dir[0])) return false;
+        if (!grid.hasXY(x - dir[1], y - dir[0])) return false;
+        if (grid.get(x, y)) return true;
+        if (grid.get(x + dir[1], y + dir[0])) return true;
+        if (grid.get(x - dir[1], y - dir[0])) return true;
+        return false;
+    }
+
+    for (i = 0; i < SEQ.length; i++) {
+        x = Math.floor(SEQ[i] / siteGrid.height);
+        y = SEQ[i] % siteGrid.height;
+
+        const cell = siteGrid[x][y];
+        if (!cell) {
+            for (d = 0; d <= 1; d++) {
+                // Try a horizontal door, and then a vertical door.
+                let dir = dirCoords[d];
+                if (!isValidTunnelStart(x, y, dir)) continue;
+                j = maxConnectionLength;
+
+                // check up/left
+                if (
+                    grid.hasXY(x + dir[0], y + dir[1]) &&
+                    isPassable(grid, x + dir[0], y + dir[1])
+                ) {
+                    // just can't build directly into a door
+                    if (
+                        !grid.hasXY(x - dir[0], y - dir[1]) ||
+                        isDoor(grid, x - dir[0], y - dir[1])
+                    ) {
+                        continue;
+                    }
+                } else if (
+                    grid.hasXY(x - dir[0], y - dir[1]) &&
+                    isPassable(grid, x - dir[0], y - dir[1])
+                ) {
+                    if (
+                        !grid.hasXY(x + dir[0], y + dir[1]) ||
+                        isDoor(grid, x + dir[0], y + dir[1])
+                    ) {
+                        continue;
+                    }
+                    dir = dir.map((v) => -1 * v) as [number, number];
+                } else {
+                    continue; // not valid start for tunnel
+                }
+
+                startX = x + dir[0];
+                startY = y + dir[1];
+                endX = x;
+                endY = y;
+
+                for (j = 0; j < maxConnectionLength; ++j) {
+                    endX -= dir[0];
+                    endY -= dir[1];
+
+                    // if (grid.hasXY(endX, endY) && !grid.cell(endX, endY).isNull()) {
+                    if (isValidTunnelEnd(endX, endY, dir)) {
+                        break;
+                    }
+                }
+
+                if (j < maxConnectionLength) {
+                    GW.path.calculateDistances(
+                        pathGrid,
+                        startX,
+                        startY,
+                        costGrid,
+                        false
+                    );
+                    // pathGrid.fill(30000);
+                    // pathGrid[startX][startY] = 0;
+                    // dijkstraScan(pathGrid, costGrid, false);
+                    if (
+                        pathGrid[endX][endY] > minimumPathingDistance &&
+                        pathGrid[endX][endY] < 30000
+                    ) {
+                        // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+
+                        // dungeon.debug(
+                        //     'Adding Loop',
+                        //     startX,
+                        //     startY,
+                        //     ' => ',
+                        //     endX,
+                        //     endY,
+                        //     ' : ',
+                        //     pathGrid[endX][endY]
+                        // );
+
+                        while (endX !== startX || endY !== startY) {
+                            if (grid.get(endX, endY) == 0) {
+                                grid[endX][endY] = CONST.FLOOR;
+                                costGrid[endX][endY] = 1; // (Cost map also needs updating.)
+                            }
+                            endX += dir[0];
+                            endY += dir[1];
+                        }
+                        // TODO - Door is optional
+                        grid[x][y] = CONST.DOOR; // then turn the tile into a doorway.
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    GW.grid.free(pathGrid);
+    GW.grid.free(costGrid);
 }
 
 export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {

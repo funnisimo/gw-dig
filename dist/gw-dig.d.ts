@@ -169,9 +169,11 @@ declare function attachDoor(map: grid.NumGrid, room: Room, opts: DigInfo, x: num
 declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
 declare function directionOfDoorSite(grid: grid.NumGrid, x: number, y: number, isOpen: number): number;
 declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts: DigConfig): boolean;
-declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid): utils.Loc[];
+declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid, floorTile?: number): utils.Loc[];
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
 declare function finishWalls(grid: grid.NumGrid, tile?: number): void;
@@ -187,7 +189,9 @@ declare const dig_d_directionOfDoorSite: typeof directionOfDoorSite;
 declare const dig_d_forceRoomAtMapLoc: typeof forceRoomAtMapLoc;
 declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const dig_d_isPassable: typeof isPassable;
+declare const dig_d_isDoor: typeof isDoor;
 declare const dig_d_isObstruction: typeof isObstruction;
+declare const dig_d_addLoops: typeof addLoops;
 declare const dig_d_removeDiagonalOpenings: typeof removeDiagonalOpenings;
 declare const dig_d_finishDoors: typeof finishDoors;
 declare const dig_d_finishWalls: typeof finishWalls;
@@ -215,7 +219,9 @@ declare namespace dig_d {
     dig_d_forceRoomAtMapLoc as forceRoomAtMapLoc,
     dig_d_chooseRandomDoorSites as chooseRandomDoorSites,
     dig_d_isPassable as isPassable,
+    dig_d_isDoor as isDoor,
     dig_d_isObstruction as isObstruction,
+    dig_d_addLoops as addLoops,
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,
