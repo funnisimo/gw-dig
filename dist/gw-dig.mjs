@@ -1088,14 +1088,18 @@ function addLakes(map, opts = {}) {
     maxCount = opts.count || 1;
     canDisrupt = opts.canDisrupt || false;
     const lakeGrid = grid.alloc(map.width, map.height, 0);
-    for (; lakeMaxHeight >= lakeMinSize &&
-        lakeMaxWidth >= lakeMinSize &&
-        count < maxCount; lakeMaxHeight--, lakeMaxWidth -= 2) {
+    let attempts = 0;
+    while (attempts < maxCount && count < maxCount) {
         // lake generations
+        const width = Math.round(((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
+            maxCount) + lakeMinSize;
+        const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
+            maxCount) + lakeMinSize;
         lakeGrid.fill(NOTHING);
-        const bounds = lakeGrid.fillBlob(5, 4, 4, lakeMaxWidth, lakeMaxHeight, 55, 'ffffftttt', 'ffffttttt');
+        const bounds = lakeGrid.fillBlob(5, 4, 4, width, height, 55, 'ffffftttt', 'ffffttttt');
         // lakeGrid.dump();
-        for (k = 0; k < tries && count < maxCount; k++) {
+        let success = false;
+        for (k = 0; k < tries && !success; k++) {
             // placement attempts
             // propose a position for the top-left of the lakeGrid in the dungeon
             x = random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
@@ -1103,7 +1107,7 @@ function addLakes(map, opts = {}) {
             if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
                 // level with lake is completely connected
                 //   dungeon.debug("Placed a lake!", x, y);
-                ++count;
+                success = true;
                 // copy in lake
                 for (i = 0; i < bounds.width; i++) {
                     // skip boundary
@@ -1118,6 +1122,12 @@ function addLakes(map, opts = {}) {
                 }
                 break;
             }
+        }
+        if (success) {
+            ++count;
+        }
+        else {
+            ++attempts;
         }
     }
     grid.free(lakeGrid);

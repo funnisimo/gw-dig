@@ -707,22 +707,28 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
 
     const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
 
-    for (
-        ;
-        lakeMaxHeight >= lakeMinSize &&
-        lakeMaxWidth >= lakeMinSize &&
-        count < maxCount;
-        lakeMaxHeight--, lakeMaxWidth -= 2
-    ) {
+    let attempts = 0;
+    while (attempts < maxCount && count < maxCount) {
         // lake generations
+
+        const width =
+            Math.round(
+                ((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
+                    maxCount
+            ) + lakeMinSize;
+        const height =
+            Math.round(
+                ((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
+                    maxCount
+            ) + lakeMinSize;
 
         lakeGrid.fill(CONST.NOTHING);
         const bounds = lakeGrid.fillBlob(
             5,
             4,
             4,
-            lakeMaxWidth,
-            lakeMaxHeight,
+            width,
+            height,
             55,
             'ffffftttt',
             'ffffttttt'
@@ -730,7 +736,8 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
 
         // lakeGrid.dump();
 
-        for (k = 0; k < tries && count < maxCount; k++) {
+        let success = false;
+        for (k = 0; k < tries && !success; k++) {
             // placement attempts
             // propose a position for the top-left of the lakeGrid in the dungeon
             x = GW.random.range(
@@ -746,7 +753,7 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
                 // level with lake is completely connected
                 //   dungeon.debug("Placed a lake!", x, y);
 
-                ++count;
+                success = true;
                 // copy in lake
                 for (i = 0; i < bounds.width; i++) {
                     // skip boundary
@@ -761,6 +768,12 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
                 }
                 break;
             }
+        }
+
+        if (success) {
+            ++count;
+        } else {
+            ++attempts;
         }
     }
     GW.grid.free(lakeGrid);
