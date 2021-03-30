@@ -702,7 +702,7 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
     lakeMaxWidth = opts.width || 30;
     lakeMinSize = opts.minSize || 5;
     tries = opts.tries || 20;
-    maxCount = 1; // opts.count || tries;
+    maxCount = opts.count || 1;
     canDisrupt = opts.canDisrupt || false;
 
     const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
@@ -728,7 +728,7 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
             'ffffttttt'
         );
 
-        lakeGrid.dump();
+        // lakeGrid.dump();
 
         for (k = 0; k < tries && count < maxCount; k++) {
             // placement attempts
@@ -741,8 +741,6 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
                 1 - bounds.y,
                 lakeGrid.height - bounds.height - bounds.y - 2
             );
-
-            console.log('lake try', x, y);
 
             if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
                 // level with lake is completely connected
@@ -802,7 +800,6 @@ function lakeDisruptsPassability(
             if (walkableGrid[i][j] == 1) {
                 if (first) {
                     walkableGrid.floodFill(i, j, 1, 2);
-                    console.log('FLOOD FILL', i, j);
                     first = false;
                 } else {
                     disrupts = true;

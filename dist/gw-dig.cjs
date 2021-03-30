@@ -1089,7 +1089,7 @@ function addLakes(map, opts = {}) {
     lakeMaxWidth = opts.width || 30;
     lakeMinSize = opts.minSize || 5;
     tries = opts.tries || 20;
-    maxCount = 1; // opts.count || tries;
+    maxCount = opts.count || 1;
     canDisrupt = opts.canDisrupt || false;
     const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
     for (; lakeMaxHeight >= lakeMinSize &&
@@ -1098,13 +1098,12 @@ function addLakes(map, opts = {}) {
         // lake generations
         lakeGrid.fill(NOTHING);
         const bounds = lakeGrid.fillBlob(5, 4, 4, lakeMaxWidth, lakeMaxHeight, 55, 'ffffftttt', 'ffffttttt');
-        lakeGrid.dump();
+        // lakeGrid.dump();
         for (k = 0; k < tries && count < maxCount; k++) {
             // placement attempts
             // propose a position for the top-left of the lakeGrid in the dungeon
             x = GW.random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
             y = GW.random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
-            console.log('lake try', x, y);
             if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
                 // level with lake is completely connected
                 //   dungeon.debug("Placed a lake!", x, y);
@@ -1158,7 +1157,6 @@ function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) 
             if (walkableGrid[i][j] == 1) {
                 if (first) {
                     walkableGrid.floodFill(i, j, 1, 2);
-                    console.log('FLOOD FILL', i, j);
                     first = false;
                 }
                 else {
