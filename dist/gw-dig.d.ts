@@ -145,6 +145,8 @@ declare const DOOR = 2;
 declare const WALL = 3;
 declare const LAKE = 4;
 declare const BRIDGE = 5;
+declare const UP_STAIRS = 6;
+declare const DOWN_STAIRS = 7;
 
 declare function start(map: grid.NumGrid): void;
 declare function finish(map: grid.NumGrid): void;
@@ -173,7 +175,9 @@ declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid, floorTile?: num
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isStairs(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+declare function addLakes(map: grid.NumGrid, opts?: any): number;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
 declare function finishWalls(grid: grid.NumGrid, tile?: number): void;
@@ -191,7 +195,9 @@ declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const dig_d_isPassable: typeof isPassable;
 declare const dig_d_isDoor: typeof isDoor;
 declare const dig_d_isObstruction: typeof isObstruction;
+declare const dig_d_isStairs: typeof isStairs;
 declare const dig_d_addLoops: typeof addLoops;
+declare const dig_d_addLakes: typeof addLakes;
 declare const dig_d_removeDiagonalOpenings: typeof removeDiagonalOpenings;
 declare const dig_d_finishDoors: typeof finishDoors;
 declare const dig_d_finishWalls: typeof finishWalls;
@@ -205,6 +211,8 @@ declare const dig_d_DOOR: typeof DOOR;
 declare const dig_d_WALL: typeof WALL;
 declare const dig_d_LAKE: typeof LAKE;
 declare const dig_d_BRIDGE: typeof BRIDGE;
+declare const dig_d_UP_STAIRS: typeof UP_STAIRS;
+declare const dig_d_DOWN_STAIRS: typeof DOWN_STAIRS;
 declare namespace dig_d {
   export {
     dig_d_start as start,
@@ -221,7 +229,9 @@ declare namespace dig_d {
     dig_d_isPassable as isPassable,
     dig_d_isDoor as isDoor,
     dig_d_isObstruction as isObstruction,
+    dig_d_isStairs as isStairs,
     dig_d_addLoops as addLoops,
+    dig_d_addLakes as addLakes,
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,
@@ -235,6 +245,8 @@ declare namespace dig_d {
     dig_d_WALL as WALL,
     dig_d_LAKE as LAKE,
     dig_d_BRIDGE as BRIDGE,
+    dig_d_UP_STAIRS as UP_STAIRS,
+    dig_d_DOWN_STAIRS as DOWN_STAIRS,
   };
 }
 

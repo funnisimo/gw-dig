@@ -10,6 +10,8 @@ const DOOR = 2;
 const WALL = 3;
 const LAKE = 4;
 const BRIDGE = 5;
+const UP_STAIRS = 6;
+const DOWN_STAIRS = 7;
 
 class Hall {
     constructor(loc, dir, length, width = 1) {
@@ -929,7 +931,11 @@ function chooseRandomDoorSites(sourceGrid, floorTile) {
 }
 function isPassable(grid, x, y) {
     const v = grid.get(x, y);
-    return v === FLOOR || v === DOOR || v === BRIDGE;
+    return (v === FLOOR ||
+        v === DOOR ||
+        v === BRIDGE ||
+        v === UP_STAIRS ||
+        v === DOWN_STAIRS);
 }
 function isDoor(grid, x, y) {
     const v = grid.get(x, y);
@@ -938,6 +944,10 @@ function isDoor(grid, x, y) {
 function isObstruction(grid, x, y) {
     const v = grid.get(x, y);
     return v === NOTHING || v === WALL;
+}
+function isStairs(grid, x, y) {
+    const v = grid.get(x, y);
+    return v === UP_STAIRS || v === DOWN_STAIRS;
 }
 function fillCostGrid(source, costGrid) {
     source.forEach((_v, x, y) => {
@@ -1070,6 +1080,98 @@ function addLoops(grid, minimumPathingDistance, maxConnectionLength) {
     GW.grid.free(pathGrid);
     GW.grid.free(costGrid);
 }
+function addLakes(map, opts = {}) {
+    let i, j, k;
+    let x, y;
+    let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
+    let count = 0;
+    lakeMaxHeight = opts.height || 15;
+    lakeMaxWidth = opts.width || 30;
+    lakeMinSize = opts.minSize || 5;
+    tries = opts.tries || 20;
+    maxCount = 1; // opts.count || tries;
+    canDisrupt = opts.canDisrupt || false;
+    const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
+    for (; lakeMaxHeight >= lakeMinSize &&
+        lakeMaxWidth >= lakeMinSize &&
+        count < maxCount; lakeMaxHeight--, lakeMaxWidth -= 2) {
+        // lake generations
+        lakeGrid.fill(NOTHING);
+        const bounds = lakeGrid.fillBlob(5, 4, 4, lakeMaxWidth, lakeMaxHeight, 55, 'ffffftttt', 'ffffttttt');
+        lakeGrid.dump();
+        for (k = 0; k < tries && count < maxCount; k++) {
+            // placement attempts
+            // propose a position for the top-left of the lakeGrid in the dungeon
+            x = GW.random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
+            y = GW.random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
+            console.log('lake try', x, y);
+            if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
+                // level with lake is completely connected
+                //   dungeon.debug("Placed a lake!", x, y);
+                ++count;
+                // copy in lake
+                for (i = 0; i < bounds.width; i++) {
+                    // skip boundary
+                    for (j = 0; j < bounds.height; j++) {
+                        // skip boundary
+                        if (lakeGrid[i + bounds.x][j + bounds.y]) {
+                            const sx = i + bounds.x + x;
+                            const sy = j + bounds.y + y;
+                            map[sx][sy] = opts.tile || LAKE;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+    GW.grid.free(lakeGrid);
+    return count;
+}
+function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) {
+    const walkableGrid = GW.grid.alloc(map.width, map.height);
+    let disrupts = false;
+    // Get all walkable locations after lake added
+    map.forEach((v, i, j) => {
+        const lakeX = i + lakeToMapX;
+        const lakeY = j + lakeToMapY;
+        if (!v) {
+            return; // not walkable
+        }
+        else if (isStairs(map, i, j)) {
+            if (lakeGrid.get(lakeX, lakeY)) {
+                disrupts = true;
+            }
+            else {
+                walkableGrid[i][j] = 1;
+            }
+        }
+        else if (isPassable(map, i, j)) {
+            if (lakeGrid.get(lakeX, lakeY))
+                return;
+            walkableGrid[i][j] = 1;
+        }
+    });
+    let first = true;
+    for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+        for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+            if (walkableGrid[i][j] == 1) {
+                if (first) {
+                    walkableGrid.floodFill(i, j, 1, 2);
+                    console.log('FLOOD FILL', i, j);
+                    first = false;
+                }
+                else {
+                    disrupts = true;
+                }
+            }
+        }
+    }
+    // console.log('WALKABLE GRID');
+    // walkableGrid.dump();
+    GW.grid.free(walkableGrid);
+    return disrupts;
+}
 function removeDiagonalOpenings(grid) {
     let i, j, k, x1, y1;
     let diagonalCornerRemoved;
@@ -1154,7 +1256,9 @@ var dig$2 = {
     isPassable: isPassable,
     isDoor: isDoor,
     isObstruction: isObstruction,
+    isStairs: isStairs,
     addLoops: addLoops,
+    addLakes: addLakes,
     removeDiagonalOpenings: removeDiagonalOpenings,
     finishDoors: finishDoors,
     finishWalls: finishWalls,
@@ -1165,7 +1269,9 @@ var dig$2 = {
     DOOR: DOOR,
     WALL: WALL,
     LAKE: LAKE,
-    BRIDGE: BRIDGE
+    BRIDGE: BRIDGE,
+    UP_STAIRS: UP_STAIRS,
+    DOWN_STAIRS: DOWN_STAIRS
 };
 
 exports.dig = dig$2;
