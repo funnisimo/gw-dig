@@ -520,7 +520,8 @@ export function isPassable(grid: GW.grid.NumGrid, x: number, y: number) {
         v === CONST.DOOR ||
         v === CONST.BRIDGE ||
         v === CONST.UP_STAIRS ||
-        v === CONST.DOWN_STAIRS
+        v === CONST.DOWN_STAIRS ||
+        v === CONST.SHALLOW
     );
 }
 
@@ -537,6 +538,10 @@ export function isObstruction(grid: GW.grid.NumGrid, x: number, y: number) {
 export function isStairs(grid: GW.grid.NumGrid, x: number, y: number) {
     const v = grid.get(x, y);
     return v === CONST.UP_STAIRS || v === CONST.DOWN_STAIRS;
+}
+
+export function isLake(grid: GW.grid.NumGrid, x: number, y: number) {
+    return grid.get(x, y) === CONST.LAKE;
 }
 
 function fillCostGrid(source: GW.grid.NumGrid, costGrid: GW.grid.NumGrid) {
@@ -698,12 +703,15 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
     let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
     let count = 0;
 
-    lakeMaxHeight = opts.height || 15;
-    lakeMaxWidth = opts.width || 30;
+    lakeMaxHeight = opts.height || 15; // TODO - Make this a range "10-20" or wieghted choice { 10: 30, 15: 10 }
+    lakeMaxWidth = opts.width || 30; // TODO - Make this a range "10-20" or wieghted choice { 10: 30, 15: 10 }
     lakeMinSize = opts.minSize || 5;
     tries = opts.tries || 20;
     maxCount = opts.count || 1;
     canDisrupt = opts.canDisrupt || false;
+    const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+    const wreathTile = opts.wreathTile || CONST.SHALLOW;
+    const tile = opts.tile || CONST.LAKE;
 
     const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
 
@@ -762,7 +770,15 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
                         if (lakeGrid[i + bounds.x][j + bounds.y]) {
                             const sx = i + bounds.x + x;
                             const sy = j + bounds.y + y;
-                            map[sx][sy] = opts.tile || CONST.LAKE;
+                            map[sx][sy] = tile;
+
+                            if (wreath) {
+                                map.forCircle(sx, sy, wreath, (v, i, j) => {
+                                    if (v === CONST.FLOOR || v === CONST.DOOR) {
+                                        map[i][j] = wreathTile;
+                                    }
+                                });
+                            }
                         }
                     }
                 }

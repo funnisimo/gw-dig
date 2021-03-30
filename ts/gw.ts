@@ -6,3 +6,4 @@ export const LAKE = 4;
 export const BRIDGE = 5;
 export const UP_STAIRS = 6;
 export const DOWN_STAIRS = 7;
+export const SHALLOW = 8;

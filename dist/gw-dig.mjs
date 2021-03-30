@@ -8,6 +8,7 @@ const LAKE = 4;
 const BRIDGE = 5;
 const UP_STAIRS = 6;
 const DOWN_STAIRS = 7;
+const SHALLOW = 8;
 
 class Hall {
     constructor(loc, dir, length, width = 1) {
@@ -931,7 +932,8 @@ function isPassable(grid, x, y) {
         v === DOOR ||
         v === BRIDGE ||
         v === UP_STAIRS ||
-        v === DOWN_STAIRS);
+        v === DOWN_STAIRS ||
+        v === SHALLOW);
 }
 function isDoor(grid, x, y) {
     const v = grid.get(x, y);
@@ -944,6 +946,9 @@ function isObstruction(grid, x, y) {
 function isStairs(grid, x, y) {
     const v = grid.get(x, y);
     return v === UP_STAIRS || v === DOWN_STAIRS;
+}
+function isLake(grid, x, y) {
+    return grid.get(x, y) === LAKE;
 }
 function fillCostGrid(source, costGrid) {
     source.forEach((_v, x, y) => {
@@ -1081,12 +1086,15 @@ function addLakes(map, opts = {}) {
     let x, y;
     let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
     let count = 0;
-    lakeMaxHeight = opts.height || 15;
-    lakeMaxWidth = opts.width || 30;
+    lakeMaxHeight = opts.height || 15; // TODO - Make this a range "10-20" or wieghted choice { 10: 30, 15: 10 }
+    lakeMaxWidth = opts.width || 30; // TODO - Make this a range "10-20" or wieghted choice { 10: 30, 15: 10 }
     lakeMinSize = opts.minSize || 5;
     tries = opts.tries || 20;
     maxCount = opts.count || 1;
     canDisrupt = opts.canDisrupt || false;
+    const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+    const wreathTile = opts.wreathTile || SHALLOW;
+    const tile = opts.tile || LAKE;
     const lakeGrid = grid.alloc(map.width, map.height, 0);
     let attempts = 0;
     while (attempts < maxCount && count < maxCount) {
@@ -1116,7 +1124,14 @@ function addLakes(map, opts = {}) {
                         if (lakeGrid[i + bounds.x][j + bounds.y]) {
                             const sx = i + bounds.x + x;
                             const sy = j + bounds.y + y;
-                            map[sx][sy] = opts.tile || LAKE;
+                            map[sx][sy] = tile;
+                            if (wreath) {
+                                map.forCircle(sx, sy, wreath, (v, i, j) => {
+                                    if (v === FLOOR || v === DOOR) {
+                                        map[i][j] = wreathTile;
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -1261,6 +1276,7 @@ var dig$2 = {
     isDoor: isDoor,
     isObstruction: isObstruction,
     isStairs: isStairs,
+    isLake: isLake,
     addLoops: addLoops,
     addLakes: addLakes,
     removeDiagonalOpenings: removeDiagonalOpenings,
@@ -1275,7 +1291,8 @@ var dig$2 = {
     LAKE: LAKE,
     BRIDGE: BRIDGE,
     UP_STAIRS: UP_STAIRS,
-    DOWN_STAIRS: DOWN_STAIRS
+    DOWN_STAIRS: DOWN_STAIRS,
+    SHALLOW: SHALLOW
 };
 
 export { dig$2 as dig };
