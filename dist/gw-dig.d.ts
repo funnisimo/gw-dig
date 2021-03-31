@@ -180,6 +180,7 @@ declare function isStairs(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isLake(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 declare function addLakes(map: grid.NumGrid, opts?: any): number;
+declare function addBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
 declare function finishWalls(grid: grid.NumGrid, tile?: number): void;
@@ -201,6 +202,7 @@ declare const dig_d_isStairs: typeof isStairs;
 declare const dig_d_isLake: typeof isLake;
 declare const dig_d_addLoops: typeof addLoops;
 declare const dig_d_addLakes: typeof addLakes;
+declare const dig_d_addBridges: typeof addBridges;
 declare const dig_d_removeDiagonalOpenings: typeof removeDiagonalOpenings;
 declare const dig_d_finishDoors: typeof finishDoors;
 declare const dig_d_finishWalls: typeof finishWalls;
@@ -237,6 +239,7 @@ declare namespace dig_d {
     dig_d_isLake as isLake,
     dig_d_addLoops as addLoops,
     dig_d_addLakes as addLakes,
+    dig_d_addBridges as addBridges,
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,

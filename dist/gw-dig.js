@@ -1090,8 +1090,8 @@
         let x, y;
         let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
         let count = 0;
-        lakeMaxHeight = opts.height || 15; // TODO - Make this a range "10-20" or wieghted choice { 10: 30, 15: 10 }
-        lakeMaxWidth = opts.width || 30; // TODO - Make this a range "10-20" or wieghted choice { 10: 30, 15: 10 }
+        lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
+        lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
         lakeMinSize = opts.minSize || 5;
         tries = opts.tries || 20;
         maxCount = opts.count || 1;
@@ -1195,6 +1195,93 @@
         GW.grid.free(walkableGrid);
         return disrupts;
     }
+    function isBridgeCandidate(map, x, y, bridgeDir) {
+        if (map.get(x, y) === BRIDGE)
+            return true;
+        if (!isLake(map, x, y))
+            return false;
+        if (!isLake(map, x + bridgeDir[1], y + bridgeDir[0]))
+            return false;
+        if (!isLake(map, x - bridgeDir[1], y - bridgeDir[0]))
+            return false;
+        return true;
+    }
+    // Add some loops to the otherwise simply connected network of rooms.
+    function addBridges(map, minimumPathingDistance, maxConnectionLength) {
+        let newX, newY;
+        let i, j, d, x, y;
+        maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
+        const siteGrid = map;
+        const pathGrid = GW.grid.alloc(map.width, map.height);
+        const costGrid = GW.grid.alloc(map.width, map.height);
+        const dirCoords = [
+            [1, 0],
+            [0, 1],
+        ];
+        fillCostGrid(map, costGrid);
+        for (i = 0; i < SEQ.length; i++) {
+            x = Math.floor(SEQ[i] / siteGrid.height);
+            y = SEQ[i] % siteGrid.height;
+            if (map.hasXY(x, y) && map.get(x, y) && isPassable(map, x, y)) {
+                for (d = 0; d <= 1; d++) {
+                    // Try right, then down
+                    const bridgeDir = dirCoords[d];
+                    newX = x + bridgeDir[0];
+                    newY = y + bridgeDir[1];
+                    j = maxConnectionLength;
+                    if (!map.hasXY(newX, newY))
+                        continue;
+                    // check for line of lake tiles
+                    // if (isBridgeCandidate(newX, newY, bridgeDir)) {
+                    if (isLake(map, newX, newY)) {
+                        for (j = 0; j < maxConnectionLength; ++j) {
+                            newX += bridgeDir[0];
+                            newY += bridgeDir[1];
+                            // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
+                            if (!isLake(map, newX, newY)) {
+                                break;
+                            }
+                        }
+                    }
+                    if (map.get(newX, newY) &&
+                        isPassable(map, newX, newY) &&
+                        j < maxConnectionLength) {
+                        GW.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
+                        // pathGrid.fill(30000);
+                        // pathGrid[newX][newY] = 0;
+                        // dijkstraScan(pathGrid, costGrid, false);
+                        if (pathGrid[x][y] > minimumPathingDistance &&
+                            pathGrid[x][y] < GW.path.NO_PATH) {
+                            // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                            // dungeon.debug(
+                            //     'Adding Bridge',
+                            //     x,
+                            //     y,
+                            //     ' => ',
+                            //     newX,
+                            //     newY
+                            // );
+                            while (x !== newX || y !== newY) {
+                                if (isBridgeCandidate(map, x, y, bridgeDir)) {
+                                    map[x][y] = BRIDGE;
+                                    costGrid[x][y] = 1; // (Cost map also needs updating.)
+                                }
+                                else {
+                                    map[x][y] = FLOOR;
+                                    costGrid[x][y] = 1;
+                                }
+                                x += bridgeDir[0];
+                                y += bridgeDir[1];
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        GW.grid.free(pathGrid);
+        GW.grid.free(costGrid);
+    }
     function removeDiagonalOpenings(grid) {
         let i, j, k, x1, y1;
         let diagonalCornerRemoved;
@@ -1283,6 +1370,7 @@
         isLake: isLake,
         addLoops: addLoops,
         addLakes: addLakes,
+        addBridges: addBridges,
         removeDiagonalOpenings: removeDiagonalOpenings,
         finishDoors: finishDoors,
         finishWalls: finishWalls,
