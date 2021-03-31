@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as CONST from './gw';
+import * as CONST from './tiles';
 import { Room, Hall } from './room';
 
 const DIRS = GW.utils.DIRS;

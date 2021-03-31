@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as CONST from './gw';
+import * as CONST from './tiles';
 
 export class Hall {
     public x: number;

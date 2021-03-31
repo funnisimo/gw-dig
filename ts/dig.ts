@@ -1,10 +1,10 @@
 import * as GW from 'gw-utils';
-import * as CONST from './gw';
+import * as CONST from './tiles';
 import * as HALL from './hall';
 import * as ROOM from './room';
 // import * as MAP from 'gw-map.js';
 
-export * from './gw';
+export * from './tiles';
 export * as room from './room';
 export * as hall from './hall';
 
