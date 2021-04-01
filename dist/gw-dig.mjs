@@ -9,6 +9,34 @@ const BRIDGE = 5;
 const UP_STAIRS = 6;
 const DOWN_STAIRS = 7;
 const SHALLOW = 8;
+function isPassable(grid, x, y) {
+    const v = grid.get(x, y);
+    return (v === FLOOR ||
+        v === DOOR ||
+        v === BRIDGE ||
+        v === UP_STAIRS ||
+        v === DOWN_STAIRS ||
+        v === SHALLOW);
+}
+function isDoor(grid, x, y) {
+    const v = grid.get(x, y);
+    return v === DOOR;
+}
+function isObstruction(grid, x, y) {
+    const v = grid.get(x, y);
+    return v === NOTHING || v === WALL;
+}
+function isStairs(grid, x, y) {
+    const v = grid.get(x, y);
+    return v === UP_STAIRS || v === DOWN_STAIRS;
+}
+function isLake(grid, x, y) {
+    return grid.get(x, y) === LAKE;
+}
+function isAnyWater(grid, x, y) {
+    const v = grid.get(x, y);
+    return v === LAKE || v === SHALLOW;
+}
 
 class Hall {
     constructor(loc, dir, length, width = 1) {
@@ -926,33 +954,11 @@ function chooseRandomDoorSites(sourceGrid, floorTile) {
     grid.free(grid$1);
     return doorSites;
 }
-function isPassable(grid, x, y) {
-    const v = grid.get(x, y);
-    return (v === FLOOR ||
-        v === DOOR ||
-        v === BRIDGE ||
-        v === UP_STAIRS ||
-        v === DOWN_STAIRS ||
-        v === SHALLOW);
-}
-function isDoor(grid, x, y) {
-    const v = grid.get(x, y);
-    return v === DOOR;
-}
-function isObstruction(grid, x, y) {
-    const v = grid.get(x, y);
-    return v === NOTHING || v === WALL;
-}
-function isStairs(grid, x, y) {
-    const v = grid.get(x, y);
-    return v === UP_STAIRS || v === DOWN_STAIRS;
-}
-function isLake(grid, x, y) {
-    return grid.get(x, y) === LAKE;
-}
 function fillCostGrid(source, costGrid) {
     source.forEach((_v, x, y) => {
-        costGrid[x][y] = isPassable(source, x, y) ? 1 : path.OBSTRUCTION;
+        costGrid[x][y] = isPassable(source, x, y)
+            ? 1
+            : path.OBSTRUCTION;
     });
 }
 // Add some loops to the otherwise simply connected network of rooms.
@@ -1359,11 +1365,6 @@ var dig$2 = {
     directionOfDoorSite: directionOfDoorSite,
     forceRoomAtMapLoc: forceRoomAtMapLoc,
     chooseRandomDoorSites: chooseRandomDoorSites,
-    isPassable: isPassable,
-    isDoor: isDoor,
-    isObstruction: isObstruction,
-    isStairs: isStairs,
-    isLake: isLake,
     addLoops: addLoops,
     addLakes: addLakes,
     addBridges: addBridges,
@@ -1380,7 +1381,13 @@ var dig$2 = {
     BRIDGE: BRIDGE,
     UP_STAIRS: UP_STAIRS,
     DOWN_STAIRS: DOWN_STAIRS,
-    SHALLOW: SHALLOW
+    SHALLOW: SHALLOW,
+    isPassable: isPassable,
+    isDoor: isDoor,
+    isObstruction: isObstruction,
+    isStairs: isStairs,
+    isLake: isLake,
+    isAnyWater: isAnyWater
 };
 
 export { dig$2 as dig };

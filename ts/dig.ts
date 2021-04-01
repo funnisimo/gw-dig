@@ -1,10 +1,10 @@
 import * as GW from 'gw-utils';
-import * as CONST from './tiles';
+import * as SITE from './site';
 import * as HALL from './hall';
 import * as ROOM from './room';
 // import * as MAP from 'gw-map.js';
 
-export * from './tiles';
+export * from './site';
 export * as room from './room';
 export * as hall from './hall';
 
@@ -83,15 +83,15 @@ export function dig(
     }
 
     if (opts.door === false) {
-        opts.door = CONST.FLOOR;
+        opts.door = SITE.FLOOR;
     } else if (opts.door === true || !opts.door) {
-        opts.door = CONST.DOOR;
+        opts.door = SITE.DOOR;
     }
 
     let locs = opts.locs || null;
     if (!locs || !Array.isArray(locs)) {
         locs = null;
-        if (map.count(CONST.FLOOR) === 0) {
+        if (map.count(SITE.FLOOR) === 0) {
             // empty map
             const x = Math.floor(map.width / 2);
             const y = map.height - 2;
@@ -125,13 +125,13 @@ export function dig(
     let room;
     let tries = opts.tries || 10;
     while (--tries >= 0 && !result) {
-        roomGrid.fill(CONST.NOTHING);
+        roomGrid.fill(SITE.NOTHING);
 
         // dig the room in the center
         room = digger.fn(roomConfig, roomGrid);
 
         // TODO - Allow choice of floor tile...
-        room.doors = chooseRandomDoorSites(roomGrid, CONST.FLOOR);
+        room.doors = chooseRandomDoorSites(roomGrid, SITE.FLOOR);
         if (attachHall && hallConfig) {
             room.hall = hallConfig.fn(hallConfig!, roomGrid, room);
         }
@@ -183,8 +183,8 @@ export function attachRoom(
         const x = Math.floor(SEQ[i] / map.height);
         const y = SEQ[i] % map.height;
 
-        if (!(map.get(x, y) == CONST.NOTHING)) continue;
-        const dir = directionOfDoorSite(map, x, y, CONST.FLOOR);
+        if (!(map.get(x, y) == SITE.NOTHING)) continue;
+        const dir = directionOfDoorSite(map, x, y, SITE.FLOOR);
         if (dir != GW.utils.NO_DIRECTION) {
             const oppDir = (dir + 2) % 4;
             const door = doorSites[oppDir];
@@ -201,7 +201,7 @@ export function attachRoom(
                     offsetX,
                     offsetY,
                     (_d, _s, i, j) => {
-                        map[i][j] = opts.room.tile || CONST.FLOOR;
+                        map[i][j] = opts.room.tile || SITE.FLOOR;
                     }
                 );
 
@@ -226,7 +226,7 @@ export function attachDoor(
     y: number,
     dir: number
 ) {
-    const tile = opts.door || CONST.DOOR;
+    const tile = opts.door || SITE.DOOR;
     map[x][y] = tile; // Door site.
     // most cases...
     if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
@@ -297,7 +297,7 @@ export function roomFitsAt(
                         if (
                             !map.hasXY(i, j) ||
                             map.isBoundaryXY(i, j) ||
-                            !(map.get(i, j) === CONST.NOTHING)
+                            !(map.get(i, j) === SITE.NOTHING)
                         ) {
                             // console.log('- NO');
                             return false;
@@ -366,18 +366,18 @@ export function forceRoomAtMapLoc(
 
         if (roomGrid[x][y]) continue;
 
-        const dir = directionOfDoorSite(roomGrid, x, y, CONST.FLOOR);
+        const dir = directionOfDoorSite(roomGrid, x, y, SITE.FLOOR);
         if (dir != GW.utils.NO_DIRECTION) {
             const dx = xy[0] - x;
             const dy = xy[1] - y;
             if (roomFitsAt(map, roomGrid, dx, dy)) {
                 GW.grid.offsetZip(map, roomGrid, dx, dy, (_d, _s, i, j) => {
-                    map[i][j] = opts.room.tile || CONST.FLOOR;
+                    map[i][j] = opts.room.tile || SITE.FLOOR;
                 });
                 if (opts.room.door !== false) {
                     const door =
                         opts.room.door === true || !opts.room.door
-                            ? CONST.DOOR
+                            ? SITE.DOOR
                             : opts.room.door;
                     map[xy[0]][xy[1]] = door; // Door site.
                 }
@@ -445,7 +445,7 @@ function attachRoomAtXY(
             const offX = x - door[0];
             const offY = y - door[1];
             GW.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
-                map[i][j] = opts.room.tile || CONST.FLOOR;
+                map[i][j] = opts.room.tile || SITE.FLOOR;
             });
             attachDoor(map, room, opts, x, y, oppDir);
             room.translate(offX, offY);
@@ -468,7 +468,7 @@ export function chooseRandomDoorSites(
     let i, j, k, newX, newY;
     let dir;
     let doorSiteFailed;
-    floorTile = floorTile || CONST.FLOOR;
+    floorTile = floorTile || SITE.FLOOR;
 
     const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
     grid.copy(sourceGrid);
@@ -513,40 +513,11 @@ export function chooseRandomDoorSites(
     return doorSites;
 }
 
-export function isPassable(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return (
-        v === CONST.FLOOR ||
-        v === CONST.DOOR ||
-        v === CONST.BRIDGE ||
-        v === CONST.UP_STAIRS ||
-        v === CONST.DOWN_STAIRS ||
-        v === CONST.SHALLOW
-    );
-}
-
-export function isDoor(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === CONST.DOOR;
-}
-
-export function isObstruction(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === CONST.NOTHING || v === CONST.WALL;
-}
-
-export function isStairs(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === CONST.UP_STAIRS || v === CONST.DOWN_STAIRS;
-}
-
-export function isLake(grid: GW.grid.NumGrid, x: number, y: number) {
-    return grid.get(x, y) === CONST.LAKE;
-}
-
 function fillCostGrid(source: GW.grid.NumGrid, costGrid: GW.grid.NumGrid) {
     source.forEach((_v, x, y) => {
-        costGrid[x][y] = isPassable(source, x, y) ? 1 : GW.path.OBSTRUCTION;
+        costGrid[x][y] = SITE.isPassable(source, x, y)
+            ? 1
+            : GW.path.OBSTRUCTION;
     });
 }
 
@@ -610,22 +581,22 @@ export function addLoops(
                 // check up/left
                 if (
                     grid.hasXY(x + dir[0], y + dir[1]) &&
-                    isPassable(grid, x + dir[0], y + dir[1])
+                    SITE.isPassable(grid, x + dir[0], y + dir[1])
                 ) {
                     // just can't build directly into a door
                     if (
                         !grid.hasXY(x - dir[0], y - dir[1]) ||
-                        isDoor(grid, x - dir[0], y - dir[1])
+                        SITE.isDoor(grid, x - dir[0], y - dir[1])
                     ) {
                         continue;
                     }
                 } else if (
                     grid.hasXY(x - dir[0], y - dir[1]) &&
-                    isPassable(grid, x - dir[0], y - dir[1])
+                    SITE.isPassable(grid, x - dir[0], y - dir[1])
                 ) {
                     if (
                         !grid.hasXY(x + dir[0], y + dir[1]) ||
-                        isDoor(grid, x + dir[0], y + dir[1])
+                        SITE.isDoor(grid, x + dir[0], y + dir[1])
                     ) {
                         continue;
                     }
@@ -679,14 +650,14 @@ export function addLoops(
 
                         while (endX !== startX || endY !== startY) {
                             if (grid.get(endX, endY) == 0) {
-                                grid[endX][endY] = CONST.FLOOR;
+                                grid[endX][endY] = SITE.FLOOR;
                                 costGrid[endX][endY] = 1; // (Cost map also needs updating.)
                             }
                             endX += dir[0];
                             endY += dir[1];
                         }
                         // TODO - Door is optional
-                        grid[x][y] = CONST.DOOR; // then turn the tile into a doorway.
+                        grid[x][y] = SITE.DOOR; // then turn the tile into a doorway.
                         break;
                     }
                 }
@@ -710,8 +681,8 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
     maxCount = opts.count || 1;
     canDisrupt = opts.canDisrupt || false;
     const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
-    const wreathTile = opts.wreathTile || CONST.SHALLOW;
-    const tile = opts.tile || CONST.LAKE;
+    const wreathTile = opts.wreathTile || SITE.SHALLOW;
+    const tile = opts.tile || SITE.LAKE;
 
     const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
 
@@ -730,7 +701,7 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
                     maxCount
             ) + lakeMinSize;
 
-        lakeGrid.fill(CONST.NOTHING);
+        lakeGrid.fill(SITE.NOTHING);
         const bounds = lakeGrid.fillBlob(
             5,
             4,
@@ -774,7 +745,7 @@ export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
 
                             if (wreath) {
                                 map.forCircle(sx, sy, wreath, (v, i, j) => {
-                                    if (v === CONST.FLOOR || v === CONST.DOOR) {
+                                    if (v === SITE.FLOOR || v === SITE.DOOR) {
                                         map[i][j] = wreathTile;
                                     }
                                 });
@@ -811,13 +782,13 @@ function lakeDisruptsPassability(
         const lakeY = j + lakeToMapY;
         if (!v) {
             return; // not walkable
-        } else if (isStairs(map, i, j)) {
+        } else if (SITE.isStairs(map, i, j)) {
             if (lakeGrid.get(lakeX, lakeY)) {
                 disrupts = true;
             } else {
                 walkableGrid[i][j] = 1;
             }
-        } else if (isPassable(map, i, j)) {
+        } else if (SITE.isPassable(map, i, j)) {
             if (lakeGrid.get(lakeX, lakeY)) return;
             walkableGrid[i][j] = 1;
         }
@@ -850,10 +821,10 @@ function isBridgeCandidate(
     y: number,
     bridgeDir: [number, number]
 ) {
-    if (map.get(x, y) === CONST.BRIDGE) return true;
-    if (!isLake(map, x, y)) return false;
-    if (!isLake(map, x + bridgeDir[1], y + bridgeDir[0])) return false;
-    if (!isLake(map, x - bridgeDir[1], y - bridgeDir[0])) return false;
+    if (map.get(x, y) === SITE.BRIDGE) return true;
+    if (!SITE.isLake(map, x, y)) return false;
+    if (!SITE.isLake(map, x + bridgeDir[1], y + bridgeDir[0])) return false;
+    if (!SITE.isLake(map, x - bridgeDir[1], y - bridgeDir[0])) return false;
     return true;
 }
 
@@ -883,7 +854,7 @@ export function addBridges(
         x = Math.floor(SEQ[i] / siteGrid.height);
         y = SEQ[i] % siteGrid.height;
 
-        if (map.hasXY(x, y) && map.get(x, y) && isPassable(map, x, y)) {
+        if (map.hasXY(x, y) && map.get(x, y) && SITE.isPassable(map, x, y)) {
             for (d = 0; d <= 1; d++) {
                 // Try right, then down
                 const bridgeDir = dirCoords[d];
@@ -895,13 +866,13 @@ export function addBridges(
 
                 // check for line of lake tiles
                 // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                if (isLake(map, newX, newY)) {
+                if (SITE.isLake(map, newX, newY)) {
                     for (j = 0; j < maxConnectionLength; ++j) {
                         newX += bridgeDir[0];
                         newY += bridgeDir[1];
 
                         // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (!isLake(map, newX, newY)) {
+                        if (!SITE.isLake(map, newX, newY)) {
                             break;
                         }
                     }
@@ -909,7 +880,7 @@ export function addBridges(
 
                 if (
                     map.get(newX, newY) &&
-                    isPassable(map, newX, newY) &&
+                    SITE.isPassable(map, newX, newY) &&
                     j < maxConnectionLength
                 ) {
                     GW.path.calculateDistances(
@@ -939,10 +910,10 @@ export function addBridges(
 
                         while (x !== newX || y !== newY) {
                             if (isBridgeCandidate(map, x, y, bridgeDir)) {
-                                map[x][y] = CONST.BRIDGE;
+                                map[x][y] = SITE.BRIDGE;
                                 costGrid[x][y] = 1; // (Cost map also needs updating.)
                             } else {
-                                map[x][y] = CONST.FLOOR;
+                                map[x][y] = SITE.FLOOR;
                                 costGrid[x][y] = 1;
                             }
                             x += bridgeDir[0];
@@ -968,12 +939,12 @@ export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
             for (j = 0; j < grid.height - 1; j++) {
                 for (k = 0; k <= 1; k++) {
                     if (
-                        isPassable(grid, i + k, j) &&
-                        !isPassable(grid, i + (1 - k), j) &&
-                        isObstruction(grid, i + (1 - k), j) &&
-                        !isPassable(grid, i + k, j + 1) &&
-                        isObstruction(grid, i + k, j + 1) &&
-                        isPassable(grid, i + (1 - k), j + 1)
+                        SITE.isPassable(grid, i + k, j) &&
+                        !SITE.isPassable(grid, i + (1 - k), j) &&
+                        SITE.isObstruction(grid, i + (1 - k), j) &&
+                        !SITE.isPassable(grid, i + k, j + 1) &&
+                        SITE.isObstruction(grid, i + k, j + 1) &&
+                        SITE.isPassable(grid, i + (1 - k), j + 1)
                     ) {
                         if (GW.random.chance(50)) {
                             x1 = i + (1 - k);
@@ -983,7 +954,7 @@ export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
                             y1 = j + 1;
                         }
                         diagonalCornerRemoved = true;
-                        grid[x1][y1] = CONST.FLOOR; // todo - pick one of the passable tiles around it...
+                        grid[x1][y1] = SITE.FLOOR; // todo - pick one of the passable tiles around it...
                     }
                 }
             }
@@ -996,36 +967,36 @@ export function finishDoors(grid: GW.grid.NumGrid) {
         if (grid.isBoundaryXY(x, y)) return;
 
         // todo - isDoorway...
-        if (cell == CONST.DOOR) {
+        if (cell == SITE.DOOR) {
             if (
                 // TODO - isPassable
-                (grid.get(x + 1, y) == CONST.FLOOR ||
-                    grid.get(x - 1, y) == CONST.FLOOR) &&
-                (grid.get(x, y + 1) == CONST.FLOOR ||
-                    grid.get(x, y - 1) == CONST.FLOOR)
+                (grid.get(x + 1, y) == SITE.FLOOR ||
+                    grid.get(x - 1, y) == SITE.FLOOR) &&
+                (grid.get(x, y + 1) == SITE.FLOOR ||
+                    grid.get(x, y - 1) == SITE.FLOOR)
             ) {
                 // If there's passable terrain to the left or right, and there's passable terrain
                 // above or below, then the door is orphaned and must be removed.
-                grid[x][y] = CONST.FLOOR; // todo - take passable neighbor value
+                grid[x][y] = SITE.FLOOR; // todo - take passable neighbor value
             } else if (
                 // todo - isPassable
-                (grid.get(x + 1, y) !== CONST.FLOOR ? 1 : 0) +
-                    (grid.get(x - 1, y) !== CONST.FLOOR ? 1 : 0) +
-                    (grid.get(x, y + 1) !== CONST.FLOOR ? 1 : 0) +
-                    (grid.get(x, y - 1) !== CONST.FLOOR ? 1 : 0) >=
+                (grid.get(x + 1, y) !== SITE.FLOOR ? 1 : 0) +
+                    (grid.get(x - 1, y) !== SITE.FLOOR ? 1 : 0) +
+                    (grid.get(x, y + 1) !== SITE.FLOOR ? 1 : 0) +
+                    (grid.get(x, y - 1) !== SITE.FLOOR ? 1 : 0) >=
                 3
             ) {
                 // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                 // then the door is orphaned and must be removed.
-                grid[x][y] = CONST.FLOOR; // todo - take passable neighbor
+                grid[x][y] = SITE.FLOOR; // todo - take passable neighbor
             }
         }
     });
 }
 
-export function finishWalls(grid: GW.grid.NumGrid, tile: number = CONST.WALL) {
+export function finishWalls(grid: GW.grid.NumGrid, tile: number = SITE.WALL) {
     grid.forEach((cell, i, j) => {
-        if (cell == CONST.NOTHING) {
+        if (cell == SITE.NOTHING) {
             grid[i][j] = tile;
         }
     });

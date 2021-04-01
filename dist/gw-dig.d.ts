@@ -40,15 +40,15 @@ interface RoomData extends RoomConfig {
 declare var rooms: Record<string, RoomData>;
 declare function install(id: string, fn: RoomFn, config?: RoomConfig): RoomData;
 declare function checkConfig(config: RoomConfig, expected: any): RoomConfig;
-declare function cavern(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function cavern(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
 declare function choiceRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig | null;
-declare function entrance(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function cross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function rectangular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function circular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function entrance(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function cross(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function rectangular(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function circular(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
+declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): RoomConfig | Room;
 
 type room_d_Hall = Hall;
 declare const room_d_Hall: typeof Hall;
@@ -148,6 +148,12 @@ declare const BRIDGE = 5;
 declare const UP_STAIRS = 6;
 declare const DOWN_STAIRS = 7;
 declare const SHALLOW = 8;
+declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isStairs(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isLake(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isAnyWater(grid: grid.NumGrid, x: number, y: number): boolean;
 
 declare function start(map: grid.NumGrid): void;
 declare function finish(map: grid.NumGrid): void;
@@ -173,11 +179,6 @@ declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSit
 declare function directionOfDoorSite(grid: grid.NumGrid, x: number, y: number, isOpen: number): number;
 declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts: DigConfig): boolean;
 declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid, floorTile?: number): utils.Loc[];
-declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isStairs(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isLake(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 declare function addLakes(map: grid.NumGrid, opts?: any): number;
 declare function addBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
@@ -195,11 +196,6 @@ declare const dig_d_roomFitsAt: typeof roomFitsAt;
 declare const dig_d_directionOfDoorSite: typeof directionOfDoorSite;
 declare const dig_d_forceRoomAtMapLoc: typeof forceRoomAtMapLoc;
 declare const dig_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
-declare const dig_d_isPassable: typeof isPassable;
-declare const dig_d_isDoor: typeof isDoor;
-declare const dig_d_isObstruction: typeof isObstruction;
-declare const dig_d_isStairs: typeof isStairs;
-declare const dig_d_isLake: typeof isLake;
 declare const dig_d_addLoops: typeof addLoops;
 declare const dig_d_addLakes: typeof addLakes;
 declare const dig_d_addBridges: typeof addBridges;
@@ -219,6 +215,12 @@ declare const dig_d_BRIDGE: typeof BRIDGE;
 declare const dig_d_UP_STAIRS: typeof UP_STAIRS;
 declare const dig_d_DOWN_STAIRS: typeof DOWN_STAIRS;
 declare const dig_d_SHALLOW: typeof SHALLOW;
+declare const dig_d_isPassable: typeof isPassable;
+declare const dig_d_isDoor: typeof isDoor;
+declare const dig_d_isObstruction: typeof isObstruction;
+declare const dig_d_isStairs: typeof isStairs;
+declare const dig_d_isLake: typeof isLake;
+declare const dig_d_isAnyWater: typeof isAnyWater;
 declare namespace dig_d {
   export {
     dig_d_start as start,
@@ -232,11 +234,6 @@ declare namespace dig_d {
     dig_d_directionOfDoorSite as directionOfDoorSite,
     dig_d_forceRoomAtMapLoc as forceRoomAtMapLoc,
     dig_d_chooseRandomDoorSites as chooseRandomDoorSites,
-    dig_d_isPassable as isPassable,
-    dig_d_isDoor as isDoor,
-    dig_d_isObstruction as isObstruction,
-    dig_d_isStairs as isStairs,
-    dig_d_isLake as isLake,
     dig_d_addLoops as addLoops,
     dig_d_addLakes as addLakes,
     dig_d_addBridges as addBridges,
@@ -256,6 +253,12 @@ declare namespace dig_d {
     dig_d_UP_STAIRS as UP_STAIRS,
     dig_d_DOWN_STAIRS as DOWN_STAIRS,
     dig_d_SHALLOW as SHALLOW,
+    dig_d_isPassable as isPassable,
+    dig_d_isDoor as isDoor,
+    dig_d_isObstruction as isObstruction,
+    dig_d_isStairs as isStairs,
+    dig_d_isLake as isLake,
+    dig_d_isAnyWater as isAnyWater,
   };
 }
 
