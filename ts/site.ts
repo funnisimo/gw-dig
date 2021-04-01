@@ -10,6 +10,15 @@ export const UP_STAIRS = 6;
 export const DOWN_STAIRS = 7;
 export const SHALLOW = 8;
 
+export function fillCostGrid(
+    source: GW.grid.NumGrid,
+    costGrid: GW.grid.NumGrid
+) {
+    source.forEach((_v, x, y) => {
+        costGrid[x][y] = isPassable(source, x, y) ? 1 : GW.path.OBSTRUCTION;
+    });
+}
+
 export function isPassable(grid: GW.grid.NumGrid, x: number, y: number) {
     const v = grid.get(x, y);
     return (

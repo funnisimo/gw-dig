@@ -1,4 +1,4 @@
-import { utils, range, grid, random, path } from 'gw-utils';
+import { path, utils, range, grid, random } from 'gw-utils';
 
 const NOTHING = 0;
 const FLOOR = 1;
@@ -9,6 +9,11 @@ const BRIDGE = 5;
 const UP_STAIRS = 6;
 const DOWN_STAIRS = 7;
 const SHALLOW = 8;
+function fillCostGrid(source, costGrid) {
+    source.forEach((_v, x, y) => {
+        costGrid[x][y] = isPassable(source, x, y) ? 1 : path.OBSTRUCTION;
+    });
+}
 function isPassable(grid, x, y) {
     const v = grid.get(x, y);
     return (v === FLOOR ||
@@ -580,6 +585,208 @@ var hall = {
     dig: dig
 };
 
+function digLakes(map, opts = {}) {
+    let i, j, k;
+    let x, y;
+    let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
+    let count = 0;
+    lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
+    lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
+    lakeMinSize = opts.minSize || 5;
+    tries = opts.tries || 20;
+    maxCount = opts.count || 1;
+    canDisrupt = opts.canDisrupt || false;
+    const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+    const wreathTile = opts.wreathTile || SHALLOW;
+    const tile = opts.tile || LAKE;
+    const lakeGrid = grid.alloc(map.width, map.height, 0);
+    let attempts = 0;
+    while (attempts < maxCount && count < maxCount) {
+        // lake generations
+        const width = Math.round(((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
+            maxCount) + lakeMinSize;
+        const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
+            maxCount) + lakeMinSize;
+        lakeGrid.fill(NOTHING);
+        const bounds = lakeGrid.fillBlob(5, 4, 4, width, height, 55, 'ffffftttt', 'ffffttttt');
+        // lakeGrid.dump();
+        let success = false;
+        for (k = 0; k < tries && !success; k++) {
+            // placement attempts
+            // propose a position for the top-left of the lakeGrid in the dungeon
+            x = random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
+            y = random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
+            if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
+                // level with lake is completely connected
+                //   dungeon.debug("Placed a lake!", x, y);
+                success = true;
+                // copy in lake
+                for (i = 0; i < bounds.width; i++) {
+                    // skip boundary
+                    for (j = 0; j < bounds.height; j++) {
+                        // skip boundary
+                        if (lakeGrid[i + bounds.x][j + bounds.y]) {
+                            const sx = i + bounds.x + x;
+                            const sy = j + bounds.y + y;
+                            map[sx][sy] = tile;
+                            if (wreath) {
+                                map.forCircle(sx, sy, wreath, (v, i, j) => {
+                                    if (v === FLOOR || v === DOOR) {
+                                        map[i][j] = wreathTile;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        if (success) {
+            ++count;
+        }
+        else {
+            ++attempts;
+        }
+    }
+    grid.free(lakeGrid);
+    return count;
+}
+function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) {
+    const walkableGrid = grid.alloc(map.width, map.height);
+    let disrupts = false;
+    // Get all walkable locations after lake added
+    map.forEach((v, i, j) => {
+        const lakeX = i + lakeToMapX;
+        const lakeY = j + lakeToMapY;
+        if (!v) {
+            return; // not walkable
+        }
+        else if (isStairs(map, i, j)) {
+            if (lakeGrid.get(lakeX, lakeY)) {
+                disrupts = true;
+            }
+            else {
+                walkableGrid[i][j] = 1;
+            }
+        }
+        else if (isPassable(map, i, j)) {
+            if (lakeGrid.get(lakeX, lakeY))
+                return;
+            walkableGrid[i][j] = 1;
+        }
+    });
+    let first = true;
+    for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+        for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+            if (walkableGrid[i][j] == 1) {
+                if (first) {
+                    walkableGrid.floodFill(i, j, 1, 2);
+                    first = false;
+                }
+                else {
+                    disrupts = true;
+                }
+            }
+        }
+    }
+    // console.log('WALKABLE GRID');
+    // walkableGrid.dump();
+    grid.free(walkableGrid);
+    return disrupts;
+}
+function isBridgeCandidate(map, x, y, bridgeDir) {
+    if (map.get(x, y) === BRIDGE)
+        return true;
+    if (!isAnyWater(map, x, y))
+        return false;
+    if (!isAnyWater(map, x + bridgeDir[1], y + bridgeDir[0]))
+        return false;
+    if (!isAnyWater(map, x - bridgeDir[1], y - bridgeDir[0]))
+        return false;
+    return true;
+}
+// Add some loops to the otherwise simply connected network of rooms.
+function digBridges(map, minimumPathingDistance, maxConnectionLength) {
+    let newX, newY;
+    let i, j, d, x, y;
+    maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
+    const siteGrid = map;
+    const pathGrid = grid.alloc(map.width, map.height);
+    const costGrid = grid.alloc(map.width, map.height);
+    const dirCoords = [
+        [1, 0],
+        [0, 1],
+    ];
+    fillCostGrid(map, costGrid);
+    const SEQ = random.sequence(map.width * map.height);
+    for (i = 0; i < SEQ.length; i++) {
+        x = Math.floor(SEQ[i] / siteGrid.height);
+        y = SEQ[i] % siteGrid.height;
+        if (map.hasXY(x, y) &&
+            map.get(x, y) &&
+            isPassable(map, x, y) &&
+            !isAnyWater(map, x, y)) {
+            for (d = 0; d <= 1; d++) {
+                // Try right, then down
+                const bridgeDir = dirCoords[d];
+                newX = x + bridgeDir[0];
+                newY = y + bridgeDir[1];
+                j = maxConnectionLength;
+                if (!map.hasXY(newX, newY))
+                    continue;
+                // check for line of lake tiles
+                // if (isBridgeCandidate(newX, newY, bridgeDir)) {
+                if (isAnyWater(map, newX, newY)) {
+                    for (j = 0; j < maxConnectionLength; ++j) {
+                        newX += bridgeDir[0];
+                        newY += bridgeDir[1];
+                        // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
+                        if (!isAnyWater(map, newX, newY)) {
+                            break;
+                        }
+                    }
+                }
+                if (map.get(newX, newY) &&
+                    isPassable(map, newX, newY) &&
+                    j < maxConnectionLength) {
+                    path.calculateDistances(pathGrid, newX, newY, costGrid, false);
+                    // pathGrid.fill(30000);
+                    // pathGrid[newX][newY] = 0;
+                    // dijkstraScan(pathGrid, costGrid, false);
+                    if (pathGrid[x][y] > minimumPathingDistance &&
+                        pathGrid[x][y] < path.NO_PATH) {
+                        // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                        // dungeon.debug(
+                        //     'Adding Bridge',
+                        //     x,
+                        //     y,
+                        //     ' => ',
+                        //     newX,
+                        //     newY
+                        // );
+                        while (x !== newX || y !== newY) {
+                            if (isBridgeCandidate(map, x, y, bridgeDir)) {
+                                map[x][y] = BRIDGE;
+                                costGrid[x][y] = 1; // (Cost map also needs updating.)
+                            }
+                            else {
+                                map[x][y] = FLOOR;
+                                costGrid[x][y] = 1;
+                            }
+                            x += bridgeDir[0];
+                            y += bridgeDir[1];
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    grid.free(pathGrid);
+    grid.free(costGrid);
+}
+
 const DIRS$1 = utils.DIRS;
 var SEQ;
 function start(map) {
@@ -954,13 +1161,6 @@ function chooseRandomDoorSites(sourceGrid, floorTile) {
     grid.free(grid$1);
     return doorSites;
 }
-function fillCostGrid(source, costGrid) {
-    source.forEach((_v, x, y) => {
-        costGrid[x][y] = isPassable(source, x, y)
-            ? 1
-            : path.OBSTRUCTION;
-    });
-}
 // Add some loops to the otherwise simply connected network of rooms.
 function addLoops(grid$1, minimumPathingDistance, maxConnectionLength) {
     let startX, startY, endX, endY;
@@ -1088,204 +1288,10 @@ function addLoops(grid$1, minimumPathingDistance, maxConnectionLength) {
     grid.free(costGrid);
 }
 function addLakes(map, opts = {}) {
-    let i, j, k;
-    let x, y;
-    let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
-    let count = 0;
-    lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
-    lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
-    lakeMinSize = opts.minSize || 5;
-    tries = opts.tries || 20;
-    maxCount = opts.count || 1;
-    canDisrupt = opts.canDisrupt || false;
-    const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
-    const wreathTile = opts.wreathTile || SHALLOW;
-    const tile = opts.tile || LAKE;
-    const lakeGrid = grid.alloc(map.width, map.height, 0);
-    let attempts = 0;
-    while (attempts < maxCount && count < maxCount) {
-        // lake generations
-        const width = Math.round(((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
-            maxCount) + lakeMinSize;
-        const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
-            maxCount) + lakeMinSize;
-        lakeGrid.fill(NOTHING);
-        const bounds = lakeGrid.fillBlob(5, 4, 4, width, height, 55, 'ffffftttt', 'ffffttttt');
-        // lakeGrid.dump();
-        let success = false;
-        for (k = 0; k < tries && !success; k++) {
-            // placement attempts
-            // propose a position for the top-left of the lakeGrid in the dungeon
-            x = random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
-            y = random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
-            if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
-                // level with lake is completely connected
-                //   dungeon.debug("Placed a lake!", x, y);
-                success = true;
-                // copy in lake
-                for (i = 0; i < bounds.width; i++) {
-                    // skip boundary
-                    for (j = 0; j < bounds.height; j++) {
-                        // skip boundary
-                        if (lakeGrid[i + bounds.x][j + bounds.y]) {
-                            const sx = i + bounds.x + x;
-                            const sy = j + bounds.y + y;
-                            map[sx][sy] = tile;
-                            if (wreath) {
-                                map.forCircle(sx, sy, wreath, (v, i, j) => {
-                                    if (v === FLOOR || v === DOOR) {
-                                        map[i][j] = wreathTile;
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        if (success) {
-            ++count;
-        }
-        else {
-            ++attempts;
-        }
-    }
-    grid.free(lakeGrid);
-    return count;
+    return digLakes(map, opts);
 }
-function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) {
-    const walkableGrid = grid.alloc(map.width, map.height);
-    let disrupts = false;
-    // Get all walkable locations after lake added
-    map.forEach((v, i, j) => {
-        const lakeX = i + lakeToMapX;
-        const lakeY = j + lakeToMapY;
-        if (!v) {
-            return; // not walkable
-        }
-        else if (isStairs(map, i, j)) {
-            if (lakeGrid.get(lakeX, lakeY)) {
-                disrupts = true;
-            }
-            else {
-                walkableGrid[i][j] = 1;
-            }
-        }
-        else if (isPassable(map, i, j)) {
-            if (lakeGrid.get(lakeX, lakeY))
-                return;
-            walkableGrid[i][j] = 1;
-        }
-    });
-    let first = true;
-    for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
-        for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-            if (walkableGrid[i][j] == 1) {
-                if (first) {
-                    walkableGrid.floodFill(i, j, 1, 2);
-                    first = false;
-                }
-                else {
-                    disrupts = true;
-                }
-            }
-        }
-    }
-    // console.log('WALKABLE GRID');
-    // walkableGrid.dump();
-    grid.free(walkableGrid);
-    return disrupts;
-}
-function isBridgeCandidate(map, x, y, bridgeDir) {
-    if (map.get(x, y) === BRIDGE)
-        return true;
-    if (!isAnyWater(map, x, y))
-        return false;
-    if (!isAnyWater(map, x + bridgeDir[1], y + bridgeDir[0]))
-        return false;
-    if (!isAnyWater(map, x - bridgeDir[1], y - bridgeDir[0]))
-        return false;
-    return true;
-}
-// Add some loops to the otherwise simply connected network of rooms.
 function addBridges(map, minimumPathingDistance, maxConnectionLength) {
-    let newX, newY;
-    let i, j, d, x, y;
-    maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
-    const siteGrid = map;
-    const pathGrid = grid.alloc(map.width, map.height);
-    const costGrid = grid.alloc(map.width, map.height);
-    const dirCoords = [
-        [1, 0],
-        [0, 1],
-    ];
-    fillCostGrid(map, costGrid);
-    for (i = 0; i < SEQ.length; i++) {
-        x = Math.floor(SEQ[i] / siteGrid.height);
-        y = SEQ[i] % siteGrid.height;
-        if (map.hasXY(x, y) &&
-            map.get(x, y) &&
-            isPassable(map, x, y) &&
-            !isAnyWater(map, x, y)) {
-            for (d = 0; d <= 1; d++) {
-                // Try right, then down
-                const bridgeDir = dirCoords[d];
-                newX = x + bridgeDir[0];
-                newY = y + bridgeDir[1];
-                j = maxConnectionLength;
-                if (!map.hasXY(newX, newY))
-                    continue;
-                // check for line of lake tiles
-                // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                if (isAnyWater(map, newX, newY)) {
-                    for (j = 0; j < maxConnectionLength; ++j) {
-                        newX += bridgeDir[0];
-                        newY += bridgeDir[1];
-                        // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (!isAnyWater(map, newX, newY)) {
-                            break;
-                        }
-                    }
-                }
-                if (map.get(newX, newY) &&
-                    isPassable(map, newX, newY) &&
-                    j < maxConnectionLength) {
-                    path.calculateDistances(pathGrid, newX, newY, costGrid, false);
-                    // pathGrid.fill(30000);
-                    // pathGrid[newX][newY] = 0;
-                    // dijkstraScan(pathGrid, costGrid, false);
-                    if (pathGrid[x][y] > minimumPathingDistance &&
-                        pathGrid[x][y] < path.NO_PATH) {
-                        // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
-                        // dungeon.debug(
-                        //     'Adding Bridge',
-                        //     x,
-                        //     y,
-                        //     ' => ',
-                        //     newX,
-                        //     newY
-                        // );
-                        while (x !== newX || y !== newY) {
-                            if (isBridgeCandidate(map, x, y, bridgeDir)) {
-                                map[x][y] = BRIDGE;
-                                costGrid[x][y] = 1; // (Cost map also needs updating.)
-                            }
-                            else {
-                                map[x][y] = FLOOR;
-                                costGrid[x][y] = 1;
-                            }
-                            x += bridgeDir[0];
-                            y += bridgeDir[1];
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    grid.free(pathGrid);
-    grid.free(costGrid);
+    return digBridges(map, minimumPathingDistance, maxConnectionLength);
 }
 function removeDiagonalOpenings(grid) {
     let i, j, k, x1, y1;
@@ -1385,6 +1391,7 @@ var dig$2 = {
     UP_STAIRS: UP_STAIRS,
     DOWN_STAIRS: DOWN_STAIRS,
     SHALLOW: SHALLOW,
+    fillCostGrid: fillCostGrid,
     isPassable: isPassable,
     isDoor: isDoor,
     isObstruction: isObstruction,

@@ -148,6 +148,7 @@ declare const BRIDGE = 5;
 declare const UP_STAIRS = 6;
 declare const DOWN_STAIRS = 7;
 declare const SHALLOW = 8;
+declare function fillCostGrid(source: grid.NumGrid, costGrid: grid.NumGrid): void;
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
@@ -215,6 +216,7 @@ declare const dig_d_BRIDGE: typeof BRIDGE;
 declare const dig_d_UP_STAIRS: typeof UP_STAIRS;
 declare const dig_d_DOWN_STAIRS: typeof DOWN_STAIRS;
 declare const dig_d_SHALLOW: typeof SHALLOW;
+declare const dig_d_fillCostGrid: typeof fillCostGrid;
 declare const dig_d_isPassable: typeof isPassable;
 declare const dig_d_isDoor: typeof isDoor;
 declare const dig_d_isObstruction: typeof isObstruction;
@@ -253,6 +255,7 @@ declare namespace dig_d {
     dig_d_UP_STAIRS as UP_STAIRS,
     dig_d_DOWN_STAIRS as DOWN_STAIRS,
     dig_d_SHALLOW as SHALLOW,
+    dig_d_fillCostGrid as fillCostGrid,
     dig_d_isPassable as isPassable,
     dig_d_isDoor as isDoor,
     dig_d_isObstruction as isObstruction,
