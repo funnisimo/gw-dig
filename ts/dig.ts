@@ -822,9 +822,9 @@ function isBridgeCandidate(
     bridgeDir: [number, number]
 ) {
     if (map.get(x, y) === SITE.BRIDGE) return true;
-    if (!SITE.isLake(map, x, y)) return false;
-    if (!SITE.isLake(map, x + bridgeDir[1], y + bridgeDir[0])) return false;
-    if (!SITE.isLake(map, x - bridgeDir[1], y - bridgeDir[0])) return false;
+    if (!SITE.isAnyWater(map, x, y)) return false;
+    if (!SITE.isAnyWater(map, x + bridgeDir[1], y + bridgeDir[0])) return false;
+    if (!SITE.isAnyWater(map, x - bridgeDir[1], y - bridgeDir[0])) return false;
     return true;
 }
 
@@ -854,7 +854,12 @@ export function addBridges(
         x = Math.floor(SEQ[i] / siteGrid.height);
         y = SEQ[i] % siteGrid.height;
 
-        if (map.hasXY(x, y) && map.get(x, y) && SITE.isPassable(map, x, y)) {
+        if (
+            map.hasXY(x, y) &&
+            map.get(x, y) &&
+            SITE.isPassable(map, x, y) &&
+            !SITE.isAnyWater(map, x, y)
+        ) {
             for (d = 0; d <= 1; d++) {
                 // Try right, then down
                 const bridgeDir = dirCoords[d];
@@ -866,13 +871,13 @@ export function addBridges(
 
                 // check for line of lake tiles
                 // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                if (SITE.isLake(map, newX, newY)) {
+                if (SITE.isAnyWater(map, newX, newY)) {
                     for (j = 0; j < maxConnectionLength; ++j) {
                         newX += bridgeDir[0];
                         newY += bridgeDir[1];
 
                         // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (!SITE.isLake(map, newX, newY)) {
+                        if (!SITE.isAnyWater(map, newX, newY)) {
                             break;
                         }
                     }

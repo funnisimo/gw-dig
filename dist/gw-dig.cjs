@@ -1204,11 +1204,11 @@ function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) 
 function isBridgeCandidate(map, x, y, bridgeDir) {
     if (map.get(x, y) === BRIDGE)
         return true;
-    if (!isLake(map, x, y))
+    if (!isAnyWater(map, x, y))
         return false;
-    if (!isLake(map, x + bridgeDir[1], y + bridgeDir[0]))
+    if (!isAnyWater(map, x + bridgeDir[1], y + bridgeDir[0]))
         return false;
-    if (!isLake(map, x - bridgeDir[1], y - bridgeDir[0]))
+    if (!isAnyWater(map, x - bridgeDir[1], y - bridgeDir[0]))
         return false;
     return true;
 }
@@ -1228,7 +1228,10 @@ function addBridges(map, minimumPathingDistance, maxConnectionLength) {
     for (i = 0; i < SEQ.length; i++) {
         x = Math.floor(SEQ[i] / siteGrid.height);
         y = SEQ[i] % siteGrid.height;
-        if (map.hasXY(x, y) && map.get(x, y) && isPassable(map, x, y)) {
+        if (map.hasXY(x, y) &&
+            map.get(x, y) &&
+            isPassable(map, x, y) &&
+            !isAnyWater(map, x, y)) {
             for (d = 0; d <= 1; d++) {
                 // Try right, then down
                 const bridgeDir = dirCoords[d];
@@ -1239,12 +1242,12 @@ function addBridges(map, minimumPathingDistance, maxConnectionLength) {
                     continue;
                 // check for line of lake tiles
                 // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                if (isLake(map, newX, newY)) {
+                if (isAnyWater(map, newX, newY)) {
                     for (j = 0; j < maxConnectionLength; ++j) {
                         newX += bridgeDir[0];
                         newY += bridgeDir[1];
                         // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (!isLake(map, newX, newY)) {
+                        if (!isAnyWater(map, newX, newY)) {
                             break;
                         }
                     }
