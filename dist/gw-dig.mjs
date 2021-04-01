@@ -23,6 +23,9 @@ function isPassable(grid, x, y) {
         v === DOWN_STAIRS ||
         v === SHALLOW);
 }
+function isFloor(grid, x, y) {
+    return grid.get(x, y) == FLOOR;
+}
 function isDoor(grid, x, y) {
     const v = grid.get(x, y);
     return v === DOOR;
@@ -787,6 +790,147 @@ function digBridges(map, minimumPathingDistance, maxConnectionLength) {
     grid.free(costGrid);
 }
 
+var lake = {
+    __proto__: null,
+    digLakes: digLakes,
+    digBridges: digBridges
+};
+
+function isValidStairLoc(_v, x, y, map) {
+    let count = 0;
+    if (!isObstruction(map, x, y))
+        return false;
+    for (let i = 0; i < 4; ++i) {
+        const dir = utils.DIRS[i];
+        if (!map.hasXY(x + dir[0], y + dir[1]))
+            return false;
+        if (!map.hasXY(x - dir[0], y - dir[1]))
+            return false;
+        if (isFloor(map, x + dir[0], y + dir[1])) {
+            count += 1;
+            if (!isObstruction(map, x - dir[0] + dir[1], y - dir[1] + dir[0]))
+                return false;
+            if (!isObstruction(map, x - dir[0] - dir[1], y - dir[1] - dir[0]))
+                return false;
+        }
+        else if (!isObstruction(map, x + dir[0], y + dir[1])) {
+            return false;
+        }
+    }
+    return count == 1;
+}
+function setupStairs(map, x, y, tile) {
+    const indexes = random.sequence(4);
+    let dir = null;
+    for (let i = 0; i < indexes.length; ++i) {
+        dir = utils.DIRS[i];
+        const x0 = x + dir[0];
+        const y0 = y + dir[1];
+        if (isFloor(map, x0, y0)) {
+            if (isObstruction(map, x - dir[0], y - dir[1]))
+                break;
+        }
+        dir = null;
+    }
+    if (!dir)
+        utils.ERROR('No stair direction found!');
+    map.set(x, y, tile);
+    const dirIndex = utils.CLOCK_DIRS.findIndex(
+    // @ts-ignore
+    (d) => d[0] == dir[0] && d[1] == dir[1]);
+    for (let i = 0; i < utils.CLOCK_DIRS.length; ++i) {
+        const l = i ? i - 1 : 7;
+        const r = (i + 1) % 8;
+        if (i == dirIndex || l == dirIndex || r == dirIndex)
+            continue;
+        const d = utils.CLOCK_DIRS[i];
+        map.set(x + d[0], y + d[1], WALL);
+        // map.setCellFlags(x + d[0], y + d[1], Flags.Cell.IMPREGNABLE);
+    }
+    // dungeon.debug('setup stairs', x, y, tile);
+    return true;
+}
+function addStairs(map, opts = {}) {
+    let needUp = opts.up !== false;
+    let needDown = opts.down !== false;
+    const minDistance = opts.minDistance || Math.floor(Math.max(map.width, map.height) / 2);
+    const isValidLoc = opts.isValid || isValidStairLoc;
+    const setupFn = opts.setup || setupStairs;
+    let upLoc = Array.isArray(opts.up) ? opts.up : null;
+    let downLoc = Array.isArray(opts.down) ? opts.down : null;
+    const locations = {};
+    if (opts.start && typeof opts.start !== 'string') {
+        let start = opts.start;
+        if (start === true) {
+            start = map.randomMatchingLoc(isValidLoc);
+        }
+        else {
+            start = map.matchingLocNear(utils.x(start), utils.y(start), isValidLoc);
+        }
+        locations.start = start;
+    }
+    if (upLoc && downLoc) {
+        upLoc = map.matchingLocNear(utils.x(upLoc), utils.y(upLoc), isValidLoc);
+        downLoc = map.matchingLocNear(utils.x(downLoc), utils.y(downLoc), isValidLoc);
+    }
+    else if (upLoc && !downLoc) {
+        upLoc = map.matchingLocNear(utils.x(upLoc), utils.y(upLoc), isValidLoc);
+        if (needDown) {
+            downLoc = map.randomMatchingLoc((v, x, y) => {
+                if (utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
+                    minDistance)
+                    return false;
+                return isValidLoc(v, x, y, map);
+            });
+        }
+    }
+    else if (downLoc && !upLoc) {
+        downLoc = map.matchingLocNear(utils.x(downLoc), utils.y(downLoc), isValidLoc);
+        if (needUp) {
+            upLoc = map.randomMatchingLoc((v, x, y) => {
+                if (utils.distanceBetween(x, y, downLoc[0], downLoc[1]) <
+                    minDistance)
+                    return false;
+                return isValidStairLoc(v, x, y, map);
+            });
+        }
+    }
+    else if (needUp) {
+        upLoc = map.randomMatchingLoc(isValidLoc);
+        if (needDown) {
+            downLoc = map.randomMatchingLoc((v, x, y) => {
+                if (utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
+                    minDistance)
+                    return false;
+                return isValidStairLoc(v, x, y, map);
+            });
+        }
+    }
+    else if (needDown) {
+        downLoc = map.randomMatchingLoc(isValidLoc);
+    }
+    if (upLoc) {
+        locations.up = upLoc.slice();
+        setupFn(map, upLoc[0], upLoc[1], opts.upTile || UP_STAIRS);
+        if (opts.start === 'up')
+            locations.start = locations.up;
+    }
+    if (downLoc) {
+        locations.down = downLoc.slice();
+        setupFn(map, downLoc[0], downLoc[1], opts.downTile || DOWN_STAIRS);
+        if (opts.start === 'down')
+            locations.start = locations.down;
+    }
+    return upLoc || downLoc ? locations : null;
+}
+
+var stairs = {
+    __proto__: null,
+    isValidStairLoc: isValidStairLoc,
+    setupStairs: setupStairs,
+    addStairs: addStairs
+};
+
 const DIRS$1 = utils.DIRS;
 var SEQ;
 function start(map) {
@@ -799,7 +943,7 @@ function finish(map) {
     finishDoors(map);
 }
 // Returns an array of door sites if successful
-function dig$1(map, opts) {
+function addRoom(map, opts) {
     opts = opts || { room: 'DEFAULT', hall: 'DEFAULT', tries: 10 };
     if (typeof opts === 'string') {
         opts = { room: opts };
@@ -841,10 +985,16 @@ function dig$1(map, opts) {
         }
     }
     if (opts.door === false) {
-        opts.door = FLOOR;
+        opts.door = 0;
     }
-    else if (opts.door === true || !opts.door) {
+    else if (opts.door === true) {
         opts.door = DOOR;
+    }
+    else if (typeof opts.door === 'number') {
+        opts.door = random.chance(opts.door) ? DOOR : FLOOR;
+    }
+    else {
+        opts.door = FLOOR;
     }
     let locs = opts.locs || null;
     if (!locs || !Array.isArray(locs)) {
@@ -944,6 +1094,8 @@ function attachRoom(map, roomGrid, room, opts) {
     return false;
 }
 function attachDoor(map, room, opts, x, y, dir) {
+    if (opts.door === 0)
+        return; // no door at all
     const tile = opts.door || DOOR;
     map[x][y] = tile; // Door site.
     // most cases...
@@ -1293,6 +1445,9 @@ function addLakes(map, opts = {}) {
 function addBridges(map, minimumPathingDistance, maxConnectionLength) {
     return digBridges(map, minimumPathingDistance, maxConnectionLength);
 }
+function addStairs$1(map, opts = {}) {
+    return addStairs(map, opts);
+}
 function removeDiagonalOpenings(grid) {
     let i, j, k, x1, y1;
     let diagonalCornerRemoved;
@@ -1361,13 +1516,15 @@ function finishWalls(grid, tile = WALL) {
     });
 }
 
-var dig$2 = {
+var dig$1 = {
     __proto__: null,
     room: room,
     hall: hall,
+    lake: lake,
+    stairs: stairs,
     start: start,
     finish: finish,
-    dig: dig$1,
+    addRoom: addRoom,
     attachRoom: attachRoom,
     attachDoor: attachDoor,
     roomFitsAt: roomFitsAt,
@@ -1377,6 +1534,7 @@ var dig$2 = {
     addLoops: addLoops,
     addLakes: addLakes,
     addBridges: addBridges,
+    addStairs: addStairs$1,
     removeDiagonalOpenings: removeDiagonalOpenings,
     finishDoors: finishDoors,
     finishWalls: finishWalls,
@@ -1393,6 +1551,7 @@ var dig$2 = {
     SHALLOW: SHALLOW,
     fillCostGrid: fillCostGrid,
     isPassable: isPassable,
+    isFloor: isFloor,
     isDoor: isDoor,
     isObstruction: isObstruction,
     isStairs: isStairs,
@@ -1400,4 +1559,4 @@ var dig$2 = {
     isAnyWater: isAnyWater
 };
 
-export { dig$2 as dig };
+export { dig$1 as dig };

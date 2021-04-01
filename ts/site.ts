@@ -31,6 +31,10 @@ export function isPassable(grid: GW.grid.NumGrid, x: number, y: number) {
     );
 }
 
+export function isFloor(grid: GW.grid.NumGrid, x: number, y: number) {
+    return grid.get(x, y) == FLOOR;
+}
+
 export function isDoor(grid: GW.grid.NumGrid, x: number, y: number) {
     const v = grid.get(x, y);
     return v === DOOR;

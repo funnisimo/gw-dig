@@ -3,11 +3,14 @@ import * as SITE from './site';
 import * as HALL from './hall';
 import * as ROOM from './room';
 import * as LAKE from './lake';
+import * as STAIRS from './stairs';
 // import * as MAP from 'gw-map.js';
 
 export * from './site';
 export * as room from './room';
 export * as hall from './hall';
+export * as lake from './lake';
+export * as stairs from './stairs';
 
 export { Room, Hall } from './room';
 
@@ -43,7 +46,7 @@ export interface DigInfo {
 }
 
 // Returns an array of door sites if successful
-export function dig(
+export function addRoom(
     map: GW.grid.NumGrid,
     opts?: string | DigConfig
 ): ROOM.Room | null {
@@ -84,9 +87,13 @@ export function dig(
     }
 
     if (opts.door === false) {
-        opts.door = SITE.FLOOR;
-    } else if (opts.door === true || !opts.door) {
+        opts.door = 0;
+    } else if (opts.door === true) {
         opts.door = SITE.DOOR;
+    } else if (typeof opts.door === 'number') {
+        opts.door = GW.random.chance(opts.door) ? SITE.DOOR : SITE.FLOOR;
+    } else {
+        opts.door = SITE.FLOOR;
     }
 
     let locs = opts.locs || null;
@@ -227,6 +234,8 @@ export function attachDoor(
     y: number,
     dir: number
 ) {
+    if (opts.door === 0) return; // no door at all
+
     const tile = opts.door || SITE.DOOR;
     map[x][y] = tile; // Door site.
     // most cases...
@@ -671,6 +680,10 @@ export function addBridges(
     maxConnectionLength: number
 ) {
     return LAKE.digBridges(map, minimumPathingDistance, maxConnectionLength);
+}
+
+export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
+    return STAIRS.addStairs(map, opts);
 }
 
 export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
