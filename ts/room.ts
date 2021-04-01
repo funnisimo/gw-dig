@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as CONST from './site';
+import * as SITE from './site';
 
 export class Hall {
     public x: number;
@@ -173,7 +173,7 @@ export function cavern(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const width = config.width.value();
     const height = config.height.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     blobGrid = GW.grid.alloc(grid.width, grid.height, 0);
 
@@ -243,7 +243,7 @@ export function entrance(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const width = config.width.value();
     const height = config.height.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     const roomWidth = Math.floor(0.4 * width); // 8
     const roomHeight = height;
@@ -274,7 +274,7 @@ export function cross(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const width = config.width.value();
     const height = config.height.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     const roomWidth = width;
     const roomWidth2 = Math.max(
@@ -314,7 +314,7 @@ export function symmetricalCross(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const width = config.width.value();
     const height = config.height.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     let minorWidth = Math.max(
         3,
@@ -353,7 +353,7 @@ export function rectangular(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const width = config.width.value();
     const height = config.height.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     grid.fill(0);
     const x = Math.floor((grid.width - width) / 2);
@@ -367,7 +367,7 @@ export function circular(config: RoomConfig, grid: GW.grid.NumGrid) {
     if (!grid) return config;
 
     const radius = config.radius.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     grid.fill(0);
     const x = Math.floor(grid.width / 2);
@@ -397,7 +397,7 @@ export function brogueDonut(config: RoomConfig, grid: GW.grid.NumGrid) {
     const radius = config.radius.value();
     const ringMinWidth = config.ringMinWidth.value();
     const holeMinSize = config.holeMinSize.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     grid.fill(0);
     const x = Math.floor(grid.width / 2);
@@ -438,7 +438,7 @@ export function chunkyRoom(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const width = config.width.value();
     const height = config.height.value();
-    const tile = config.tile || CONST.FLOOR;
+    const tile = config.tile || SITE.FLOOR;
 
     minX = Math.floor(grid.width / 2) - Math.floor(width / 2);
     maxX = Math.floor(grid.width / 2) + Math.floor(width / 2);

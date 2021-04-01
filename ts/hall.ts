@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as CONST from './site';
+import * as SITE from './site';
 import { Room, Hall } from './room';
 
 const DIRS = GW.utils.DIRS;
@@ -151,7 +151,7 @@ export function digWide(
     const width = pickWidth(opts) || 2;
 
     const door = room.doors[dir];
-    const tile = opts.tile || CONST.FLOOR;
+    const tile = opts.tile || SITE.FLOOR;
     const hallDoors: GW.utils.Loc[] = [];
 
     let x0: number, y0: number;
@@ -234,7 +234,7 @@ export function dig(
     let x = door[0];
     let y = door[1];
 
-    const tile = opts.tile || CONST.FLOOR;
+    const tile = opts.tile || SITE.FLOOR;
     for (let i = 0; i < length; i++) {
         grid[x][y] = tile;
         x += DIR[0];
