@@ -1,31 +1,16 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
-import { Room, Hall } from './room';
+import * as TYPES from './types';
 
 const DIRS = GW.utils.DIRS;
 
-export type HallFn = (
-    opts: HallConfig,
-    grid: GW.grid.NumGrid,
-    room: Room
-) => Hall | any | null;
-export interface HallConfig {
-    fn?: HallFn;
-    chance?: number;
-    length?: GW.range.RangeBase | [GW.range.RangeBase, GW.range.RangeBase];
-    width?: GW.range.RangeBase;
-    tile?: number;
-    [x: string]: any;
-}
+export var halls: Record<string, TYPES.HallData> = {};
 
-export interface HallData extends HallConfig {
-    fn: HallFn;
-    id: string;
-}
-
-export var halls: Record<string, HallData> = {};
-
-export function install(id: string, fn: HallFn, config: HallConfig = {}) {
+export function install(
+    id: string,
+    fn: TYPES.HallFn,
+    config: TYPES.HallConfig = {}
+) {
     // @ts-ignore
     const data: HallData = fn(config || {}); // call to have function setup the config
     data.fn = fn;
@@ -73,7 +58,7 @@ export function pickLengthRange(dir: number, opts: any): GW.range.Range {
 
 export function pickHallDirection(
     grid: GW.grid.NumGrid,
-    room: Room,
+    room: TYPES.Room,
     opts: any
 ): number {
     const doors = room.doors;
@@ -132,10 +117,10 @@ export function pickHallExits(
 }
 
 export function digWide(
-    opts: HallConfig,
+    opts: TYPES.HallConfig,
     grid: GW.grid.NumGrid,
-    room: Room
-): Hall | HallConfig | null {
+    room: TYPES.Room
+): TYPES.Hall | TYPES.HallConfig | null {
     opts = opts || {};
     if (!opts.width) {
         opts.width = 2;
@@ -167,7 +152,7 @@ export function digWide(
         }
 
         hallDoors[dir] = [x0, y0 - 1];
-        hall = new Hall([x0, door[1]], dir, length, 2);
+        hall = new TYPES.Hall([x0, door[1]], dir, length, 2);
     } else if (dir === GW.utils.DOWN) {
         x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
         y0 = door[1] + length - 1;
@@ -179,7 +164,7 @@ export function digWide(
         }
 
         hallDoors[dir] = [x0, y0 + 1];
-        hall = new Hall([x0, door[1]], dir, length, 2);
+        hall = new TYPES.Hall([x0, door[1]], dir, length, 2);
     } else if (dir === GW.utils.LEFT) {
         x0 = door[0] - length + 1;
         y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
@@ -191,7 +176,7 @@ export function digWide(
         }
 
         hallDoors[dir] = [x0 - 1, y0];
-        hall = new Hall([door[0], y0], dir, length, 2);
+        hall = new TYPES.Hall([door[0], y0], dir, length, 2);
     } else {
         //if (dir === GW.utils.RIGHT) {
         x0 = door[0] + length - 1;
@@ -204,7 +189,7 @@ export function digWide(
         }
 
         hallDoors[dir] = [x0 + 1, y0];
-        hall = new Hall([door[0], y0], dir, length, width);
+        hall = new TYPES.Hall([door[0], y0], dir, length, width);
     }
 
     hall.doors = hallDoors;
@@ -213,10 +198,10 @@ export function digWide(
 }
 
 export function dig(
-    opts: HallConfig,
+    opts: TYPES.HallConfig,
     grid: GW.grid.NumGrid,
-    room: Room
-): Hall | HallConfig | null {
+    room: TYPES.Room
+): TYPES.Hall | TYPES.HallConfig | null {
     opts = opts || {};
     opts.width = 1;
     if (!grid) {
@@ -244,7 +229,7 @@ export function dig(
     x -= DIR[0];
     y -= DIR[1];
 
-    const hall = new Hall(door, dir, length);
+    const hall = new TYPES.Hall(door, dir, length);
     hall.doors = pickHallExits(grid, x, y, dir, opts);
     return hall;
 }

@@ -15,7 +15,7 @@ export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
     canDisrupt = opts.canDisrupt || false;
     const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
     const wreathTile = opts.wreathTile || SITE.SHALLOW;
-    const tile = opts.tile || SITE.LAKE;
+    const tile = opts.tile || SITE.DEEP;
 
     const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
 

@@ -119,7 +119,7 @@ describe('Dig', () => {
     test('dig on empty map', () => {
         Dig.start(map);
 
-        const room = Dig.dig(map, { room: 'ROOM', tries: 20 });
+        const room = Dig.addRoom(map, { room: 'ROOM', tries: 20 });
 
         // map.dump();
 
@@ -136,13 +136,18 @@ describe('Dig', () => {
         let locs: boolean | GW.utils.Loc[] = [[38, 28]];
         let roomCount = 4;
 
-        let room = Dig.dig(map, { room: 'ROOM', locs, tries: 20 });
+        let room = Dig.addRoom(map, {
+            room: 'ROOM',
+            locs,
+            tries: 20,
+            door: true,
+        });
         if (!room) {
             fail('Failed on first room!');
         }
 
         for (let i = 0; i < roomCount; ++i) {
-            room = Dig.dig(map, { room: 'ROOM', tries: 20 });
+            room = Dig.addRoom(map, { room: 'ROOM', tries: 20, door: true });
             if (!room) {
                 fail('Failed to dig map on room #' + (i + 1));
             }
@@ -176,10 +181,11 @@ describe('Dig', () => {
         let room: Dig.Room | null;
 
         for (let i = 0; i < roomCount; ++i) {
-            room = Dig.dig(map, {
+            room = Dig.addRoom(map, {
                 room: 'ROOM',
                 locs,
                 tries: 20,
+                door: true,
             });
             expect(room).toBeObject();
             locs = room!.doors;
@@ -212,7 +218,7 @@ describe('Dig', () => {
     //     let roomCount = 15;
 
     //     for (let i = 0; i < roomCount; ++i) {
-    //         const ok = Dig.dig(map, {
+    //         const ok = Dig.addRoom(map, {
     //             room: 'ROOM',
     //             locs,
     //             tile: Dig.FLOOR,
@@ -243,8 +249,8 @@ describe('Dig', () => {
 
     //     map.fill(Dig.FLOOR);
 
-    //     Dig.digLake();
-    //     Dig.digLake();
+    //     Dig.addRoomLake();
+    //     Dig.addRoomLake();
 
     //     Dig.addBridges(20, 10);
 
@@ -267,7 +273,7 @@ describe('Dig', () => {
     //     let loc = [startingXY[0], startingXY[1]];
     //     let roomCount = 0;
 
-    //     Dig.dig(map, {
+    //     Dig.addRoom(map, {
     //         room: 'FIRST_ROOM',
     //         loc,
     //         tries: 20,
@@ -277,7 +283,7 @@ describe('Dig', () => {
     //     let fails = 0;
     //     while (fails < 20) {
     //         if (
-    //             !Dig.dig(map, {
+    //             !Dig.addRoom(map, {
     //                 room: 'PROFILE',
     //                 tries: 1,
     //                 hallChance: 10,
@@ -291,7 +297,7 @@ describe('Dig', () => {
 
     //     let lakeCount = GW.random.number(5);
     //     for (let i = 0; i < lakeCount; ++i) {
-    //         Dig.digLake();
+    //         Dig.addRoomLake();
     //     }
 
     //     Dig.addBridges(40, 8);
@@ -334,7 +340,7 @@ describe('Dig', () => {
             room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
 
             expect(
-                Dig.attachRoom(map, grid, room, {
+                Dig.utils.attachRoom(map, grid, room, {
                     // @ts-ignore
                     room: {},
                     hall: null,
@@ -358,7 +364,7 @@ describe('Dig', () => {
             room.hall = Dig.hall.dig({ chance: 100 }, grid, room) as Dig.Hall;
 
             expect(
-                Dig.attachRoom(map, grid, room, {
+                Dig.utils.attachRoom(map, grid, room, {
                     // @ts-ignore
                     room: {},
                     hall: null,
@@ -386,7 +392,7 @@ describe('Dig', () => {
             ) as Dig.Hall;
 
             expect(
-                Dig.attachRoom(map, grid, room, {
+                Dig.utils.attachRoom(map, grid, room, {
                     // @ts-ignore
                     room: {},
                     // @ts-ignore
@@ -410,13 +416,19 @@ describe('Dig', () => {
         const a = GW.grid.alloc(10, 10, 0);
 
         a.fillRect(2, 2, 3, 3, 1);
-        expect(Dig.directionOfDoorSite(a, 2, 4, 1)).toEqual(
+        expect(Dig.utils.directionOfDoorSite(a, 2, 4, 1)).toEqual(
             GW.utils.NO_DIRECTION
         );
-        expect(Dig.directionOfDoorSite(a, 1, 3, 1)).toEqual(GW.utils.LEFT);
-        expect(Dig.directionOfDoorSite(a, 5, 3, 1)).toEqual(GW.utils.RIGHT);
-        expect(Dig.directionOfDoorSite(a, 3, 1, 1)).toEqual(GW.utils.UP);
-        expect(Dig.directionOfDoorSite(a, 3, 5, 1)).toEqual(GW.utils.DOWN);
+        expect(Dig.utils.directionOfDoorSite(a, 1, 3, 1)).toEqual(
+            GW.utils.LEFT
+        );
+        expect(Dig.utils.directionOfDoorSite(a, 5, 3, 1)).toEqual(
+            GW.utils.RIGHT
+        );
+        expect(Dig.utils.directionOfDoorSite(a, 3, 1, 1)).toEqual(GW.utils.UP);
+        expect(Dig.utils.directionOfDoorSite(a, 3, 5, 1)).toEqual(
+            GW.utils.DOWN
+        );
 
         GW.grid.free(a);
     });

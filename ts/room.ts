@@ -1,122 +1,14 @@
 import * as GW from 'gw-utils';
+import * as TYPES from './types';
 import * as SITE from './site';
 
-export class Hall {
-    public x: number;
-    public y: number;
-    public x2: number;
-    public y2: number;
-    public length: number;
+export var rooms: Record<string, TYPES.RoomData> = {};
 
-    public dir: number;
-    public width: number = 1;
-
-    public doors: GW.utils.Loc[] = [];
-
-    constructor(loc: GW.utils.Loc, dir: number, length: number, width = 1) {
-        this.x = loc[0];
-        this.y = loc[1];
-        const d = GW.utils.DIRS[dir];
-        this.length = length;
-        this.width = width;
-        if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
-            this.x2 = this.x + (width - 1);
-            this.y2 = this.y + (length - 1) * d[1];
-        } else {
-            this.x2 = this.x + (length - 1) * d[0];
-            this.y2 = this.y + (width - 1);
-        }
-        this.dir = dir;
-    }
-
-    translate(dx: number, dy: number) {
-        this.x += dx;
-        this.y += dy;
-        this.x2 += dx;
-        this.y2 += dy;
-        if (this.doors) {
-            this.doors.forEach((d) => {
-                if (!d) return;
-                if (d[0] < 0 || d[1] < 0) return;
-                d[0] += dx;
-                d[1] += dy;
-            });
-        }
-    }
-}
-
-export class Room {
-    public digger: string;
-    public x: number;
-    public y: number;
-    public width: number;
-    public height: number;
-
-    public doors: GW.utils.Loc[] = [];
-
-    public hall: Hall | null = null;
-
-    constructor(
-        digger: string,
-        x: number,
-        y: number,
-        width: number,
-        height: number
-    ) {
-        this.digger = digger;
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
-
-    get cx() {
-        return this.x + Math.floor(this.width / 2);
-    }
-    get cy() {
-        return this.y + Math.floor(this.height / 2);
-    }
-
-    translate(dx: number, dy: number) {
-        this.x += dx;
-        this.y += dy;
-
-        if (this.doors) {
-            this.doors.forEach((d) => {
-                if (!d) return;
-                if (d[0] < 0 || d[1] < 0) return;
-                d[0] += dx;
-                d[1] += dy;
-            });
-        }
-
-        if (this.hall) {
-            this.hall.translate(dx, dy);
-        }
-    }
-}
-
-export interface RoomConfig {
-    fn?: RoomFn;
-    door?: boolean | number;
-    doorChance?: number;
-    tile?: number;
-    [x: string]: any;
-}
-
-export type RoomFn = (
-    config: RoomConfig,
-    grid: GW.grid.NumGrid
-) => Room | RoomConfig | null;
-
-export interface RoomData extends RoomConfig {
-    fn: RoomFn;
-    id: string;
-}
-
-export var rooms: Record<string, RoomData> = {};
-
-export function install(id: string, fn: RoomFn, config?: RoomConfig) {
+export function install(
+    id: string,
+    fn: TYPES.RoomFn,
+    config?: TYPES.RoomConfig
+) {
     // @ts-ignore
     const data: RoomData = fn(config || {}); // call to have function setup the config
     data.fn = fn;
@@ -127,7 +19,7 @@ export function install(id: string, fn: RoomFn, config?: RoomConfig) {
 
 install('DEFAULT', rectangular);
 
-export function checkConfig(config: RoomConfig, expected: any) {
+export function checkConfig(config: TYPES.RoomConfig, expected: any) {
     config = config || {};
     expected = expected || {};
 
@@ -164,7 +56,7 @@ export function checkConfig(config: RoomConfig, expected: any) {
     return config;
 }
 
-export function cavern(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function cavern(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 12, height: 8 });
     if (!grid) return config;
 
@@ -201,13 +93,13 @@ export function cavern(config: RoomConfig, grid: GW.grid.NumGrid) {
     // ...and copy it to the master grid.
     GW.grid.offsetZip(grid, blobGrid, destX - bounds.x, destY - bounds.y, tile);
     GW.grid.free(blobGrid);
-    return new Room(config.id, destX, destY, bounds.width, bounds.height);
+    return new TYPES.Room(config.id, destX, destY, bounds.width, bounds.height);
 }
 
 export function choiceRoom(
-    config: RoomConfig,
+    config: TYPES.RoomConfig,
     grid: GW.grid.NumGrid
-): Room | RoomConfig | null {
+): TYPES.Room | TYPES.RoomConfig | null {
     config = config || {};
     let choices: () => any;
     if (Array.isArray(config.choices)) {
@@ -237,7 +129,7 @@ export function choiceRoom(
 }
 
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
-export function entrance(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function entrance(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 20, height: 10 });
     if (!grid) return config;
 
@@ -259,7 +151,7 @@ export function entrance(config: RoomConfig, grid: GW.grid.NumGrid) {
     grid.fill(0);
     grid.fillRect(roomX, roomY, roomWidth, roomHeight, tile);
     grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, tile);
-    return new Room(
+    return new TYPES.Room(
         config.id,
         Math.min(roomX, roomX2),
         Math.min(roomY, roomY2),
@@ -268,7 +160,7 @@ export function entrance(config: RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function cross(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function cross(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: 12, height: 20 });
     if (!grid) return config;
 
@@ -299,7 +191,7 @@ export function cross(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     grid.fillRect(roomX, roomY, roomWidth, roomHeight, tile);
     grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, tile);
-    return new Room(
+    return new TYPES.Room(
         config.id,
         roomX,
         roomY2,
@@ -308,7 +200,10 @@ export function cross(config: RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function symmetricalCross(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function symmetricalCross(
+    config: TYPES.RoomConfig,
+    grid: GW.grid.NumGrid
+) {
     config = checkConfig(config, { width: 7, height: 7 });
     if (!grid) return config;
 
@@ -338,7 +233,7 @@ export function symmetricalCross(config: RoomConfig, grid: GW.grid.NumGrid) {
     const x2 = Math.floor((grid.width - minorWidth) / 2);
     const y2 = Math.floor((grid.height - height) / 2);
     grid.fillRect(x2, y2, minorWidth, height, tile);
-    return new Room(
+    return new TYPES.Room(
         config.id,
         Math.min(x, x2),
         Math.min(y, y2),
@@ -347,7 +242,7 @@ export function symmetricalCross(config: RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function rectangular(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function rectangular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { width: [3, 6], height: [3, 6] });
     if (!grid) return config;
 
@@ -359,10 +254,10 @@ export function rectangular(config: RoomConfig, grid: GW.grid.NumGrid) {
     const x = Math.floor((grid.width - width) / 2);
     const y = Math.floor((grid.height - height) / 2);
     grid.fillRect(x, y, width, height, tile);
-    return new Room(config.id, x, y, width, height);
+    return new TYPES.Room(config.id, x, y, width, height);
 }
 
-export function circular(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function circular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, { radius: [3, 4] });
     if (!grid) return config;
 
@@ -376,7 +271,7 @@ export function circular(config: RoomConfig, grid: GW.grid.NumGrid) {
         grid.fillCircle(x, y, radius, tile);
     }
 
-    return new Room(
+    return new TYPES.Room(
         config.id,
         x - radius,
         y - radius,
@@ -385,7 +280,7 @@ export function circular(config: RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function brogueDonut(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function brogueDonut(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, {
         radius: [5, 10],
         ringMinWidth: 3,
@@ -415,7 +310,7 @@ export function brogueDonut(config: RoomConfig, grid: GW.grid.NumGrid) {
             0
         );
     }
-    return new Room(
+    return new TYPES.Room(
         config.id,
         x - radius,
         y - radius,
@@ -424,7 +319,7 @@ export function brogueDonut(config: RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function chunkyRoom(config: RoomConfig, grid: GW.grid.NumGrid) {
+export function chunkyRoom(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     config = checkConfig(config, {
         count: [2, 12],
         width: [5, 20],
@@ -475,5 +370,11 @@ export function chunkyRoom(config: RoomConfig, grid: GW.grid.NumGrid) {
 
     const bounds = grid.valueBounds(tile);
 
-    return new Room(config.id, bounds.x, bounds.y, bounds.width, bounds.height);
+    return new TYPES.Room(
+        config.id,
+        bounds.x,
+        bounds.y,
+        bounds.width,
+        bounds.height
+    );
 }

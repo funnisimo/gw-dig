@@ -2,7 +2,7 @@ import 'jest-extended';
 import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as HALL from './hall';
-import { Room, Hall } from './room';
+import { Room, Hall } from './types';
 
 describe('Hall', () => {
     beforeEach(() => {
