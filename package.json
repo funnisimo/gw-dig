@@ -1,6 +1,6 @@
 {
     "name": "gw-dig",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Map Digging components for Roguelikes",
     "main": "dist/gw-dig.cjs",
     "browser": "dist/gw-dig.min.js",
@@ -35,8 +35,8 @@
     "devDependencies": {
         "@babel/types": "^7.12.11",
         "@jest/types": "^26.6.2",
-        "gw-map": "^0.3.0",
-        "gw-utils": "^0.3.0",
+        "gw-map": "^0.3.1",
+        "gw-utils": "^0.3.1",
         "http-server": "^0.12.3",
         "jest": "^26.6.3",
         "jest-extended": "^0.11.5",
@@ -49,8 +49,8 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "gw-map": "^0.3.0",
-        "gw-utils": "^0.3.0"
+        "gw-map": "^0.3.1",
+        "gw-utils": "^0.3.1"
     },
     "files": [
         "dist"
