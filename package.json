@@ -49,8 +49,8 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "gw-map": "^0.3",
-        "gw-utils": "^0.3"
+        "gw-map": "^0.3.0",
+        "gw-utils": "^0.3.0"
     },
     "files": [
         "dist"
