@@ -1,6 +1,4 @@
-import { Random, types as Types, colors as COLORS } from 'gw-utils';
-import { Map } from '../ts/map';
-import { Layer } from '../ts/flags';
+import { Random } from 'gw-utils';
 
 export const rnd = jest.fn();
 export const counts = new Array(100).fill(0);
@@ -29,48 +27,26 @@ export function mockRandom() {
     return rnd;
 }
 
+export function always(fn: Function, count = 1000) {
+    for (let i = 0; i < count; ++i) {
+        fn();
+    }
+}
+
 export async function alwaysAsync(fn: Function, count = 1000) {
     for (let i = 0; i < count; ++i) {
         await fn();
     }
 }
 
-export function countTile(map: Map, tile: string) {
-    let count = 0;
-    map.forEach((cell) => {
-        if (cell.hasTile(tile)) ++count;
-    });
-    return count;
-}
-
-export function makeActor() {
-    return ({
-        rememberedInCell: null,
-        sprite: { ch: '@', fg: COLORS.blue, bg: -1 },
-        layer: Layer.ACTOR,
-        priority: 50,
-        isPlayer: jest.fn().mockReturnValue(false),
-        delete: jest.fn(),
-        avoidsCell: jest.fn().mockReturnValue(false),
-        blocksVision: jest.fn().mockReturnValue(false),
-    } as unknown) as Types.ActorType;
-}
-
-export function makePlayer() {
-    const player = makeActor();
-    // @ts-ignore
-    player.isPlayer.mockReturnValue(true);
-    return player;
-}
-
-export function makeItem() {
-    return ({
-        quantity: 1,
-        sprite: { ch: '!', fg: 'white' },
-        layer: Layer.ITEM,
-        isDetected: jest.fn().mockReturnValue(false),
-        forbidsCell: jest.fn().mockReturnValue(false),
-        clone: jest.fn().mockImplementation(makeItem),
-        delete: jest.fn(),
-    } as unknown) as Types.ItemType;
+export function results(fn: Function, count = 1000): any[] {
+    const r = [];
+    for (let i = 0; i < count; ++i) {
+        const v = fn();
+        if (r.indexOf(v) < 0) {
+            r.push(v);
+        }
+    }
+    r.sort();
+    return r;
 }
