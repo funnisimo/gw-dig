@@ -77,6 +77,40 @@ function isShallow(grid, x, y) {
 function isAnyWater(grid, x, y) {
     return isDeep(grid, x, y) || isShallow(grid, x, y);
 }
+function setGrid(grid, x, y, v) {
+    if (grid.hasXY(x, y))
+        grid[x][y] = v;
+}
+
+var SITE = {
+    __proto__: null,
+    NOTHING: NOTHING,
+    FLOOR: FLOOR,
+    DOOR: DOOR,
+    WALL: WALL,
+    DEEP: DEEP,
+    SHALLOW: SHALLOW,
+    BRIDGE: BRIDGE,
+    UP_STAIRS: UP_STAIRS,
+    DOWN_STAIRS: DOWN_STAIRS,
+    IMPREGNABLE: IMPREGNABLE,
+    TILEMAP: TILEMAP,
+    SEQ: SEQ,
+    initSeqence: initSeqence,
+    fillCostGrid: fillCostGrid,
+    isPassable: isPassable,
+    isNothing: isNothing,
+    isFloor: isFloor,
+    isDoor: isDoor,
+    isBridge: isBridge,
+    isWall: isWall,
+    isObstruction: isObstruction,
+    isStairs: isStairs,
+    isDeep: isDeep,
+    isShallow: isShallow,
+    isAnyWater: isAnyWater,
+    setGrid: setGrid
+};
 
 const DIRS = utils$1.DIRS;
 function attachRoom(map, roomGrid, room, opts) {
@@ -883,115 +917,122 @@ var room = {
     chunkyRoom: chunkyRoom
 };
 
-function digLakes(map, opts = {}) {
-    let i, j, k;
-    let x, y;
-    let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
-    let count = 0;
-    lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
-    lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
-    lakeMinSize = opts.minSize || 5;
-    tries = opts.tries || 20;
-    maxCount = opts.count || 1;
-    canDisrupt = opts.canDisrupt || false;
-    const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
-    const wreathTile = opts.wreathTile || SHALLOW;
-    const tile = opts.tile || DEEP;
-    const lakeGrid = grid.alloc(map.width, map.height, 0);
-    let attempts = 0;
-    while (attempts < maxCount && count < maxCount) {
-        // lake generations
-        const width = Math.round(((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
-            maxCount) + lakeMinSize;
-        const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
-            maxCount) + lakeMinSize;
-        lakeGrid.fill(NOTHING);
-        const bounds = lakeGrid.fillBlob(5, 4, 4, width, height, 55, 'ffffftttt', 'ffffttttt');
-        // lakeGrid.dump();
-        let success = false;
-        for (k = 0; k < tries && !success; k++) {
-            // placement attempts
-            // propose a position for the top-left of the lakeGrid in the dungeon
-            x = random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
-            y = random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
-            if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
-                // level with lake is completely connected
-                //   dungeon.debug("Placed a lake!", x, y);
-                success = true;
-                // copy in lake
-                for (i = 0; i < bounds.width; i++) {
-                    // skip boundary
-                    for (j = 0; j < bounds.height; j++) {
+class Lakes {
+    constructor(width, height, disruptsFn, passableFn) {
+        this.width = width;
+        this.height = height;
+        this.disruptsFn = disruptsFn;
+        this.passableFn = passableFn;
+    }
+    create(setFn, opts = {}) {
+        let i, j, k;
+        let x, y;
+        let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
+        let count = 0;
+        lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
+        lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
+        lakeMinSize = opts.minSize || 5;
+        tries = opts.tries || 20;
+        maxCount = opts.count || 1;
+        canDisrupt = opts.canDisrupt || false;
+        const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+        const wreathTile = opts.wreathTile || SHALLOW;
+        const tile = opts.tile || DEEP;
+        const lakeGrid = grid.alloc(this.width, this.height, 0);
+        let attempts = 0;
+        while (attempts < maxCount && count < maxCount) {
+            // lake generations
+            const width = Math.round(((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
+                maxCount) + lakeMinSize;
+            const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
+                maxCount) + lakeMinSize;
+            lakeGrid.fill(NOTHING);
+            const bounds = lakeGrid.fillBlob(5, 4, 4, width, height, 55, 'ffffftttt', 'ffffttttt');
+            // lakeGrid.dump();
+            let success = false;
+            for (k = 0; k < tries && !success; k++) {
+                // placement attempts
+                // propose a position for the top-left of the lakeGrid in the dungeon
+                x = random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
+                y = random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
+                if (canDisrupt || !this.isDisruptedBy(lakeGrid, -x, -y)) {
+                    // level with lake is completely connected
+                    //   dungeon.debug("Placed a lake!", x, y);
+                    success = true;
+                    // copy in lake
+                    for (i = 0; i < bounds.width; i++) {
                         // skip boundary
-                        if (lakeGrid[i + bounds.x][j + bounds.y]) {
-                            const sx = i + bounds.x + x;
-                            const sy = j + bounds.y + y;
-                            map[sx][sy] = tile;
-                            if (wreath) {
-                                map.forCircle(sx, sy, wreath, (v, i, j) => {
-                                    if (v === FLOOR || v === DOOR) {
-                                        map[i][j] = wreathTile;
-                                    }
-                                });
+                        for (j = 0; j < bounds.height; j++) {
+                            // skip boundary
+                            if (lakeGrid[i + bounds.x][j + bounds.y]) {
+                                const sx = i + bounds.x + x;
+                                const sy = j + bounds.y + y;
+                                setFn(sx, sy, tile);
+                                if (wreath) {
+                                    utils$1.forCircle(sx, sy, wreath, (i, j) => {
+                                        if (this.passableFn(i, j)
+                                        // SITE.isFloor(map, i, j) ||
+                                        // SITE.isDoor(map, i, j)
+                                        ) {
+                                            setFn(i, j, wreathTile);
+                                        }
+                                    });
+                                }
                             }
                         }
                     }
+                    break;
                 }
-                break;
             }
-        }
-        if (success) {
-            ++count;
-        }
-        else {
-            ++attempts;
-        }
-    }
-    grid.free(lakeGrid);
-    return count;
-}
-function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) {
-    const walkableGrid = grid.alloc(map.width, map.height);
-    let disrupts = false;
-    // Get all walkable locations after lake added
-    map.forEach((v, i, j) => {
-        const lakeX = i + lakeToMapX;
-        const lakeY = j + lakeToMapY;
-        if (!v) {
-            return; // not walkable
-        }
-        else if (isStairs(map, i, j)) {
-            if (lakeGrid.get(lakeX, lakeY)) {
-                disrupts = true;
+            if (success) {
+                ++count;
             }
             else {
-                walkableGrid[i][j] = 1;
+                ++attempts;
             }
         }
-        else if (isPassable(map, i, j)) {
-            if (lakeGrid.get(lakeX, lakeY))
-                return;
-            walkableGrid[i][j] = 1;
-        }
-    });
-    let first = true;
-    for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
-        for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-            if (walkableGrid[i][j] == 1) {
-                if (first) {
-                    walkableGrid.floodFill(i, j, 1, 2);
-                    first = false;
-                }
-                else {
+        grid.free(lakeGrid);
+        return count;
+    }
+    isDisruptedBy(lakeGrid, lakeToMapX = 0, lakeToMapY = 0) {
+        const walkableGrid = grid.alloc(this.width, this.height);
+        let disrupts = false;
+        // Get all walkable locations after lake added
+        utils$1.forRect(this.width, this.height, (i, j) => {
+            const lakeX = i + lakeToMapX;
+            const lakeY = j + lakeToMapY;
+            if (lakeGrid.get(lakeX, lakeY)) {
+                if (this.disruptsFn(i, j)) {
                     disrupts = true;
                 }
             }
+            else if (this.passableFn(i, j)) {
+                walkableGrid[i][j] = 1;
+            }
+        });
+        let first = true;
+        for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+            for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+                if (walkableGrid[i][j] == 1) {
+                    if (first) {
+                        walkableGrid.floodFill(i, j, 1, 2);
+                        first = false;
+                    }
+                    else {
+                        disrupts = true;
+                    }
+                }
+            }
         }
+        // console.log('WALKABLE GRID');
+        // walkableGrid.dump();
+        grid.free(walkableGrid);
+        return disrupts;
     }
-    // console.log('WALKABLE GRID');
-    // walkableGrid.dump();
-    grid.free(walkableGrid);
-    return disrupts;
+}
+function digLakes(map, opts = {}) {
+    const digger = new Lakes(map.width, map.height, isStairs.bind(SITE, map), isPassable.bind(SITE, map));
+    return digger.create(setGrid.bind(SITE, map), opts);
 }
 function isBridgeCandidate(map, x, y, bridgeDir) {
     if (map.get(x, y) === BRIDGE)
@@ -1483,7 +1524,7 @@ function addLoops(grid$1, minimumPathingDistance, maxConnectionLength) {
     grid.free(pathGrid);
     grid.free(costGrid);
 }
-function addLakes(map, opts = {}) {
+function addLakes(map, opts) {
     return digLakes(map, opts);
 }
 function addBridges(map, minimumPathingDistance, maxConnectionLength) {
@@ -1602,6 +1643,7 @@ var dig$1 = {
     isDeep: isDeep,
     isShallow: isShallow,
     isAnyWater: isAnyWater,
+    setGrid: setGrid,
     Hall: Hall,
     Room: Room
 };

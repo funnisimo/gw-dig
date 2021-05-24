@@ -313,7 +313,7 @@ export function addLoops(
     GW.grid.free(costGrid);
 }
 
-export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
+export function addLakes(map: GW.grid.NumGrid, opts?: Partial<LAKE.LakeOpts>) {
     return LAKE.digLakes(map, opts);
 }
 

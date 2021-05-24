@@ -33,6 +33,7 @@ interface DigConfig {
     loc?: utils.Loc;
     door?: number | boolean;
 }
+declare type DigFn = (x: number, y: number, tile: number) => any;
 declare class Hall {
     x: number;
     y: number;
@@ -64,6 +65,31 @@ interface DigInfo {
     tries: number;
     locs: utils.Loc[] | null;
     door: number;
+}
+
+interface LakeOpts {
+    height: number;
+    width: number;
+    minSize: number;
+    tries: number;
+    count: number;
+    canDisrupt: boolean;
+    wreath: number;
+    wreathTile: number;
+    tile: number;
+}
+declare function digLakes(map: grid.NumGrid, opts?: any): number;
+declare function digBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+
+type lake_d_LakeOpts = LakeOpts;
+declare const lake_d_digLakes: typeof digLakes;
+declare const lake_d_digBridges: typeof digBridges;
+declare namespace lake_d {
+  export {
+    lake_d_LakeOpts as LakeOpts,
+    lake_d_digLakes as digLakes,
+    lake_d_digBridges as digBridges,
+  };
 }
 
 declare const NOTHING = 0;
@@ -102,6 +128,7 @@ declare function isStairs(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isDeep(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isShallow(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isAnyWater(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function setGrid(grid: grid.NumGrid, x: number, y: number, v: number): void;
 
 declare var rooms: Record<string, RoomData>;
 declare function install(id: string, fn: RoomFn, config?: RoomConfig): any;
@@ -174,18 +201,6 @@ declare namespace hall_d {
   };
 }
 
-declare function digLakes(map: grid.NumGrid, opts?: any): number;
-declare function digBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
-
-declare const lake_d_digLakes: typeof digLakes;
-declare const lake_d_digBridges: typeof digBridges;
-declare namespace lake_d {
-  export {
-    lake_d_digLakes as digLakes,
-    lake_d_digBridges as digBridges,
-  };
-}
-
 declare function isValidStairLoc(_v: number, x: number, y: number, map: grid.NumGrid): boolean;
 declare function setupStairs(map: grid.NumGrid, x: number, y: number, tile: number): boolean;
 declare function addStairs(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
@@ -232,7 +247,7 @@ declare function start(map: grid.NumGrid): void;
 declare function finish(map: grid.NumGrid): void;
 declare function addRoom(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
 declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
-declare function addLakes(map: grid.NumGrid, opts?: any): number;
+declare function addLakes(map: grid.NumGrid, opts?: Partial<LakeOpts>): number;
 declare function addBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 declare function addStairs$1(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
@@ -273,6 +288,7 @@ declare const dig_d_isStairs: typeof isStairs;
 declare const dig_d_isDeep: typeof isDeep;
 declare const dig_d_isShallow: typeof isShallow;
 declare const dig_d_isAnyWater: typeof isAnyWater;
+declare const dig_d_setGrid: typeof setGrid;
 type dig_d_RoomConfig = RoomConfig;
 type dig_d_RoomFn = RoomFn;
 type dig_d_RoomData = RoomData;
@@ -280,6 +296,7 @@ type dig_d_HallFn = HallFn;
 type dig_d_HallConfig = HallConfig;
 type dig_d_HallData = HallData;
 type dig_d_DigConfig = DigConfig;
+type dig_d_DigFn = DigFn;
 type dig_d_Hall = Hall;
 declare const dig_d_Hall: typeof Hall;
 type dig_d_Room = Room;
@@ -327,6 +344,7 @@ declare namespace dig_d {
     dig_d_isDeep as isDeep,
     dig_d_isShallow as isShallow,
     dig_d_isAnyWater as isAnyWater,
+    dig_d_setGrid as setGrid,
     dig_d_RoomConfig as RoomConfig,
     dig_d_RoomFn as RoomFn,
     dig_d_RoomData as RoomData,
@@ -334,6 +352,7 @@ declare namespace dig_d {
     dig_d_HallConfig as HallConfig,
     dig_d_HallData as HallData,
     dig_d_DigConfig as DigConfig,
+    dig_d_DigFn as DigFn,
     dig_d_Hall as Hall,
     dig_d_Room as Room,
     dig_d_DigInfo as DigInfo,

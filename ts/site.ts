@@ -102,3 +102,12 @@ export function isShallow(grid: GW.grid.NumGrid, x: number, y: number) {
 export function isAnyWater(grid: GW.grid.NumGrid, x: number, y: number) {
     return isDeep(grid, x, y) || isShallow(grid, x, y);
 }
+
+export function setGrid(
+    grid: GW.grid.NumGrid,
+    x: number,
+    y: number,
+    v: number
+) {
+    if (grid.hasXY(x, y)) grid[x][y] = v;
+}

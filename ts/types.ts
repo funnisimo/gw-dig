@@ -46,6 +46,8 @@ export interface DigConfig {
     door?: number | boolean;
 }
 
+export type DigFn = (x: number, y: number, tile: number) => any;
+
 export class Hall {
     public x: number;
     public y: number;

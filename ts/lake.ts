@@ -1,151 +1,197 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
+import { DigFn } from './types';
 
-export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
-    let i, j, k;
-    let x, y;
-    let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
-    let count = 0;
+export interface LakeOpts {
+    height: number;
+    width: number;
+    minSize: number;
+    tries: number;
+    count: number;
+    canDisrupt: boolean;
+    wreath: number;
+    wreathTile: number;
+    tile: number;
+}
 
-    lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
-    lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
-    lakeMinSize = opts.minSize || 5;
-    tries = opts.tries || 20;
-    maxCount = opts.count || 1;
-    canDisrupt = opts.canDisrupt || false;
-    const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
-    const wreathTile = opts.wreathTile || SITE.SHALLOW;
-    const tile = opts.tile || SITE.DEEP;
+class Lakes {
+    public width: number;
+    public height: number;
+    public disruptsFn: GW.utils.XYMatchFunc;
+    public passableFn: GW.utils.XYMatchFunc;
 
-    const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
+    constructor(
+        width: number,
+        height: number,
+        disruptsFn: GW.utils.XYMatchFunc,
+        passableFn: GW.utils.XYMatchFunc
+    ) {
+        this.width = width;
+        this.height = height;
+        this.disruptsFn = disruptsFn;
+        this.passableFn = passableFn;
+    }
 
-    let attempts = 0;
-    while (attempts < maxCount && count < maxCount) {
-        // lake generations
+    create(setFn: DigFn, opts: Partial<LakeOpts> = {}): number {
+        let i, j, k;
+        let x, y;
+        let lakeMaxHeight,
+            lakeMaxWidth,
+            lakeMinSize,
+            tries,
+            maxCount,
+            canDisrupt;
+        let count = 0;
 
-        const width =
-            Math.round(
-                ((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
-                    maxCount
-            ) + lakeMinSize;
-        const height =
-            Math.round(
-                ((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
-                    maxCount
-            ) + lakeMinSize;
+        lakeMaxHeight = opts.height || 15; // TODO - Make this a range "5-15"
+        lakeMaxWidth = opts.width || 30; // TODO - Make this a range "5-30"
+        lakeMinSize = opts.minSize || 5;
+        tries = opts.tries || 20;
+        maxCount = opts.count || 1;
+        canDisrupt = opts.canDisrupt || false;
+        const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+        const wreathTile = opts.wreathTile || SITE.SHALLOW;
+        const tile = opts.tile || SITE.DEEP;
 
-        lakeGrid.fill(SITE.NOTHING);
-        const bounds = lakeGrid.fillBlob(
-            5,
-            4,
-            4,
-            width,
-            height,
-            55,
-            'ffffftttt',
-            'ffffttttt'
-        );
+        const lakeGrid = GW.grid.alloc(this.width, this.height, 0);
 
-        // lakeGrid.dump();
+        let attempts = 0;
+        while (attempts < maxCount && count < maxCount) {
+            // lake generations
 
-        let success = false;
-        for (k = 0; k < tries && !success; k++) {
-            // placement attempts
-            // propose a position for the top-left of the lakeGrid in the dungeon
-            x = GW.random.range(
-                1 - bounds.x,
-                lakeGrid.width - bounds.width - bounds.x - 2
+            const width =
+                Math.round(
+                    ((lakeMaxWidth - lakeMinSize) * (maxCount - attempts)) /
+                        maxCount
+                ) + lakeMinSize;
+            const height =
+                Math.round(
+                    ((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
+                        maxCount
+                ) + lakeMinSize;
+
+            lakeGrid.fill(SITE.NOTHING);
+            const bounds = lakeGrid.fillBlob(
+                5,
+                4,
+                4,
+                width,
+                height,
+                55,
+                'ffffftttt',
+                'ffffttttt'
             );
-            y = GW.random.range(
-                1 - bounds.y,
-                lakeGrid.height - bounds.height - bounds.y - 2
-            );
 
-            if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
-                // level with lake is completely connected
-                //   dungeon.debug("Placed a lake!", x, y);
+            // lakeGrid.dump();
 
-                success = true;
-                // copy in lake
-                for (i = 0; i < bounds.width; i++) {
-                    // skip boundary
-                    for (j = 0; j < bounds.height; j++) {
+            let success = false;
+            for (k = 0; k < tries && !success; k++) {
+                // placement attempts
+                // propose a position for the top-left of the lakeGrid in the dungeon
+                x = GW.random.range(
+                    1 - bounds.x,
+                    lakeGrid.width - bounds.width - bounds.x - 2
+                );
+                y = GW.random.range(
+                    1 - bounds.y,
+                    lakeGrid.height - bounds.height - bounds.y - 2
+                );
+
+                if (canDisrupt || !this.isDisruptedBy(lakeGrid, -x, -y)) {
+                    // level with lake is completely connected
+                    //   dungeon.debug("Placed a lake!", x, y);
+
+                    success = true;
+                    // copy in lake
+                    for (i = 0; i < bounds.width; i++) {
                         // skip boundary
-                        if (lakeGrid[i + bounds.x][j + bounds.y]) {
-                            const sx = i + bounds.x + x;
-                            const sy = j + bounds.y + y;
-                            map[sx][sy] = tile;
+                        for (j = 0; j < bounds.height; j++) {
+                            // skip boundary
+                            if (lakeGrid[i + bounds.x][j + bounds.y]) {
+                                const sx = i + bounds.x + x;
+                                const sy = j + bounds.y + y;
+                                setFn(sx, sy, tile);
 
-                            if (wreath) {
-                                map.forCircle(sx, sy, wreath, (v, i, j) => {
-                                    if (v === SITE.FLOOR || v === SITE.DOOR) {
-                                        map[i][j] = wreathTile;
-                                    }
-                                });
+                                if (wreath) {
+                                    GW.utils.forCircle(
+                                        sx,
+                                        sy,
+                                        wreath,
+                                        (i, j) => {
+                                            if (
+                                                this.passableFn(i, j)
+                                                // SITE.isFloor(map, i, j) ||
+                                                // SITE.isDoor(map, i, j)
+                                            ) {
+                                                setFn(i, j, wreathTile);
+                                            }
+                                        }
+                                    );
+                                }
                             }
                         }
                     }
+                    break;
                 }
-                break;
             }
-        }
 
-        if (success) {
-            ++count;
-        } else {
-            ++attempts;
-        }
-    }
-    GW.grid.free(lakeGrid);
-    return count;
-}
-
-function lakeDisruptsPassability(
-    map: GW.grid.NumGrid,
-    lakeGrid: GW.grid.NumGrid,
-    lakeToMapX = 0,
-    lakeToMapY = 0
-) {
-    const walkableGrid = GW.grid.alloc(map.width, map.height);
-    let disrupts = false;
-
-    // Get all walkable locations after lake added
-    map.forEach((v: number, i, j) => {
-        const lakeX = i + lakeToMapX;
-        const lakeY = j + lakeToMapY;
-        if (!v) {
-            return; // not walkable
-        } else if (SITE.isStairs(map, i, j)) {
-            if (lakeGrid.get(lakeX, lakeY)) {
-                disrupts = true;
+            if (success) {
+                ++count;
             } else {
-                walkableGrid[i][j] = 1;
+                ++attempts;
             }
-        } else if (SITE.isPassable(map, i, j)) {
-            if (lakeGrid.get(lakeX, lakeY)) return;
-            walkableGrid[i][j] = 1;
         }
-    });
+        GW.grid.free(lakeGrid);
+        return count;
+    }
 
-    let first = true;
-    for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
-        for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-            if (walkableGrid[i][j] == 1) {
-                if (first) {
-                    walkableGrid.floodFill(i, j, 1, 2);
-                    first = false;
-                } else {
+    isDisruptedBy(lakeGrid: GW.grid.NumGrid, lakeToMapX = 0, lakeToMapY = 0) {
+        const walkableGrid = GW.grid.alloc(this.width, this.height);
+        let disrupts = false;
+
+        // Get all walkable locations after lake added
+        GW.utils.forRect(this.width, this.height, (i, j) => {
+            const lakeX = i + lakeToMapX;
+            const lakeY = j + lakeToMapY;
+            if (lakeGrid.get(lakeX, lakeY)) {
+                if (this.disruptsFn(i, j)) {
                     disrupts = true;
                 }
+            } else if (this.passableFn(i, j)) {
+                walkableGrid[i][j] = 1;
+            }
+        });
+
+        let first = true;
+        for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+            for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+                if (walkableGrid[i][j] == 1) {
+                    if (first) {
+                        walkableGrid.floodFill(i, j, 1, 2);
+                        first = false;
+                    } else {
+                        disrupts = true;
+                    }
+                }
             }
         }
+
+        // console.log('WALKABLE GRID');
+        // walkableGrid.dump();
+
+        GW.grid.free(walkableGrid);
+        return disrupts;
     }
+}
 
-    // console.log('WALKABLE GRID');
-    // walkableGrid.dump();
-
-    GW.grid.free(walkableGrid);
-    return disrupts;
+export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
+    const digger = new Lakes(
+        map.width,
+        map.height,
+        SITE.isStairs.bind(SITE, map),
+        SITE.isPassable.bind(SITE, map)
+    );
+    return digger.create(SITE.setGrid.bind(SITE, map), opts);
 }
 
 function isBridgeCandidate(
