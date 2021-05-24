@@ -204,10 +204,10 @@ declare namespace stairs_d {
 declare function attachRoom(map: grid.NumGrid, roomGrid: grid.NumGrid, room: Room, opts: DigInfo): boolean;
 declare function attachDoor(map: grid.NumGrid, room: Room, opts: DigInfo, x: number, y: number, dir: number): void;
 declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
-declare function directionOfDoorSite(grid: grid.NumGrid, x: number, y: number, isOpen: number): number;
+declare function directionOfDoorSite(grid: grid.NumGrid, x: number, y: number): number;
 declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts: DigConfig): boolean;
 declare function attachRoomAtMapDoor(map: grid.NumGrid, mapDoors: utils.Loc[], roomGrid: grid.NumGrid, room: Room, opts: DigInfo): boolean | utils.Loc[];
-declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid, floorTile?: number): utils.Loc[];
+declare function chooseRandomDoorSites(grid: grid.NumGrid, floorTile?: number): utils.Loc[];
 
 declare const utils_d_attachRoom: typeof attachRoom;
 declare const utils_d_attachDoor: typeof attachDoor;

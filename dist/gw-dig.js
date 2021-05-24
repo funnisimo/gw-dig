@@ -92,7 +92,7 @@
             const y = SEQ[i] % map.height;
             if (!(map.get(x, y) == NOTHING))
                 continue;
-            const dir = directionOfDoorSite(map, x, y, FLOOR);
+            const dir = directionOfDoorSite(map, x, y);
             if (dir != GW.utils.NO_DIRECTION) {
                 const oppDir = (dir + 2) % 4;
                 const door = doorSites[oppDir];
@@ -192,12 +192,9 @@
     // If the indicated tile is a wall on the room stored in grid, and it could be the site of
     // a door out of that room, then return the outbound direction that the door faces.
     // Otherwise, return def.NO_DIRECTION.
-    function directionOfDoorSite(grid, x, y, isOpen) {
+    function directionOfDoorSite(grid, x, y) {
         let dir, solutionDir;
         let newX, newY, oppX, oppY;
-        const fnOpen = typeof isOpen === 'function'
-            ? isOpen
-            : (v) => v == isOpen;
         solutionDir = GW.utils.NO_DIRECTION;
         for (dir = 0; dir < 4; dir++) {
             newX = x + DIRS[dir][0];
@@ -206,7 +203,7 @@
             oppY = y - DIRS[dir][1];
             if (grid.hasXY(oppX, oppY) &&
                 grid.hasXY(newX, newY) &&
-                fnOpen(grid[oppX][oppY], oppX, oppY, grid)) {
+                isFloor(grid, oppX, oppY)) {
                 // This grid cell would be a valid tile on which to place a door that, facing outward, points dir.
                 if (solutionDir != GW.utils.NO_DIRECTION) {
                     // Already claimed by another direction; no doors here!
@@ -225,7 +222,7 @@
             const y = SEQ[i] % map.height;
             if (roomGrid[x][y])
                 continue;
-            const dir = directionOfDoorSite(roomGrid, x, y, FLOOR);
+            const dir = directionOfDoorSite(roomGrid, x, y);
             if (dir != GW.utils.NO_DIRECTION) {
                 const dx = xy[0] - x;
                 const dy = xy[1] - y;
@@ -295,17 +292,19 @@
         }
         return false;
     }
-    function chooseRandomDoorSites(sourceGrid, floorTile) {
+    function chooseRandomDoorSites(grid, floorTile) {
         let i, j, k, newX, newY;
         let dir;
         let doorSiteFailed;
-        floorTile = floorTile || FLOOR;
-        const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
-        grid.copy(sourceGrid);
-        for (i = 0; i < grid.width; i++) {
-            for (j = 0; j < grid.height; j++) {
+        const DOORS = [[], [], [], []];
+        // const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
+        // grid.copy(sourceGrid);
+        const h = grid.height;
+        const w = grid.width;
+        for (i = 0; i < w; i++) {
+            for (j = 0; j < h; j++) {
                 if (!grid[i][j]) {
-                    dir = directionOfDoorSite(grid, i, j, floorTile);
+                    dir = directionOfDoorSite(grid, i, j);
                     if (dir != GW.utils.NO_DIRECTION) {
                         // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                         // If it does, it's not a valid door site.
@@ -320,7 +319,7 @@
                             newY += DIRS[dir][1];
                         }
                         if (!doorSiteFailed) {
-                            grid[i][j] = dir + 200; // So as not to conflict with other tiles.
+                            DOORS[dir].push([i, j]);
                         }
                     }
                 }
@@ -329,10 +328,10 @@
         let doorSites = [];
         // Pick four doors, one in each direction, and store them in doorSites[dir].
         for (dir = 0; dir < 4; dir++) {
-            const loc = grid.randomMatchingLoc(dir + 200) || [-1, -1];
+            const loc = GW.random.item(DOORS[dir]) || [-1, -1];
             doorSites[dir] = [loc[0], loc[1]];
         }
-        GW.grid.free(grid);
+        // GW.grid.free(grid);
         return doorSites;
     }
 
@@ -1333,7 +1332,7 @@
             // dig the room in the center
             room$1 = digger.fn(roomConfig, roomGrid);
             // TODO - Allow choice of floor tile...
-            room$1.doors = chooseRandomDoorSites(roomGrid, FLOOR);
+            room$1.doors = chooseRandomDoorSites(roomGrid);
             if (attachHall && hallConfig) {
                 room$1.hall = hallConfig.fn(hallConfig, roomGrid, room$1);
             }
