@@ -5,6 +5,7 @@ import * as UTILS from './utils';
 import * as HALL from './hall';
 import * as ROOM from './room';
 import * as LAKE from './lake';
+import * as BRIDGE from './bridge';
 import * as STAIRS from './stairs';
 // import * as MAP from 'gw-map.js';
 
@@ -12,6 +13,7 @@ export * from './site';
 export * as room from './room';
 export * as hall from './hall';
 export * as lake from './lake';
+export * as bridge from './bridge';
 export * as stairs from './stairs';
 export * as utils from './utils';
 export * from './types';
@@ -322,7 +324,7 @@ export function addBridges(
     minimumPathingDistance: number,
     maxConnectionLength: number
 ) {
-    return LAKE.digBridges(map, minimumPathingDistance, maxConnectionLength);
+    return BRIDGE.digBridges(map, minimumPathingDistance, maxConnectionLength);
 }
 
 export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {

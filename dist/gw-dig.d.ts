@@ -79,16 +79,13 @@ interface LakeOpts {
     tile: number;
 }
 declare function digLakes(map: grid.NumGrid, opts?: any): number;
-declare function digBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 
 type lake_d_LakeOpts = LakeOpts;
 declare const lake_d_digLakes: typeof digLakes;
-declare const lake_d_digBridges: typeof digBridges;
 declare namespace lake_d {
   export {
     lake_d_LakeOpts as LakeOpts,
     lake_d_digLakes as digLakes,
-    lake_d_digBridges as digBridges,
   };
 }
 
@@ -201,6 +198,34 @@ declare namespace hall_d {
   };
 }
 
+interface BridgeOpts {
+    minimumPathingDistance: number;
+    maxConnectionLength: number;
+}
+declare class Bridges {
+    width: number;
+    height: number;
+    isAnyWaterFn: utils.XYMatchFunc;
+    isBridgeFn: utils.XYMatchFunc;
+    isPassableFn: utils.XYMatchFunc;
+    constructor(width: number, height: number, isAnyWaterFn: utils.XYMatchFunc, passableFn: utils.XYMatchFunc, bridgeFn: utils.XYMatchFunc);
+    create(setFn: DigFn, opts?: Partial<BridgeOpts>): number;
+    isBridgeCandidate(x: number, y: number, bridgeDir: [number, number]): boolean;
+}
+declare function digBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): number;
+
+type bridge_d_BridgeOpts = BridgeOpts;
+type bridge_d_Bridges = Bridges;
+declare const bridge_d_Bridges: typeof Bridges;
+declare const bridge_d_digBridges: typeof digBridges;
+declare namespace bridge_d {
+  export {
+    bridge_d_BridgeOpts as BridgeOpts,
+    bridge_d_Bridges as Bridges,
+    bridge_d_digBridges as digBridges,
+  };
+}
+
 declare function isValidStairLoc(_v: number, x: number, y: number, map: grid.NumGrid): boolean;
 declare function setupStairs(map: grid.NumGrid, x: number, y: number, tile: number): boolean;
 declare function addStairs(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
@@ -248,7 +273,7 @@ declare function finish(map: grid.NumGrid): void;
 declare function addRoom(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
 declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 declare function addLakes(map: grid.NumGrid, opts?: Partial<LakeOpts>): number;
-declare function addBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+declare function addBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): number;
 declare function addStairs$1(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
@@ -317,6 +342,7 @@ declare namespace dig_d {
     room_d as room,
     hall_d as hall,
     lake_d as lake,
+    bridge_d as bridge,
     stairs_d as stairs,
     utils_d as utils,
     dig_d_NOTHING as NOTHING,

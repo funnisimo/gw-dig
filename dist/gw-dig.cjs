@@ -1038,101 +1038,127 @@ function digLakes(map, opts = {}) {
     const digger = new Lakes(map.width, map.height, isStairs.bind(SITE, map), isPassable.bind(SITE, map));
     return digger.create(setGrid.bind(SITE, map), opts);
 }
-function isBridgeCandidate(map, x, y, bridgeDir) {
-    if (map.get(x, y) === BRIDGE)
-        return true;
-    if (!isAnyWater(map, x, y))
-        return false;
-    if (!isAnyWater(map, x + bridgeDir[1], y + bridgeDir[0]))
-        return false;
-    if (!isAnyWater(map, x - bridgeDir[1], y - bridgeDir[0]))
-        return false;
-    return true;
-}
-// Add some loops to the otherwise simply connected network of rooms.
-function digBridges(map, minimumPathingDistance, maxConnectionLength) {
-    let newX, newY;
-    let i, j, d, x, y;
-    maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
-    const siteGrid = map;
-    const pathGrid = GW.grid.alloc(map.width, map.height);
-    const costGrid = GW.grid.alloc(map.width, map.height);
-    const dirCoords = [
-        [1, 0],
-        [0, 1],
-    ];
-    fillCostGrid(map, costGrid);
-    const SEQ = GW.random.sequence(map.width * map.height);
-    for (i = 0; i < SEQ.length; i++) {
-        x = Math.floor(SEQ[i] / siteGrid.height);
-        y = SEQ[i] % siteGrid.height;
-        if (map.hasXY(x, y) &&
-            map.get(x, y) &&
-            isPassable(map, x, y) &&
-            !isAnyWater(map, x, y)) {
-            for (d = 0; d <= 1; d++) {
-                // Try right, then down
-                const bridgeDir = dirCoords[d];
-                newX = x + bridgeDir[0];
-                newY = y + bridgeDir[1];
-                j = maxConnectionLength;
-                if (!map.hasXY(newX, newY))
-                    continue;
-                // check for line of lake tiles
-                // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                if (isAnyWater(map, newX, newY)) {
-                    for (j = 0; j < maxConnectionLength; ++j) {
-                        newX += bridgeDir[0];
-                        newY += bridgeDir[1];
-                        // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (!isAnyWater(map, newX, newY)) {
+
+var lake = {
+    __proto__: null,
+    digLakes: digLakes
+};
+
+class Bridges {
+    constructor(width, height, isAnyWaterFn, passableFn, bridgeFn) {
+        this.width = width;
+        this.height = height;
+        this.isAnyWaterFn = isAnyWaterFn;
+        this.isBridgeFn = bridgeFn;
+        this.isPassableFn = passableFn;
+    }
+    create(setFn, opts = {}) {
+        let count = 0;
+        let newX, newY;
+        let i, j, d, x, y;
+        const maxConnectionLength = opts.maxConnectionLength || 5;
+        const minimumPathingDistance = opts.minimumPathingDistance || 20;
+        const pathGrid = GW.grid.alloc(this.width, this.height);
+        const costGrid = GW.grid.alloc(this.width, this.height);
+        const dirCoords = [
+            [1, 0],
+            [0, 1],
+        ];
+        costGrid.update((_v, x, y) => this.isPassableFn(x, y) ? 1 : GW.path.OBSTRUCTION);
+        const SEQ = GW.random.sequence(this.width * this.height);
+        for (i = 0; i < SEQ.length; i++) {
+            x = Math.floor(SEQ[i] / this.height);
+            y = SEQ[i] % this.height;
+            if (
+            // map.hasXY(x, y) &&
+            // map.get(x, y) &&
+            this.isPassableFn(x, y) &&
+                !this.isAnyWaterFn(x, y)) {
+                for (d = 0; d <= 1; d++) {
+                    // Try right, then down
+                    const bridgeDir = dirCoords[d];
+                    newX = x + bridgeDir[0];
+                    newY = y + bridgeDir[1];
+                    j = maxConnectionLength;
+                    // if (!map.hasXY(newX, newY)) continue;
+                    // check for line of lake tiles
+                    // if (isBridgeCandidate(newX, newY, bridgeDir)) {
+                    if (this.isAnyWaterFn(newX, newY)) {
+                        for (j = 0; j < maxConnectionLength; ++j) {
+                            newX += bridgeDir[0];
+                            newY += bridgeDir[1];
+                            // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
+                            if (!this.isAnyWaterFn(newX, newY)) {
+                                break;
+                            }
+                        }
+                    }
+                    if (
+                    // map.get(newX, newY) &&
+                    this.isPassableFn(newX, newY) &&
+                        j < maxConnectionLength) {
+                        GW.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
+                        // pathGrid.fill(30000);
+                        // pathGrid[newX][newY] = 0;
+                        // dijkstraScan(pathGrid, costGrid, false);
+                        if (pathGrid[x][y] > minimumPathingDistance &&
+                            pathGrid[x][y] < GW.path.NO_PATH) {
+                            // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                            // dungeon.debug(
+                            //     'Adding Bridge',
+                            //     x,
+                            //     y,
+                            //     ' => ',
+                            //     newX,
+                            //     newY
+                            // );
+                            while (x !== newX || y !== newY) {
+                                if (this.isBridgeCandidate(x, y, bridgeDir)) {
+                                    setFn(x, y, BRIDGE); // map[x][y] = SITE.BRIDGE;
+                                    costGrid[x][y] = 1; // (Cost map also needs updating.)
+                                }
+                                else {
+                                    setFn(x, y, FLOOR); // map[x][y] = SITE.FLOOR;
+                                    costGrid[x][y] = 1;
+                                }
+                                x += bridgeDir[0];
+                                y += bridgeDir[1];
+                            }
+                            ++count;
                             break;
                         }
                     }
                 }
-                if (map.get(newX, newY) &&
-                    isPassable(map, newX, newY) &&
-                    j < maxConnectionLength) {
-                    GW.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
-                    // pathGrid.fill(30000);
-                    // pathGrid[newX][newY] = 0;
-                    // dijkstraScan(pathGrid, costGrid, false);
-                    if (pathGrid[x][y] > minimumPathingDistance &&
-                        pathGrid[x][y] < GW.path.NO_PATH) {
-                        // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
-                        // dungeon.debug(
-                        //     'Adding Bridge',
-                        //     x,
-                        //     y,
-                        //     ' => ',
-                        //     newX,
-                        //     newY
-                        // );
-                        while (x !== newX || y !== newY) {
-                            if (isBridgeCandidate(map, x, y, bridgeDir)) {
-                                map[x][y] = BRIDGE;
-                                costGrid[x][y] = 1; // (Cost map also needs updating.)
-                            }
-                            else {
-                                map[x][y] = FLOOR;
-                                costGrid[x][y] = 1;
-                            }
-                            x += bridgeDir[0];
-                            y += bridgeDir[1];
-                        }
-                        break;
-                    }
-                }
             }
         }
+        GW.grid.free(pathGrid);
+        GW.grid.free(costGrid);
+        return count;
     }
-    GW.grid.free(pathGrid);
-    GW.grid.free(costGrid);
+    isBridgeCandidate(x, y, bridgeDir) {
+        if (this.isBridgeFn(x, y))
+            return true;
+        if (!this.isAnyWaterFn(x, y))
+            return false;
+        if (!this.isAnyWaterFn(x + bridgeDir[1], y + bridgeDir[0]))
+            return false;
+        if (!this.isAnyWaterFn(x - bridgeDir[1], y - bridgeDir[0]))
+            return false;
+        return true;
+    }
+}
+// Add some loops to the otherwise simply connected network of rooms.
+function digBridges(map, minimumPathingDistance, maxConnectionLength) {
+    const builder = new Bridges(map.width, map.height, isAnyWater.bind(SITE, map), isPassable.bind(SITE, map), isBridge.bind(SITE, map));
+    return builder.create(setGrid.bind(SITE, map), {
+        minimumPathingDistance,
+        maxConnectionLength,
+    });
 }
 
-var lake = {
+var bridge = {
     __proto__: null,
-    digLakes: digLakes,
+    Bridges: Bridges,
     digBridges: digBridges
 };
 
@@ -1610,6 +1636,7 @@ var dig$1 = {
     room: room,
     hall: hall,
     lake: lake,
+    bridge: bridge,
     stairs: stairs,
     utils: utils,
     start: start,
