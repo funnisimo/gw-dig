@@ -116,6 +116,7 @@ declare function initSeqence(length: number): void;
 declare function fillCostGrid(source: grid.NumGrid, costGrid: grid.NumGrid): void;
 declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isNothing(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function isDiggable(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isFloor(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
 declare function isBridge(grid: grid.NumGrid, x: number, y: number): boolean;
@@ -226,17 +227,38 @@ declare namespace bridge_d {
   };
 }
 
-declare function isValidStairLoc(_v: number, x: number, y: number, map: grid.NumGrid): boolean;
-declare function setupStairs(map: grid.NumGrid, x: number, y: number, tile: number): boolean;
+interface StairOpts {
+    up: boolean | utils.Loc;
+    down: boolean | utils.Loc;
+    minDistance: number;
+    isValidXY: utils.XYMatchFunc;
+    setup: (x: number, y: number, setFn: DigFn, tile: number, wall: number) => void;
+    start: boolean | string | utils.Loc;
+    upTile: number;
+    downTile: number;
+    wall: number;
+}
+declare class Stairs {
+    width: number;
+    height: number;
+    isFloorFn: utils.XYMatchFunc;
+    isDiggableFn: utils.XYMatchFunc;
+    constructor(width: number, height: number, isFloorFn: utils.XYMatchFunc, isDiggableFn: utils.XYMatchFunc);
+    create(setFn: DigFn, opts?: Partial<StairOpts>): Record<string, [number, number]> | null;
+    hasXY(x: number, y: number): boolean;
+    isStairXY(x: number, y: number): boolean;
+    setupStairs(x: number, y: number, setFn: DigFn, tile: number, wall: number): boolean;
+}
 declare function addStairs(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
 
-declare const stairs_d_isValidStairLoc: typeof isValidStairLoc;
-declare const stairs_d_setupStairs: typeof setupStairs;
+type stairs_d_StairOpts = StairOpts;
+type stairs_d_Stairs = Stairs;
+declare const stairs_d_Stairs: typeof Stairs;
 declare const stairs_d_addStairs: typeof addStairs;
 declare namespace stairs_d {
   export {
-    stairs_d_isValidStairLoc as isValidStairLoc,
-    stairs_d_setupStairs as setupStairs,
+    stairs_d_StairOpts as StairOpts,
+    stairs_d_Stairs as Stairs,
     stairs_d_addStairs as addStairs,
   };
 }
@@ -304,6 +326,7 @@ declare const dig_d_initSeqence: typeof initSeqence;
 declare const dig_d_fillCostGrid: typeof fillCostGrid;
 declare const dig_d_isPassable: typeof isPassable;
 declare const dig_d_isNothing: typeof isNothing;
+declare const dig_d_isDiggable: typeof isDiggable;
 declare const dig_d_isFloor: typeof isFloor;
 declare const dig_d_isDoor: typeof isDoor;
 declare const dig_d_isBridge: typeof isBridge;
@@ -361,6 +384,7 @@ declare namespace dig_d {
     dig_d_fillCostGrid as fillCostGrid,
     dig_d_isPassable as isPassable,
     dig_d_isNothing as isNothing,
+    dig_d_isDiggable as isDiggable,
     dig_d_isFloor as isFloor,
     dig_d_isDoor as isDoor,
     dig_d_isBridge as isBridge,

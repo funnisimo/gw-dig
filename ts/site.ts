@@ -63,6 +63,11 @@ export function isNothing(grid: GW.grid.NumGrid, x: number, y: number) {
     return v === NOTHING;
 }
 
+export function isDiggable(grid: GW.grid.NumGrid, x: number, y: number) {
+    const v = grid.get(x, y);
+    return v === NOTHING;
+}
+
 export function isFloor(grid: GW.grid.NumGrid, x: number, y: number) {
     return grid.get(x, y) == FLOOR;
 }
