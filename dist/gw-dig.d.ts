@@ -408,10 +408,39 @@ declare namespace utils_d {
   };
 }
 
+interface LoopOptions {
+    minimumPathingDistance: number;
+    maxConnectionLength: number;
+}
+interface LoopConfig {
+    minimumPathingDistance: number;
+    maxConnectionLength: number;
+}
+declare class LoopDigger {
+    options: LoopConfig;
+    constructor(options?: Partial<LoopOptions>);
+    create(site: Site): number;
+}
+declare function digLoops(grid: grid.NumGrid, opts?: Partial<LoopOptions>): number;
+
+type loop_d_LoopOptions = LoopOptions;
+type loop_d_LoopConfig = LoopConfig;
+type loop_d_LoopDigger = LoopDigger;
+declare const loop_d_LoopDigger: typeof LoopDigger;
+declare const loop_d_digLoops: typeof digLoops;
+declare namespace loop_d {
+  export {
+    loop_d_LoopOptions as LoopOptions,
+    loop_d_LoopConfig as LoopConfig,
+    loop_d_LoopDigger as LoopDigger,
+    loop_d_digLoops as digLoops,
+  };
+}
+
 declare function start(map: grid.NumGrid): void;
 declare function finish(map: grid.NumGrid): void;
 declare function addRoom(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
-declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): number;
 declare function addLakes(map: grid.NumGrid, opts?: Partial<LakeOpts>): number;
 declare function addBridges(grid: grid.NumGrid, opts?: Partial<BridgeOpts>): number;
 declare function addStairs(grid: grid.NumGrid, opts?: Partial<StairOpts>): Record<string, [number, number]> | null;
@@ -477,6 +506,7 @@ declare namespace dig_d {
     bridge_d as bridge,
     stairs_d as stairs,
     utils_d as utils,
+    loop_d as loop,
     dig_d_NOTHING as NOTHING,
     dig_d_FLOOR as FLOOR,
     dig_d_DOOR as DOOR,
