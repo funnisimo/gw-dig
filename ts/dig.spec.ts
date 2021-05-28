@@ -2,103 +2,158 @@ import 'jest-extended';
 import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as Dig from './dig';
+import { GridSite } from './site';
 
 describe('Dig', () => {
     let map: GW.grid.NumGrid;
 
     beforeAll(() => {
-        Dig.room.install('ROOM', Dig.room.rectangular, {
-            width: '5-20',
-            height: '5-10',
-        });
-        Dig.room.install('CROSS', Dig.room.cross, {
-            width: '9-12',
-            height: '5-7',
-        });
-        Dig.room.install('SYMMETRICAL_CROSS', Dig.room.symmetricalCross, {
-            width: 8,
-            height: 5,
-        });
-        Dig.room.install('SMALL_ROOM', Dig.room.rectangular, {
-            width: '4-8',
-            height: '4-8',
-        });
-        Dig.room.install('LARGE_ROOM', Dig.room.rectangular, {
-            width: '10-40',
-            height: '10-30',
-        });
-        Dig.room.install('HUGE_ROOM', Dig.room.rectangular, {
-            width: '40-76',
-            height: '10-28',
-        });
-        Dig.room.install('SMALL_CIRCLE', Dig.room.circular, {
-            radius: '2-5',
-        });
-        Dig.room.install('LARGE_CIRCLE', Dig.room.circular, {
-            radius: '5-8',
-        });
-        Dig.room.install('BROGUE_DONUT', Dig.room.brogueDonut, {
-            radius: '5-8',
-            ringMinWidth: 3,
-            holeMinSize: 3,
-            holeChance: 50,
-        });
-        Dig.room.install('COMPACT_CAVE', Dig.room.cavern, {
-            width: '10-15',
-            height: '6-12',
-        });
-        Dig.room.install('LARGE_NS_CAVE', Dig.room.cavern, {
-            width: '12-15',
-            height: '20-30',
-        });
-        Dig.room.install('LARGE_EW_CAVE', Dig.room.cavern, {
-            width: '20-40',
-            height: '6-12',
-        });
-        Dig.room.install('BROGUE_CAVE', Dig.room.choiceRoom, {
-            choices: ['COMPACT_CAVE', 'LARGE_NS_CAVE', 'LARGE_EW_CAVE'],
-        });
-        Dig.room.install('HUGE_CAVE', Dig.room.cavern, {
-            width: 77,
-            height: 27,
-        });
-        Dig.room.install('BROGUE_ENTRANCE', Dig.room.entrance, {
-            width: 20,
-            height: 10,
-        });
-        Dig.room.install('CHUNKY', Dig.room.chunkyRoom, {
-            width: '8-15',
-            height: '8-14',
-        });
+        Dig.room.install(
+            'ROOM',
+            new Dig.room.Rectangular({
+                width: '5-20',
+                height: '5-10',
+            })
+        );
+        Dig.room.install(
+            'CROSS',
+            new Dig.room.Cross({
+                width: '9-12',
+                height: '5-7',
+            })
+        );
+        Dig.room.install(
+            'SYMMETRICAL_CROSS',
+            new Dig.room.SymmetricalCross({
+                width: 8,
+                height: 5,
+            })
+        );
+        Dig.room.install(
+            'SMALL_ROOM',
+            new Dig.room.Rectangular({
+                width: '4-8',
+                height: '4-8',
+            })
+        );
+        Dig.room.install(
+            'LARGE_ROOM',
+            new Dig.room.Rectangular({
+                width: '10-40',
+                height: '10-30',
+            })
+        );
+        Dig.room.install(
+            'HUGE_ROOM',
+            new Dig.room.Rectangular({
+                width: '40-76',
+                height: '10-28',
+            })
+        );
+        Dig.room.install(
+            'SMALL_CIRCLE',
+            new Dig.room.Circular({
+                radius: '2-5',
+            })
+        );
+        Dig.room.install(
+            'LARGE_CIRCLE',
+            new Dig.room.Circular({
+                radius: '5-8',
+            })
+        );
+        Dig.room.install(
+            'BROGUE_DONUT',
+            new Dig.room.BrogueDonut({
+                radius: '5-8',
+                ringMinWidth: 3,
+                holeMinSize: 3,
+                holeChance: 50,
+            })
+        );
+        Dig.room.install(
+            'COMPACT_CAVE',
+            new Dig.room.Cavern({
+                width: '10-15',
+                height: '6-12',
+            })
+        );
+        Dig.room.install(
+            'LARGE_NS_CAVE',
+            new Dig.room.Cavern({
+                width: '12-15',
+                height: '20-30',
+            })
+        );
+        Dig.room.install(
+            'LARGE_EW_CAVE',
+            new Dig.room.Cavern({
+                width: '20-40',
+                height: '6-12',
+            })
+        );
+        Dig.room.install(
+            'BROGUE_CAVE',
+            new Dig.room.ChoiceRoom({
+                choices: ['COMPACT_CAVE', 'LARGE_NS_CAVE', 'LARGE_EW_CAVE'],
+            })
+        );
+        Dig.room.install(
+            'HUGE_CAVE',
+            new Dig.room.Cavern({
+                width: 77,
+                height: 27,
+            })
+        );
+        Dig.room.install(
+            'BROGUE_ENTRANCE',
+            new Dig.room.Entrance({
+                width: 20,
+                height: 10,
+            })
+        );
+        Dig.room.install(
+            'CHUNKY',
+            new Dig.room.ChunkyRoom({
+                width: '8-15',
+                height: '8-14',
+            })
+        );
 
-        Dig.room.install('PROFILE', Dig.room.choiceRoom, {
-            choices: {
-                ROOM: 10,
-                CROSS: 20,
-                SYMMETRICAL_CROSS: 20,
-                LARGE_ROOM: 5,
-                SMALL_CIRCLE: 10,
-                LARGE_CIRCLE: 5,
-                BROGUE_DONUT: 5,
-                CHUNKY: 10,
-            },
-        });
+        Dig.room.install(
+            'PROFILE',
+            new Dig.room.ChoiceRoom({
+                choices: {
+                    ROOM: 10,
+                    CROSS: 20,
+                    SYMMETRICAL_CROSS: 20,
+                    LARGE_ROOM: 5,
+                    SMALL_CIRCLE: 10,
+                    LARGE_CIRCLE: 5,
+                    BROGUE_DONUT: 5,
+                    CHUNKY: 10,
+                },
+            })
+        );
 
-        Dig.room.install('FIRST_ROOM', Dig.room.choiceRoom, {
-            choices: {
-                ROOM: 5,
-                CROSS: 5,
-                SYMMETRICAL_CROSS: 5,
-                LARGE_ROOM: 5,
-                HUGE_ROOM: 5,
-                LARGE_CIRCLE: 5,
-                BROGUE_DONUT: 5,
-                BROGUE_CAVE: 30, // These are harder to match
-                HUGE_CAVE: 30, // ...
-                BROGUE_ENTRANCE: 5,
-                CHUNKY: 5,
-            },
-        });
+        Dig.room.install(
+            'FIRST_ROOM',
+            new Dig.room.ChoiceRoom({
+                choices: {
+                    ROOM: 5,
+                    CROSS: 5,
+                    SYMMETRICAL_CROSS: 5,
+                    LARGE_ROOM: 5,
+                    HUGE_ROOM: 5,
+                    LARGE_CIRCLE: 5,
+                    BROGUE_DONUT: 5,
+                    BROGUE_CAVE: 30, // These are harder to match
+                    HUGE_CAVE: 30, // ...
+                    BROGUE_ENTRANCE: 5,
+                    CHUNKY: 5,
+                },
+            })
+        );
     });
 
     beforeEach(() => {
@@ -316,11 +371,13 @@ describe('Dig', () => {
 
     describe('attachRoom', () => {
         let map: GW.grid.NumGrid;
+        let site: GridSite;
         let grid: GW.grid.NumGrid;
 
         beforeEach(() => {
             map = GW.grid.alloc(80, 30);
             grid = GW.grid.alloc(map.width, map.height);
+            site = new GridSite(grid);
             expect(map).not.toBe(grid);
             Dig.start(map);
         });
@@ -335,8 +392,8 @@ describe('Dig', () => {
             const room: Dig.Room = Dig.room.rectangular(
                 { width: 5, height: 5 },
                 grid
-            ) as Dig.Room;
-            expect(room.doors).toEqual([]);
+            );
+            room.doors = [];
             room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
 
             expect(
@@ -358,10 +415,10 @@ describe('Dig', () => {
             const room: Dig.Room = Dig.room.rectangular(
                 { width: 5, height: 5 },
                 grid
-            ) as Dig.Room;
-            expect(room.doors).toEqual([]);
+            );
+            room.doors = [];
             room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
-            room.hall = Dig.hall.dig({ chance: 100 }, grid, room) as Dig.Hall;
+            room.hall = Dig.hall.dig({ chance: 100 }, site, room.doors);
 
             expect(
                 Dig.utils.attachRoom(map, grid, room, {
@@ -382,14 +439,14 @@ describe('Dig', () => {
             const room: Dig.Room = Dig.room.rectangular(
                 { width: 5, height: 5 },
                 grid
-            ) as Dig.Room;
-            expect(room.doors).toEqual([]);
+            );
+            room.doors = [];
             room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
-            room.hall = Dig.hall.digWide(
+            room.hall = Dig.hall.dig(
                 { chance: 100, width: 2 },
-                grid,
-                room
-            ) as Dig.Hall;
+                site,
+                room.doors
+            );
 
             expect(
                 Dig.utils.attachRoom(map, grid, room, {
@@ -404,7 +461,7 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(room.x).toEqual(55);
+            expect(room.x).toEqual(56);
             expect(room.y).toEqual(15);
 
             expect(map[45][17]).toEqual(2);
@@ -413,9 +470,10 @@ describe('Dig', () => {
     });
 
     test('directionOfDoorSite', () => {
-        const a = GW.grid.alloc(10, 10, 0);
+        const g = GW.grid.alloc(10, 10, 0);
+        const a = new GridSite(g);
 
-        a.fillRect(2, 2, 3, 3, 1);
+        g.fillRect(2, 2, 3, 3, 1);
         expect(Dig.utils.directionOfDoorSite(a, 2, 4)).toEqual(
             GW.utils.NO_DIRECTION
         );
@@ -424,6 +482,6 @@ describe('Dig', () => {
         expect(Dig.utils.directionOfDoorSite(a, 3, 1)).toEqual(GW.utils.UP);
         expect(Dig.utils.directionOfDoorSite(a, 3, 5)).toEqual(GW.utils.DOWN);
 
-        GW.grid.free(a);
+        GW.grid.free(g);
     });
 });

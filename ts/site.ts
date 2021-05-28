@@ -39,80 +39,121 @@ export function initSeqence(length: number) {
     GW.random.shuffle(SEQ);
 }
 
-export function fillCostGrid(
-    source: GW.grid.NumGrid,
-    costGrid: GW.grid.NumGrid
-) {
-    source.forEach((_v, x, y) => {
-        costGrid[x][y] = isPassable(source, x, y) ? 1 : GW.path.OBSTRUCTION;
-    });
-}
-
-export function isPassable(grid: GW.grid.NumGrid, x: number, y: number) {
-    return (
-        isFloor(grid, x, y) ||
-        isDoor(grid, x, y) ||
-        isBridge(grid, x, y) ||
-        isStairs(grid, x, y) ||
-        isShallow(grid, x, y)
+export function fillCostGrid(source: Site, costGrid: GW.grid.NumGrid) {
+    costGrid.update((_v, x, y) =>
+        source.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION
     );
 }
 
-export function isNothing(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === NOTHING;
+export interface Site {
+    readonly width: number;
+    readonly height: number;
+
+    hasXY: GW.utils.XYMatchFunc;
+
+    isSet: GW.utils.XYMatchFunc;
+    isDiggable: GW.utils.XYMatchFunc;
+    isNothing: GW.utils.XYMatchFunc;
+
+    isPassable: GW.utils.XYMatchFunc;
+    isFloor: GW.utils.XYMatchFunc;
+    isDoor: GW.utils.XYMatchFunc;
+    isBridge: GW.utils.XYMatchFunc;
+
+    isObstruction: GW.utils.XYMatchFunc;
+    isWall: GW.utils.XYMatchFunc;
+    isStairs: GW.utils.XYMatchFunc;
+
+    isDeep: GW.utils.XYMatchFunc;
+    isShallow: GW.utils.XYMatchFunc;
+    isAnyWater: GW.utils.XYMatchFunc;
+
+    setTile: (x: number, y: number, tile: number) => void;
 }
 
-export function isDiggable(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === NOTHING;
-}
+export class GridSite implements Site {
+    public grid: GW.grid.NumGrid;
 
-export function isFloor(grid: GW.grid.NumGrid, x: number, y: number) {
-    return grid.get(x, y) == FLOOR;
-}
+    constructor(grid: GW.grid.NumGrid) {
+        this.grid = grid;
+    }
 
-export function isDoor(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === DOOR;
-}
+    get width() {
+        return this.grid.width;
+    }
+    get height() {
+        return this.grid.height;
+    }
 
-export function isBridge(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === BRIDGE;
-}
+    hasXY(x: number, y: number) {
+        return this.grid.hasXY(x, y);
+    }
 
-export function isWall(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === WALL || v === IMPREGNABLE;
-}
+    isPassable(x: number, y: number) {
+        return (
+            this.isFloor(x, y) ||
+            this.isDoor(x, y) ||
+            this.isBridge(x, y) ||
+            this.isStairs(x, y) ||
+            this.isShallow(x, y)
+        );
+    }
 
-export function isObstruction(grid: GW.grid.NumGrid, x: number, y: number) {
-    return isNothing(grid, x, y) || isWall(grid, x, y);
-}
+    isNothing(x: number, y: number) {
+        const v = this.grid.get(x, y);
+        return v === NOTHING;
+    }
 
-export function isStairs(grid: GW.grid.NumGrid, x: number, y: number) {
-    const v = grid.get(x, y);
-    return v === UP_STAIRS || v === DOWN_STAIRS;
-}
+    isDiggable(x: number, y: number) {
+        const v = this.grid.get(x, y);
+        return v === NOTHING;
+    }
 
-export function isDeep(grid: GW.grid.NumGrid, x: number, y: number) {
-    return grid.get(x, y) === DEEP;
-}
+    isFloor(x: number, y: number) {
+        return this.grid.get(x, y) == FLOOR;
+    }
 
-export function isShallow(grid: GW.grid.NumGrid, x: number, y: number) {
-    return grid.get(x, y) === SHALLOW;
-}
+    isDoor(x: number, y: number) {
+        const v = this.grid.get(x, y);
+        return v === DOOR;
+    }
 
-export function isAnyWater(grid: GW.grid.NumGrid, x: number, y: number) {
-    return isDeep(grid, x, y) || isShallow(grid, x, y);
-}
+    isBridge(x: number, y: number) {
+        const v = this.grid.get(x, y);
+        return v === BRIDGE;
+    }
 
-export function setGrid(
-    grid: GW.grid.NumGrid,
-    x: number,
-    y: number,
-    v: number
-) {
-    if (grid.hasXY(x, y)) grid[x][y] = v;
+    isWall(x: number, y: number) {
+        const v = this.grid.get(x, y);
+        return v === WALL || v === IMPREGNABLE;
+    }
+
+    isObstruction(x: number, y: number) {
+        return this.isNothing(x, y) || this.isWall(x, y);
+    }
+
+    isStairs(x: number, y: number) {
+        const v = this.grid.get(x, y);
+        return v === UP_STAIRS || v === DOWN_STAIRS;
+    }
+
+    isDeep(x: number, y: number) {
+        return this.grid.get(x, y) === DEEP;
+    }
+
+    isShallow(x: number, y: number) {
+        return this.grid.get(x, y) === SHALLOW;
+    }
+
+    isAnyWater(x: number, y: number) {
+        return this.isDeep(x, y) || this.isShallow(x, y);
+    }
+
+    isSet(x: number, y: number) {
+        return (this.grid.get(x, y) || 0) > 0;
+    }
+
+    setTile(x: number, y: number, tile: number) {
+        if (this.grid.hasXY(x, y)) this.grid[x][y] = tile;
+    }
 }

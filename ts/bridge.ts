@@ -1,6 +1,5 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
-import { DigFn } from './types';
 
 export interface BridgeOpts {
     minimumPathingDistance: number;
@@ -8,36 +7,25 @@ export interface BridgeOpts {
 }
 
 export class Bridges {
-    public width: number;
-    public height: number;
-    public isAnyWaterFn: GW.utils.XYMatchFunc;
-    public isBridgeFn: GW.utils.XYMatchFunc;
-    public isPassableFn: GW.utils.XYMatchFunc;
+    public options: BridgeOpts = {
+        minimumPathingDistance: 20,
+        maxConnectionLength: 5,
+    };
 
-    constructor(
-        width: number,
-        height: number,
-        isAnyWaterFn: GW.utils.XYMatchFunc,
-        passableFn: GW.utils.XYMatchFunc,
-        bridgeFn: GW.utils.XYMatchFunc
-    ) {
-        this.width = width;
-        this.height = height;
-        this.isAnyWaterFn = isAnyWaterFn;
-        this.isBridgeFn = bridgeFn;
-        this.isPassableFn = passableFn;
+    constructor(options: Partial<BridgeOpts> = {}) {
+        Object.assign(this.options, options);
     }
 
-    create(setFn: DigFn, opts: Partial<BridgeOpts> = {}): number {
+    create(site: SITE.GridSite): number {
         let count = 0;
         let newX, newY;
         let i, j, d, x, y;
 
-        const maxConnectionLength = opts.maxConnectionLength || 5;
-        const minimumPathingDistance = opts.minimumPathingDistance || 20;
+        const maxConnectionLength = this.options.maxConnectionLength;
+        const minimumPathingDistance = this.options.minimumPathingDistance;
 
-        const pathGrid = GW.grid.alloc(this.width, this.height);
-        const costGrid = GW.grid.alloc(this.width, this.height);
+        const pathGrid = GW.grid.alloc(site.width, site.height);
+        const costGrid = GW.grid.alloc(site.width, site.height);
 
         const dirCoords: [number, number][] = [
             [1, 0],
@@ -45,20 +33,20 @@ export class Bridges {
         ];
 
         costGrid.update((_v, x, y) =>
-            this.isPassableFn(x, y) ? 1 : GW.path.OBSTRUCTION
+            site.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION
         );
 
-        const SEQ = GW.random.sequence(this.width * this.height);
+        const SEQ = GW.random.sequence(site.width * site.height);
 
         for (i = 0; i < SEQ.length; i++) {
-            x = Math.floor(SEQ[i] / this.height);
-            y = SEQ[i] % this.height;
+            x = Math.floor(SEQ[i] / site.height);
+            y = SEQ[i] % site.height;
 
             if (
                 // map.hasXY(x, y) &&
                 // map.get(x, y) &&
-                this.isPassableFn(x, y) &&
-                !this.isAnyWaterFn(x, y)
+                site.isPassable(x, y) &&
+                !site.isAnyWater(x, y)
             ) {
                 for (d = 0; d <= 1; d++) {
                     // Try right, then down
@@ -71,13 +59,13 @@ export class Bridges {
 
                     // check for line of lake tiles
                     // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                    if (this.isAnyWaterFn(newX, newY)) {
+                    if (site.isAnyWater(newX, newY)) {
                         for (j = 0; j < maxConnectionLength; ++j) {
                             newX += bridgeDir[0];
                             newY += bridgeDir[1];
 
                             // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                            if (!this.isAnyWaterFn(newX, newY)) {
+                            if (!site.isAnyWater(newX, newY)) {
                                 break;
                             }
                         }
@@ -85,7 +73,7 @@ export class Bridges {
 
                     if (
                         // map.get(newX, newY) &&
-                        this.isPassableFn(newX, newY) &&
+                        site.isPassable(newX, newY) &&
                         j < maxConnectionLength
                     ) {
                         GW.path.calculateDistances(
@@ -114,11 +102,18 @@ export class Bridges {
                             // );
 
                             while (x !== newX || y !== newY) {
-                                if (this.isBridgeCandidate(x, y, bridgeDir)) {
-                                    setFn(x, y, SITE.BRIDGE); // map[x][y] = SITE.BRIDGE;
+                                if (
+                                    this.isBridgeCandidate(
+                                        site,
+                                        x,
+                                        y,
+                                        bridgeDir
+                                    )
+                                ) {
+                                    site.setTile(x, y, SITE.BRIDGE); // map[x][y] = SITE.BRIDGE;
                                     costGrid[x][y] = 1; // (Cost map also needs updating.)
                                 } else {
-                                    setFn(x, y, SITE.FLOOR); // map[x][y] = SITE.FLOOR;
+                                    site.setTile(x, y, SITE.FLOOR); // map[x][y] = SITE.FLOOR;
                                     costGrid[x][y] = 1;
                                 }
                                 x += bridgeDir[0];
@@ -136,32 +131,16 @@ export class Bridges {
         return count;
     }
 
-    isBridgeCandidate(x: number, y: number, bridgeDir: [number, number]) {
-        if (this.isBridgeFn(x, y)) return true;
-        if (!this.isAnyWaterFn(x, y)) return false;
-        if (!this.isAnyWaterFn(x + bridgeDir[1], y + bridgeDir[0]))
-            return false;
-        if (!this.isAnyWaterFn(x - bridgeDir[1], y - bridgeDir[0]))
-            return false;
+    isBridgeCandidate(
+        site: SITE.GridSite,
+        x: number,
+        y: number,
+        bridgeDir: [number, number]
+    ) {
+        if (site.isBridge(x, y)) return true;
+        if (!site.isAnyWater(x, y)) return false;
+        if (!site.isAnyWater(x + bridgeDir[1], y + bridgeDir[0])) return false;
+        if (!site.isAnyWater(x - bridgeDir[1], y - bridgeDir[0])) return false;
         return true;
     }
-}
-
-// Add some loops to the otherwise simply connected network of rooms.
-export function digBridges(
-    map: GW.grid.NumGrid,
-    minimumPathingDistance: number,
-    maxConnectionLength: number
-) {
-    const builder = new Bridges(
-        map.width,
-        map.height,
-        SITE.isAnyWater.bind(SITE, map),
-        SITE.isPassable.bind(SITE, map),
-        SITE.isBridge.bind(SITE, map)
-    );
-    return builder.create(SITE.setGrid.bind(SITE, map), {
-        minimumPathingDistance,
-        maxConnectionLength,
-    });
 }

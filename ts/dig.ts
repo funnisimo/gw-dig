@@ -41,16 +41,24 @@ export function addRoom(
     if (opts.loc) {
         opts.locs = [opts.loc];
     }
-    if (!opts.room) opts.room = 'DEFAULT';
-    if (typeof opts.room === 'function') opts.room = { fn: opts.room };
-    if (typeof opts.room === 'string') {
+
+    let roomDigger: ROOM.RoomDigger;
+    if (typeof opts.room === 'function') opts.room = opts.room();
+
+    if (!opts.room) roomDigger = ROOM.rooms.DEFAULT;
+    else if (typeof opts.room === 'string') {
         const name = opts.room;
-        opts.room = ROOM.rooms[name];
-        if (!opts.room) {
-            GW.utils.ERROR('Failed to find room: ' + name);
+        roomDigger = ROOM.rooms[name];
+        if (!roomDigger) {
+            throw new Error('Failed to find room: ' + name);
         }
+    } else if (opts.room instanceof ROOM.RoomDigger) {
+        roomDigger = opts.room;
+    } else {
+        throw new Error('No room to build!');
     }
-    const roomConfig = opts.room as TYPES.RoomConfig;
+
+    // const roomConfig = opts.room as TYPES.RoomConfig;
 
     let hallConfig: TYPES.HallData | null = null;
     if (opts.hall === true) opts.hall = 'DEFAULT';
@@ -103,9 +111,9 @@ export function addRoom(
         locs = null;
     }
 
-    const digger = opts.room;
-
     const roomGrid = GW.grid.alloc(map.width, map.height);
+    const site = new SITE.GridSite(roomGrid);
+
     let attachHall = false;
     if (hallConfig) {
         let hallChance =
@@ -115,19 +123,19 @@ export function addRoom(
 
     // const force = config.force || false;
 
+    let room: TYPES.Room | null = null;
     let result: boolean | GW.utils.Loc[] = false;
-    let room;
     let tries = opts.tries || 10;
     while (--tries >= 0 && !result) {
         roomGrid.fill(SITE.NOTHING);
 
         // dig the room in the center
-        room = digger.fn(roomConfig, roomGrid);
+        room = roomDigger.create(site);
 
-        // TODO - Allow choice of floor tile...
-        room.doors = UTILS.chooseRandomDoorSites(roomGrid, SITE.FLOOR);
-        if (attachHall && hallConfig) {
-            room.hall = hallConfig.fn(hallConfig!, roomGrid, room);
+        // optionally add a hall
+        if (attachHall) {
+            const hallDigger = new HALL.HallDigger();
+            room.hall = hallDigger.create(site, room.doors);
         }
 
         if (locs) {
@@ -182,6 +190,8 @@ export function addLoops(
         Math.floor(Math.min(grid.width, grid.height) / 2);
     maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
 
+    const site = new SITE.GridSite(grid);
+
     const siteGrid = grid;
     const pathGrid = GW.grid.alloc(grid.width, grid.height);
     const costGrid = GW.grid.alloc(grid.width, grid.height);
@@ -191,7 +201,7 @@ export function addLoops(
         [0, 1],
     ];
 
-    SITE.fillCostGrid(grid, costGrid);
+    SITE.fillCostGrid(site, costGrid);
 
     function isValidTunnelStart(x: number, y: number, dir: [number, number]) {
         if (!grid.hasXY(x, y)) return false;
@@ -227,23 +237,23 @@ export function addLoops(
 
                 // check up/left
                 if (
-                    grid.hasXY(x + dir[0], y + dir[1]) &&
-                    SITE.isPassable(grid, x + dir[0], y + dir[1])
+                    site.hasXY(x + dir[0], y + dir[1]) &&
+                    site.isPassable(x + dir[0], y + dir[1])
                 ) {
                     // just can't build directly into a door
                     if (
-                        !grid.hasXY(x - dir[0], y - dir[1]) ||
-                        SITE.isDoor(grid, x - dir[0], y - dir[1])
+                        !site.hasXY(x - dir[0], y - dir[1]) ||
+                        site.isDoor(x - dir[0], y - dir[1])
                     ) {
                         continue;
                     }
                 } else if (
-                    grid.hasXY(x - dir[0], y - dir[1]) &&
-                    SITE.isPassable(grid, x - dir[0], y - dir[1])
+                    site.hasXY(x - dir[0], y - dir[1]) &&
+                    site.isPassable(x - dir[0], y - dir[1])
                 ) {
                     if (
-                        !grid.hasXY(x + dir[0], y + dir[1]) ||
-                        SITE.isDoor(grid, x + dir[0], y + dir[1])
+                        !site.hasXY(x + dir[0], y + dir[1]) ||
+                        site.isDoor(x + dir[0], y + dir[1])
                     ) {
                         continue;
                     }
@@ -261,7 +271,7 @@ export function addLoops(
                     endX -= dir[0];
                     endY -= dir[1];
 
-                    // if (grid.hasXY(endX, endY) && !grid.cell(endX, endY).isNull()) {
+                    // if (site.hasXY(endX, endY) && !grid.cell(endX, endY).isNull()) {
                     if (isValidTunnelEnd(endX, endY, dir)) {
                         break;
                     }
@@ -315,25 +325,38 @@ export function addLoops(
     GW.grid.free(costGrid);
 }
 
-export function addLakes(map: GW.grid.NumGrid, opts?: Partial<LAKE.LakeOpts>) {
-    return LAKE.digLakes(map, opts);
+export function addLakes(
+    map: GW.grid.NumGrid,
+    opts: Partial<LAKE.LakeOpts> = {}
+) {
+    const lakes = new LAKE.Lakes(opts);
+    const site = new SITE.GridSite(map);
+    return lakes.create(site);
 }
 
 export function addBridges(
-    map: GW.grid.NumGrid,
-    minimumPathingDistance: number,
-    maxConnectionLength: number
+    grid: GW.grid.NumGrid,
+    opts: Partial<BRIDGE.BridgeOpts> = {}
 ) {
-    return BRIDGE.digBridges(map, minimumPathingDistance, maxConnectionLength);
+    const bridges = new BRIDGE.Bridges(opts);
+    const site = new SITE.GridSite(grid);
+    return bridges.create(site);
 }
 
-export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
-    return STAIRS.addStairs(map, opts);
+export function addStairs(
+    grid: GW.grid.NumGrid,
+    opts: Partial<STAIRS.StairOpts> = {}
+) {
+    const stairs = new STAIRS.Stairs(opts);
+    const site = new SITE.GridSite(grid);
+    return stairs.create(site);
 }
 
 export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
     let i, j, k, x1, y1;
     let diagonalCornerRemoved;
+
+    const site = new SITE.GridSite(grid);
 
     do {
         diagonalCornerRemoved = false;
@@ -341,12 +364,12 @@ export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
             for (j = 0; j < grid.height - 1; j++) {
                 for (k = 0; k <= 1; k++) {
                     if (
-                        SITE.isPassable(grid, i + k, j) &&
-                        !SITE.isPassable(grid, i + (1 - k), j) &&
-                        SITE.isObstruction(grid, i + (1 - k), j) &&
-                        !SITE.isPassable(grid, i + k, j + 1) &&
-                        SITE.isObstruction(grid, i + k, j + 1) &&
-                        SITE.isPassable(grid, i + (1 - k), j + 1)
+                        site.isPassable(i + k, j) &&
+                        !site.isPassable(i + (1 - k), j) &&
+                        site.isObstruction(i + (1 - k), j) &&
+                        !site.isPassable(i + k, j + 1) &&
+                        site.isObstruction(i + k, j + 1) &&
+                        site.isPassable(i + (1 - k), j + 1)
                     ) {
                         if (GW.random.chance(50)) {
                             x1 = i + (1 - k);

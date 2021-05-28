@@ -12,6 +12,7 @@ export function attachRoom(
 ) {
     // console.log('attachRoom');
     const doorSites = room.hall ? room.hall.doors : room.doors;
+    const site = new SITE.GridSite(map);
 
     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < SITE.SEQ.length; i++) {
@@ -19,7 +20,7 @@ export function attachRoom(
         const y = SITE.SEQ[i] % map.height;
 
         if (!(map.get(x, y) == SITE.NOTHING)) continue;
-        const dir = directionOfDoorSite(map, x, y);
+        const dir = directionOfDoorSite(site, x, y);
         if (dir != GW.utils.NO_DIRECTION) {
             const oppDir = (dir + 2) % 4;
             const door = doorSites[oppDir];
@@ -152,7 +153,7 @@ export function roomFitsAt(
 // a door out of that room, then return the outbound direction that the door faces.
 // Otherwise, return def.NO_DIRECTION.
 export function directionOfDoorSite(
-    grid: GW.grid.NumGrid,
+    site: SITE.Site,
     x: number,
     y: number
 ): number {
@@ -166,9 +167,9 @@ export function directionOfDoorSite(
         oppX = x - DIRS[dir][0];
         oppY = y - DIRS[dir][1];
         if (
-            grid.hasXY(oppX, oppY) &&
-            grid.hasXY(newX, newY) &&
-            SITE.isFloor(grid, oppX, oppY)
+            site.hasXY(oppX, oppY) &&
+            site.hasXY(newX, newY) &&
+            site.isFloor(oppX, oppY)
         ) {
             // This grid cell would be a valid tile on which to place a door that, facing outward, points dir.
             if (solutionDir != GW.utils.NO_DIRECTION) {
@@ -181,6 +182,59 @@ export function directionOfDoorSite(
     return solutionDir;
 }
 
+export function chooseRandomDoorSites(site: SITE.Site): GW.utils.Loc[] {
+    let i, j, k, newX, newY;
+    let dir;
+    let doorSiteFailed;
+
+    const DOORS: GW.utils.Loc[][] = [[], [], [], []];
+
+    // const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
+    // grid.copy(sourceGrid);
+
+    const h = site.height;
+    const w = site.width;
+
+    for (i = 0; i < w; i++) {
+        for (j = 0; j < h; j++) {
+            if (site.isDiggable(i, j)) {
+                dir = directionOfDoorSite(site, i, j);
+                if (dir != GW.utils.NO_DIRECTION) {
+                    // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
+                    // If it does, it's not a valid door site.
+                    newX = i + GW.utils.DIRS[dir][0];
+                    newY = j + GW.utils.DIRS[dir][1];
+                    doorSiteFailed = false;
+                    for (
+                        k = 0;
+                        k < 10 && site.hasXY(newX, newY) && !doorSiteFailed;
+                        k++
+                    ) {
+                        if (site.isSet(newX, newY)) {
+                            doorSiteFailed = true;
+                        }
+                        newX += GW.utils.DIRS[dir][0];
+                        newY += GW.utils.DIRS[dir][1];
+                    }
+                    if (!doorSiteFailed) {
+                        DOORS[dir].push([i, j]);
+                    }
+                }
+            }
+        }
+    }
+
+    let doorSites: GW.utils.Loc[] = [];
+    // Pick four doors, one in each direction, and store them in doorSites[dir].
+    for (dir = 0; dir < 4; dir++) {
+        const loc = GW.random.item(DOORS[dir]) || [-1, -1];
+        doorSites[dir] = [loc[0], loc[1]];
+    }
+
+    // GW.grid.free(grid);
+    return doorSites;
+}
+
 export function forceRoomAtMapLoc(
     map: GW.grid.NumGrid,
     xy: GW.utils.Loc,
@@ -190,6 +244,8 @@ export function forceRoomAtMapLoc(
 ) {
     // console.log('forceRoomAtMapLoc', xy);
 
+    const site = new SITE.GridSite(map);
+
     // Slide room across map, in a random but predetermined order, until the room matches up with a wall.
     for (let i = 0; i < SITE.SEQ.length; i++) {
         const x = Math.floor(SITE.SEQ[i] / map.height);
@@ -197,7 +253,7 @@ export function forceRoomAtMapLoc(
 
         if (roomGrid[x][y]) continue;
 
-        const dir = directionOfDoorSite(roomGrid, x, y);
+        const dir = directionOfDoorSite(site, x, y);
         if (dir != GW.utils.NO_DIRECTION) {
             const dx = xy[0] - x;
             const dy = xy[1] - y;
@@ -290,61 +346,4 @@ function attachRoomAtXY(
         }
     }
     return false;
-}
-
-export function chooseRandomDoorSites(
-    grid: GW.grid.NumGrid,
-    floorTile?: number
-): GW.utils.Loc[] {
-    let i, j, k, newX, newY;
-    let dir;
-    let doorSiteFailed;
-    floorTile = floorTile || SITE.FLOOR;
-
-    const DOORS: GW.utils.Loc[][] = [[], [], [], []];
-
-    // const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
-    // grid.copy(sourceGrid);
-
-    const h = grid.height;
-    const w = grid.width;
-
-    for (i = 0; i < w; i++) {
-        for (j = 0; j < h; j++) {
-            if (!grid[i][j]) {
-                dir = directionOfDoorSite(grid, i, j);
-                if (dir != GW.utils.NO_DIRECTION) {
-                    // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
-                    // If it does, it's not a valid door site.
-                    newX = i + DIRS[dir][0];
-                    newY = j + DIRS[dir][1];
-                    doorSiteFailed = false;
-                    for (
-                        k = 0;
-                        k < 10 && grid.hasXY(newX, newY) && !doorSiteFailed;
-                        k++
-                    ) {
-                        if (grid[newX][newY]) {
-                            doorSiteFailed = true;
-                        }
-                        newX += DIRS[dir][0];
-                        newY += DIRS[dir][1];
-                    }
-                    if (!doorSiteFailed) {
-                        DOORS[dir].push([i, j]);
-                    }
-                }
-            }
-        }
-    }
-
-    let doorSites: GW.utils.Loc[] = [];
-    // Pick four doors, one in each direction, and store them in doorSites[dir].
-    for (dir = 0; dir < 4; dir++) {
-        const loc = GW.random.item(DOORS[dir]) || [-1, -1];
-        doorSites[dir] = [loc[0], loc[1]];
-    }
-
-    // GW.grid.free(grid);
-    return doorSites;
 }

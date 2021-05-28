@@ -66,6 +66,9 @@ export class Hall {
         const d = GW.utils.DIRS[dir];
         this.length = length;
         this.width = width;
+
+        // console.log('Hall', loc, d, length, width);
+
         if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
             this.x2 = this.x + (width - 1);
             this.y2 = this.y + (length - 1) * d[1];
@@ -73,6 +76,9 @@ export class Hall {
             this.x2 = this.x + (length - 1) * d[0];
             this.y2 = this.y + (width - 1);
         }
+
+        // console.log(' - ', [this.x2, this.y2]);
+
         this.dir = dir;
     }
 
@@ -92,29 +98,12 @@ export class Hall {
     }
 }
 
-export class Room {
-    public digger: string;
-    public x: number;
-    public y: number;
-    public width: number;
-    public height: number;
-
+export class Room extends GW.utils.Bounds {
     public doors: GW.utils.Loc[] = [];
-
     public hall: Hall | null = null;
 
-    constructor(
-        digger: string,
-        x: number,
-        y: number,
-        width: number,
-        height: number
-    ) {
-        this.digger = digger;
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
+    constructor(x: number, y: number, width: number, height: number) {
+        super(x, y, width, height);
     }
 
     get cx() {
