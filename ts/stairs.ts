@@ -27,7 +27,7 @@ export class Stairs {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.GridSite) {
+    create(site: SITE.Site) {
         let needUp = this.options.up !== false;
         let needDown = this.options.down !== false;
         const minDistance =
@@ -169,13 +169,13 @@ export class Stairs {
         return upLoc || downLoc ? locations : null;
     }
 
-    hasXY(site: SITE.GridSite, x: number, y: number) {
+    hasXY(site: SITE.Site, x: number, y: number) {
         if (x < 0 || y < 0) return false;
         if (x >= site.width || y >= site.height) return false;
         return true;
     }
 
-    isStairXY(site: SITE.GridSite, x: number, y: number) {
+    isStairXY(site: SITE.Site, x: number, y: number) {
         let count = 0;
         if (!this.hasXY(site, x, y) || !site.isDiggable(x, y)) return false;
 
@@ -196,7 +196,7 @@ export class Stairs {
         return count == 1;
     }
 
-    setupStairs(site: SITE.GridSite, x: number, y: number, tile: number) {
+    setupStairs(site: SITE.Site, x: number, y: number, tile: number) {
         const indexes = GW.random.sequence(4);
 
         let dir: GW.utils.Loc | null = null;

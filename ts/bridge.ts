@@ -16,7 +16,7 @@ export class Bridges {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.GridSite): number {
+    create(site: SITE.Site): number {
         let count = 0;
         let newX, newY;
         let i, j, d, x, y;
@@ -132,7 +132,7 @@ export class Bridges {
     }
 
     isBridgeCandidate(
-        site: SITE.GridSite,
+        site: SITE.Site,
         x: number,
         y: number,
         bridgeDir: [number, number]

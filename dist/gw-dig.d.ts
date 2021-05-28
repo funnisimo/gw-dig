@@ -142,8 +142,8 @@ interface LakeOpts {
 declare class Lakes {
     options: LakeOpts;
     constructor(options?: Partial<LakeOpts>);
-    create(site: GridSite): number;
-    isDisruptedBy(site: GridSite, lakeGrid: grid.NumGrid, lakeToMapX?: number, lakeToMapY?: number): boolean;
+    create(site: Site): number;
+    isDisruptedBy(site: Site, lakeGrid: grid.NumGrid, lakeToMapX?: number, lakeToMapY?: number): boolean;
 }
 
 type lake_d_LakeOpts = LakeOpts;
@@ -163,8 +163,8 @@ interface BridgeOpts {
 declare class Bridges {
     options: BridgeOpts;
     constructor(options?: Partial<BridgeOpts>);
-    create(site: GridSite): number;
-    isBridgeCandidate(site: GridSite, x: number, y: number, bridgeDir: [number, number]): boolean;
+    create(site: Site): number;
+    isBridgeCandidate(site: Site, x: number, y: number, bridgeDir: [number, number]): boolean;
 }
 
 type bridge_d_BridgeOpts = BridgeOpts;
@@ -189,10 +189,10 @@ interface StairOpts {
 declare class Stairs {
     options: StairOpts;
     constructor(options?: Partial<StairOpts>);
-    create(site: GridSite): Record<string, [number, number]> | null;
-    hasXY(site: GridSite, x: number, y: number): boolean;
-    isStairXY(site: GridSite, x: number, y: number): boolean;
-    setupStairs(site: GridSite, x: number, y: number, tile: number): boolean;
+    create(site: Site): Record<string, [number, number]> | null;
+    hasXY(site: Site, x: number, y: number): boolean;
+    isStairXY(site: Site, x: number, y: number): boolean;
+    setupStairs(site: Site, x: number, y: number, tile: number): boolean;
 }
 
 type stairs_d_StairOpts = StairOpts;

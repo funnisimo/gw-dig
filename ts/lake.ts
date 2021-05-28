@@ -30,7 +30,7 @@ export class Lakes {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.GridSite): number {
+    create(site: SITE.Site): number {
         let i, j, k;
         let x, y;
         let lakeMaxHeight,
@@ -149,7 +149,7 @@ export class Lakes {
     }
 
     isDisruptedBy(
-        site: SITE.GridSite,
+        site: SITE.Site,
         lakeGrid: GW.grid.NumGrid,
         lakeToMapX = 0,
         lakeToMapY = 0
