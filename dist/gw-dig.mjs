@@ -1,4 +1,4 @@
-import { random, path, utils as utils$1, grid, range } from 'gw-utils';
+import { random, path, utils as utils$1, grid, range, blob } from 'gw-utils';
 
 const NOTHING = 0;
 const FLOOR = 1;
@@ -645,139 +645,6 @@ var hall = {
     install: install
 };
 
-class Blob {
-    constructor(opts = {}) {
-        this.options = {
-            roundCount: 5,
-            minBlobWidth: 10,
-            minBlobHeight: 10,
-            maxBlobWidth: 40,
-            maxBlobHeight: 20,
-            percentSeeded: 50,
-            birthParameters: 'ffffffttt',
-            survivalParameters: 'ffffttttt',
-        };
-        Object.assign(this.options, opts);
-        this.options.birthParameters = this.options.birthParameters.toLowerCase();
-        this.options.survivalParameters = this.options.survivalParameters.toLowerCase();
-        if (this.options.minBlobWidth >= this.options.maxBlobWidth) {
-            this.options.minBlobWidth = Math.round(0.75 * this.options.maxBlobWidth);
-            this.options.maxBlobWidth = Math.round(1.25 * this.options.maxBlobWidth);
-        }
-        if (this.options.minBlobHeight >= this.options.maxBlobHeight) {
-            this.options.minBlobHeight = Math.round(0.75 * this.options.maxBlobHeight);
-            this.options.maxBlobHeight = Math.round(1.25 * this.options.maxBlobHeight);
-        }
-    }
-    carve(width, height, setFn) {
-        let i, j, k;
-        let blobNumber, blobSize, topBlobNumber, topBlobSize;
-        let bounds = new utils$1.Bounds(0, 0, 0, 0);
-        const dest = grid.alloc(width, height);
-        const left = Math.floor((dest.width - this.options.maxBlobWidth) / 2);
-        const top = Math.floor((dest.height - this.options.maxBlobHeight) / 2);
-        let tries = 10;
-        // Generate blobs until they satisfy the minBlobWidth and minBlobHeight restraints
-        do {
-            // Clear buffer.
-            dest.fill(0);
-            // Fill relevant portion with noise based on the percentSeeded argument.
-            for (i = 0; i < this.options.maxBlobWidth; i++) {
-                for (j = 0; j < this.options.maxBlobHeight; j++) {
-                    dest[i + left][j + top] = random.chance(this.options.percentSeeded)
-                        ? 1
-                        : 0;
-                }
-            }
-            // Some iterations of cellular automata
-            for (k = 0; k < this.options.roundCount; k++) {
-                if (!this._cellularAutomataRound(dest)) {
-                    k = this.options.roundCount; // cellularAutomataRound did not make any changes
-                }
-            }
-            // Now to measure the result. These are best-of variables; start them out at worst-case values.
-            topBlobSize = 0;
-            topBlobNumber = 0;
-            // Fill each blob with its own number, starting with 2 (since 1 means floor), and keeping track of the biggest:
-            blobNumber = 2;
-            for (i = 0; i < dest.width; i++) {
-                for (j = 0; j < dest.height; j++) {
-                    if (dest[i][j] == 1) {
-                        // an unmarked blob
-                        // Mark all the cells and returns the total size:
-                        blobSize = dest.floodFill(i, j, 1, blobNumber);
-                        if (blobSize > topBlobSize) {
-                            // if this blob is a new record
-                            topBlobSize = blobSize;
-                            topBlobNumber = blobNumber;
-                        }
-                        blobNumber++;
-                    }
-                }
-            }
-            // Figure out the top blob's height and width:
-            dest.valueBounds(topBlobNumber, bounds);
-        } while ((bounds.width < this.options.minBlobWidth ||
-            bounds.height < this.options.minBlobHeight ||
-            topBlobNumber == 0) &&
-            --tries);
-        // Replace the winning blob with 1's, and everything else with 0's:
-        for (i = 0; i < dest.width; i++) {
-            for (j = 0; j < dest.height; j++) {
-                if (dest[i][j] == topBlobNumber) {
-                    setFn(i, j);
-                }
-            }
-        }
-        grid.free(dest);
-        // Populate the returned variables.
-        return bounds;
-    }
-    _cellularAutomataRound(grid$1) {
-        let i, j, nbCount, newX, newY;
-        let dir;
-        let buffer2;
-        buffer2 = grid.alloc(grid$1.width, grid$1.height);
-        buffer2.copy(grid$1); // Make a backup of this in buffer2, so that each generation is isolated.
-        let didSomething = false;
-        for (i = 0; i < grid$1.width; i++) {
-            for (j = 0; j < grid$1.height; j++) {
-                nbCount = 0;
-                for (dir = 0; dir < utils$1.DIRS.length; dir++) {
-                    newX = i + utils$1.DIRS[dir][0];
-                    newY = j + utils$1.DIRS[dir][1];
-                    if (grid$1.hasXY(newX, newY) && buffer2[newX][newY]) {
-                        nbCount++;
-                    }
-                }
-                if (!buffer2[i][j] &&
-                    this.options.birthParameters[nbCount] == 't') {
-                    grid$1[i][j] = 1; // birth
-                    didSomething = true;
-                }
-                else if (buffer2[i][j] &&
-                    this.options.survivalParameters[nbCount] == 't') ;
-                else {
-                    grid$1[i][j] = 0; // death
-                    didSomething = true;
-                }
-            }
-        }
-        grid.free(buffer2);
-        return didSomething;
-    }
-}
-function fillBlob(grid, opts = {}) {
-    const blob = new Blob(opts);
-    return blob.carve(grid.width, grid.height, (x, y) => (grid[x][y] = 1));
-}
-
-var blob = {
-    __proto__: null,
-    Blob: Blob,
-    fillBlob: fillBlob
-};
-
 function checkConfig(config, expected = {}) {
     config = config || {};
     expected = expected || {};
@@ -878,7 +745,7 @@ class Cavern extends RoomDigger {
         const maxWidth = width;
         const minHeight = Math.floor(0.5 * height); // 4
         const maxHeight = height;
-        const blob$1 = new Blob({
+        const blob$1 = new blob.Blob({
             roundCount: 5,
             minBlobWidth: minWidth,
             minBlobHeight: minHeight,
@@ -1193,7 +1060,7 @@ class Lakes {
                 maxCount) + lakeMinSize;
             const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
                 maxCount) + lakeMinSize;
-            const blob$1 = new Blob({
+            const blob$1 = new blob.Blob({
                 roundCount: 5,
                 minBlobWidth: 4,
                 minBlobHeight: 4,
@@ -1956,4 +1823,4 @@ var dig$1 = {
     Room: Room
 };
 
-export { blob, dig$1 as dig };
+export { dig$1 as dig };

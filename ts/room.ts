@@ -2,7 +2,6 @@ import * as GW from 'gw-utils';
 import * as TYPES from './types';
 import * as UTILS from './utils';
 import * as SITE from './site';
-import * as BLOB from './blob';
 
 export function checkConfig(
     config: TYPES.RoomConfig,
@@ -130,7 +129,7 @@ export class Cavern extends RoomDigger {
         const minHeight = Math.floor(0.5 * height); // 4
         const maxHeight = height;
 
-        const blob = new BLOB.Blob({
+        const blob = new GW.blob.Blob({
             roundCount: 5,
             minBlobWidth: minWidth,
             minBlobHeight: minHeight,

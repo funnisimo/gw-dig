@@ -507,34 +507,4 @@ declare namespace dig_d {
   };
 }
 
-interface BlobConfig {
-    roundCount: number;
-    minBlobWidth: number;
-    minBlobHeight: number;
-    maxBlobWidth: number;
-    maxBlobHeight: number;
-    percentSeeded: number;
-    birthParameters: string;
-    survivalParameters: string;
-}
-declare class Blob {
-    options: BlobConfig;
-    constructor(opts?: Partial<BlobConfig>);
-    carve(width: number, height: number, setFn: utils.XYFunc): utils.Bounds;
-    _cellularAutomataRound(grid: grid.NumGrid): boolean;
-}
-declare function fillBlob(grid: grid.NumGrid, opts?: Partial<BlobConfig>): utils.Bounds;
-
-type blob_d_BlobConfig = BlobConfig;
-type blob_d_Blob = Blob;
-declare const blob_d_Blob: typeof Blob;
-declare const blob_d_fillBlob: typeof fillBlob;
-declare namespace blob_d {
-  export {
-    blob_d_BlobConfig as BlobConfig,
-    blob_d_Blob as Blob,
-    blob_d_fillBlob as fillBlob,
-  };
-}
-
-export { blob_d as blob, dig_d as dig };
+export { dig_d as dig };

@@ -1,6 +1,5 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
-import * as BLOB from './blob';
 
 export interface LakeOpts {
     height: number;
@@ -69,7 +68,7 @@ export class Lakes {
                         maxCount
                 ) + lakeMinSize;
 
-            const blob = new BLOB.Blob({
+            const blob = new GW.blob.Blob({
                 roundCount: 5,
                 minBlobWidth: 4,
                 minBlobHeight: 4,
