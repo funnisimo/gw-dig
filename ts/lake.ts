@@ -80,7 +80,11 @@ export class Lakes {
                 survivalParameters: 'ffffttttt',
             });
 
-            const bounds = blob.carve(lakeGrid);
+            const bounds = blob.carve(
+                lakeGrid.width,
+                lakeGrid.height,
+                (x, y) => (lakeGrid[x][y] = 1)
+            );
 
             // lakeGrid.dump();
 

@@ -520,7 +520,7 @@ interface BlobConfig {
 declare class Blob {
     options: BlobConfig;
     constructor(opts?: Partial<BlobConfig>);
-    carve(dest: grid.NumGrid): utils.Bounds;
+    carve(width: number, height: number, setFn: utils.XYFunc): utils.Bounds;
     _cellularAutomataRound(grid: grid.NumGrid): boolean;
 }
 declare function fillBlob(grid: grid.NumGrid, opts?: Partial<BlobConfig>): utils.Bounds;

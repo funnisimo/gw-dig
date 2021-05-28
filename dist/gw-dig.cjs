@@ -673,10 +673,11 @@ class Blob {
             this.options.maxBlobHeight = Math.round(1.25 * this.options.maxBlobHeight);
         }
     }
-    carve(dest) {
+    carve(width, height, setFn) {
         let i, j, k;
         let blobNumber, blobSize, topBlobNumber, topBlobSize;
         let bounds = new GW.utils.Bounds(0, 0, 0, 0);
+        const dest = GW.grid.alloc(width, height);
         const left = Math.floor((dest.width - this.options.maxBlobWidth) / 2);
         const top = Math.floor((dest.height - this.options.maxBlobHeight) / 2);
         let tries = 10;
@@ -728,13 +729,11 @@ class Blob {
         for (i = 0; i < dest.width; i++) {
             for (j = 0; j < dest.height; j++) {
                 if (dest[i][j] == topBlobNumber) {
-                    dest[i][j] = 1;
-                }
-                else {
-                    dest[i][j] = 0;
+                    setFn(i, j);
                 }
             }
         }
+        GW.grid.free(dest);
         // Populate the returned variables.
         return bounds;
     }
@@ -774,7 +773,7 @@ class Blob {
 }
 function fillBlob(grid, opts = {}) {
     const blob = new Blob(opts);
-    return blob.carve(grid);
+    return blob.carve(grid.width, grid.height, (x, y) => (grid[x][y] = 1));
 }
 
 var blob = {
@@ -893,7 +892,7 @@ class Cavern extends RoomDigger {
             birthParameters: 'ffffftttt',
             survivalParameters: 'ffffttttt',
         });
-        const bounds = blob$1.carve(blobGrid);
+        const bounds = blob$1.carve(blobGrid.width, blobGrid.height, (x, y) => (blobGrid[x][y] = 1));
         // Position the new cave in the middle of the grid...
         const destX = Math.floor((site.width - bounds.width) / 2);
         const dx = destX - bounds.x;
@@ -1208,7 +1207,7 @@ class Lakes {
                 birthParameters: 'ffffftttt',
                 survivalParameters: 'ffffttttt',
             });
-            const bounds = blob$1.carve(lakeGrid);
+            const bounds = blob$1.carve(lakeGrid.width, lakeGrid.height, (x, y) => (lakeGrid[x][y] = 1));
             // lakeGrid.dump();
             let success = false;
             for (k = 0; k < tries && !success; k++) {

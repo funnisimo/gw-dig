@@ -46,11 +46,16 @@ export class Blob {
         }
     }
 
-    carve(dest: GW.grid.NumGrid): GW.utils.Bounds {
+    carve(
+        width: number,
+        height: number,
+        setFn: GW.utils.XYFunc
+    ): GW.utils.Bounds {
         let i, j, k;
         let blobNumber, blobSize, topBlobNumber, topBlobSize;
 
         let bounds = new GW.utils.Bounds(0, 0, 0, 0);
+        const dest = GW.grid.alloc(width, height);
 
         const left = Math.floor((dest.width - this.options.maxBlobWidth) / 2);
         const top = Math.floor((dest.height - this.options.maxBlobHeight) / 2);
@@ -116,13 +121,12 @@ export class Blob {
         for (i = 0; i < dest.width; i++) {
             for (j = 0; j < dest.height; j++) {
                 if (dest[i][j] == topBlobNumber) {
-                    dest[i][j] = 1;
-                } else {
-                    dest[i][j] = 0;
+                    setFn(i, j);
                 }
             }
         }
 
+        GW.grid.free(dest);
         // Populate the returned variables.
         return bounds;
     }
@@ -174,5 +178,5 @@ export function fillBlob(
     opts: Partial<BlobConfig> = {}
 ): GW.utils.Bounds {
     const blob = new Blob(opts);
-    return blob.carve(grid);
+    return blob.carve(grid.width, grid.height, (x, y) => (grid[x][y] = 1));
 }
