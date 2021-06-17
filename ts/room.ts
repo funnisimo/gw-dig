@@ -58,7 +58,13 @@ export abstract class RoomDigger {
     create(site: SITE.Site): TYPES.Room {
         const result = this.carve(site);
         if (result) {
-            result.doors = UTILS.chooseRandomDoorSites(site);
+            if (
+                !result.doors ||
+                result.doors.length == 0 ||
+                result.doors.every((loc) => !loc || loc[0] == -1)
+            ) {
+                result.doors = UTILS.chooseRandomDoorSites(site);
+            }
         }
         return result;
     }
@@ -169,7 +175,7 @@ export function cavern(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
 }
 
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
-export class Entrance extends RoomDigger {
+export class BrogueEntrance extends RoomDigger {
     constructor(config: Partial<TYPES.RoomConfig> = {}) {
         super(config, {
             width: 20,
@@ -199,18 +205,27 @@ export class Entrance extends RoomDigger {
         GW.utils.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) =>
             site.setTile(x, y, tile)
         );
-        return new TYPES.Room(
+        const room = new TYPES.Room(
             Math.min(roomX, roomX2),
             Math.min(roomY, roomY2),
             Math.max(roomWidth, roomWidth2),
             Math.max(roomHeight, roomHeight2)
         );
+
+        room.doors[GW.utils.DOWN] = [
+            Math.floor(site.width / 2),
+            site.height - 2,
+        ];
+        return room;
     }
 }
 
-export function entrance(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function brogueEntrance(
+    config: TYPES.RoomConfig,
+    grid: GW.grid.NumGrid
+) {
     grid.fill(0);
-    const digger = new Entrance(config);
+    const digger = new BrogueEntrance(config);
     return digger.create(new SITE.GridSite(grid));
 }
 

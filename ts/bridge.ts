@@ -2,14 +2,14 @@ import * as GW from 'gw-utils';
 import * as SITE from './site';
 
 export interface BridgeOpts {
-    minimumPathingDistance: number;
-    maxConnectionLength: number;
+    minDistance: number;
+    maxLength: number;
 }
 
 export class Bridges {
     public options: BridgeOpts = {
-        minimumPathingDistance: 20,
-        maxConnectionLength: 5,
+        minDistance: 20,
+        maxLength: 5,
     };
 
     constructor(options: Partial<BridgeOpts> = {}) {
@@ -21,8 +21,8 @@ export class Bridges {
         let newX, newY;
         let i, j, d, x, y;
 
-        const maxConnectionLength = this.options.maxConnectionLength;
-        const minimumPathingDistance = this.options.minimumPathingDistance;
+        const maxLength = this.options.maxLength;
+        const minDistance = this.options.minDistance;
 
         const pathGrid = GW.grid.alloc(site.width, site.height);
         const costGrid = GW.grid.alloc(site.width, site.height);
@@ -53,14 +53,14 @@ export class Bridges {
                     const bridgeDir = dirCoords[d];
                     newX = x + bridgeDir[0];
                     newY = y + bridgeDir[1];
-                    j = maxConnectionLength;
+                    j = maxLength;
 
                     // if (!map.hasXY(newX, newY)) continue;
 
                     // check for line of lake tiles
                     // if (isBridgeCandidate(newX, newY, bridgeDir)) {
                     if (site.isAnyWater(newX, newY)) {
-                        for (j = 0; j < maxConnectionLength; ++j) {
+                        for (j = 0; j < maxLength; ++j) {
                             newX += bridgeDir[0];
                             newY += bridgeDir[1];
 
@@ -74,7 +74,7 @@ export class Bridges {
                     if (
                         // map.get(newX, newY) &&
                         site.isPassable(newX, newY) &&
-                        j < maxConnectionLength
+                        j < maxLength
                     ) {
                         GW.path.calculateDistances(
                             pathGrid,
@@ -87,10 +87,10 @@ export class Bridges {
                         // pathGrid[newX][newY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
                         if (
-                            pathGrid[x][y] > minimumPathingDistance &&
+                            pathGrid[x][y] > minDistance &&
                             pathGrid[x][y] < GW.path.NO_PATH
                         ) {
-                            // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                            // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
 
                             // dungeon.debug(
                             //     'Adding Bridge',

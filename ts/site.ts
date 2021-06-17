@@ -50,6 +50,9 @@ export interface Site {
     readonly height: number;
 
     hasXY: GW.utils.XYMatchFunc;
+    isBoundaryXY: GW.utils.XYMatchFunc;
+    get: (x: number, y: number) => number;
+    copy: (other: Site, offsetX: number, offsetY: number) => void;
 
     isSet: GW.utils.XYMatchFunc;
     isDiggable: GW.utils.XYMatchFunc;
@@ -87,6 +90,23 @@ export class GridSite implements Site {
 
     hasXY(x: number, y: number) {
         return this.grid.hasXY(x, y);
+    }
+    isBoundaryXY(x: number, y: number) {
+        return this.grid.isBoundaryXY(x, y);
+    }
+
+    get(x: number, y: number): number {
+        return this.grid.get(x, y) || 0;
+    }
+
+    copy(other: Site, offsetX = 0, offsetY = 0) {
+        this.grid.forEach((_c, i, j) => {
+            const otherX = i - offsetX;
+            const otherY = j - offsetY;
+            const v = other.get(otherX, otherY);
+            if (!v) return;
+            this.grid.set(i, j, v);
+        });
     }
 
     isPassable(x: number, y: number) {

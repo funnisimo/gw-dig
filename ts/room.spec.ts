@@ -256,7 +256,7 @@ describe('dig', () => {
         GW.random.seed(123456);
         expect(grid.count(1)).toEqual(0);
 
-        const room = Dig.room.entrance({}, grid);
+        const room = Dig.room.brogueEntrance({}, grid);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
@@ -272,7 +272,7 @@ describe('dig', () => {
         GW.random.seed(123456);
         expect(grid.count(1)).toEqual(0);
 
-        const room = Dig.room.entrance({ tile: 10 }, grid);
+        const room = Dig.room.brogueEntrance({ tile: 10 }, grid);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
@@ -358,7 +358,6 @@ describe('dig', () => {
     });
 
     test('choice', () => {
-        debugger;
         const room = Dig.room.choiceRoom(
             { choices: ['DEFAULT', 'DEFAULT'] },
             grid

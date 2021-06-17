@@ -2,19 +2,19 @@ import * as GW from 'gw-utils';
 import * as SITE from './site';
 
 export interface LoopOptions {
-    minimumPathingDistance: number;
-    maxConnectionLength: number;
+    minDistance: number;
+    maxLength: number;
 }
 
 export interface LoopConfig {
-    minimumPathingDistance: number;
-    maxConnectionLength: number;
+    minDistance: number;
+    maxLength: number;
 }
 
 export class LoopDigger {
     public options: LoopConfig = {
-        minimumPathingDistance: 100,
-        maxConnectionLength: 1,
+        minDistance: 100,
+        maxLength: 1,
     };
 
     constructor(options: Partial<LoopOptions> = {}) {
@@ -25,11 +25,11 @@ export class LoopDigger {
         let startX, startY, endX, endY;
         let i, j, d, x, y;
 
-        const minimumPathingDistance = Math.min(
-            this.options.minimumPathingDistance,
+        const minDistance = Math.min(
+            this.options.minDistance,
             Math.floor(Math.max(site.width, site.height) / 2)
         );
-        const maxConnectionLength = this.options.maxConnectionLength;
+        const maxLength = this.options.maxLength;
 
         const pathGrid = GW.grid.alloc(site.width, site.height);
         const costGrid = GW.grid.alloc(site.width, site.height);
@@ -75,7 +75,7 @@ export class LoopDigger {
                     // Try a horizontal door, and then a vertical door.
                     let dir = dirCoords[d];
                     if (!isValidTunnelStart(x, y, dir)) continue;
-                    j = maxConnectionLength;
+                    j = maxLength;
 
                     // check up/left
                     if (
@@ -109,7 +109,7 @@ export class LoopDigger {
                     endX = x;
                     endY = y;
 
-                    for (j = 0; j < maxConnectionLength; ++j) {
+                    for (j = 0; j < maxLength; ++j) {
                         endX -= dir[0];
                         endY -= dir[1];
 
@@ -119,7 +119,7 @@ export class LoopDigger {
                         }
                     }
 
-                    if (j < maxConnectionLength) {
+                    if (j < maxLength) {
                         GW.path.calculateDistances(
                             pathGrid,
                             startX,
@@ -131,10 +131,10 @@ export class LoopDigger {
                         // pathGrid[startX][startY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
                         if (
-                            pathGrid[endX][endY] > minimumPathingDistance &&
+                            pathGrid[endX][endY] > minDistance &&
                             pathGrid[endX][endY] < 30000
                         ) {
-                            // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                            // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
 
                             // dungeon.debug(
                             //     'Adding Loop',

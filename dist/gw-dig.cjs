@@ -50,6 +50,22 @@ class GridSite {
     hasXY(x, y) {
         return this.grid.hasXY(x, y);
     }
+    isBoundaryXY(x, y) {
+        return this.grid.isBoundaryXY(x, y);
+    }
+    get(x, y) {
+        return this.grid.get(x, y) || 0;
+    }
+    copy(other, offsetX = 0, offsetY = 0) {
+        this.grid.forEach((_c, i, j) => {
+            const otherX = i - offsetX;
+            const otherY = j - offsetY;
+            const v = other.get(otherX, otherY);
+            if (!v)
+                return;
+            this.grid.set(i, j, v);
+        });
+    }
     isPassable(x, y) {
         return (this.isFloor(x, y) ||
             this.isDoor(x, y) ||
@@ -534,7 +550,7 @@ class HallDigger {
     constructor(options = {}) {
         this.config = {
             width: GW.range.make(1),
-            length: [GW.range.make('9-15'), GW.range.make('2-9')],
+            length: [GW.range.make('2-15'), GW.range.make('2-9')],
             tile: FLOOR,
             obliqueChance: 15,
             chance: 100,
@@ -694,7 +710,11 @@ class RoomDigger {
     create(site) {
         const result = this.carve(site);
         if (result) {
-            result.doors = chooseRandomDoorSites(site);
+            if (!result.doors ||
+                result.doors.length == 0 ||
+                result.doors.every((loc) => !loc || loc[0] == -1)) {
+                result.doors = chooseRandomDoorSites(site);
+            }
         }
         return result;
     }
@@ -780,7 +800,7 @@ function cavern(config, grid) {
     return digger.create(new GridSite(grid));
 }
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
-class Entrance extends RoomDigger {
+class BrogueEntrance extends RoomDigger {
     constructor(config = {}) {
         super(config, {
             width: 20,
@@ -802,12 +822,17 @@ class Entrance extends RoomDigger {
         const roomY2 = site.height - roomHeight2 - 2;
         GW.utils.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) => site.setTile(x, y, tile));
         GW.utils.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) => site.setTile(x, y, tile));
-        return new Room(Math.min(roomX, roomX2), Math.min(roomY, roomY2), Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
+        const room = new Room(Math.min(roomX, roomX2), Math.min(roomY, roomY2), Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
+        room.doors[GW.utils.DOWN] = [
+            Math.floor(site.width / 2),
+            site.height - 2,
+        ];
+        return room;
     }
 }
-function entrance(config, grid) {
+function brogueEntrance(config, grid) {
     grid.fill(0);
-    const digger = new Entrance(config);
+    const digger = new BrogueEntrance(config);
     return digger.create(new GridSite(grid));
 }
 class Cross extends RoomDigger {
@@ -1010,8 +1035,8 @@ var room = {
     choiceRoom: choiceRoom,
     Cavern: Cavern,
     cavern: cavern,
-    Entrance: Entrance,
-    entrance: entrance,
+    BrogueEntrance: BrogueEntrance,
+    brogueEntrance: brogueEntrance,
     Cross: Cross,
     cross: cross,
     SymmetricalCross: SymmetricalCross,
@@ -1166,8 +1191,8 @@ var lake = {
 class Bridges {
     constructor(options = {}) {
         this.options = {
-            minimumPathingDistance: 20,
-            maxConnectionLength: 5,
+            minDistance: 20,
+            maxLength: 5,
         };
         Object.assign(this.options, options);
     }
@@ -1175,8 +1200,8 @@ class Bridges {
         let count = 0;
         let newX, newY;
         let i, j, d, x, y;
-        const maxConnectionLength = this.options.maxConnectionLength;
-        const minimumPathingDistance = this.options.minimumPathingDistance;
+        const maxLength = this.options.maxLength;
+        const minDistance = this.options.minDistance;
         const pathGrid = GW.grid.alloc(site.width, site.height);
         const costGrid = GW.grid.alloc(site.width, site.height);
         const dirCoords = [
@@ -1198,12 +1223,12 @@ class Bridges {
                     const bridgeDir = dirCoords[d];
                     newX = x + bridgeDir[0];
                     newY = y + bridgeDir[1];
-                    j = maxConnectionLength;
+                    j = maxLength;
                     // if (!map.hasXY(newX, newY)) continue;
                     // check for line of lake tiles
                     // if (isBridgeCandidate(newX, newY, bridgeDir)) {
                     if (site.isAnyWater(newX, newY)) {
-                        for (j = 0; j < maxConnectionLength; ++j) {
+                        for (j = 0; j < maxLength; ++j) {
                             newX += bridgeDir[0];
                             newY += bridgeDir[1];
                             // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
@@ -1215,14 +1240,14 @@ class Bridges {
                     if (
                     // map.get(newX, newY) &&
                     site.isPassable(newX, newY) &&
-                        j < maxConnectionLength) {
+                        j < maxLength) {
                         GW.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
                         // pathGrid.fill(30000);
                         // pathGrid[newX][newY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
-                        if (pathGrid[x][y] > minimumPathingDistance &&
+                        if (pathGrid[x][y] > minDistance &&
                             pathGrid[x][y] < GW.path.NO_PATH) {
-                            // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                            // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
                             // dungeon.debug(
                             //     'Adding Bridge',
                             //     x,
@@ -1444,16 +1469,16 @@ var stairs = {
 class LoopDigger {
     constructor(options = {}) {
         this.options = {
-            minimumPathingDistance: 100,
-            maxConnectionLength: 1,
+            minDistance: 100,
+            maxLength: 1,
         };
         Object.assign(this.options, options);
     }
     create(site) {
         let startX, startY, endX, endY;
         let i, j, d, x, y;
-        const minimumPathingDistance = Math.min(this.options.minimumPathingDistance, Math.floor(Math.max(site.width, site.height) / 2));
-        const maxConnectionLength = this.options.maxConnectionLength;
+        const minDistance = Math.min(this.options.minDistance, Math.floor(Math.max(site.width, site.height) / 2));
+        const maxLength = this.options.maxLength;
         const pathGrid = GW.grid.alloc(site.width, site.height);
         const costGrid = GW.grid.alloc(site.width, site.height);
         const dirCoords = [
@@ -1501,7 +1526,7 @@ class LoopDigger {
                     let dir = dirCoords[d];
                     if (!isValidTunnelStart(x, y, dir))
                         continue;
-                    j = maxConnectionLength;
+                    j = maxLength;
                     // check up/left
                     if (site.hasXY(x + dir[0], y + dir[1]) &&
                         site.isPassable(x + dir[0], y + dir[1])) {
@@ -1526,7 +1551,7 @@ class LoopDigger {
                     startY = y + dir[1];
                     endX = x;
                     endY = y;
-                    for (j = 0; j < maxConnectionLength; ++j) {
+                    for (j = 0; j < maxLength; ++j) {
                         endX -= dir[0];
                         endY -= dir[1];
                         // if (site.hasXY(endX, endY) && !grid.cell(endX, endY).isNull()) {
@@ -1534,14 +1559,14 @@ class LoopDigger {
                             break;
                         }
                     }
-                    if (j < maxConnectionLength) {
+                    if (j < maxLength) {
                         GW.path.calculateDistances(pathGrid, startX, startY, costGrid, false);
                         // pathGrid.fill(30000);
                         // pathGrid[startX][startY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
-                        if (pathGrid[endX][endY] > minimumPathingDistance &&
+                        if (pathGrid[endX][endY] > minDistance &&
                             pathGrid[endX][endY] < 30000) {
-                            // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
+                            // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
                             // dungeon.debug(
                             //     'Adding Loop',
                             //     startX,
@@ -1587,14 +1612,14 @@ var loop = {
     digLoops: digLoops
 };
 
-function start(map) {
-    initSeqence(map.width * map.height);
-    map.fill(0);
+function start(grid) {
+    initSeqence(grid.width * grid.height);
+    grid.fill(0);
 }
-function finish(map) {
-    removeDiagonalOpenings(map);
-    finishWalls(map);
-    finishDoors(map);
+function finish(grid) {
+    removeDiagonalOpenings(grid);
+    finishWalls(grid);
+    finishDoors(grid);
 }
 // Returns an array of door sites if successful
 function addRoom(map, opts) {
@@ -1726,8 +1751,8 @@ function addRoom(map, opts) {
     return room$1 && result ? room$1 : null;
 }
 // Add some loops to the otherwise simply connected network of rooms.
-function addLoops(grid, minimumPathingDistance, maxConnectionLength) {
-    return digLoops(grid, { minimumPathingDistance, maxConnectionLength });
+function addLoops(grid, minDistance, maxLength) {
+    return digLoops(grid, { minDistance, maxLength });
 }
 function addLakes(map, opts = {}) {
     const lakes = new Lakes(opts);
@@ -1812,6 +1837,440 @@ function finishWalls(grid, tile = WALL) {
         }
     });
 }
+class Level {
+    constructor(width, height, options = {}) {
+        this.rooms = {};
+        this.doors = { chance: 15 };
+        this.halls = { chance: 15 };
+        this.loops = {};
+        this.lakes = {};
+        this.bridges = {};
+        this.stairs = {};
+        this.boundary = true;
+        this.startLoc = [-1, -1];
+        this.endLoc = [-1, -1];
+        this.height = height;
+        this.width = width;
+        if (options.seed) {
+            GW.random.seed(options.seed);
+        }
+        GW.utils.setOptions(this.rooms, options.rooms);
+        GW.utils.setOptions(this.halls, options.halls);
+        GW.utils.setOptions(this.loops, options.loops);
+        GW.utils.setOptions(this.lakes, options.lakes);
+        GW.utils.setOptions(this.bridges, options.bridges);
+        GW.utils.setOptions(this.stairs, options.stairs);
+        GW.utils.setOptions(this.doors, options.doors);
+        this.startLoc = options.startLoc || [Math.floor(width / 2), height - 2];
+        this.endLoc = options.endLoc || [-1, -1];
+    }
+    makeSite(grid) {
+        return new GridSite(grid);
+    }
+    create(setFn) {
+        const grid = GW.grid.alloc(this.width, this.height, 0);
+        const site = this.makeSite(grid);
+        this.start(site);
+        this.addFirstRoom(site);
+        let fails = 0;
+        while (fails < 20) {
+            if (this.addRoom(site)) {
+                fails = 0;
+            }
+            else {
+                ++fails;
+            }
+        }
+        this.addLoops(site, this.loops);
+        this.addLakes(site, this.lakes);
+        this.addBridges(site, this.bridges);
+        this.addStairs(site, this.stairs);
+        this.finish(site);
+        grid.forEach((v, x, y) => {
+            if (v)
+                setFn(x, y, v);
+        });
+        GW.grid.free(grid);
+        return true;
+    }
+    start(_site) {
+        initSeqence(this.width * this.height);
+    }
+    getDigger(id) {
+        if (!id)
+            throw new Error('Missing digger!');
+        if (id instanceof RoomDigger)
+            return id;
+        if (typeof id === 'string') {
+            const digger = rooms[id];
+            if (!digger) {
+                throw new Error('Failed to find digger - ' + id);
+            }
+            return digger;
+        }
+        return new ChoiceRoom(id);
+    }
+    addFirstRoom(site) {
+        const grid = GW.grid.alloc(site.width, site.height);
+        const roomSite = this.makeSite(grid);
+        let digger = this.getDigger(this.rooms.first || this.rooms.digger || 'DEFAULT');
+        let room = digger.create(roomSite);
+        if (room &&
+            !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)) {
+            room = null;
+        }
+        GW.grid.free(grid);
+        // Should we add the starting stairs now too?
+        return room;
+    }
+    addRoom(site) {
+        const grid = GW.grid.alloc(site.width, site.height);
+        const roomSite = this.makeSite(grid);
+        let digger = this.getDigger(this.rooms.digger || 'DEFAULT');
+        let room = digger.create(roomSite);
+        // attach hall?
+        if (this.halls.chance) {
+            let hall$1 = dig(this.halls, roomSite, room.doors);
+            if (hall$1) {
+                room.hall = hall$1;
+            }
+        }
+        if (room && !this._attachRoom(site, roomSite, room)) {
+            room = null;
+        }
+        GW.grid.free(grid);
+        return room;
+    }
+    _attachRoom(site, roomSite, room) {
+        // console.log('attachRoom');
+        const doorSites = room.hall ? room.hall.doors : room.doors;
+        // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
+        for (let i = 0; i < SEQ.length; i++) {
+            const x = Math.floor(SEQ[i] / this.height);
+            const y = SEQ[i] % this.height;
+            if (!site.isNothing(x, y))
+                continue;
+            const dir = directionOfDoorSite(site, x, y);
+            if (dir != GW.utils.NO_DIRECTION) {
+                const oppDir = (dir + 2) % 4;
+                const door = doorSites[oppDir];
+                if (!door)
+                    continue;
+                const offsetX = x - door[0];
+                const offsetY = y - door[1];
+                if (door[0] != -1 &&
+                    this._roomFitsAt(site, roomSite, offsetX, offsetY)) {
+                    // TYPES.Room fits here.
+                    site.copy(roomSite, offsetX, offsetY);
+                    this._attachDoor(site, room, x, y, oppDir);
+                    // door[0] = -1;
+                    // door[1] = -1;
+                    room.translate(offsetX, offsetY);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    _attachRoomAtLoc(site, roomSite, room, attachLoc) {
+        const [x, y] = attachLoc;
+        const doorSites = room.hall ? room.hall.doors : room.doors;
+        const dirs = GW.random.sequence(4);
+        // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
+        for (let dir of dirs) {
+            const oppDir = (dir + 2) % 4;
+            const door = doorSites[oppDir];
+            if (!door || door[0] == -1)
+                continue;
+            const offX = x - door[0];
+            const offY = y - door[1];
+            if (this._roomFitsAt(site, roomSite, offX, offY)) {
+                // dungeon.debug("attachRoom: ", x, y, oppDir);
+                // TYPES.Room fits here.
+                site.copy(roomSite, offX, offY);
+                // this._attachDoor(site, room, x, y, oppDir);  // No door on first room!
+                room.translate(offX, offY);
+                // const newDoors = doorSites.map((site) => {
+                //     const x0 = site[0] + offX;
+                //     const y0 = site[1] + offY;
+                //     if (x0 == x && y0 == y) return [-1, -1] as GW.utils.Loc;
+                //     return [x0, y0] as GW.utils.Loc;
+                // });
+                return true;
+            }
+        }
+        return false;
+    }
+    _roomFitsAt(map, roomGrid, roomToSiteX, roomToSiteY) {
+        let xRoom, yRoom, xSite, ySite, i, j;
+        // console.log('roomFitsAt', roomToSiteX, roomToSiteY);
+        for (xRoom = 0; xRoom < roomGrid.width; xRoom++) {
+            for (yRoom = 0; yRoom < roomGrid.height; yRoom++) {
+                if (roomGrid.isSet(xRoom, yRoom)) {
+                    xSite = xRoom + roomToSiteX;
+                    ySite = yRoom + roomToSiteY;
+                    for (i = xSite - 1; i <= xSite + 1; i++) {
+                        for (j = ySite - 1; j <= ySite + 1; j++) {
+                            if (!map.hasXY(i, j) ||
+                                map.isBoundaryXY(i, j) ||
+                                !map.isNothing(i, j)) {
+                                // console.log('- NO');
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // console.log('- YES');
+        return true;
+    }
+    _attachDoor(map, room, x, y, dir) {
+        const opts = this.doors;
+        if (opts.chance === 0)
+            return; // no door at all
+        const isDoor = opts.chance && GW.random.chance(opts.chance); // did not pass chance
+        const tile = isDoor ? opts.tile || DOOR : FLOOR;
+        map.setTile(x, y, tile); // Door site.
+        // most cases...
+        if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
+            return;
+        }
+        if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+            let didSomething = true;
+            let k = 1;
+            while (didSomething) {
+                didSomething = false;
+                if (map.isNothing(x - k, y)) {
+                    if (map.isSet(x - k, y - 1) && map.isSet(x - k, y + 1)) {
+                        map.setTile(x - k, y, tile);
+                        didSomething = true;
+                    }
+                }
+                if (map.isNothing(x + k, y)) {
+                    if (map.isSet(x + k, y - 1) && map.isSet(x + k, y + 1)) {
+                        map.setTile(x + k, y, tile);
+                        didSomething = true;
+                    }
+                }
+                ++k;
+            }
+        }
+        else {
+            let didSomething = true;
+            let k = 1;
+            while (didSomething) {
+                didSomething = false;
+                if (map.isNothing(x, y - k)) {
+                    if (map.isSet(x - 1, y - k) && map.isSet(x + 1, y - k)) {
+                        map.setTile(x, y - k, tile);
+                        didSomething = true;
+                    }
+                }
+                if (map.isNothing(x, y + k)) {
+                    if (map.isSet(x - 1, y + k) && map.isSet(x + 1, y + k)) {
+                        map.setTile(x, y + k, tile);
+                        didSomething = true;
+                    }
+                }
+                ++k;
+            }
+        }
+    }
+    addLoops(site, opts) {
+        const digger = new LoopDigger(opts);
+        return digger.create(site);
+    }
+    addLakes(site, opts) {
+        const digger = new Lakes(opts);
+        return digger.create(site);
+    }
+    addBridges(site, opts) {
+        const digger = new Bridges(opts);
+        return digger.create(site);
+    }
+    addStairs(site, opts) {
+        const digger = new Stairs(opts);
+        return digger.create(site);
+    }
+    finish(site) {
+        this._removeDiagonalOpenings(site);
+        this._finishWalls(site);
+        this._finishDoors(site);
+    }
+    _removeDiagonalOpenings(site) {
+        let i, j, k, x1, y1;
+        let diagonalCornerRemoved;
+        do {
+            diagonalCornerRemoved = false;
+            for (i = 0; i < this.width - 1; i++) {
+                for (j = 0; j < this.height - 1; j++) {
+                    for (k = 0; k <= 1; k++) {
+                        if (site.isPassable(i + k, j) &&
+                            !site.isPassable(i + (1 - k), j) &&
+                            site.isObstruction(i + (1 - k), j) &&
+                            !site.isPassable(i + k, j + 1) &&
+                            site.isObstruction(i + k, j + 1) &&
+                            site.isPassable(i + (1 - k), j + 1)) {
+                            if (GW.random.chance(50)) {
+                                x1 = i + (1 - k);
+                                y1 = j;
+                            }
+                            else {
+                                x1 = i + k;
+                                y1 = j + 1;
+                            }
+                            diagonalCornerRemoved = true;
+                            site.setTile(x1, y1, FLOOR); // todo - pick one of the passable tiles around it...
+                        }
+                    }
+                }
+            }
+        } while (diagonalCornerRemoved == true);
+    }
+    _finishDoors(site) {
+        GW.utils.forRect(this.width, this.height, (x, y) => {
+            if (site.isBoundaryXY(x, y))
+                return;
+            // todo - isDoorway...
+            if (site.isDoor(x, y)) {
+                if (
+                // TODO - isPassable
+                (site.isFloor(x + 1, y) || site.isFloor(x - 1, y)) &&
+                    (site.isFloor(x, y + 1) || site.isFloor(x, y - 1))) {
+                    // If there's passable terrain to the left or right, and there's passable terrain
+                    // above or below, then the door is orphaned and must be removed.
+                    site.setTile(x, y, FLOOR); // todo - take passable neighbor value
+                }
+                else if ((site.isObstruction(x + 1, y) ? 1 : 0) +
+                    (site.isObstruction(x - 1, y) ? 1 : 0) +
+                    (site.isObstruction(x, y + 1) ? 1 : 0) +
+                    (site.isObstruction(x, y - 1) ? 1 : 0) >=
+                    3) {
+                    // If the door has three or more pathing blocker neighbors in the four cardinal directions,
+                    // then the door is orphaned and must be removed.
+                    site.setTile(x, y, FLOOR); // todo - take passable neighbor
+                }
+            }
+        });
+    }
+    _finishWalls(site) {
+        const boundaryTile = this.boundary ? IMPREGNABLE : WALL;
+        GW.utils.forRect(this.width, this.height, (x, y) => {
+            if (site.isNothing(x, y)) {
+                if (site.isBoundaryXY(x, y)) {
+                    site.setTile(x, y, boundaryTile);
+                }
+                else {
+                    site.setTile(x, y, WALL);
+                }
+            }
+        });
+    }
+}
+class Dungeon {
+    constructor(options = {}) {
+        this.config = {
+            levels: 1,
+            width: 80,
+            height: 34,
+            rooms: { count: 20, digger: 'DEFAULT' },
+            halls: {},
+            loops: {},
+            lakes: {},
+            bridges: {},
+            stairs: {},
+            boundary: true,
+        };
+        this.seeds = [];
+        this.stairLocs = [];
+        GW.utils.setOptions(this.config, options);
+        if (this.config.seed) {
+            GW.random.seed(this.config.seed);
+        }
+        this.initSeeds();
+        this.initStairLocs();
+    }
+    get levels() {
+        return this.config.levels;
+    }
+    initSeeds() {
+        for (let i = 0; i < this.config.levels; ++i) {
+            this.seeds[i] = GW.random.number();
+        }
+    }
+    initStairLocs() {
+        let startLoc = this.config.startLoc || [
+            Math.floor(this.config.width / 2),
+            this.config.height - 2,
+        ];
+        const minDistance = this.config.stairDistance ||
+            Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
+        for (let i = 0; i < this.config.levels; ++i) {
+            const endLoc = GW.random.matchingXY(this.config.width, this.config.height, (x, y) => {
+                return (GW.utils.distanceBetween(startLoc[0], startLoc[1], x, y) > minDistance);
+            });
+            this.stairLocs.push([
+                [startLoc[0], startLoc[1]],
+                [endLoc[0], endLoc[1]],
+            ]);
+            startLoc = endLoc;
+        }
+    }
+    getLevel(id, cb) {
+        if (id < 0 || id > this.config.levels)
+            throw new Error('Invalid level id: ' + id);
+        GW.random.seed(this.seeds[id]);
+        // Generate the level
+        const [startLoc, endLoc] = this.stairLocs[id];
+        const stairOpts = Object.assign({}, this.config.stairs);
+        if (this.config.goesUp) {
+            stairOpts.down = startLoc;
+            stairOpts.up = endLoc;
+            if (id == 0 && this.config.startTile) {
+                stairOpts.downTile = this.config.startTile;
+            }
+            if (id == this.config.levels - 1 && this.config.endTile) {
+                stairOpts.upTile = this.config.endTile;
+            }
+        }
+        else {
+            stairOpts.down = endLoc;
+            stairOpts.up = startLoc;
+            if (id == 0 && this.config.startTile) {
+                stairOpts.upTile = this.config.startTile;
+            }
+            if (id == this.config.levels - 1 && this.config.endTile) {
+                stairOpts.downTile = this.config.endTile;
+            }
+        }
+        const rooms = Object.assign({}, this.config.rooms);
+        if (id === 0 && rooms.entrance) {
+            rooms.first = rooms.entrance;
+        }
+        const levelOpts = {
+            loops: this.config.loops,
+            lakes: this.config.lakes,
+            bridges: this.config.bridges,
+            rooms: rooms,
+            stairs: stairOpts,
+            boundary: this.config.boundary,
+            width: this.config.width,
+            height: this.config.height,
+        };
+        return this.makeLevel(id, levelOpts, cb);
+        // TODO - Update startLoc, endLoc
+    }
+    makeLevel(id, opts, cb) {
+        const level = new Level(this.config.width, this.config.height, opts);
+        const result = level.create(cb);
+        if (!GW.utils.equalsXY(level.endLoc, opts.endLoc) ||
+            !GW.utils.equalsXY(level.startLoc, opts.startLoc)) {
+            this.stairLocs[id] = [level.startLoc, level.endLoc];
+        }
+        return result;
+    }
+}
 
 var dig$1 = {
     __proto__: null,
@@ -1832,6 +2291,8 @@ var dig$1 = {
     removeDiagonalOpenings: removeDiagonalOpenings,
     finishDoors: finishDoors,
     finishWalls: finishWalls,
+    Level: Level,
+    Dungeon: Dungeon,
     NOTHING: NOTHING,
     FLOOR: FLOOR,
     DOOR: DOOR,

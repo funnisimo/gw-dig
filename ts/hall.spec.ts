@@ -186,15 +186,15 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(19);
             expect(hall!.y).toEqual(25);
-            expect(hall!.length).toEqual(10);
+            expect(hall!.length).toEqual(4);
             expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(10);
+            expect(hall!.x2).toEqual(16);
             expect(hall!.y2).toEqual(25);
             expect(hall!.doors).toEqual([
                 undefined,
                 undefined,
                 undefined,
-                [9, 25],
+                [15, 25],
             ]);
         });
 
@@ -207,11 +207,11 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(30);
             expect(hall!.y).toEqual(25);
-            expect(hall!.length).toEqual(10);
+            expect(hall!.length).toEqual(4);
             expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(39);
+            expect(hall!.x2).toEqual(33);
             expect(hall!.y2).toEqual(25);
-            expect(hall!.doors).toEqual([undefined, [40, 25]]);
+            expect(hall!.doors).toEqual([undefined, [34, 25]]);
         });
 
         test('basic hall - down, width:2', () => {
@@ -255,15 +255,15 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(19);
             expect(hall!.y).toEqual(25);
-            expect(hall!.length).toEqual(10);
+            expect(hall!.length).toEqual(4);
             expect(hall!.width).toEqual(2);
-            expect(hall!.x2).toEqual(10);
+            expect(hall!.x2).toEqual(16);
             expect(hall!.y2).toEqual(26);
             expect(hall!.doors).toEqual([
                 undefined,
                 undefined,
                 undefined,
-                [9, 25],
+                [15, 25],
             ]);
 
             expect(grid.count(10)).toEqual(0);
@@ -278,11 +278,11 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(30);
             expect(hall!.y).toEqual(24);
-            expect(hall!.length).toEqual(10);
+            expect(hall!.length).toEqual(4);
             expect(hall!.width).toEqual(3);
-            expect(hall!.x2).toEqual(39);
+            expect(hall!.x2).toEqual(33);
             expect(hall!.y2).toEqual(26);
-            expect(hall!.doors).toEqual([undefined, [40, 25]]);
+            expect(hall!.doors).toEqual([undefined, [34, 25]]);
 
             expect(grid.count(10)).toBeGreaterThan(0);
         });

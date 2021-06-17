@@ -107,7 +107,7 @@ describe('Dig', () => {
         );
         Dig.room.install(
             'BROGUE_ENTRANCE',
-            new Dig.room.Entrance({
+            new Dig.room.BrogueEntrance({
                 width: 20,
                 height: 10,
             })
@@ -249,10 +249,10 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [45, 2],
-            [48, 6],
-            [43, 9],
-            [42, 4],
+            [49, 2],
+            [52, 6],
+            [47, 9],
+            [46, 4],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
@@ -461,7 +461,7 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(room.x).toEqual(56);
+            expect(room.x).toEqual(50);
             expect(room.y).toEqual(15);
 
             expect(map[45][17]).toEqual(2);
@@ -483,5 +483,41 @@ describe('Dig', () => {
         expect(Dig.utils.directionOfDoorSite(a, 3, 5)).toEqual(GW.utils.DOWN);
 
         GW.grid.free(g);
+    });
+
+    describe('Level', () => {
+        test('basic', () => {
+            const grid = new GW.grid.NumGrid(40, 40);
+
+            const level = new Dig.Level(40, 40, {
+                seed: 23456,
+                rooms: { count: 20, first: 'BROGUE_ENTRANCE', digger: 'ROOM' },
+                doors: { chance: 50 },
+                halls: { chance: 50 },
+                loops: { minDistance: 20, maxLength: 5 },
+                lakes: { count: 5, wreath: 1 },
+                bridges: {
+                    minDistance: 10,
+                    maxLength: 10,
+                },
+                stairs: { up: [20, 38], down: true },
+            });
+            level.create((x, y, v) => {
+                grid[x][y] = v;
+            });
+
+            // grid.dump();
+
+            expect(grid.count(0)).toEqual(0);
+            expect(grid.count(1)).toBeGreaterThan(0);
+            expect(grid.count(2)).toBeGreaterThan(0);
+            expect(grid.count(3)).toBeGreaterThan(0);
+            expect(grid.count(4)).toBeGreaterThan(0);
+            expect(grid.count(5)).toBeGreaterThan(0);
+            expect(grid.count(6)).toEqual(0); // no bridges
+            expect(grid.count(7)).toEqual(1);
+            expect(grid.count(8)).toBeGreaterThan(0);
+            expect(grid.count(17)).toEqual(1);
+        });
     });
 });

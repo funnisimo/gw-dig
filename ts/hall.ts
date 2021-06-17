@@ -250,7 +250,7 @@ export interface HallConfig {
 export class HallDigger {
     public config: HallConfig = {
         width: GW.range.make(1),
-        length: [GW.range.make('9-15'), GW.range.make('2-9')],
+        length: [GW.range.make('2-15'), GW.range.make('2-9')],
         tile: SITE.FLOOR,
         obliqueChance: 15,
         chance: 100,

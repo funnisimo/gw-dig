@@ -91,6 +91,9 @@ interface Site {
     readonly width: number;
     readonly height: number;
     hasXY: utils.XYMatchFunc;
+    isBoundaryXY: utils.XYMatchFunc;
+    get: (x: number, y: number) => number;
+    copy: (other: Site, offsetX: number, offsetY: number) => void;
     isSet: utils.XYMatchFunc;
     isDiggable: utils.XYMatchFunc;
     isNothing: utils.XYMatchFunc;
@@ -112,6 +115,9 @@ declare class GridSite implements Site {
     get width(): number;
     get height(): number;
     hasXY(x: number, y: number): boolean;
+    isBoundaryXY(x: number, y: number): boolean;
+    get(x: number, y: number): number;
+    copy(other: Site, offsetX?: number, offsetY?: number): void;
     isPassable(x: number, y: number): boolean;
     isNothing(x: number, y: number): boolean;
     isDiggable(x: number, y: number): boolean;
@@ -126,6 +132,182 @@ declare class GridSite implements Site {
     isAnyWater(x: number, y: number): boolean;
     isSet(x: number, y: number): boolean;
     setTile(x: number, y: number, tile: number): void;
+}
+
+declare function isDoorLoc(site: Site, loc: utils.Loc, dir: utils.Loc): boolean;
+declare function pickWidth(opts?: any): number;
+declare function pickLength(dir: number, lengths: [range.Range, range.Range]): number;
+declare function pickHallDirection(site: Site, doors: utils.Loc[], lengths: [range.Range, range.Range]): number;
+declare function pickHallExits(site: Site, x: number, y: number, dir: number, obliqueChance: number): [number, number][];
+interface HallOptions {
+    width: number | string;
+    length: number | string | number[] | string[];
+    tile: number;
+    obliqueChance: number;
+    chance: number;
+}
+interface HallConfig$1 {
+    width: range.Range;
+    length: [range.Range, range.Range];
+    tile: number;
+    obliqueChance: number;
+    chance: number;
+}
+declare class HallDigger {
+    config: HallConfig$1;
+    constructor(options?: Partial<HallOptions>);
+    _setOptions(options?: Partial<HallOptions>): void;
+    create(site: Site, doors?: utils.Loc[]): Hall | null;
+    _digLine(site: Site, door: utils.Loc, dir: utils.Loc, length: number): number[];
+    dig(site: Site, dir: number, door: utils.Loc, length: number): Hall;
+    digWide(site: Site, dir: number, door: utils.Loc, length: number, width: number): Hall;
+}
+declare function dig(config: Partial<HallOptions>, site: Site, doors: utils.Loc[]): Hall | null;
+declare var halls: Record<string, HallData>;
+declare function install(id: string, hall: HallDigger): HallDigger;
+
+declare const hall_d_isDoorLoc: typeof isDoorLoc;
+declare const hall_d_pickWidth: typeof pickWidth;
+declare const hall_d_pickLength: typeof pickLength;
+declare const hall_d_pickHallDirection: typeof pickHallDirection;
+declare const hall_d_pickHallExits: typeof pickHallExits;
+type hall_d_HallOptions = HallOptions;
+type hall_d_HallDigger = HallDigger;
+declare const hall_d_HallDigger: typeof HallDigger;
+declare const hall_d_dig: typeof dig;
+declare const hall_d_halls: typeof halls;
+declare const hall_d_install: typeof install;
+declare namespace hall_d {
+  export {
+    hall_d_isDoorLoc as isDoorLoc,
+    hall_d_pickWidth as pickWidth,
+    hall_d_pickLength as pickLength,
+    hall_d_pickHallDirection as pickHallDirection,
+    hall_d_pickHallExits as pickHallExits,
+    hall_d_HallOptions as HallOptions,
+    HallConfig$1 as HallConfig,
+    hall_d_HallDigger as HallDigger,
+    hall_d_dig as dig,
+    hall_d_halls as halls,
+    hall_d_install as install,
+  };
+}
+
+declare function checkConfig(config: RoomConfig, expected?: RoomConfig): RoomConfig;
+declare abstract class RoomDigger {
+    options: RoomConfig;
+    doors: utils.Loc[];
+    constructor(config: RoomConfig, expected?: RoomConfig);
+    _setOptions(config: RoomConfig, expected?: RoomConfig): void;
+    create(site: Site): Room;
+    abstract carve(site: Site): Room;
+}
+declare var rooms: Record<string, RoomDigger>;
+declare class ChoiceRoom extends RoomDigger {
+    randomRoom: () => any;
+    constructor(config?: RoomConfig);
+    _setOptions(config: RoomConfig, expected?: RoomConfig): void;
+    carve(site: Site): Room;
+}
+declare function choiceRoom(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class Cavern extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function cavern(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class BrogueEntrance extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function brogueEntrance(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class Cross extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function cross(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class SymmetricalCross extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class Rectangular extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function rectangular(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class Circular extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function circular(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class BrogueDonut extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): Room;
+declare class ChunkyRoom extends RoomDigger {
+    constructor(config?: Partial<RoomConfig>);
+    carve(site: Site): Room;
+}
+declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): Room;
+declare function install$1(id: string, room: RoomDigger): RoomDigger;
+
+declare const room_d_checkConfig: typeof checkConfig;
+type room_d_RoomDigger = RoomDigger;
+declare const room_d_RoomDigger: typeof RoomDigger;
+declare const room_d_rooms: typeof rooms;
+type room_d_ChoiceRoom = ChoiceRoom;
+declare const room_d_ChoiceRoom: typeof ChoiceRoom;
+declare const room_d_choiceRoom: typeof choiceRoom;
+type room_d_Cavern = Cavern;
+declare const room_d_Cavern: typeof Cavern;
+declare const room_d_cavern: typeof cavern;
+type room_d_BrogueEntrance = BrogueEntrance;
+declare const room_d_BrogueEntrance: typeof BrogueEntrance;
+declare const room_d_brogueEntrance: typeof brogueEntrance;
+type room_d_Cross = Cross;
+declare const room_d_Cross: typeof Cross;
+declare const room_d_cross: typeof cross;
+type room_d_SymmetricalCross = SymmetricalCross;
+declare const room_d_SymmetricalCross: typeof SymmetricalCross;
+declare const room_d_symmetricalCross: typeof symmetricalCross;
+type room_d_Rectangular = Rectangular;
+declare const room_d_Rectangular: typeof Rectangular;
+declare const room_d_rectangular: typeof rectangular;
+type room_d_Circular = Circular;
+declare const room_d_Circular: typeof Circular;
+declare const room_d_circular: typeof circular;
+type room_d_BrogueDonut = BrogueDonut;
+declare const room_d_BrogueDonut: typeof BrogueDonut;
+declare const room_d_brogueDonut: typeof brogueDonut;
+type room_d_ChunkyRoom = ChunkyRoom;
+declare const room_d_ChunkyRoom: typeof ChunkyRoom;
+declare const room_d_chunkyRoom: typeof chunkyRoom;
+declare namespace room_d {
+  export {
+    room_d_checkConfig as checkConfig,
+    room_d_RoomDigger as RoomDigger,
+    room_d_rooms as rooms,
+    room_d_ChoiceRoom as ChoiceRoom,
+    room_d_choiceRoom as choiceRoom,
+    room_d_Cavern as Cavern,
+    room_d_cavern as cavern,
+    room_d_BrogueEntrance as BrogueEntrance,
+    room_d_brogueEntrance as brogueEntrance,
+    room_d_Cross as Cross,
+    room_d_cross as cross,
+    room_d_SymmetricalCross as SymmetricalCross,
+    room_d_symmetricalCross as symmetricalCross,
+    room_d_Rectangular as Rectangular,
+    room_d_rectangular as rectangular,
+    room_d_Circular as Circular,
+    room_d_circular as circular,
+    room_d_BrogueDonut as BrogueDonut,
+    room_d_brogueDonut as brogueDonut,
+    room_d_ChunkyRoom as ChunkyRoom,
+    room_d_chunkyRoom as chunkyRoom,
+    install$1 as install,
+  };
 }
 
 interface LakeOpts {
@@ -157,8 +339,8 @@ declare namespace lake_d {
 }
 
 interface BridgeOpts {
-    minimumPathingDistance: number;
-    maxConnectionLength: number;
+    minDistance: number;
+    maxLength: number;
 }
 declare class Bridges {
     options: BridgeOpts;
@@ -205,179 +387,32 @@ declare namespace stairs_d {
   };
 }
 
-declare function checkConfig(config: RoomConfig, expected?: RoomConfig): RoomConfig;
-declare abstract class RoomDigger {
-    options: RoomConfig;
-    doors: utils.Loc[];
-    constructor(config: RoomConfig, expected?: RoomConfig);
-    _setOptions(config: RoomConfig, expected?: RoomConfig): void;
-    create(site: Site): Room;
-    abstract carve(site: Site): Room;
+interface LoopOptions {
+    minDistance: number;
+    maxLength: number;
 }
-declare var rooms: Record<string, RoomDigger>;
-declare class ChoiceRoom extends RoomDigger {
-    randomRoom: () => any;
-    constructor(config?: RoomConfig);
-    _setOptions(config: RoomConfig, expected?: RoomConfig): void;
-    carve(site: Site): Room;
+interface LoopConfig {
+    minDistance: number;
+    maxLength: number;
 }
-declare function choiceRoom(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class Cavern extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
+declare class LoopDigger {
+    options: LoopConfig;
+    constructor(options?: Partial<LoopOptions>);
+    create(site: Site): number;
 }
-declare function cavern(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class Entrance extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function entrance(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class Cross extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function cross(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class SymmetricalCross extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class Rectangular extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function rectangular(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class Circular extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function circular(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class BrogueDonut extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): Room;
-declare class ChunkyRoom extends RoomDigger {
-    constructor(config?: Partial<RoomConfig>);
-    carve(site: Site): Room;
-}
-declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): Room;
-declare function install(id: string, room: RoomDigger): RoomDigger;
+declare function digLoops(grid: grid.NumGrid, opts?: Partial<LoopOptions>): number;
 
-declare const room_d_checkConfig: typeof checkConfig;
-type room_d_RoomDigger = RoomDigger;
-declare const room_d_RoomDigger: typeof RoomDigger;
-declare const room_d_rooms: typeof rooms;
-type room_d_ChoiceRoom = ChoiceRoom;
-declare const room_d_ChoiceRoom: typeof ChoiceRoom;
-declare const room_d_choiceRoom: typeof choiceRoom;
-type room_d_Cavern = Cavern;
-declare const room_d_Cavern: typeof Cavern;
-declare const room_d_cavern: typeof cavern;
-type room_d_Entrance = Entrance;
-declare const room_d_Entrance: typeof Entrance;
-declare const room_d_entrance: typeof entrance;
-type room_d_Cross = Cross;
-declare const room_d_Cross: typeof Cross;
-declare const room_d_cross: typeof cross;
-type room_d_SymmetricalCross = SymmetricalCross;
-declare const room_d_SymmetricalCross: typeof SymmetricalCross;
-declare const room_d_symmetricalCross: typeof symmetricalCross;
-type room_d_Rectangular = Rectangular;
-declare const room_d_Rectangular: typeof Rectangular;
-declare const room_d_rectangular: typeof rectangular;
-type room_d_Circular = Circular;
-declare const room_d_Circular: typeof Circular;
-declare const room_d_circular: typeof circular;
-type room_d_BrogueDonut = BrogueDonut;
-declare const room_d_BrogueDonut: typeof BrogueDonut;
-declare const room_d_brogueDonut: typeof brogueDonut;
-type room_d_ChunkyRoom = ChunkyRoom;
-declare const room_d_ChunkyRoom: typeof ChunkyRoom;
-declare const room_d_chunkyRoom: typeof chunkyRoom;
-declare const room_d_install: typeof install;
-declare namespace room_d {
+type loop_d_LoopOptions = LoopOptions;
+type loop_d_LoopConfig = LoopConfig;
+type loop_d_LoopDigger = LoopDigger;
+declare const loop_d_LoopDigger: typeof LoopDigger;
+declare const loop_d_digLoops: typeof digLoops;
+declare namespace loop_d {
   export {
-    room_d_checkConfig as checkConfig,
-    room_d_RoomDigger as RoomDigger,
-    room_d_rooms as rooms,
-    room_d_ChoiceRoom as ChoiceRoom,
-    room_d_choiceRoom as choiceRoom,
-    room_d_Cavern as Cavern,
-    room_d_cavern as cavern,
-    room_d_Entrance as Entrance,
-    room_d_entrance as entrance,
-    room_d_Cross as Cross,
-    room_d_cross as cross,
-    room_d_SymmetricalCross as SymmetricalCross,
-    room_d_symmetricalCross as symmetricalCross,
-    room_d_Rectangular as Rectangular,
-    room_d_rectangular as rectangular,
-    room_d_Circular as Circular,
-    room_d_circular as circular,
-    room_d_BrogueDonut as BrogueDonut,
-    room_d_brogueDonut as brogueDonut,
-    room_d_ChunkyRoom as ChunkyRoom,
-    room_d_chunkyRoom as chunkyRoom,
-    room_d_install as install,
-  };
-}
-
-declare function isDoorLoc(site: Site, loc: utils.Loc, dir: utils.Loc): boolean;
-declare function pickWidth(opts?: any): number;
-declare function pickLength(dir: number, lengths: [range.Range, range.Range]): number;
-declare function pickHallDirection(site: Site, doors: utils.Loc[], lengths: [range.Range, range.Range]): number;
-declare function pickHallExits(site: Site, x: number, y: number, dir: number, obliqueChance: number): [number, number][];
-interface HallOptions {
-    width: number | string;
-    length: number | string | number[] | string[];
-    tile: number;
-    obliqueChance: number;
-    chance: number;
-}
-interface HallConfig$1 {
-    width: range.Range;
-    length: [range.Range, range.Range];
-    tile: number;
-    obliqueChance: number;
-    chance: number;
-}
-declare class HallDigger {
-    config: HallConfig$1;
-    constructor(options?: Partial<HallOptions>);
-    _setOptions(options?: Partial<HallOptions>): void;
-    create(site: Site, doors?: utils.Loc[]): Hall | null;
-    _digLine(site: Site, door: utils.Loc, dir: utils.Loc, length: number): number[];
-    dig(site: Site, dir: number, door: utils.Loc, length: number): Hall;
-    digWide(site: Site, dir: number, door: utils.Loc, length: number, width: number): Hall;
-}
-declare function dig(config: Partial<HallOptions>, site: Site, doors: utils.Loc[]): Hall | null;
-declare var halls: Record<string, HallData>;
-declare function install$1(id: string, hall: HallDigger): HallDigger;
-
-declare const hall_d_isDoorLoc: typeof isDoorLoc;
-declare const hall_d_pickWidth: typeof pickWidth;
-declare const hall_d_pickLength: typeof pickLength;
-declare const hall_d_pickHallDirection: typeof pickHallDirection;
-declare const hall_d_pickHallExits: typeof pickHallExits;
-type hall_d_HallOptions = HallOptions;
-type hall_d_HallDigger = HallDigger;
-declare const hall_d_HallDigger: typeof HallDigger;
-declare const hall_d_dig: typeof dig;
-declare const hall_d_halls: typeof halls;
-declare namespace hall_d {
-  export {
-    hall_d_isDoorLoc as isDoorLoc,
-    hall_d_pickWidth as pickWidth,
-    hall_d_pickLength as pickLength,
-    hall_d_pickHallDirection as pickHallDirection,
-    hall_d_pickHallExits as pickHallExits,
-    hall_d_HallOptions as HallOptions,
-    HallConfig$1 as HallConfig,
-    hall_d_HallDigger as HallDigger,
-    hall_d_dig as dig,
-    hall_d_halls as halls,
-    install$1 as install,
+    loop_d_LoopOptions as LoopOptions,
+    loop_d_LoopConfig as LoopConfig,
+    loop_d_LoopDigger as LoopDigger,
+    loop_d_digLoops as digLoops,
   };
 }
 
@@ -408,45 +443,106 @@ declare namespace utils_d {
   };
 }
 
-interface LoopOptions {
-    minimumPathingDistance: number;
-    maxConnectionLength: number;
-}
-interface LoopConfig {
-    minimumPathingDistance: number;
-    maxConnectionLength: number;
-}
-declare class LoopDigger {
-    options: LoopConfig;
-    constructor(options?: Partial<LoopOptions>);
-    create(site: Site): number;
-}
-declare function digLoops(grid: grid.NumGrid, opts?: Partial<LoopOptions>): number;
-
-type loop_d_LoopOptions = LoopOptions;
-type loop_d_LoopConfig = LoopConfig;
-type loop_d_LoopDigger = LoopDigger;
-declare const loop_d_LoopDigger: typeof LoopDigger;
-declare const loop_d_digLoops: typeof digLoops;
-declare namespace loop_d {
-  export {
-    loop_d_LoopOptions as LoopOptions,
-    loop_d_LoopConfig as LoopConfig,
-    loop_d_LoopDigger as LoopDigger,
-    loop_d_digLoops as digLoops,
-  };
-}
-
-declare function start(map: grid.NumGrid): void;
-declare function finish(map: grid.NumGrid): void;
+declare function start(grid: grid.NumGrid): void;
+declare function finish(grid: grid.NumGrid): void;
 declare function addRoom(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
-declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): number;
+declare function addLoops(grid: grid.NumGrid, minDistance: number, maxLength: number): number;
 declare function addLakes(map: grid.NumGrid, opts?: Partial<LakeOpts>): number;
 declare function addBridges(grid: grid.NumGrid, opts?: Partial<BridgeOpts>): number;
 declare function addStairs(grid: grid.NumGrid, opts?: Partial<StairOpts>): Record<string, [number, number]> | null;
 declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
 declare function finishDoors(grid: grid.NumGrid): void;
 declare function finishWalls(grid: grid.NumGrid, tile?: number): void;
+interface DoorOpts {
+    chance: number;
+    tile: number;
+}
+interface RoomOptions {
+    count: number;
+    first: string | string[] | Record<string, number> | RoomDigger;
+    digger: string | string[] | Record<string, number> | RoomDigger;
+}
+interface LevelOptions {
+    halls?: Partial<HallOptions>;
+    loops?: Partial<LoopOptions>;
+    lakes?: Partial<LakeOpts>;
+    bridges?: Partial<BridgeOpts>;
+    stairs?: Partial<StairOpts>;
+    doors?: Partial<DoorOpts>;
+    rooms: Partial<RoomOptions>;
+    startLoc?: utils.Loc;
+    endLoc?: utils.Loc;
+    seed?: number;
+    boundary?: boolean;
+}
+declare class Level {
+    height: number;
+    width: number;
+    rooms: Partial<RoomOptions>;
+    doors: Partial<DoorOpts>;
+    halls: Partial<HallOptions>;
+    loops: Partial<LoopOptions>;
+    lakes: Partial<LakeOpts>;
+    bridges: Partial<BridgeOpts>;
+    stairs: Partial<StairOpts>;
+    boundary: boolean;
+    startLoc: utils.Loc;
+    endLoc: utils.Loc;
+    constructor(width: number, height: number, options?: Partial<LevelOptions>);
+    makeSite(grid: grid.NumGrid): GridSite;
+    create(setFn: DigFn): boolean;
+    start(_site: Site): void;
+    getDigger(id: string | string[] | Record<string, number> | RoomDigger): RoomDigger;
+    addFirstRoom(site: Site): Room | null;
+    addRoom(site: Site): Room | null;
+    _attachRoom(site: Site, roomSite: Site, room: Room): boolean;
+    _attachRoomAtLoc(site: Site, roomSite: Site, room: Room, attachLoc: utils.Loc): boolean;
+    _roomFitsAt(map: Site, roomGrid: Site, roomToSiteX: number, roomToSiteY: number): boolean;
+    _attachDoor(map: Site, room: Room, x: number, y: number, dir: number): void;
+    addLoops(site: Site, opts: Partial<LoopOptions>): number;
+    addLakes(site: Site, opts: Partial<LakeOpts>): number;
+    addBridges(site: Site, opts: Partial<BridgeOpts>): number;
+    addStairs(site: Site, opts: Partial<StairOpts>): Record<string, [number, number]> | null;
+    finish(site: Site): void;
+    _removeDiagonalOpenings(site: Site): void;
+    _finishDoors(site: Site): void;
+    _finishWalls(site: Site): void;
+}
+interface DungeonOptions {
+    seed?: number;
+    levels: number;
+    goesUp?: boolean;
+    width: number;
+    height: number;
+    startLoc?: utils.Loc;
+    startTile?: number;
+    stairDistance?: number;
+    endTile?: number;
+    rooms: {
+        count: number;
+        digger: string | RoomDigger;
+        entrance?: string | RoomDigger;
+        first?: string | RoomDigger;
+    };
+    halls: Partial<HallOptions>;
+    loops: Partial<LoopOptions>;
+    lakes: Partial<LakeOpts>;
+    bridges: Partial<BridgeOpts>;
+    stairs: Partial<StairOpts>;
+    boundary: boolean;
+}
+declare type LocPair = [utils.Loc, utils.Loc];
+declare class Dungeon {
+    config: DungeonOptions;
+    seeds: number[];
+    stairLocs: LocPair[];
+    constructor(options?: Partial<DungeonOptions>);
+    get levels(): number;
+    initSeeds(): void;
+    initStairLocs(): void;
+    getLevel(id: number, cb: DigFn): boolean;
+    makeLevel(id: number, opts: Partial<LevelOptions>, cb: DigFn): boolean;
+}
 
 declare const dig_d_start: typeof start;
 declare const dig_d_finish: typeof finish;
@@ -458,6 +554,15 @@ declare const dig_d_addStairs: typeof addStairs;
 declare const dig_d_removeDiagonalOpenings: typeof removeDiagonalOpenings;
 declare const dig_d_finishDoors: typeof finishDoors;
 declare const dig_d_finishWalls: typeof finishWalls;
+type dig_d_DoorOpts = DoorOpts;
+type dig_d_RoomOptions = RoomOptions;
+type dig_d_LevelOptions = LevelOptions;
+type dig_d_Level = Level;
+declare const dig_d_Level: typeof Level;
+type dig_d_DungeonOptions = DungeonOptions;
+type dig_d_LocPair = LocPair;
+type dig_d_Dungeon = Dungeon;
+declare const dig_d_Dungeon: typeof Dungeon;
 declare const dig_d_NOTHING: typeof NOTHING;
 declare const dig_d_FLOOR: typeof FLOOR;
 declare const dig_d_DOOR: typeof DOOR;
@@ -500,6 +605,13 @@ declare namespace dig_d {
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,
+    dig_d_DoorOpts as DoorOpts,
+    dig_d_RoomOptions as RoomOptions,
+    dig_d_LevelOptions as LevelOptions,
+    dig_d_Level as Level,
+    dig_d_DungeonOptions as DungeonOptions,
+    dig_d_LocPair as LocPair,
+    dig_d_Dungeon as Dungeon,
     room_d as room,
     hall_d as hall,
     lake_d as lake,
