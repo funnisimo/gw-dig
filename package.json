@@ -9,7 +9,7 @@
     "scripts": {
         "compile": "tsc --build tsconfig.json",
         "bundle": "rollup -c",
-        "copy": "cp dist/gw-dig.min.* docs/js && cp node_modules/gw-utils/dist/gw-utils.min.* docs/js && cp node_modules/gw-map/dist/gw-map.min.* docs/js",
+        "copy": "cp dist/gw-dig.js docs/js && cp node_modules/gw-utils/dist/gw-utils.min.* docs/js && cp node_modules/gw-map/dist/gw-map.min.* docs/js && cp node_modules/rot-js/dist/rot.min.js docs/js",
         "build": "npm run compile && npm run bundle && npm run copy && npm run version",
         "serve": "cd docs && http-server -p 8080",
         "test": "jest --detectOpenHandles",
@@ -44,10 +44,10 @@
         "rollup": "^2.35.1",
         "rollup-plugin-dts": "^2.0.1",
         "rollup-plugin-terser": "^7.0.2",
+        "rot-js": "^2.1.5",
         "ts-jest": "^26.4.4",
         "typescript": "^4.1.3"
     },
-    "dependencies": {},
     "peerDependencies": {
         "gw-map": "^0.3.1",
         "gw-utils": "^0.3.1"

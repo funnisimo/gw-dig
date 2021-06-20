@@ -273,6 +273,9 @@ export class HallDigger {
         if (options.tile) {
             this.config.tile = options.tile;
         }
+        if (options.chance) {
+            this.config.chance = options.chance;
+        }
     }
 
     create(site: SITE.Site, doors: GW.utils.Loc[] = []): TYPES.Hall | null {

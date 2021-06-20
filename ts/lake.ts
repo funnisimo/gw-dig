@@ -8,8 +8,9 @@ export interface LakeOpts {
     tries: number;
     count: number;
     canDisrupt: boolean;
-    wreath: number;
     wreathTile: number;
+    wreathChance: number;
+    wreathSize: number;
     tile: number;
 }
 
@@ -21,8 +22,9 @@ export class Lakes {
         tries: 20,
         count: 1,
         canDisrupt: false,
-        wreath: 0,
         wreathTile: SITE.SHALLOW,
+        wreathChance: 50,
+        wreathSize: 1,
         tile: SITE.DEEP,
     };
 
@@ -47,8 +49,11 @@ export class Lakes {
         tries = this.options.tries || 20;
         maxCount = this.options.count || 1;
         canDisrupt = this.options.canDisrupt || false;
-        const wreath = this.options.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+        const hasWreath = GW.random.chance(this.options.wreathChance)
+            ? true
+            : false;
         const wreathTile = this.options.wreathTile || SITE.SHALLOW;
+        const wreathSize = this.options.wreathSize || 1; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
         const tile = this.options.tile || SITE.DEEP;
 
         const lakeGrid = GW.grid.alloc(site.width, site.height, 0);
@@ -69,11 +74,11 @@ export class Lakes {
                 ) + lakeMinSize;
 
             const blob = new GW.blob.Blob({
-                roundCount: 5,
-                minBlobWidth: 4,
-                minBlobHeight: 4,
-                maxBlobWidth: width,
-                maxBlobHeight: height,
+                rounds: 5,
+                minWidth: 4,
+                minHeight: 4,
+                maxWidth: width,
+                maxHeight: height,
                 percentSeeded: 55,
                 birthParameters: 'ffffftttt',
                 survivalParameters: 'ffffttttt',
@@ -115,11 +120,11 @@ export class Lakes {
                                 const sy = j + bounds.y + y;
                                 site.setTile(sx, sy, tile);
 
-                                if (wreath) {
+                                if (hasWreath) {
                                     GW.utils.forCircle(
                                         sx,
                                         sy,
-                                        wreath,
+                                        wreathSize,
                                         (i, j) => {
                                             if (
                                                 site.isPassable(i, j)

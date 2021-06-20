@@ -1,5 +1,5 @@
 import 'jest-extended';
-import * as UTILS from '../test/utils';
+// import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as Dig from './dig';
 
@@ -7,7 +7,8 @@ describe('dig', () => {
     let grid: GW.grid.NumGrid;
 
     beforeEach(() => {
-        UTILS.mockRandom();
+        // UTILS.mockRandom();
+        GW.random.seed(12345);
         grid = GW.grid.alloc(50, 30);
     });
 
@@ -211,7 +212,7 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
-        expect(room).toMatchObject({ x: 21, y: 12, width: 8, height: 8 });
+        expect(room).toMatchObject({ x: 21, y: 12, width: 10, height: 8 });
         expect(grid.count(1)).toBeGreaterThan(0);
     });
 
@@ -222,7 +223,7 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
-        expect(room).toMatchObject({ x: 21, y: 12, width: 8, height: 8 });
+        expect(room).toMatchObject({ x: 21, y: 12, width: 10, height: 8 });
         expect(grid.count(1)).toEqual(0);
         expect(grid.count(10)).toBeGreaterThan(0);
     });

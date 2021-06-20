@@ -1,5 +1,5 @@
 import 'jest-extended';
-import * as UTILS from '../test/utils';
+// import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as Dig from './dig';
 import { GridSite } from './site';
@@ -157,7 +157,7 @@ describe('Dig', () => {
     });
 
     beforeEach(() => {
-        UTILS.mockRandom();
+        // UTILS.mockRandom();
         GW.random.seed(12345);
         map = GW.grid.alloc(80, 30);
     });
@@ -211,21 +211,21 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [11, 9],
-            [15, 10],
-            [3, 18],
-            [1, 15],
+            [8, 20],
+            [24, 21],
+            [16, 28],
+            [6, 22],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR); // starting door
 
-        map.forRect(37, 21, 10, 7, (_c, i, j) =>
+        map.forRect(32, 6, 18, 7, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(36, 24)).toEqual(Dig.DOOR);
-        expect(tileAt(18, 21)).toEqual(Dig.DOOR);
-        expect(tileAt(3, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(17, 18)).toEqual(Dig.DOOR);
+        expect(tileAt(37, 22)).toEqual(Dig.DOOR);
+        expect(tileAt(24, 21)).toEqual(Dig.DOOR);
+        expect(tileAt(27, 13)).toEqual(Dig.DOOR);
+        expect(tileAt(31, 9)).toEqual(Dig.DOOR);
     });
 
     test('can chain five rooms', () => {
@@ -249,21 +249,21 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [49, 2],
-            [52, 6],
-            [47, 9],
-            [46, 4],
+            [50, 11],
+            [56, 12],
+            [54, 17],
+            [48, 13],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
-        map.forRect(37, 21, 10, 7, (_c, i, j) =>
+        map.forRect(49, 12, 6, 5, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(47, 21)).toEqual(Dig.DOOR);
-        expect(tileAt(55, 20)).toEqual(Dig.DOOR);
-        expect(tileAt(60, 16)).toEqual(Dig.DOOR);
-        expect(tileAt(59, 6)).toEqual(Dig.DOOR);
+        expect(tileAt(43, 25)).toEqual(Dig.DOOR);
+        expect(tileAt(60, 21)).toEqual(Dig.DOOR);
+        expect(tileAt(70, 20)).toEqual(Dig.DOOR);
+        expect(tileAt(69, 12)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {
@@ -407,7 +407,7 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(map[45][17]).toEqual(2);
+            expect(map[45][15]).toEqual(2);
         });
 
         test('room with hall to room', () => {
@@ -431,7 +431,7 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(map[45][17]).toEqual(2);
+            expect(map[45][15]).toEqual(2);
         });
 
         test('room with wide hall to room', () => {
@@ -461,11 +461,11 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(room.x).toEqual(50);
-            expect(room.y).toEqual(15);
+            expect(room.x).toEqual(57);
+            expect(room.y).toEqual(13);
 
-            expect(map[45][17]).toEqual(2);
-            expect(map[45][18]).toEqual(2);
+            expect(map[45][15]).toEqual(2);
+            expect(map[45][16]).toEqual(2);
         });
     });
 
@@ -495,7 +495,7 @@ describe('Dig', () => {
                 doors: { chance: 50 },
                 halls: { chance: 50 },
                 loops: { minDistance: 20, maxLength: 5 },
-                lakes: { count: 5, wreath: 1 },
+                lakes: { count: 5, wreathSize: 1, wreathChance: 100 },
                 bridges: {
                     minDistance: 10,
                     maxLength: 10,
@@ -514,7 +514,7 @@ describe('Dig', () => {
             expect(grid.count(3)).toBeGreaterThan(0);
             expect(grid.count(4)).toBeGreaterThan(0);
             expect(grid.count(5)).toBeGreaterThan(0);
-            expect(grid.count(6)).toEqual(0); // no bridges
+            expect(grid.count(6)).toBeGreaterThan(0);
             expect(grid.count(7)).toEqual(1);
             expect(grid.count(8)).toBeGreaterThan(0);
             expect(grid.count(17)).toEqual(1);

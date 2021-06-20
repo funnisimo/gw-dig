@@ -136,11 +136,11 @@ export class Cavern extends RoomDigger {
         const maxHeight = height;
 
         const blob = new GW.blob.Blob({
-            roundCount: 5,
-            minBlobWidth: minWidth,
-            minBlobHeight: minHeight,
-            maxBlobWidth: maxWidth,
-            maxBlobHeight: maxHeight,
+            rounds: 5,
+            minWidth: minWidth,
+            minHeight: minHeight,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
             percentSeeded: 55,
             birthParameters: 'ffffftttt',
             survivalParameters: 'ffffttttt',

@@ -570,6 +570,9 @@ class HallDigger {
         if (options.tile) {
             this.config.tile = options.tile;
         }
+        if (options.chance) {
+            this.config.chance = options.chance;
+        }
     }
     create(site, doors = []) {
         doors = doors || chooseRandomDoorSites(site);
@@ -770,11 +773,11 @@ class Cavern extends RoomDigger {
         const minHeight = Math.floor(0.5 * height); // 4
         const maxHeight = height;
         const blob = new GW.blob.Blob({
-            roundCount: 5,
-            minBlobWidth: minWidth,
-            minBlobHeight: minHeight,
-            maxBlobWidth: maxWidth,
-            maxBlobHeight: maxHeight,
+            rounds: 5,
+            minWidth: minWidth,
+            minHeight: minHeight,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
             percentSeeded: 55,
             birthParameters: 'ffffftttt',
             survivalParameters: 'ffffttttt',
@@ -1061,8 +1064,9 @@ class Lakes {
             tries: 20,
             count: 1,
             canDisrupt: false,
-            wreath: 0,
             wreathTile: SHALLOW,
+            wreathChance: 50,
+            wreathSize: 1,
             tile: DEEP,
         };
         Object.assign(this.options, options);
@@ -1078,8 +1082,11 @@ class Lakes {
         tries = this.options.tries || 20;
         maxCount = this.options.count || 1;
         canDisrupt = this.options.canDisrupt || false;
-        const wreath = this.options.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
+        const hasWreath = GW.random.chance(this.options.wreathChance)
+            ? true
+            : false;
         const wreathTile = this.options.wreathTile || SHALLOW;
+        const wreathSize = this.options.wreathSize || 1; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
         const tile = this.options.tile || DEEP;
         const lakeGrid = GW.grid.alloc(site.width, site.height, 0);
         let attempts = 0;
@@ -1090,11 +1097,11 @@ class Lakes {
             const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
                 maxCount) + lakeMinSize;
             const blob = new GW.blob.Blob({
-                roundCount: 5,
-                minBlobWidth: 4,
-                minBlobHeight: 4,
-                maxBlobWidth: width,
-                maxBlobHeight: height,
+                rounds: 5,
+                minWidth: 4,
+                minHeight: 4,
+                maxWidth: width,
+                maxHeight: height,
                 percentSeeded: 55,
                 birthParameters: 'ffffftttt',
                 survivalParameters: 'ffffttttt',
@@ -1120,8 +1127,8 @@ class Lakes {
                                 const sx = i + bounds.x + x;
                                 const sy = j + bounds.y + y;
                                 site.setTile(sx, sy, tile);
-                                if (wreath) {
-                                    GW.utils.forCircle(sx, sy, wreath, (i, j) => {
+                                if (hasWreath) {
+                                    GW.utils.forCircle(sx, sy, wreathSize, (i, j) => {
                                         if (site.isPassable(i, j)
                                         // SITE.isFloor(map, i, j) ||
                                         // SITE.isDoor(map, i, j)
@@ -1612,231 +1619,6 @@ var loop = {
     digLoops: digLoops
 };
 
-function start(grid) {
-    initSeqence(grid.width * grid.height);
-    grid.fill(0);
-}
-function finish(grid) {
-    removeDiagonalOpenings(grid);
-    finishWalls(grid);
-    finishDoors(grid);
-}
-// Returns an array of door sites if successful
-function addRoom(map, opts) {
-    opts = opts || { room: 'DEFAULT', hall: 'DEFAULT', tries: 10 };
-    if (typeof opts === 'string') {
-        opts = { room: opts };
-    }
-    if (opts.loc) {
-        opts.locs = [opts.loc];
-    }
-    let roomDigger;
-    if (typeof opts.room === 'function')
-        opts.room = opts.room();
-    if (!opts.room)
-        roomDigger = rooms.DEFAULT;
-    else if (typeof opts.room === 'string') {
-        const name = opts.room;
-        roomDigger = rooms[name];
-        if (!roomDigger) {
-            throw new Error('Failed to find room: ' + name);
-        }
-    }
-    else if (opts.room instanceof RoomDigger) {
-        roomDigger = opts.room;
-    }
-    else {
-        throw new Error('No room to build!');
-    }
-    // const roomConfig = opts.room as TYPES.RoomConfig;
-    let hallConfig = null;
-    if (opts.hall === true)
-        opts.hall = 'DEFAULT';
-    if (opts.hall !== false && !opts.hall)
-        opts.hall = 'DEFAULT';
-    if (typeof opts.hall === 'function')
-        opts.hall = { fn: opts.hall };
-    if (typeof opts.hall === 'string') {
-        const name = opts.hall;
-        opts.hall = halls[name];
-        if (!opts.hall) {
-            GW.utils.ERROR('Failed to find hall: ' + name);
-            return null;
-        }
-        hallConfig = opts.hall;
-    }
-    else {
-        if (opts.hall && opts.hall.fn) {
-            hallConfig = opts.hall;
-        }
-    }
-    if (opts.door === false) {
-        opts.door = 0;
-    }
-    else if (opts.door === true) {
-        opts.door = DOOR;
-    }
-    else if (typeof opts.door === 'number') {
-        opts.door = GW.random.chance(opts.door) ? DOOR : FLOOR;
-    }
-    else {
-        opts.door = FLOOR;
-    }
-    let locs = opts.locs || null;
-    // @ts-ignore
-    if (locs && locs.doors)
-        locs = locs.doors;
-    if (!locs || !Array.isArray(locs)) {
-        locs = null;
-        if (map.count(FLOOR) === 0) {
-            // empty map
-            const x = Math.floor(map.width / 2);
-            const y = map.height - 2;
-            locs = [[x, y]];
-        }
-    }
-    else if (locs &&
-        locs.length &&
-        locs.length == 2 &&
-        typeof locs[0] == 'number') {
-        // @ts-ignore
-        locs = [locs];
-    }
-    else if (locs.length == 0) {
-        locs = null;
-    }
-    const roomGrid = GW.grid.alloc(map.width, map.height);
-    const site = new GridSite(roomGrid);
-    let attachHall = false;
-    if (hallConfig) {
-        let hallChance = hallConfig.chance !== undefined ? hallConfig.chance : 15;
-        attachHall = GW.random.chance(hallChance);
-    }
-    // const force = config.force || false;
-    let room$1 = null;
-    let result = false;
-    let tries = opts.tries || 10;
-    while (--tries >= 0 && !result) {
-        roomGrid.fill(NOTHING);
-        // dig the room in the center
-        room$1 = roomDigger.create(site);
-        // optionally add a hall
-        if (attachHall) {
-            const hallDigger = new HallDigger();
-            room$1.hall = hallDigger.create(site, room$1.doors);
-        }
-        if (locs) {
-            // try the doors first
-            result = attachRoomAtMapDoor(map, locs, roomGrid, room$1, opts);
-        }
-        else {
-            result = attachRoom(map, roomGrid, room$1, opts);
-        }
-        // console.log(
-        //     'try',
-        //     room.hall ? 'hall: ' + room.hall.dir : 'no hall',
-        //     result
-        // );
-        // if (!result) {
-        //     roomGrid.dump();
-        //     map.dump();
-        //     console.log(
-        //         'room doors',
-        //         (room.hall ? room.hall.doors : room.doors).join(', ')
-        //     );
-        //     console.log('map locs', locs.join(', '));
-        // }
-    }
-    GW.grid.free(roomGrid);
-    return room$1 && result ? room$1 : null;
-}
-// Add some loops to the otherwise simply connected network of rooms.
-function addLoops(grid, minDistance, maxLength) {
-    return digLoops(grid, { minDistance, maxLength });
-}
-function addLakes(map, opts = {}) {
-    const lakes = new Lakes(opts);
-    const site = new GridSite(map);
-    return lakes.create(site);
-}
-function addBridges(grid, opts = {}) {
-    const bridges = new Bridges(opts);
-    const site = new GridSite(grid);
-    return bridges.create(site);
-}
-function addStairs(grid, opts = {}) {
-    const stairs$1 = new Stairs(opts);
-    const site = new GridSite(grid);
-    return stairs$1.create(site);
-}
-function removeDiagonalOpenings(grid) {
-    let i, j, k, x1, y1;
-    let diagonalCornerRemoved;
-    const site = new GridSite(grid);
-    do {
-        diagonalCornerRemoved = false;
-        for (i = 0; i < grid.width - 1; i++) {
-            for (j = 0; j < grid.height - 1; j++) {
-                for (k = 0; k <= 1; k++) {
-                    if (site.isPassable(i + k, j) &&
-                        !site.isPassable(i + (1 - k), j) &&
-                        site.isObstruction(i + (1 - k), j) &&
-                        !site.isPassable(i + k, j + 1) &&
-                        site.isObstruction(i + k, j + 1) &&
-                        site.isPassable(i + (1 - k), j + 1)) {
-                        if (GW.random.chance(50)) {
-                            x1 = i + (1 - k);
-                            y1 = j;
-                        }
-                        else {
-                            x1 = i + k;
-                            y1 = j + 1;
-                        }
-                        diagonalCornerRemoved = true;
-                        grid[x1][y1] = FLOOR; // todo - pick one of the passable tiles around it...
-                    }
-                }
-            }
-        }
-    } while (diagonalCornerRemoved == true);
-}
-function finishDoors(grid) {
-    grid.forEach((cell, x, y) => {
-        if (grid.isBoundaryXY(x, y))
-            return;
-        // todo - isDoorway...
-        if (cell == DOOR) {
-            if (
-            // TODO - isPassable
-            (grid.get(x + 1, y) == FLOOR ||
-                grid.get(x - 1, y) == FLOOR) &&
-                (grid.get(x, y + 1) == FLOOR ||
-                    grid.get(x, y - 1) == FLOOR)) {
-                // If there's passable terrain to the left or right, and there's passable terrain
-                // above or below, then the door is orphaned and must be removed.
-                grid[x][y] = FLOOR; // todo - take passable neighbor value
-            }
-            else if (
-            // todo - isPassable
-            (grid.get(x + 1, y) !== FLOOR ? 1 : 0) +
-                (grid.get(x - 1, y) !== FLOOR ? 1 : 0) +
-                (grid.get(x, y + 1) !== FLOOR ? 1 : 0) +
-                (grid.get(x, y - 1) !== FLOOR ? 1 : 0) >=
-                3) {
-                // If the door has three or more pathing blocker neighbors in the four cardinal directions,
-                // then the door is orphaned and must be removed.
-                grid[x][y] = FLOOR; // todo - take passable neighbor
-            }
-        }
-    });
-}
-function finishWalls(grid, tile = WALL) {
-    grid.forEach((cell, i, j) => {
-        if (cell == NOTHING) {
-            grid[i][j] = tile;
-        }
-    });
-}
 class Level {
     constructor(width, height, options = {}) {
         this.rooms = {};
@@ -1871,7 +1653,13 @@ class Level {
         const grid = GW.grid.alloc(this.width, this.height, 0);
         const site = this.makeSite(grid);
         this.start(site);
-        this.addFirstRoom(site);
+        let tries = 20;
+        while (--tries) {
+            if (this.addFirstRoom(site))
+                break;
+        }
+        if (!tries)
+            throw new Error('Failed to place first room!');
         let fails = 0;
         while (fails < 20) {
             if (this.addRoom(site)) {
@@ -2168,6 +1956,7 @@ class Level {
         });
     }
 }
+
 class Dungeon {
     constructor(options = {}) {
         this.config = {
@@ -2196,7 +1985,7 @@ class Dungeon {
     }
     initSeeds() {
         for (let i = 0; i < this.config.levels; ++i) {
-            this.seeds[i] = GW.random.number();
+            this.seeds[i] = GW.random.number(2 ** 32);
         }
     }
     initStairLocs() {
@@ -2272,6 +2061,232 @@ class Dungeon {
     }
 }
 
+function start(grid) {
+    initSeqence(grid.width * grid.height);
+    grid.fill(0);
+}
+function finish(grid) {
+    removeDiagonalOpenings(grid);
+    finishWalls(grid);
+    finishDoors(grid);
+}
+// Returns an array of door sites if successful
+function addRoom(map, opts) {
+    opts = opts || { room: 'DEFAULT', hall: 'DEFAULT', tries: 10 };
+    if (typeof opts === 'string') {
+        opts = { room: opts };
+    }
+    if (opts.loc) {
+        opts.locs = [opts.loc];
+    }
+    let roomDigger;
+    if (typeof opts.room === 'function')
+        opts.room = opts.room();
+    if (!opts.room)
+        roomDigger = rooms.DEFAULT;
+    else if (typeof opts.room === 'string') {
+        const name = opts.room;
+        roomDigger = rooms[name];
+        if (!roomDigger) {
+            throw new Error('Failed to find room: ' + name);
+        }
+    }
+    else if (opts.room instanceof RoomDigger) {
+        roomDigger = opts.room;
+    }
+    else {
+        throw new Error('No room to build!');
+    }
+    // const roomConfig = opts.room as TYPES.RoomConfig;
+    let hallConfig = null;
+    if (opts.hall === true)
+        opts.hall = 'DEFAULT';
+    if (opts.hall !== false && !opts.hall)
+        opts.hall = 'DEFAULT';
+    if (typeof opts.hall === 'function')
+        opts.hall = { fn: opts.hall };
+    if (typeof opts.hall === 'string') {
+        const name = opts.hall;
+        opts.hall = halls[name];
+        if (!opts.hall) {
+            GW.utils.ERROR('Failed to find hall: ' + name);
+            return null;
+        }
+        hallConfig = opts.hall;
+    }
+    else {
+        if (opts.hall && opts.hall.fn) {
+            hallConfig = opts.hall;
+        }
+    }
+    if (opts.door === false) {
+        opts.door = 0;
+    }
+    else if (opts.door === true) {
+        opts.door = DOOR;
+    }
+    else if (typeof opts.door === 'number') {
+        opts.door = GW.random.chance(opts.door) ? DOOR : FLOOR;
+    }
+    else {
+        opts.door = FLOOR;
+    }
+    let locs = opts.locs || null;
+    // @ts-ignore
+    if (locs && locs.doors)
+        locs = locs.doors;
+    if (!locs || !Array.isArray(locs)) {
+        locs = null;
+        if (map.count(FLOOR) === 0) {
+            // empty map
+            const x = Math.floor(map.width / 2);
+            const y = map.height - 2;
+            locs = [[x, y]];
+        }
+    }
+    else if (locs &&
+        locs.length &&
+        locs.length == 2 &&
+        typeof locs[0] == 'number') {
+        // @ts-ignore
+        locs = [locs];
+    }
+    else if (locs.length == 0) {
+        locs = null;
+    }
+    const roomGrid = GW.grid.alloc(map.width, map.height);
+    const site = new GridSite(roomGrid);
+    let attachHall = false;
+    if (hallConfig) {
+        let hallChance = hallConfig.chance !== undefined ? hallConfig.chance : 15;
+        attachHall = GW.random.chance(hallChance);
+    }
+    // const force = config.force || false;
+    let room$1 = null;
+    let result = false;
+    let tries = opts.tries || 10;
+    while (--tries >= 0 && !result) {
+        roomGrid.fill(NOTHING);
+        // dig the room in the center
+        room$1 = roomDigger.create(site);
+        // optionally add a hall
+        if (attachHall) {
+            const hallDigger = new HallDigger();
+            room$1.hall = hallDigger.create(site, room$1.doors);
+        }
+        if (locs) {
+            // try the doors first
+            result = attachRoomAtMapDoor(map, locs, roomGrid, room$1, opts);
+        }
+        else {
+            result = attachRoom(map, roomGrid, room$1, opts);
+        }
+        // console.log(
+        //     'try',
+        //     room.hall ? 'hall: ' + room.hall.dir : 'no hall',
+        //     result
+        // );
+        // if (!result) {
+        //     roomGrid.dump();
+        //     map.dump();
+        //     console.log(
+        //         'room doors',
+        //         (room.hall ? room.hall.doors : room.doors).join(', ')
+        //     );
+        //     console.log('map locs', locs.join(', '));
+        // }
+    }
+    GW.grid.free(roomGrid);
+    return room$1 && result ? room$1 : null;
+}
+// Add some loops to the otherwise simply connected network of rooms.
+function addLoops(grid, minDistance, maxLength) {
+    return digLoops(grid, { minDistance, maxLength });
+}
+function addLakes(map, opts = {}) {
+    const lakes = new Lakes(opts);
+    const site = new GridSite(map);
+    return lakes.create(site);
+}
+function addBridges(grid, opts = {}) {
+    const bridges = new Bridges(opts);
+    const site = new GridSite(grid);
+    return bridges.create(site);
+}
+function addStairs(grid, opts = {}) {
+    const stairs$1 = new Stairs(opts);
+    const site = new GridSite(grid);
+    return stairs$1.create(site);
+}
+function removeDiagonalOpenings(grid) {
+    let i, j, k, x1, y1;
+    let diagonalCornerRemoved;
+    const site = new GridSite(grid);
+    do {
+        diagonalCornerRemoved = false;
+        for (i = 0; i < grid.width - 1; i++) {
+            for (j = 0; j < grid.height - 1; j++) {
+                for (k = 0; k <= 1; k++) {
+                    if (site.isPassable(i + k, j) &&
+                        !site.isPassable(i + (1 - k), j) &&
+                        site.isObstruction(i + (1 - k), j) &&
+                        !site.isPassable(i + k, j + 1) &&
+                        site.isObstruction(i + k, j + 1) &&
+                        site.isPassable(i + (1 - k), j + 1)) {
+                        if (GW.random.chance(50)) {
+                            x1 = i + (1 - k);
+                            y1 = j;
+                        }
+                        else {
+                            x1 = i + k;
+                            y1 = j + 1;
+                        }
+                        diagonalCornerRemoved = true;
+                        grid[x1][y1] = FLOOR; // todo - pick one of the passable tiles around it...
+                    }
+                }
+            }
+        }
+    } while (diagonalCornerRemoved == true);
+}
+function finishDoors(grid) {
+    grid.forEach((cell, x, y) => {
+        if (grid.isBoundaryXY(x, y))
+            return;
+        // todo - isDoorway...
+        if (cell == DOOR) {
+            if (
+            // TODO - isPassable
+            (grid.get(x + 1, y) == FLOOR ||
+                grid.get(x - 1, y) == FLOOR) &&
+                (grid.get(x, y + 1) == FLOOR ||
+                    grid.get(x, y - 1) == FLOOR)) {
+                // If there's passable terrain to the left or right, and there's passable terrain
+                // above or below, then the door is orphaned and must be removed.
+                grid[x][y] = FLOOR; // todo - take passable neighbor value
+            }
+            else if (
+            // todo - isPassable
+            (grid.get(x + 1, y) !== FLOOR ? 1 : 0) +
+                (grid.get(x - 1, y) !== FLOOR ? 1 : 0) +
+                (grid.get(x, y + 1) !== FLOOR ? 1 : 0) +
+                (grid.get(x, y - 1) !== FLOOR ? 1 : 0) >=
+                3) {
+                // If the door has three or more pathing blocker neighbors in the four cardinal directions,
+                // then the door is orphaned and must be removed.
+                grid[x][y] = FLOOR; // todo - take passable neighbor
+            }
+        }
+    });
+}
+function finishWalls(grid, tile = WALL) {
+    grid.forEach((cell, i, j) => {
+        if (cell == NOTHING) {
+            grid[i][j] = tile;
+        }
+    });
+}
+
 var dig$1 = {
     __proto__: null,
     room: room,
@@ -2291,8 +2306,6 @@ var dig$1 = {
     removeDiagonalOpenings: removeDiagonalOpenings,
     finishDoors: finishDoors,
     finishWalls: finishWalls,
-    Level: Level,
-    Dungeon: Dungeon,
     NOTHING: NOTHING,
     FLOOR: FLOOR,
     DOOR: DOOR,
@@ -2309,7 +2322,9 @@ var dig$1 = {
     fillCostGrid: fillCostGrid,
     GridSite: GridSite,
     Hall: Hall,
-    Room: Room
+    Room: Room,
+    Level: Level,
+    Dungeon: Dungeon
 };
 
 exports.dig = dig$1;
