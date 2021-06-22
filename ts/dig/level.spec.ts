@@ -7,9 +7,12 @@ describe('Level', () => {
     test('basic', () => {
         const grid = new GW.grid.NumGrid(40, 40);
 
+        Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
+        Dig.room.install('ROOM', new Dig.room.Rectangular());
+
         const level = new Dig.Level(40, 40, {
             seed: 23456,
-            rooms: { count: 20, first: 'BROGUE_ENTRANCE', digger: 'ROOM' },
+            rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 50 },
             halls: { chance: 50 },
             loops: { minDistance: 20, maxLength: 5 },

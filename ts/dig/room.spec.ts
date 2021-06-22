@@ -2,14 +2,15 @@ import 'jest-extended';
 // import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as Dig from './index';
+import * as Site from '../site';
 
 describe('dig', () => {
-    let site: Dig.GridSite;
+    let site: Site.GridSite;
 
     beforeEach(() => {
         // UTILS.mockRandom();
         GW.random.seed(12345);
-        site = new Dig.GridSite(50, 30);
+        site = new Site.GridSite(50, 30);
     });
 
     afterEach(() => {

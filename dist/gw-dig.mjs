@@ -2446,7 +2446,7 @@ class Blueprint {
         if (opts.size) {
             if (typeof opts.size === 'string') {
                 const parts = opts.size
-                    .split(/[,|]/)
+                    .split(/-/)
                     .map((v) => v.trim())
                     .map((v) => Number.parseInt(v));
                 if (parts.length !== 2)

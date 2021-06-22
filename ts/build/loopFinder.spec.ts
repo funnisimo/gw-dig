@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
 
 import * as LOOP from './loopFinder';
-import { GridSite, WALL, FLOOR, Flags } from '../dig/index';
+import { GridSite, WALL, FLOOR, Flags } from '../site';
 
 describe('LoopFinder', () => {
     let site: GridSite;
