@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
 
 import * as TYPES from './types';
-import * as SITE from './site';
+import * as SITE from '../site';
 import * as ROOM from './room';
 import * as HALL from './hall';
 import * as LOOP from './loop';
@@ -78,13 +78,12 @@ export class Level {
         this.endLoc = options.endLoc || [-1, -1];
     }
 
-    makeSite(grid: GW.grid.NumGrid) {
-        return new SITE.GridSite(grid);
+    makeSite(width: number, height: number) {
+        return new SITE.GridSite(width, height);
     }
 
     create(setFn: TYPES.DigFn) {
-        const grid = GW.grid.alloc(this.width, this.height, 0);
-        const site = this.makeSite(grid);
+        const site = this.makeSite(this.width, this.height);
 
         this.start(site);
 
@@ -110,11 +109,12 @@ export class Level {
 
         this.finish(site);
 
-        grid.forEach((v, x, y) => {
-            if (v) setFn(x, y, v);
+        GW.utils.forRect(this.width, this.height, (x, y) => {
+            const t = site.getTile(x, y);
+            if (t) setFn(x, y, t);
         });
 
-        GW.grid.free(grid);
+        site.free();
         return true;
     }
 
@@ -138,8 +138,7 @@ export class Level {
     }
 
     addFirstRoom(site: SITE.Site): TYPES.Room | null {
-        const grid = GW.grid.alloc(site.width, site.height);
-        const roomSite = this.makeSite(grid);
+        const roomSite = this.makeSite(this.width, this.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.first || this.rooms.digger || 'DEFAULT'
@@ -152,14 +151,13 @@ export class Level {
         ) {
             room = null;
         }
-        GW.grid.free(grid);
+        roomSite.free();
         // Should we add the starting stairs now too?
         return room;
     }
 
     addRoom(site: SITE.Site): TYPES.Room | null {
-        const grid = GW.grid.alloc(site.width, site.height);
-        const roomSite = this.makeSite(grid);
+        const roomSite = this.makeSite(this.width, this.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
         );
@@ -181,7 +179,7 @@ export class Level {
         if (room && !this._attachRoom(site, roomSite, room)) {
             room = null;
         }
-        GW.grid.free(grid);
+        roomSite.free();
         return room;
     }
 
@@ -213,7 +211,7 @@ export class Level {
                     this._roomFitsAt(site, roomSite, offsetX, offsetY)
                 ) {
                     // TYPES.Room fits here.
-                    site.copy(roomSite, offsetX, offsetY);
+                    UTILS.copySite(site, roomSite, offsetX, offsetY);
                     this._attachDoor(site, room, x, y, oppDir);
 
                     // door[0] = -1;
@@ -251,7 +249,7 @@ export class Level {
                 // dungeon.debug("attachRoom: ", x, y, oppDir);
 
                 // TYPES.Room fits here.
-                site.copy(roomSite, offX, offY);
+                UTILS.copySite(site, roomSite, offX, offY);
                 // this._attachDoor(site, room, x, y, oppDir);  // No door on first room!
                 room.translate(offX, offY);
                 // const newDoors = doorSites.map((site) => {

@@ -45,14 +45,29 @@ export function fillCostGrid(source: Site, costGrid: GW.grid.NumGrid) {
     );
 }
 
+const Fl = GW.flag.fl;
+
+export enum Flags {
+    IS_IN_LOOP = Fl(0), // this cell is part of a terrain loop
+    IS_CHOKEPOINT = Fl(1), // if this cell is blocked, part of the map will be rendered inaccessible
+    IS_GATE_SITE = Fl(2), // consider placing a locked door here
+    
+    IS_IN_ROOM_MACHINE = Fl(3),
+    IS_IN_AREA_MACHINE = Fl(4),
+    
+    IMPREGNABLE = Fl(5), // no tunneling allowed!
+
+    IS_IN_MACHINE = IS_IN_ROOM_MACHINE | IS_IN_AREA_MACHINE, // sacred ground; don't generate items here, or teleport randomly to it
+}
+
 export interface Site {
     readonly width: number;
     readonly height: number;
 
+    free: () => void;
+
     hasXY: GW.utils.XYMatchFunc;
     isBoundaryXY: GW.utils.XYMatchFunc;
-    get: (x: number, y: number) => number;
-    copy: (other: Site, offsetX: number, offsetY: number) => void;
 
     isSet: GW.utils.XYMatchFunc;
     isDiggable: GW.utils.XYMatchFunc;
@@ -72,41 +87,45 @@ export interface Site {
     isAnyWater: GW.utils.XYMatchFunc;
 
     setTile: (x: number, y: number, tile: number) => void;
+    getTile: (x: number, y: number) => number;
+
+    hasSiteFlag: (x: number, y: number, flag: number) => boolean;
+    setSiteFlag: (x: number, y: number, flag: number) => void;
+    clearSiteFlag: (x: number, y: number, flag: number) => void;
+
+    getChokeCount: (x: number, y: number) => number;
+    setChokeCount: (x: number, y: number, count: number) => void;
 }
 
 export class GridSite implements Site {
-    public grid: GW.grid.NumGrid;
+    public tiles: GW.grid.NumGrid;
+    public flags: GW.grid.NumGrid;
+    public choke: GW.grid.NumGrid;
 
-    constructor(grid: GW.grid.NumGrid) {
-        this.grid = grid;
+    constructor(width: number, height: number) {
+        this.tiles = GW.grid.alloc(width, height);
+        this.flags = GW.grid.alloc(width, height);
+        this.choke = GW.grid.alloc(width, height);
+    }
+
+    free() {
+        GW.grid.free(this.tiles);
+        GW.grid.free(this.flags);
+        GW.grid.free(this.choke);
     }
 
     get width() {
-        return this.grid.width;
+        return this.tiles.width;
     }
     get height() {
-        return this.grid.height;
+        return this.tiles.height;
     }
 
     hasXY(x: number, y: number) {
-        return this.grid.hasXY(x, y);
+        return this.tiles.hasXY(x, y);
     }
     isBoundaryXY(x: number, y: number) {
-        return this.grid.isBoundaryXY(x, y);
-    }
-
-    get(x: number, y: number): number {
-        return this.grid.get(x, y) || 0;
-    }
-
-    copy(other: Site, offsetX = 0, offsetY = 0) {
-        this.grid.forEach((_c, i, j) => {
-            const otherX = i - offsetX;
-            const otherY = j - offsetY;
-            const v = other.get(otherX, otherY);
-            if (!v) return;
-            this.grid.set(i, j, v);
-        });
+        return this.tiles.isBoundaryXY(x, y);
     }
 
     isPassable(x: number, y: number) {
@@ -120,31 +139,31 @@ export class GridSite implements Site {
     }
 
     isNothing(x: number, y: number) {
-        const v = this.grid.get(x, y);
+        const v = this.tiles.get(x, y);
         return v === NOTHING;
     }
 
     isDiggable(x: number, y: number) {
-        const v = this.grid.get(x, y);
+        const v = this.tiles.get(x, y);
         return v === NOTHING;
     }
 
     isFloor(x: number, y: number) {
-        return this.grid.get(x, y) == FLOOR;
+        return this.tiles.get(x, y) == FLOOR;
     }
 
     isDoor(x: number, y: number) {
-        const v = this.grid.get(x, y);
+        const v = this.tiles.get(x, y);
         return v === DOOR;
     }
 
     isBridge(x: number, y: number) {
-        const v = this.grid.get(x, y);
+        const v = this.tiles.get(x, y);
         return v === BRIDGE;
     }
 
     isWall(x: number, y: number) {
-        const v = this.grid.get(x, y);
+        const v = this.tiles.get(x, y);
         return v === WALL || v === IMPREGNABLE;
     }
 
@@ -153,16 +172,16 @@ export class GridSite implements Site {
     }
 
     isStairs(x: number, y: number) {
-        const v = this.grid.get(x, y);
+        const v = this.tiles.get(x, y);
         return v === UP_STAIRS || v === DOWN_STAIRS;
     }
 
     isDeep(x: number, y: number) {
-        return this.grid.get(x, y) === DEEP;
+        return this.tiles.get(x, y) === DEEP;
     }
 
     isShallow(x: number, y: number) {
-        return this.grid.get(x, y) === SHALLOW;
+        return this.tiles.get(x, y) === SHALLOW;
     }
 
     isAnyWater(x: number, y: number) {
@@ -170,10 +189,38 @@ export class GridSite implements Site {
     }
 
     isSet(x: number, y: number) {
-        return (this.grid.get(x, y) || 0) > 0;
+        return (this.tiles.get(x, y) || 0) > 0;
+    }
+
+    getTile(x: number, y: number): number {
+        return this.tiles.get(x, y) || 0;
     }
 
     setTile(x: number, y: number, tile: number) {
-        if (this.grid.hasXY(x, y)) this.grid[x][y] = tile;
+        if (this.tiles.hasXY(x, y)) this.tiles[x][y] = tile;
     }
+
+    hasSiteFlag(x: number, y: number, flag: number) : boolean {
+        const have = this.flags.get(x, y) || 0;
+        return !!(have & flag);
+    }
+
+    setSiteFlag(x: number, y: number, flag: number) : void {
+        const value = (this.flags.get(x, y) || 0) | flag;
+        this.flags.set(x, y, value);
+    }
+
+    clearSiteFlag(x: number, y: number, flag: number) : void {
+        const value = (this.flags.get(x, y) || 0) & ~flag;
+        this.flags.set(x, y, value);
+    }
+
+    getChokeCount(x: number, y: number): number {
+        return this.choke.get(x, y) || 0;
+    }
+    
+    setChokeCount(x: number, y: number, count: number) {
+        this.choke.set(x, y, count);
+    }
+
 }

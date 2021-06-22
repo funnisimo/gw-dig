@@ -2,7 +2,7 @@
     "name": "gw-dig",
     "version": "0.3.1",
     "description": "Map Digging components for Roguelikes",
-    "main": "dist/gw-dig.cjs",
+    "main": "dist/gw-dig.js",
     "browser": "dist/gw-dig.min.js",
     "module": "dist/gw-dig.mjs",
     "types": "dist/gw-dig.d.ts",

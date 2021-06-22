@@ -1,8 +1,8 @@
 import 'jest-extended';
-import * as UTILS from '../test/utils';
+import * as UTILS from '../../test/utils';
 import * as GW from 'gw-utils';
 import * as HALL from './hall';
-import * as SITE from './site';
+import * as SITE from '../site';
 import { Room } from './types';
 
 describe('Hall', () => {
@@ -113,15 +113,13 @@ describe('Hall', () => {
     // });
 
     describe('digHall', () => {
-        let grid: GW.grid.NumGrid;
         let site: SITE.GridSite;
         let room: Room;
 
         beforeEach(() => {
-            grid = GW.grid.alloc(50, 50);
-            grid.fillRect(20, 20, 10, 10, 1);
             room = new Room(20, 20, 10, 10);
-            site = new SITE.GridSite(grid);
+            site = new SITE.GridSite(50, 50);
+            site.tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
             //     [-1, -1],
             //     [-1, -1],
@@ -131,7 +129,7 @@ describe('Hall', () => {
         });
 
         afterEach(() => {
-            GW.grid.free(grid);
+            site.free();
         });
 
         test('no chance - no hall', () => {
@@ -267,7 +265,7 @@ describe('Hall', () => {
                 [10, 25],
             ]);
 
-            expect(grid.count(10)).toEqual(0);
+            expect(site.tiles.count(10)).toEqual(0);
         });
 
         test('basic hall - right, width:3', () => {
@@ -285,20 +283,18 @@ describe('Hall', () => {
             expect(hall!.y2).toEqual(26);
             expect(hall!.doors).toEqual([undefined, [39, 25]]);
 
-            expect(grid.count(10)).toBeGreaterThan(0);
+            expect(site.tiles.count(10)).toBeGreaterThan(0);
         });
     });
 
     describe('tile', () => {
-        let grid: GW.grid.NumGrid;
         let site: SITE.GridSite;
         let room: Room;
 
         beforeEach(() => {
-            grid = GW.grid.alloc(50, 50);
-            grid.fillRect(20, 20, 10, 10, 1);
             room = new Room(20, 20, 10, 10);
-            site = new SITE.GridSite(grid);
+            site = new SITE.GridSite(50, 50);
+            site.tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
             //     [-1, -1],
             //     [-1, -1],
@@ -308,7 +304,7 @@ describe('Hall', () => {
         });
 
         afterEach(() => {
-            GW.grid.free(grid);
+            site.free();
         });
 
         test('can set tile', () => {
@@ -326,7 +322,7 @@ describe('Hall', () => {
             expect(hall!.y2).toEqual(35);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
 
-            expect(grid[hall!.x][hall!.y]).toEqual(10);
+            expect(site.tiles[hall!.x][hall!.y]).toEqual(10);
         });
     });
 });

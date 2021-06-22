@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
+import * as SITE from '../site';
 
 export interface LoopOptions {
     minDistance: number;
@@ -173,10 +173,9 @@ export class LoopDigger {
 
 // Add some loops to the otherwise simply connected network of rooms.
 export function digLoops(
-    grid: GW.grid.NumGrid,
+    site: SITE.Site,
     opts: Partial<LoopOptions> = {}
 ) {
     const digger = new LoopDigger(opts);
-    const site = new SITE.GridSite(grid);
     return digger.create(site);
 }

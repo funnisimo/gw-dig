@@ -30,21 +30,21 @@ export default [{
     name: 'GW',
     freeze: false,
     extend: true,
-    sourcemap: true,
+    sourcemap: false,
     globals: {
       'gw-map': 'GW',
       'gw-utils': 'GW'
     },
   },
-  {
-    file: 'dist/gw-dig.cjs',
-    format: 'cjs',
-    freeze: false,
-    globals: {
-      'gw-map': 'GW',
-      'gw-utils': 'GW'
-    }
-  },
+  // {
+  //   file: 'dist/gw-dig.cjs',
+  //   format: 'cjs',
+  //   freeze: false,
+  //   globals: {
+  //     'gw-map': 'GW',
+  //     'gw-utils': 'GW'
+  //   }
+  // },
   {
     file: 'dist/gw-dig.mjs',
     format: 'es',

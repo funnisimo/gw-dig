@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
+import * as SITE from '../site';
 
 export interface LakeOpts {
     height: number;

@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
+import * as SITE from '../site';
 import * as UTILS from './utils';
 import * as TYPES from './types';
 
@@ -379,7 +379,7 @@ export function dig(
     return digger.create(site, doors);
 }
 
-export var halls: Record<string, TYPES.HallData> = {};
+export var halls: Record<string, HallDigger> = {};
 
 export function install(id: string, hall: HallDigger) {
     // @ts-ignore

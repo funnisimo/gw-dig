@@ -1,50 +1,50 @@
 import * as GW from 'gw-utils';
 
 export interface RoomConfig {
-    fn?: RoomFn;
+    // fn?: RoomFn;
     door?: boolean | number;
     doorChance?: number;
     tile?: number;
     [x: string]: any;
 }
 
-export type RoomFn = (
-    config: RoomConfig,
-    grid: GW.grid.NumGrid
-) => Room | RoomConfig | null;
+// export type RoomFn = (
+//     config: RoomConfig,
+//     grid: GW.grid.NumGrid
+// ) => Room | RoomConfig | null;
 
-export interface RoomData extends RoomConfig {
-    fn: RoomFn;
-    id: string;
-}
+// export interface RoomData extends RoomConfig {
+//     fn: RoomFn;
+//     id: string;
+// }
 
-export type HallFn = (
-    opts: HallConfig,
-    grid: GW.grid.NumGrid,
-    room: Room
-) => Hall | any | null;
-export interface HallConfig {
-    fn?: HallFn;
-    chance?: number;
-    length?: GW.range.RangeBase | [GW.range.RangeBase, GW.range.RangeBase];
-    width?: GW.range.RangeBase;
-    tile?: number;
-    [x: string]: any;
-}
+// export type HallFn = (
+//     opts: HallConfig,
+//     grid: GW.grid.NumGrid,
+//     room: Room
+// ) => Hall | any | null;
+// export interface HallConfig {
+//     fn?: HallFn;
+//     chance?: number;
+//     length?: GW.range.RangeBase | [GW.range.RangeBase, GW.range.RangeBase];
+//     width?: GW.range.RangeBase;
+//     tile?: number;
+//     [x: string]: any;
+// }
 
-export interface HallData extends HallConfig {
-    fn: HallFn;
-    id: string;
-}
+// export interface HallData extends HallConfig {
+//     fn: HallFn;
+//     id: string;
+// }
 
-export interface DigConfig {
-    room: string | any;
-    hall?: string | HallConfig | boolean;
-    tries?: number;
-    locs?: GW.utils.Loc[];
-    loc?: GW.utils.Loc;
-    door?: number | boolean;
-}
+// export interface DigConfig {
+//     room: string | any;
+//     hall?: string | HallConfig | boolean;
+//     tries?: number;
+//     locs?: GW.utils.Loc[];
+//     loc?: GW.utils.Loc;
+//     door?: number | boolean;
+// }
 
 export type DigFn = (x: number, y: number, tile: number) => any;
 
@@ -132,10 +132,10 @@ export class Room extends GW.utils.Bounds {
     }
 }
 
-export interface DigInfo {
-    room: RoomData;
-    hall: HallData | null;
-    tries: number;
-    locs: GW.utils.Loc[] | null;
-    door: number;
-}
+// export interface DigInfo {
+//     room: RoomData;
+//     hall: HallData | null;
+//     tries: number;
+//     locs: GW.utils.Loc[] | null;
+//     door: number;
+// }

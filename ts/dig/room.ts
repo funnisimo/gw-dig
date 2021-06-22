@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
 import * as TYPES from './types';
 import * as UTILS from './utils';
-import * as SITE from './site';
+import * as SITE from '../site';
 
 export function checkConfig(
     config: TYPES.RoomConfig,
@@ -109,10 +109,10 @@ export class ChoiceRoom extends RoomDigger {
     }
 }
 
-export function choiceRoom(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function choiceRoom(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new ChoiceRoom(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class Cavern extends RoomDigger {
@@ -168,10 +168,10 @@ export class Cavern extends RoomDigger {
     }
 }
 
-export function cavern(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function cavern(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new Cavern(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
@@ -222,11 +222,11 @@ export class BrogueEntrance extends RoomDigger {
 
 export function brogueEntrance(
     config: TYPES.RoomConfig,
-    grid: GW.grid.NumGrid
+    site: SITE.Site
 ) {
-    grid.fill(0);
+    // grid.fill(0);
     const digger = new BrogueEntrance(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class Cross extends RoomDigger {
@@ -274,10 +274,10 @@ export class Cross extends RoomDigger {
     }
 }
 
-export function cross(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function cross(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new Cross(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class SymmetricalCross extends RoomDigger {
@@ -326,11 +326,11 @@ export class SymmetricalCross extends RoomDigger {
 
 export function symmetricalCross(
     config: TYPES.RoomConfig,
-    grid: GW.grid.NumGrid
+    site: SITE.Site
 ) {
-    grid.fill(0);
+    // grid.fill(0);
     const digger = new SymmetricalCross(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class Rectangular extends RoomDigger {
@@ -355,10 +355,10 @@ export class Rectangular extends RoomDigger {
     }
 }
 
-export function rectangular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function rectangular(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new Rectangular(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class Circular extends RoomDigger {
@@ -389,10 +389,10 @@ export class Circular extends RoomDigger {
     }
 }
 
-export function circular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function circular(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new Circular(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class BrogueDonut extends RoomDigger {
@@ -436,10 +436,10 @@ export class BrogueDonut extends RoomDigger {
     }
 }
 
-export function brogueDonut(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function brogueDonut(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new BrogueDonut(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export class ChunkyRoom extends RoomDigger {
@@ -498,10 +498,10 @@ export class ChunkyRoom extends RoomDigger {
     }
 }
 
-export function chunkyRoom(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
-    grid.fill(0);
+export function chunkyRoom(config: TYPES.RoomConfig, site: SITE.Site) {
+    // grid.fill(0);
     const digger = new ChunkyRoom(config);
-    return digger.create(new SITE.GridSite(grid));
+    return digger.create(site);
 }
 
 export function install(id: string, room: RoomDigger) {

@@ -1,25 +1,22 @@
 import 'jest-extended';
-// import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as BRIDGE from './bridge';
-import * as SITE from './site';
+import * as SITE from '../site';
 
 describe('Bridge', () => {
-    let grid: GW.grid.NumGrid;
-    let site: SITE.Site;
+    let site: SITE.GridSite;
 
     beforeEach(() => {
-        grid = GW.grid.alloc(20, 20);
-        site = new SITE.GridSite(grid);
+        site = new SITE.GridSite(20, 20);
     });
 
     afterEach(() => {
-        GW.grid.free(grid);
+        site.free();
     });
 
     test('candidate test', () => {
-        grid.fill(SITE.FLOOR);
-        GW.utils.forRect(1, 9, 18, 3, (x, y) => (grid[x][y] = SITE.DEEP));
+        site.tiles.fill(SITE.FLOOR);
+        GW.utils.forRect(1, 9, 18, 3, (x, y) => (site.setTile(x, y, SITE.DEEP)));
 
         const bridge = new BRIDGE.Bridges();
         expect(bridge.isBridgeCandidate(site, 10, 9, [1, 0])).toBeFalsy();
@@ -27,16 +24,16 @@ describe('Bridge', () => {
     });
 
     test('create', () => {
-        grid.fill(SITE.FLOOR);
-        GW.utils.forRect(2, 9, 16, 3, (x, y) => (grid[x][y] = SITE.DEEP));
+        site.tiles.fill(SITE.FLOOR);
+        GW.utils.forRect(2, 9, 16, 3, (x, y) => (site.setTile(x, y, SITE.DEEP)));
 
-        expect(grid.count(6)).toEqual(0);
+        expect(site.tiles.count(6)).toEqual(0);
 
         const bridge = new BRIDGE.Bridges({ maxLength: 5, minDistance: 18 });
         bridge.create(site);
 
         // grid.dump();
 
-        expect(grid.count(6)).toEqual(3);
+        expect(site.tiles.count(6)).toEqual(3);
     });
 });
