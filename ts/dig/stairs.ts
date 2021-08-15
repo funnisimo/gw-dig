@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
+import * as SITE from './site';
 
 export interface StairOpts {
     up: boolean | GW.utils.Loc;
@@ -27,7 +27,7 @@ export class Stairs {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.Site) {
+    create(site: SITE.DigSite) {
         let needUp = this.options.up !== false;
         let needDown = this.options.down !== false;
         const minDistance =
@@ -43,13 +43,13 @@ export class Stairs {
         if (this.options.start && typeof this.options.start !== 'string') {
             let start = this.options.start;
             if (start === true) {
-                start = GW.random.matchingXY(
+                start = GW.random.matchingLoc(
                     site.width,
                     site.height,
                     isValidLoc
                 );
             } else {
-                start = GW.random.matchingXYNear(
+                start = GW.random.matchingLocNear(
                     GW.utils.x(start),
                     GW.utils.y(start),
                     isValidLoc
@@ -63,13 +63,13 @@ export class Stairs {
             Array.isArray(this.options.down)
         ) {
             const up = this.options.up;
-            upLoc = GW.random.matchingXYNear(
+            upLoc = GW.random.matchingLocNear(
                 GW.utils.x(up),
                 GW.utils.y(up),
                 isValidLoc
             );
             const down = this.options.down;
-            downLoc = GW.random.matchingXYNear(
+            downLoc = GW.random.matchingLocNear(
                 GW.utils.x(down),
                 GW.utils.y(down),
                 isValidLoc
@@ -79,13 +79,13 @@ export class Stairs {
             !Array.isArray(this.options.down)
         ) {
             const up = this.options.up;
-            upLoc = GW.random.matchingXYNear(
+            upLoc = GW.random.matchingLocNear(
                 GW.utils.x(up),
                 GW.utils.y(up),
                 isValidLoc
             );
             if (needDown) {
-                downLoc = GW.random.matchingXY(
+                downLoc = GW.random.matchingLoc(
                     site.width,
                     site.height,
                     (x, y) => {
@@ -104,13 +104,13 @@ export class Stairs {
             !Array.isArray(this.options.up)
         ) {
             const down = this.options.down;
-            downLoc = GW.random.matchingXYNear(
+            downLoc = GW.random.matchingLocNear(
                 GW.utils.x(down),
                 GW.utils.y(down),
                 isValidLoc
             );
             if (needUp) {
-                upLoc = GW.random.matchingXY(
+                upLoc = GW.random.matchingLoc(
                     site.width,
                     site.height,
                     (x, y) => {
@@ -130,9 +130,9 @@ export class Stairs {
                 );
             }
         } else if (needUp) {
-            upLoc = GW.random.matchingXY(site.width, site.height, isValidLoc);
+            upLoc = GW.random.matchingLoc(site.width, site.height, isValidLoc);
             if (needDown) {
-                downLoc = GW.random.matchingXY(
+                downLoc = GW.random.matchingLoc(
                     site.width,
                     site.height,
                     (x, y) => {
@@ -147,7 +147,11 @@ export class Stairs {
                 );
             }
         } else if (needDown) {
-            downLoc = GW.random.matchingXY(site.width, site.height, isValidLoc);
+            downLoc = GW.random.matchingLoc(
+                site.width,
+                site.height,
+                isValidLoc
+            );
         }
 
         if (upLoc) {
@@ -169,13 +173,13 @@ export class Stairs {
         return upLoc || downLoc ? locations : null;
     }
 
-    hasXY(site: SITE.Site, x: number, y: number) {
+    hasXY(site: SITE.DigSite, x: number, y: number) {
         if (x < 0 || y < 0) return false;
         if (x >= site.width || y >= site.height) return false;
         return true;
     }
 
-    isStairXY(site: SITE.Site, x: number, y: number) {
+    isStairXY(site: SITE.DigSite, x: number, y: number) {
         let count = 0;
         if (!this.hasXY(site, x, y) || !site.isDiggable(x, y)) return false;
 
@@ -196,7 +200,7 @@ export class Stairs {
         return count == 1;
     }
 
-    setupStairs(site: SITE.Site, x: number, y: number, tile: number) {
+    setupStairs(site: SITE.DigSite, x: number, y: number, tile: number) {
         const indexes = GW.random.sequence(4);
 
         let dir: GW.utils.Loc | null = null;

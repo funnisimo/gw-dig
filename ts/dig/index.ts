@@ -10,6 +10,7 @@
 // import * as LOOP from './loop';
 // import * as MAP from 'gw-map.js';
 
+export * as site from './site';
 export * as room from './room';
 export * as hall from './hall';
 export * as lake from './lake';

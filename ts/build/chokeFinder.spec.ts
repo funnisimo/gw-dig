@@ -3,7 +3,8 @@ import * as GW from 'gw-utils';
 
 import * as CHOKE from './chokeFinder';
 import * as LOOP from './loopFinder';
-import { GridSite, WALL, FLOOR, Flags } from '../site';
+import { WALL, FLOOR } from '../dig/site';
+import { GridSite, Flags } from './site';
 
 describe('LoopFinder', () => {
     let site: GridSite;

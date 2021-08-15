@@ -1,6 +1,6 @@
 import * as GW from 'gw-utils';
 
-import * as SITE from '../site';
+import * as SITE from './site';
 
 ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////
@@ -9,7 +9,7 @@ export class LoopFinder {
     constructor() {}
 
     compute(
-        site: SITE.Site
+        site: SITE.BuildSite
     ) {
         // const grid = GW.grid.alloc(site.width, site.height);
 
@@ -21,7 +21,7 @@ export class LoopFinder {
         // GW.grid.free(grid);
     }
 
-    _initGrid(site: SITE.Site) {
+    _initGrid(site: SITE.BuildSite) {
         GW.utils.forRect(site.width, site.height, (x, y) => {
             if (site.isPassable(x, y)) {
                 site.setSiteFlag(x, y, SITE.Flags.IS_IN_LOOP);
@@ -32,7 +32,7 @@ export class LoopFinder {
         });
     }
 
-    _checkCell(site: SITE.Site, x: number, y: number) {
+    _checkCell(site: SITE.BuildSite, x: number, y: number) {
         let inString;
         let newX, newY, dir, sdir;
         let numStrings, maxStringLength, currentStringLength;
@@ -101,7 +101,7 @@ export class LoopFinder {
         }
     }
 
-    _fillInnerLoopGrid(site: SITE.Site, innerGrid: GW.grid.NumGrid) {
+    _fillInnerLoopGrid(site: SITE.BuildSite, innerGrid: GW.grid.NumGrid) {
         for (let x = 0; x < site.width; ++x) {
             for (let y = 0; y < site.height; ++y) {
                 if (site.hasSiteFlag(x, y, SITE.Flags.IS_IN_LOOP)) {
@@ -117,7 +117,7 @@ export class LoopFinder {
         }
     }
 
-    _update(site: SITE.Site) {
+    _update(site: SITE.BuildSite) {
         // remove extraneous loop markings
         const innerLoop = GW.grid.alloc(site.width, site.height);
         this._fillInnerLoopGrid(site, innerLoop);

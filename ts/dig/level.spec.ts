@@ -1,7 +1,5 @@
-
 import * as GW from 'gw-utils';
 import * as Dig from './index';
-
 
 describe('Level', () => {
     test('basic', () => {
@@ -11,12 +9,18 @@ describe('Level', () => {
         Dig.room.install('ROOM', new Dig.room.Rectangular());
 
         const level = new Dig.Level(40, 40, {
-            seed: 23456,
+            seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 50 },
             halls: { chance: 50 },
             loops: { minDistance: 20, maxLength: 5 },
-            lakes: { count: 5, wreathSize: 1, wreathChance: 100 },
+            lakes: {
+                count: 1,
+                wreathSize: 1,
+                wreathChance: 100,
+                width: 10,
+                height: 10,
+            },
             bridges: {
                 minDistance: 10,
                 maxLength: 10,
@@ -27,7 +31,11 @@ describe('Level', () => {
             grid[x][y] = v;
         });
 
-        // grid.dump();
+        // grid.dump((v) => {
+        //     if (v == 1) return '.';
+        //     if (v == 3) return '#';
+        //     return '' + v;
+        // });
 
         expect(grid.count(0)).toEqual(0);
         expect(grid.count(1)).toBeGreaterThan(0);

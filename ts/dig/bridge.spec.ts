@@ -1,7 +1,7 @@
 import 'jest-extended';
 import * as GW from 'gw-utils';
 import * as BRIDGE from './bridge';
-import * as SITE from '../site';
+import * as SITE from './site';
 
 describe('Bridge', () => {
     let site: SITE.GridSite;

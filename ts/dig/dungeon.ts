@@ -90,7 +90,7 @@ export class Dungeon {
             Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
 
         for (let i = 0; i < this.config.levels; ++i) {
-            const endLoc = GW.random.matchingXY(
+            const endLoc = GW.random.matchingLoc(
                 this.config.width,
                 this.config.height,
                 (x, y) => {

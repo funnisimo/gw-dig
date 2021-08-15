@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
 
 import * as TYPES from './types';
-import * as SITE from '../site';
+import * as SITE from './site';
 import * as ROOM from './room';
 import * as HALL from './hall';
 import * as LOOP from './loop';
@@ -54,6 +54,8 @@ export class Level {
     public startLoc: GW.utils.Loc = [-1, -1];
     public endLoc: GW.utils.Loc = [-1, -1];
 
+    public seq: number[];
+
     constructor(
         width: number,
         height: number,
@@ -61,6 +63,7 @@ export class Level {
     ) {
         this.height = height;
         this.width = width;
+        this.seq = GW.random.sequence(width * height);
 
         if (options.seed) {
             GW.random.seed(options.seed);
@@ -110,7 +113,7 @@ export class Level {
         this.finish(site);
 
         GW.utils.forRect(this.width, this.height, (x, y) => {
-            const t = site.getTile(x, y);
+            const t = site.getTileIndex(x, y);
             if (t) setFn(x, y, t);
         });
 
@@ -118,9 +121,7 @@ export class Level {
         return true;
     }
 
-    start(_site: SITE.Site) {
-        SITE.initSeqence(this.width * this.height);
-    }
+    start(_site: SITE.DigSite) {}
 
     getDigger(
         id: string | string[] | Record<string, number> | ROOM.RoomDigger
@@ -137,7 +138,7 @@ export class Level {
         return new ROOM.ChoiceRoom(id);
     }
 
-    addFirstRoom(site: SITE.Site): TYPES.Room | null {
+    addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
         const roomSite = this.makeSite(this.width, this.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
@@ -156,7 +157,7 @@ export class Level {
         return room;
     }
 
-    addRoom(site: SITE.Site): TYPES.Room | null {
+    addRoom(site: SITE.DigSite): TYPES.Room | null {
         const roomSite = this.makeSite(this.width, this.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
@@ -184,17 +185,17 @@ export class Level {
     }
 
     _attachRoom(
-        site: SITE.Site,
-        roomSite: SITE.Site,
+        site: SITE.DigSite,
+        roomSite: SITE.DigSite,
         room: TYPES.Room
     ): boolean {
         // console.log('attachRoom');
         const doorSites = room.hall ? room.hall.doors : room.doors;
 
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
-        for (let i = 0; i < SITE.SEQ.length; i++) {
-            const x = Math.floor(SITE.SEQ[i] / this.height);
-            const y = SITE.SEQ[i] % this.height;
+        for (let i = 0; i < this.seq.length; i++) {
+            const x = Math.floor(this.seq[i] / this.height);
+            const y = this.seq[i] % this.height;
 
             if (!site.isNothing(x, y)) continue;
             const dir = UTILS.directionOfDoorSite(site, x, y);
@@ -226,8 +227,8 @@ export class Level {
     }
 
     _attachRoomAtLoc(
-        site: SITE.Site,
-        roomSite: SITE.Site,
+        site: SITE.DigSite,
+        roomSite: SITE.DigSite,
         room: TYPES.Room,
         attachLoc: GW.utils.Loc
     ): boolean {
@@ -265,8 +266,8 @@ export class Level {
     }
 
     _roomFitsAt(
-        map: SITE.Site,
-        roomGrid: SITE.Site,
+        map: SITE.DigSite,
+        roomGrid: SITE.DigSite,
         roomToSiteX: number,
         roomToSiteY: number
     ) {
@@ -300,7 +301,7 @@ export class Level {
     }
 
     _attachDoor(
-        map: SITE.Site,
+        map: SITE.DigSite,
         room: TYPES.Room,
         x: number,
         y: number,
@@ -363,33 +364,33 @@ export class Level {
         }
     }
 
-    addLoops(site: SITE.Site, opts: Partial<LOOP.LoopOptions>) {
+    addLoops(site: SITE.DigSite, opts: Partial<LOOP.LoopOptions>) {
         const digger = new LOOP.LoopDigger(opts);
         return digger.create(site);
     }
 
-    addLakes(site: SITE.Site, opts: Partial<LAKE.LakeOpts>) {
+    addLakes(site: SITE.DigSite, opts: Partial<LAKE.LakeOpts>) {
         const digger = new LAKE.Lakes(opts);
         return digger.create(site);
     }
 
-    addBridges(site: SITE.Site, opts: Partial<BRIDGE.BridgeOpts>) {
+    addBridges(site: SITE.DigSite, opts: Partial<BRIDGE.BridgeOpts>) {
         const digger = new BRIDGE.Bridges(opts);
         return digger.create(site);
     }
 
-    addStairs(site: SITE.Site, opts: Partial<STAIRS.StairOpts>) {
+    addStairs(site: SITE.DigSite, opts: Partial<STAIRS.StairOpts>) {
         const digger = new STAIRS.Stairs(opts);
         return digger.create(site);
     }
 
-    finish(site: SITE.Site) {
+    finish(site: SITE.DigSite) {
         this._removeDiagonalOpenings(site);
         this._finishWalls(site);
         this._finishDoors(site);
     }
 
-    _removeDiagonalOpenings(site: SITE.Site) {
+    _removeDiagonalOpenings(site: SITE.DigSite) {
         let i, j, k, x1, y1;
         let diagonalCornerRemoved;
 
@@ -399,12 +400,12 @@ export class Level {
                 for (j = 0; j < this.height - 1; j++) {
                     for (k = 0; k <= 1; k++) {
                         if (
-                            site.isPassable(i + k, j) &&
-                            !site.isPassable(i + (1 - k), j) &&
-                            site.isObstruction(i + (1 - k), j) &&
-                            !site.isPassable(i + k, j + 1) &&
-                            site.isObstruction(i + k, j + 1) &&
-                            site.isPassable(i + (1 - k), j + 1)
+                            !site.blocksMove(i + k, j) &&
+                            site.blocksMove(i + (1 - k), j) &&
+                            site.blocksDiagonal(i + (1 - k), j) &&
+                            site.blocksMove(i + k, j + 1) &&
+                            site.blocksDiagonal(i + k, j + 1) &&
+                            !site.blocksMove(i + (1 - k), j + 1)
                         ) {
                             if (GW.random.chance(50)) {
                                 x1 = i + (1 - k);
@@ -422,7 +423,7 @@ export class Level {
         } while (diagonalCornerRemoved == true);
     }
 
-    _finishDoors(site: SITE.Site) {
+    _finishDoors(site: SITE.DigSite) {
         GW.utils.forRect(this.width, this.height, (x, y) => {
             if (site.isBoundaryXY(x, y)) return;
 
@@ -437,10 +438,10 @@ export class Level {
                     // above or below, then the door is orphaned and must be removed.
                     site.setTile(x, y, SITE.FLOOR); // todo - take passable neighbor value
                 } else if (
-                    (site.isObstruction(x + 1, y) ? 1 : 0) +
-                        (site.isObstruction(x - 1, y) ? 1 : 0) +
-                        (site.isObstruction(x, y + 1) ? 1 : 0) +
-                        (site.isObstruction(x, y - 1) ? 1 : 0) >=
+                    (site.blocksPathing(x + 1, y) ? 1 : 0) +
+                        (site.blocksPathing(x - 1, y) ? 1 : 0) +
+                        (site.blocksPathing(x, y + 1) ? 1 : 0) +
+                        (site.blocksPathing(x, y - 1) ? 1 : 0) >=
                     3
                 ) {
                     // If the door has three or more pathing blocker neighbors in the four cardinal directions,
@@ -451,7 +452,7 @@ export class Level {
         });
     }
 
-    _finishWalls(site: SITE.Site) {
+    _finishWalls(site: SITE.DigSite) {
         const boundaryTile = this.boundary ? SITE.IMPREGNABLE : SITE.WALL;
         GW.utils.forRect(this.width, this.height, (x, y) => {
             if (site.isNothing(x, y)) {

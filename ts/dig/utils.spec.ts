@@ -1,6 +1,6 @@
 import * as GW from 'gw-utils';
 import * as UTILS from './utils';
-import * as SITE from '../site';
+import * as SITE from './site';
 
 
 describe('UTILS', () => {

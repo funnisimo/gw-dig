@@ -2,7 +2,7 @@ import 'jest-extended';
 // import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as Dig from './index';
-import * as Site from '../site';
+import * as Site from './site';
 
 describe('dig', () => {
     let site: Site.GridSite;
@@ -184,7 +184,7 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
-        expect(site.getTile(25, 15)).toEqual(0);
+        expect(site.getTileIndex(25, 15)).toEqual(0);
         expect(room).toMatchObject({ x: 18, y: 8, width: 15, height: 15 });
         // expect(grid[room.cx][room.cy]).toEqual(0);
     });
@@ -199,7 +199,7 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
-        expect(site.getTile(25, 15)).toEqual(0);
+        expect(site.getTileIndex(25, 15)).toEqual(0);
         expect(room).toMatchObject({ x: 18, y: 8, width: 15, height: 15 });
         expect(site.tiles.count(1)).toEqual(0);
         expect(site.tiles.count(10)).toBeGreaterThan(0);

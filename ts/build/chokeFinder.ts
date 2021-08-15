@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import { Site, Flags } from '../site';
+import { BuildSite, Flags } from './site';
 // import { LoopFinder } from './loopFinder';
 
 export class ChokeFinder {
@@ -10,7 +10,7 @@ export class ChokeFinder {
     // TODO - Move to Map?
 
     compute(
-        site: Site
+        site: BuildSite
     ) {
         const floodGrid = GW.grid.alloc(site.width, site.height);
 
@@ -144,7 +144,7 @@ export class ChokeFinder {
 // Assumes it is called with respect to a passable (startX, startY), and that the same is not already included in results.
 // Returns 10000 if the area included an area machine.
 export function floodFillCount(
-    site: Site,
+    site: BuildSite,
     results: GW.grid.NumGrid,
     passMap: GW.grid.NumGrid,
     startX: number,

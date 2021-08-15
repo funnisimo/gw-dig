@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
+import * as SITE from './site';
 // import * as TYPES from './types';
 
 const DIRS = GW.utils.DIRS;
@@ -153,7 +153,7 @@ const DIRS = GW.utils.DIRS;
 // a door out of that room, then return the outbound direction that the door faces.
 // Otherwise, return def.NO_DIRECTION.
 export function directionOfDoorSite(
-    site: SITE.Site,
+    site: SITE.DigSite,
     x: number,
     y: number
 ): number {
@@ -182,7 +182,7 @@ export function directionOfDoorSite(
     return solutionDir;
 }
 
-export function chooseRandomDoorSites(site: SITE.Site): GW.utils.Loc[] {
+export function chooseRandomDoorSites(site: SITE.DigSite): GW.utils.Loc[] {
     let i, j, k, newX, newY;
     let dir;
     let doorSiteFailed;
@@ -348,13 +348,135 @@ export function chooseRandomDoorSites(site: SITE.Site): GW.utils.Loc[] {
 //     return false;
 // }
 
-
-export function copySite(dest: SITE.Site, source: SITE.Site, offsetX=0, offsetY=0) {
+export function copySite(
+    dest: SITE.DigSite,
+    source: SITE.DigSite,
+    offsetX = 0,
+    offsetY = 0
+) {
     GW.utils.forRect(dest.width, dest.height, (x, y) => {
         const otherX = x - offsetX;
         const otherY = y - offsetY;
-        const v = source.getTile(otherX, otherY);
+        const v = source.getTileIndex(otherX, otherY);
         if (!v) return;
         dest.setTile(x, y, v);
     });
+}
+
+export function fillCostGrid(source: SITE.DigSite, costGrid: GW.grid.NumGrid) {
+    costGrid.update((_v, x, y) =>
+        source.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION
+    );
+}
+
+export function siteDisruptedBy(
+    site: SITE.DigSite,
+    blockingGrid: GW.grid.NumGrid,
+    blockingToMapX = 0,
+    blockingToMapY = 0
+) {
+    const walkableGrid = GW.grid.alloc(site.width, site.height);
+    let disrupts = false;
+
+    // Get all walkable locations after lake added
+    GW.utils.forRect(site.width, site.height, (i, j) => {
+        const lakeX = i + blockingToMapX;
+        const lakeY = j + blockingToMapY;
+        if (blockingGrid.get(lakeX, lakeY)) {
+            if (site.isStairs(i, j)) {
+                disrupts = true;
+            }
+        } else if (site.isPassable(i, j)) {
+            walkableGrid[i][j] = 1;
+        }
+    });
+
+    let first = true;
+    for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+        for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+            if (walkableGrid[i][j] == 1) {
+                if (first) {
+                    walkableGrid.floodFill(i, j, 1, 2);
+                    first = false;
+                } else {
+                    disrupts = true;
+                }
+            }
+        }
+    }
+
+    // console.log('WALKABLE GRID');
+    // walkableGrid.dump();
+
+    GW.grid.free(walkableGrid);
+    return disrupts;
+}
+
+export function siteDisruptedSize(
+    site: SITE.DigSite,
+    blockingGrid: GW.grid.NumGrid,
+    blockingToMapX = 0,
+    blockingToMapY = 0
+) {
+    const walkableGrid = GW.grid.alloc(site.width, site.height);
+    let disrupts = 0;
+
+    // Get all walkable locations after lake added
+    GW.utils.forRect(site.width, site.height, (i, j) => {
+        const lakeX = i + blockingToMapX;
+        const lakeY = j + blockingToMapY;
+        if (blockingGrid.get(lakeX, lakeY)) {
+            if (site.isStairs(i, j)) {
+                disrupts = site.width * site.height;
+            }
+        } else if (site.isPassable(i, j)) {
+            walkableGrid[i][j] = 1;
+        }
+    });
+
+    if (disrupts) return disrupts;
+
+    let first = true;
+    let nextId = 2;
+    let minSize = site.width * site.height;
+    for (let i = 0; i < walkableGrid.width; ++i) {
+        for (let j = 0; j < walkableGrid.height; ++j) {
+            if (walkableGrid[i][j] == 1) {
+                const disrupted = walkableGrid.floodFill(i, j, 1, nextId++);
+                minSize = Math.min(minSize, disrupted);
+                if (first) {
+                    first = false;
+                } else {
+                    disrupts = minSize;
+                }
+            }
+        }
+    }
+
+    // console.log('WALKABLE GRID');
+    // walkableGrid.dump();
+
+    GW.grid.free(walkableGrid);
+    return disrupts;
+}
+
+export function computeDistanceMap(
+    site: SITE.DigSite,
+    distanceMap: GW.grid.NumGrid,
+    originX: number,
+    originY: number,
+    maxDistance: number
+) {
+    const costGrid = GW.grid.alloc(site.width, site.height);
+    fillCostGrid(site, costGrid);
+
+    GW.path.calculateDistances(
+        distanceMap,
+        originX,
+        originY,
+        costGrid,
+        false,
+        maxDistance + 1 // max distance is the same as max size of this blueprint
+    );
+    GW.grid.free(costGrid);
 }

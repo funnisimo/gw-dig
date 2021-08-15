@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
+import * as SITE from './site';
 
 export interface LakeOpts {
     height: number;
@@ -32,7 +32,7 @@ export class Lakes {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.Site): number {
+    create(site: SITE.DigSite): number {
         let i, j, k;
         let x, y;
         let lakeMaxHeight,
@@ -154,7 +154,7 @@ export class Lakes {
     }
 
     isDisruptedBy(
-        site: SITE.Site,
+        site: SITE.DigSite,
         lakeGrid: GW.grid.NumGrid,
         lakeToMapX = 0,
         lakeToMapY = 0

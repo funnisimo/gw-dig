@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
+import * as SITE from './site';
 
 export interface BridgeOpts {
     minDistance: number;
@@ -16,7 +16,7 @@ export class Bridges {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.Site): number {
+    create(site: SITE.DigSite): number {
         let count = 0;
         let newX, newY;
         let i, j, d, x, y;
@@ -36,17 +36,17 @@ export class Bridges {
             site.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION
         );
 
-        const SEQ = GW.random.sequence(site.width * site.height);
+        const seq = GW.random.sequence(site.width * site.height);
 
-        for (i = 0; i < SEQ.length; i++) {
-            x = Math.floor(SEQ[i] / site.height);
-            y = SEQ[i] % site.height;
+        for (i = 0; i < seq.length; i++) {
+            x = Math.floor(seq[i] / site.height);
+            y = seq[i] % site.height;
 
             if (
                 // map.hasXY(x, y) &&
                 // map.get(x, y) &&
                 site.isPassable(x, y) &&
-                !site.isAnyWater(x, y)
+                !site.isAnyLiquid(x, y)
             ) {
                 for (d = 0; d <= 1; d++) {
                     // Try right, then down
@@ -59,13 +59,13 @@ export class Bridges {
 
                     // check for line of lake tiles
                     // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                    if (site.isAnyWater(newX, newY)) {
+                    if (site.isAnyLiquid(newX, newY)) {
                         for (j = 0; j < maxLength; ++j) {
                             newX += bridgeDir[0];
                             newY += bridgeDir[1];
 
                             // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                            if (!site.isAnyWater(newX, newY)) {
+                            if (!site.isAnyLiquid(newX, newY)) {
                                 break;
                             }
                         }
@@ -132,15 +132,15 @@ export class Bridges {
     }
 
     isBridgeCandidate(
-        site: SITE.Site,
+        site: SITE.DigSite,
         x: number,
         y: number,
         bridgeDir: [number, number]
     ) {
         if (site.isBridge(x, y)) return true;
-        if (!site.isAnyWater(x, y)) return false;
-        if (!site.isAnyWater(x + bridgeDir[1], y + bridgeDir[0])) return false;
-        if (!site.isAnyWater(x - bridgeDir[1], y - bridgeDir[0])) return false;
+        if (!site.isAnyLiquid(x, y)) return false;
+        if (!site.isAnyLiquid(x + bridgeDir[1], y + bridgeDir[0])) return false;
+        if (!site.isAnyLiquid(x - bridgeDir[1], y - bridgeDir[0])) return false;
         return true;
     }
 }

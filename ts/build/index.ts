@@ -1,13 +1,15 @@
 export * as blueprint from './blueprint';
 
-import { Site } from '../site';
+import { BuildSite } from './site';
 import { ChokeFinder } from './chokeFinder';
 import { LoopFinder } from './loopFinder';
 
-export * from './loopFinder';
-export * from './chokeFinder';
+export * as site from './site';
+export const analyze = { ChokeFinder, LoopFinder };
+export * from './blueprint';
+export * from './buildStep';
 
-export function analyze(site: Site) {
+export function analyzeSite(site: BuildSite) {
 
     const loops = new LoopFinder();
     loops.compute(site);

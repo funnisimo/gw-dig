@@ -197,9 +197,12 @@ function showCurrentLevel() {
     console.log('level = ' + LEVEL_ID);
     BUFFER.blackOut();
     DUNGEON.getLevel(LEVEL_ID, (x, y, v) => {
-        const id = GW.site.TILEMAP[v];
-        const sprite = GW.tiles[id].sprite;
-        BUFFER.drawSprite(x, y, sprite);
+        const sprite = GW.tile.get(v)?.sprite;
+        if (!sprite) {
+            console.error('Failed to find tile - ' + v);
+        } else {
+            BUFFER.drawSprite(x, y, sprite);
+        }
     });
     BUFFER.render();
 }

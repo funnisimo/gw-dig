@@ -1,5 +1,6 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
+import * as SITE from './site';
+import * as UTILS from './utils';
 
 export interface LoopOptions {
     minDistance: number;
@@ -21,7 +22,7 @@ export class LoopDigger {
         Object.assign(this.options, options);
     }
 
-    create(site: SITE.Site) {
+    create(site: SITE.DigSite) {
         let startX, startY, endX, endY;
         let i, j, d, x, y;
 
@@ -39,7 +40,7 @@ export class LoopDigger {
             [0, 1],
         ];
 
-        SITE.fillCostGrid(site, costGrid);
+        UTILS.fillCostGrid(site, costGrid);
 
         function isValidTunnelStart(
             x: number,
@@ -66,9 +67,11 @@ export class LoopDigger {
         }
 
         let count = 0;
-        for (i = 0; i < SITE.SEQ.length; i++) {
-            x = Math.floor(SITE.SEQ[i] / site.height);
-            y = SITE.SEQ[i] % site.height;
+        const seq = GW.random.sequence(site.width * site.height);
+
+        for (i = 0; i < seq.length; i++) {
+            x = Math.floor(seq[i] / site.height);
+            y = seq[i] % site.height;
 
             if (!site.isSet(x, y)) {
                 for (d = 0; d <= 1; d++) {
@@ -172,10 +175,7 @@ export class LoopDigger {
 }
 
 // Add some loops to the otherwise simply connected network of rooms.
-export function digLoops(
-    site: SITE.Site,
-    opts: Partial<LoopOptions> = {}
-) {
+export function digLoops(site: SITE.DigSite, opts: Partial<LoopOptions> = {}) {
     const digger = new LoopDigger(opts);
     return digger.create(site);
 }

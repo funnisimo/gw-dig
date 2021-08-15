@@ -4,6 +4,169 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GW = global.GW || {}, global.GW));
 }(this, (function (exports, GW) { 'use strict';
 
+    var _a, _b;
+    const NOTHING = GW.tile.get('NULL').index;
+    const FLOOR = GW.tile.get('FLOOR').index;
+    const DOOR = GW.tile.get('DOOR').index;
+    const SECRET_DOOR = (_b = (_a = GW.tile.get('DOOR_SECRET')) === null || _a === void 0 ? void 0 : _a.index) !== null && _b !== void 0 ? _b : -1;
+    const WALL = GW.tile.get('WALL').index;
+    const DEEP = GW.tile.get('LAKE').index;
+    const SHALLOW = GW.tile.get('SHALLOW').index;
+    const BRIDGE = GW.tile.get('BRIDGE').index;
+    const UP_STAIRS = GW.tile.get('UP_STAIRS').index;
+    const DOWN_STAIRS = GW.tile.get('DOWN_STAIRS').index;
+    const IMPREGNABLE = GW.tile.get('IMPREGNABLE').index;
+    const TILEMAP = {
+        [NOTHING]: 'NULL',
+        [FLOOR]: 'FLOOR',
+        [DOOR]: 'DOOR',
+        [WALL]: 'WALL',
+        [IMPREGNABLE]: 'IMPREGNABLE',
+        [DEEP]: 'LAKE',
+        [SHALLOW]: 'SHALLOW',
+        [BRIDGE]: 'BRIDGE',
+        [UP_STAIRS]: 'UP_STAIRS',
+        [DOWN_STAIRS]: 'DOWN_STAIRS',
+    };
+    class GridSite {
+        constructor(width, height) {
+            this.tiles = GW.grid.alloc(width, height);
+        }
+        free() {
+            GW.grid.free(this.tiles);
+        }
+        get width() {
+            return this.tiles.width;
+        }
+        get height() {
+            return this.tiles.height;
+        }
+        hasXY(x, y) {
+            return this.tiles.hasXY(x, y);
+        }
+        isBoundaryXY(x, y) {
+            return this.tiles.isBoundaryXY(x, y);
+        }
+        isPassable(x, y) {
+            return (this.isFloor(x, y) ||
+                this.isDoor(x, y) ||
+                this.isBridge(x, y) ||
+                this.isStairs(x, y) ||
+                this.isShallow(x, y));
+        }
+        isNothing(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === NOTHING;
+        }
+        isDiggable(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === NOTHING;
+        }
+        isFloor(x, y) {
+            return this.tiles.get(x, y) == FLOOR;
+        }
+        isDoor(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === DOOR;
+        }
+        isSecretDoor(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === SECRET_DOOR;
+        }
+        isBridge(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === BRIDGE;
+        }
+        isWall(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === WALL || v === IMPREGNABLE;
+        }
+        blocksMove(x, y) {
+            return this.isNothing(x, y) || this.isWall(x, y) || this.isDeep(x, y);
+        }
+        blocksDiagonal(x, y) {
+            return this.isNothing(x, y) || this.isWall(x, y);
+        }
+        blocksPathing(x, y) {
+            return (this.isNothing(x, y) ||
+                this.isWall(x, y) ||
+                this.isDeep(x, y) ||
+                this.isStairs(x, y));
+        }
+        blocksVision(x, y) {
+            return this.isNothing(x, y) || this.isWall(x, y);
+        }
+        blocksItems(x, y) {
+            return this.blocksPathing(x, y) || this.blocksPathing(x, y);
+        }
+        blocksEffects(x, y) {
+            return this.isWall(x, y);
+        }
+        isStairs(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === UP_STAIRS || v === DOWN_STAIRS;
+        }
+        isDeep(x, y) {
+            return this.tiles.get(x, y) === DEEP;
+        }
+        isShallow(x, y) {
+            return this.tiles.get(x, y) === SHALLOW;
+        }
+        isAnyLiquid(x, y) {
+            return this.isDeep(x, y) || this.isShallow(x, y);
+        }
+        isSet(x, y) {
+            return (this.tiles.get(x, y) || 0) > 0;
+        }
+        getTileIndex(x, y) {
+            return this.tiles.get(x, y) || 0;
+        }
+        setTile(x, y, tile) {
+            if (typeof tile === 'string') {
+                const obj = GW.tile.tiles[tile];
+                if (!obj)
+                    throw new Error('Failed to find tie: ' + tile);
+                tile = obj.index;
+            }
+            if (!this.tiles.hasXY(x, y))
+                return false;
+            this.tiles[x][y] = tile;
+            return true;
+        }
+        hasTile(x, y, tile) {
+            if (typeof tile === 'string') {
+                const obj = GW.tile.tiles[tile];
+                if (!obj)
+                    throw new Error('Failed to find tie: ' + tile);
+                tile = obj.index;
+            }
+            return this.tiles.hasXY(x, y) && this.tiles[x][y] == tile;
+        }
+        tileBlocksMove(tile) {
+            return (tile === WALL ||
+                tile === DEEP ||
+                tile === IMPREGNABLE ||
+                tile === NOTHING);
+        }
+    }
+
+    var site = {
+        __proto__: null,
+        NOTHING: NOTHING,
+        FLOOR: FLOOR,
+        DOOR: DOOR,
+        SECRET_DOOR: SECRET_DOOR,
+        WALL: WALL,
+        DEEP: DEEP,
+        SHALLOW: SHALLOW,
+        BRIDGE: BRIDGE,
+        UP_STAIRS: UP_STAIRS,
+        DOWN_STAIRS: DOWN_STAIRS,
+        IMPREGNABLE: IMPREGNABLE,
+        TILEMAP: TILEMAP,
+        GridSite: GridSite
+    };
+
     class Hall {
         constructor(loc, dir, length, width = 1) {
             this.width = 1;
@@ -379,181 +542,107 @@
         GW.utils.forRect(dest.width, dest.height, (x, y) => {
             const otherX = x - offsetX;
             const otherY = y - offsetY;
-            const v = source.getTile(otherX, otherY);
+            const v = source.getTileIndex(otherX, otherY);
             if (!v)
                 return;
             dest.setTile(x, y, v);
         });
+    }
+    function fillCostGrid(source, costGrid) {
+        costGrid.update((_v, x, y) => source.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION);
+    }
+    function siteDisruptedBy(site, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
+        const walkableGrid = GW.grid.alloc(site.width, site.height);
+        let disrupts = false;
+        // Get all walkable locations after lake added
+        GW.utils.forRect(site.width, site.height, (i, j) => {
+            const lakeX = i + blockingToMapX;
+            const lakeY = j + blockingToMapY;
+            if (blockingGrid.get(lakeX, lakeY)) {
+                if (site.isStairs(i, j)) {
+                    disrupts = true;
+                }
+            }
+            else if (site.isPassable(i, j)) {
+                walkableGrid[i][j] = 1;
+            }
+        });
+        let first = true;
+        for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+            for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+                if (walkableGrid[i][j] == 1) {
+                    if (first) {
+                        walkableGrid.floodFill(i, j, 1, 2);
+                        first = false;
+                    }
+                    else {
+                        disrupts = true;
+                    }
+                }
+            }
+        }
+        // console.log('WALKABLE GRID');
+        // walkableGrid.dump();
+        GW.grid.free(walkableGrid);
+        return disrupts;
+    }
+    function siteDisruptedSize(site, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
+        const walkableGrid = GW.grid.alloc(site.width, site.height);
+        let disrupts = 0;
+        // Get all walkable locations after lake added
+        GW.utils.forRect(site.width, site.height, (i, j) => {
+            const lakeX = i + blockingToMapX;
+            const lakeY = j + blockingToMapY;
+            if (blockingGrid.get(lakeX, lakeY)) {
+                if (site.isStairs(i, j)) {
+                    disrupts = site.width * site.height;
+                }
+            }
+            else if (site.isPassable(i, j)) {
+                walkableGrid[i][j] = 1;
+            }
+        });
+        if (disrupts)
+            return disrupts;
+        let first = true;
+        let nextId = 2;
+        let minSize = site.width * site.height;
+        for (let i = 0; i < walkableGrid.width; ++i) {
+            for (let j = 0; j < walkableGrid.height; ++j) {
+                if (walkableGrid[i][j] == 1) {
+                    const disrupted = walkableGrid.floodFill(i, j, 1, nextId++);
+                    minSize = Math.min(minSize, disrupted);
+                    if (first) {
+                        first = false;
+                    }
+                    else {
+                        disrupts = minSize;
+                    }
+                }
+            }
+        }
+        // console.log('WALKABLE GRID');
+        // walkableGrid.dump();
+        GW.grid.free(walkableGrid);
+        return disrupts;
+    }
+    function computeDistanceMap(site, distanceMap, originX, originY, maxDistance) {
+        const costGrid = GW.grid.alloc(site.width, site.height);
+        fillCostGrid(site, costGrid);
+        GW.path.calculateDistances(distanceMap, originX, originY, costGrid, false, maxDistance + 1 // max distance is the same as max size of this blueprint
+        );
+        GW.grid.free(costGrid);
     }
 
     var utils = {
         __proto__: null,
         directionOfDoorSite: directionOfDoorSite,
         chooseRandomDoorSites: chooseRandomDoorSites,
-        copySite: copySite
-    };
-
-    const NOTHING = 0;
-    const FLOOR = 1;
-    const DOOR = 2;
-    const WALL = 3;
-    const DEEP = 4;
-    const SHALLOW = 5;
-    const BRIDGE = 6;
-    const UP_STAIRS = 7;
-    const DOWN_STAIRS = 17;
-    const IMPREGNABLE = 8;
-    const TILEMAP = {
-        [NOTHING]: 'NULL',
-        [FLOOR]: 'FLOOR',
-        [DOOR]: 'DOOR',
-        [WALL]: 'WALL',
-        [IMPREGNABLE]: 'IMPREGNABLE',
-        [DEEP]: 'LAKE',
-        [SHALLOW]: 'SHALLOW',
-        [BRIDGE]: 'BRIDGE',
-        [UP_STAIRS]: 'UP_STAIRS',
-        [DOWN_STAIRS]: 'DOWN_STAIRS',
-    };
-    const SEQ = [];
-    function initSeqence(length) {
-        SEQ.length = length;
-        for (let i = 0; i < length; ++i) {
-            SEQ[i] = i;
-        }
-        GW.random.shuffle(SEQ);
-    }
-    function fillCostGrid(source, costGrid) {
-        costGrid.update((_v, x, y) => source.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION);
-    }
-    const Fl = GW.flag.fl;
-    var Flags;
-    (function (Flags) {
-        Flags[Flags["IS_IN_LOOP"] = Fl(0)] = "IS_IN_LOOP";
-        Flags[Flags["IS_CHOKEPOINT"] = Fl(1)] = "IS_CHOKEPOINT";
-        Flags[Flags["IS_GATE_SITE"] = Fl(2)] = "IS_GATE_SITE";
-        Flags[Flags["IS_IN_ROOM_MACHINE"] = Fl(3)] = "IS_IN_ROOM_MACHINE";
-        Flags[Flags["IS_IN_AREA_MACHINE"] = Fl(4)] = "IS_IN_AREA_MACHINE";
-        Flags[Flags["IMPREGNABLE"] = Fl(5)] = "IMPREGNABLE";
-        Flags[Flags["IS_IN_MACHINE"] = Flags.IS_IN_ROOM_MACHINE | Flags.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
-    })(Flags || (Flags = {}));
-    class GridSite {
-        constructor(width, height) {
-            this.tiles = GW.grid.alloc(width, height);
-            this.flags = GW.grid.alloc(width, height);
-            this.choke = GW.grid.alloc(width, height);
-        }
-        free() {
-            GW.grid.free(this.tiles);
-            GW.grid.free(this.flags);
-            GW.grid.free(this.choke);
-        }
-        get width() {
-            return this.tiles.width;
-        }
-        get height() {
-            return this.tiles.height;
-        }
-        hasXY(x, y) {
-            return this.tiles.hasXY(x, y);
-        }
-        isBoundaryXY(x, y) {
-            return this.tiles.isBoundaryXY(x, y);
-        }
-        isPassable(x, y) {
-            return (this.isFloor(x, y) ||
-                this.isDoor(x, y) ||
-                this.isBridge(x, y) ||
-                this.isStairs(x, y) ||
-                this.isShallow(x, y));
-        }
-        isNothing(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === NOTHING;
-        }
-        isDiggable(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === NOTHING;
-        }
-        isFloor(x, y) {
-            return this.tiles.get(x, y) == FLOOR;
-        }
-        isDoor(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === DOOR;
-        }
-        isBridge(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === BRIDGE;
-        }
-        isWall(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === WALL || v === IMPREGNABLE;
-        }
-        isObstruction(x, y) {
-            return this.isNothing(x, y) || this.isWall(x, y);
-        }
-        isStairs(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === UP_STAIRS || v === DOWN_STAIRS;
-        }
-        isDeep(x, y) {
-            return this.tiles.get(x, y) === DEEP;
-        }
-        isShallow(x, y) {
-            return this.tiles.get(x, y) === SHALLOW;
-        }
-        isAnyWater(x, y) {
-            return this.isDeep(x, y) || this.isShallow(x, y);
-        }
-        isSet(x, y) {
-            return (this.tiles.get(x, y) || 0) > 0;
-        }
-        getTile(x, y) {
-            return this.tiles.get(x, y) || 0;
-        }
-        setTile(x, y, tile) {
-            if (this.tiles.hasXY(x, y))
-                this.tiles[x][y] = tile;
-        }
-        hasSiteFlag(x, y, flag) {
-            const have = this.flags.get(x, y) || 0;
-            return !!(have & flag);
-        }
-        setSiteFlag(x, y, flag) {
-            const value = (this.flags.get(x, y) || 0) | flag;
-            this.flags.set(x, y, value);
-        }
-        clearSiteFlag(x, y, flag) {
-            const value = (this.flags.get(x, y) || 0) & ~flag;
-            this.flags.set(x, y, value);
-        }
-        getChokeCount(x, y) {
-            return this.choke.get(x, y) || 0;
-        }
-        setChokeCount(x, y, count) {
-            this.choke.set(x, y, count);
-        }
-    }
-
-    var site = {
-        __proto__: null,
-        NOTHING: NOTHING,
-        FLOOR: FLOOR,
-        DOOR: DOOR,
-        WALL: WALL,
-        DEEP: DEEP,
-        SHALLOW: SHALLOW,
-        BRIDGE: BRIDGE,
-        UP_STAIRS: UP_STAIRS,
-        DOWN_STAIRS: DOWN_STAIRS,
-        IMPREGNABLE: IMPREGNABLE,
-        TILEMAP: TILEMAP,
-        SEQ: SEQ,
-        initSeqence: initSeqence,
+        copySite: copySite,
         fillCostGrid: fillCostGrid,
-        get Flags () { return Flags; },
-        GridSite: GridSite
+        siteDisruptedBy: siteDisruptedBy,
+        siteDisruptedSize: siteDisruptedSize,
+        computeDistanceMap: computeDistanceMap
     };
 
     function checkConfig(config, expected = {}) {
@@ -1316,15 +1405,15 @@
                 [0, 1],
             ];
             costGrid.update((_v, x, y) => site$1.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION);
-            const SEQ = GW.random.sequence(site$1.width * site$1.height);
-            for (i = 0; i < SEQ.length; i++) {
-                x = Math.floor(SEQ[i] / site$1.height);
-                y = SEQ[i] % site$1.height;
+            const seq = GW.random.sequence(site$1.width * site$1.height);
+            for (i = 0; i < seq.length; i++) {
+                x = Math.floor(seq[i] / site$1.height);
+                y = seq[i] % site$1.height;
                 if (
                 // map.hasXY(x, y) &&
                 // map.get(x, y) &&
                 site$1.isPassable(x, y) &&
-                    !site$1.isAnyWater(x, y)) {
+                    !site$1.isAnyLiquid(x, y)) {
                     for (d = 0; d <= 1; d++) {
                         // Try right, then down
                         const bridgeDir = dirCoords[d];
@@ -1334,12 +1423,12 @@
                         // if (!map.hasXY(newX, newY)) continue;
                         // check for line of lake tiles
                         // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (site$1.isAnyWater(newX, newY)) {
+                        if (site$1.isAnyLiquid(newX, newY)) {
                             for (j = 0; j < maxLength; ++j) {
                                 newX += bridgeDir[0];
                                 newY += bridgeDir[1];
                                 // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                                if (!site$1.isAnyWater(newX, newY)) {
+                                if (!site$1.isAnyLiquid(newX, newY)) {
                                     break;
                                 }
                             }
@@ -1389,11 +1478,11 @@
         isBridgeCandidate(site, x, y, bridgeDir) {
             if (site.isBridge(x, y))
                 return true;
-            if (!site.isAnyWater(x, y))
+            if (!site.isAnyLiquid(x, y))
                 return false;
-            if (!site.isAnyWater(x + bridgeDir[1], y + bridgeDir[0]))
+            if (!site.isAnyLiquid(x + bridgeDir[1], y + bridgeDir[0]))
                 return false;
-            if (!site.isAnyWater(x - bridgeDir[1], y - bridgeDir[0]))
+            if (!site.isAnyLiquid(x - bridgeDir[1], y - bridgeDir[0]))
                 return false;
             return true;
         }
@@ -1429,26 +1518,26 @@
             if (this.options.start && typeof this.options.start !== 'string') {
                 let start = this.options.start;
                 if (start === true) {
-                    start = GW.random.matchingXY(site.width, site.height, isValidLoc);
+                    start = GW.random.matchingLoc(site.width, site.height, isValidLoc);
                 }
                 else {
-                    start = GW.random.matchingXYNear(GW.utils.x(start), GW.utils.y(start), isValidLoc);
+                    start = GW.random.matchingLocNear(GW.utils.x(start), GW.utils.y(start), isValidLoc);
                 }
                 locations.start = start;
             }
             if (Array.isArray(this.options.up) &&
                 Array.isArray(this.options.down)) {
                 const up = this.options.up;
-                upLoc = GW.random.matchingXYNear(GW.utils.x(up), GW.utils.y(up), isValidLoc);
+                upLoc = GW.random.matchingLocNear(GW.utils.x(up), GW.utils.y(up), isValidLoc);
                 const down = this.options.down;
-                downLoc = GW.random.matchingXYNear(GW.utils.x(down), GW.utils.y(down), isValidLoc);
+                downLoc = GW.random.matchingLocNear(GW.utils.x(down), GW.utils.y(down), isValidLoc);
             }
             else if (Array.isArray(this.options.up) &&
                 !Array.isArray(this.options.down)) {
                 const up = this.options.up;
-                upLoc = GW.random.matchingXYNear(GW.utils.x(up), GW.utils.y(up), isValidLoc);
+                upLoc = GW.random.matchingLocNear(GW.utils.x(up), GW.utils.y(up), isValidLoc);
                 if (needDown) {
-                    downLoc = GW.random.matchingXY(site.width, site.height, (x, y) => {
+                    downLoc = GW.random.matchingLoc(site.width, site.height, (x, y) => {
                         if (
                         // @ts-ignore
                         GW.utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
@@ -1461,9 +1550,9 @@
             else if (Array.isArray(this.options.down) &&
                 !Array.isArray(this.options.up)) {
                 const down = this.options.down;
-                downLoc = GW.random.matchingXYNear(GW.utils.x(down), GW.utils.y(down), isValidLoc);
+                downLoc = GW.random.matchingLocNear(GW.utils.x(down), GW.utils.y(down), isValidLoc);
                 if (needUp) {
-                    upLoc = GW.random.matchingXY(site.width, site.height, (x, y) => {
+                    upLoc = GW.random.matchingLoc(site.width, site.height, (x, y) => {
                         if (GW.utils.distanceBetween(x, y, 
                         // @ts-ignore
                         downLoc[0], 
@@ -1475,9 +1564,9 @@
                 }
             }
             else if (needUp) {
-                upLoc = GW.random.matchingXY(site.width, site.height, isValidLoc);
+                upLoc = GW.random.matchingLoc(site.width, site.height, isValidLoc);
                 if (needDown) {
-                    downLoc = GW.random.matchingXY(site.width, site.height, (x, y) => {
+                    downLoc = GW.random.matchingLoc(site.width, site.height, (x, y) => {
                         if (
                         // @ts-ignore
                         GW.utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
@@ -1488,7 +1577,7 @@
                 }
             }
             else if (needDown) {
-                downLoc = GW.random.matchingXY(site.width, site.height, isValidLoc);
+                downLoc = GW.random.matchingLoc(site.width, site.height, isValidLoc);
             }
             if (upLoc) {
                 locations.up = upLoc.slice();
@@ -1624,9 +1713,10 @@
                 return false;
             }
             let count = 0;
-            for (i = 0; i < SEQ.length; i++) {
-                x = Math.floor(SEQ[i] / site$1.height);
-                y = SEQ[i] % site$1.height;
+            const seq = GW.random.sequence(site$1.width * site$1.height);
+            for (i = 0; i < seq.length; i++) {
+                x = Math.floor(seq[i] / site$1.height);
+                y = seq[i] % site$1.height;
                 if (!site$1.isSet(x, y)) {
                     for (d = 0; d <= 1; d++) {
                         // Try a horizontal door, and then a vertical door.
@@ -1732,6 +1822,7 @@
             this.endLoc = [-1, -1];
             this.height = height;
             this.width = width;
+            this.seq = GW.random.sequence(width * height);
             if (options.seed) {
                 GW.random.seed(options.seed);
             }
@@ -1773,16 +1864,14 @@
             this.addStairs(site, this.stairs);
             this.finish(site);
             GW.utils.forRect(this.width, this.height, (x, y) => {
-                const t = site.getTile(x, y);
+                const t = site.getTileIndex(x, y);
                 if (t)
                     setFn(x, y, t);
             });
             site.free();
             return true;
         }
-        start(_site) {
-            initSeqence(this.width * this.height);
-        }
+        start(_site) { }
         getDigger(id) {
             if (!id)
                 throw new Error('Missing digger!');
@@ -1826,16 +1915,16 @@
             roomSite.free();
             return room;
         }
-        _attachRoom(site$1, roomSite, room) {
+        _attachRoom(site, roomSite, room) {
             // console.log('attachRoom');
             const doorSites = room.hall ? room.hall.doors : room.doors;
             // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
-            for (let i = 0; i < SEQ.length; i++) {
-                const x = Math.floor(SEQ[i] / this.height);
-                const y = SEQ[i] % this.height;
-                if (!site$1.isNothing(x, y))
+            for (let i = 0; i < this.seq.length; i++) {
+                const x = Math.floor(this.seq[i] / this.height);
+                const y = this.seq[i] % this.height;
+                if (!site.isNothing(x, y))
                     continue;
-                const dir = directionOfDoorSite(site$1, x, y);
+                const dir = directionOfDoorSite(site, x, y);
                 if (dir != GW.utils.NO_DIRECTION) {
                     const oppDir = (dir + 2) % 4;
                     const door = doorSites[oppDir];
@@ -1844,10 +1933,10 @@
                     const offsetX = x - door[0];
                     const offsetY = y - door[1];
                     if (door[0] != -1 &&
-                        this._roomFitsAt(site$1, roomSite, offsetX, offsetY)) {
+                        this._roomFitsAt(site, roomSite, offsetX, offsetY)) {
                         // TYPES.Room fits here.
-                        copySite(site$1, roomSite, offsetX, offsetY);
-                        this._attachDoor(site$1, room, x, y, oppDir);
+                        copySite(site, roomSite, offsetX, offsetY);
+                        this._attachDoor(site, room, x, y, oppDir);
                         // door[0] = -1;
                         // door[1] = -1;
                         room.translate(offsetX, offsetY);
@@ -1991,12 +2080,12 @@
                 for (i = 0; i < this.width - 1; i++) {
                     for (j = 0; j < this.height - 1; j++) {
                         for (k = 0; k <= 1; k++) {
-                            if (site$1.isPassable(i + k, j) &&
-                                !site$1.isPassable(i + (1 - k), j) &&
-                                site$1.isObstruction(i + (1 - k), j) &&
-                                !site$1.isPassable(i + k, j + 1) &&
-                                site$1.isObstruction(i + k, j + 1) &&
-                                site$1.isPassable(i + (1 - k), j + 1)) {
+                            if (!site$1.blocksMove(i + k, j) &&
+                                site$1.blocksMove(i + (1 - k), j) &&
+                                site$1.blocksDiagonal(i + (1 - k), j) &&
+                                site$1.blocksMove(i + k, j + 1) &&
+                                site$1.blocksDiagonal(i + k, j + 1) &&
+                                !site$1.blocksMove(i + (1 - k), j + 1)) {
                                 if (GW.random.chance(50)) {
                                     x1 = i + (1 - k);
                                     y1 = j;
@@ -2027,10 +2116,10 @@
                         // above or below, then the door is orphaned and must be removed.
                         site$1.setTile(x, y, FLOOR); // todo - take passable neighbor value
                     }
-                    else if ((site$1.isObstruction(x + 1, y) ? 1 : 0) +
-                        (site$1.isObstruction(x - 1, y) ? 1 : 0) +
-                        (site$1.isObstruction(x, y + 1) ? 1 : 0) +
-                        (site$1.isObstruction(x, y - 1) ? 1 : 0) >=
+                    else if ((site$1.blocksPathing(x + 1, y) ? 1 : 0) +
+                        (site$1.blocksPathing(x - 1, y) ? 1 : 0) +
+                        (site$1.blocksPathing(x, y + 1) ? 1 : 0) +
+                        (site$1.blocksPathing(x, y - 1) ? 1 : 0) >=
                         3) {
                         // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                         // then the door is orphaned and must be removed.
@@ -2093,7 +2182,7 @@
             const minDistance = this.config.stairDistance ||
                 Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
             for (let i = 0; i < this.config.levels; ++i) {
-                const endLoc = GW.random.matchingXY(this.config.width, this.config.height, (x, y) => {
+                const endLoc = GW.random.matchingLoc(this.config.width, this.config.height, (x, y) => {
                     return (GW.utils.distanceBetween(startLoc[0], startLoc[1], x, y) > minDistance);
                 });
                 this.stairLocs.push([
@@ -2403,6 +2492,7 @@
 
     var index = {
         __proto__: null,
+        site: site,
         room: room,
         hall: hall,
         lake: lake,
@@ -2416,30 +2506,633 @@
         Dungeon: Dungeon
     };
 
+    const Fl = GW.flag.fl;
+    var Flags;
+    (function (Flags) {
+        Flags[Flags["IS_IN_LOOP"] = Fl(0)] = "IS_IN_LOOP";
+        Flags[Flags["IS_CHOKEPOINT"] = Fl(1)] = "IS_CHOKEPOINT";
+        Flags[Flags["IS_GATE_SITE"] = Fl(2)] = "IS_GATE_SITE";
+        Flags[Flags["IS_IN_ROOM_MACHINE"] = Fl(3)] = "IS_IN_ROOM_MACHINE";
+        Flags[Flags["IS_IN_AREA_MACHINE"] = Fl(4)] = "IS_IN_AREA_MACHINE";
+        Flags[Flags["IMPREGNABLE"] = Fl(5)] = "IMPREGNABLE";
+        Flags[Flags["IS_WIRED"] = Fl(6)] = "IS_WIRED";
+        Flags[Flags["IS_CIRCUIT_BREAKER"] = Fl(7)] = "IS_CIRCUIT_BREAKER";
+        Flags[Flags["IS_IN_MACHINE"] = Flags.IS_IN_ROOM_MACHINE | Flags.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
+    })(Flags || (Flags = {}));
+    class GridSite$1 extends GridSite {
+        constructor(width, height) {
+            super(width, height);
+            this.machineCount = 0;
+            this.flags = GW.grid.alloc(width, height);
+            this.choke = GW.grid.alloc(width, height);
+            this.machine = GW.grid.alloc(width, height);
+        }
+        free() {
+            GW.grid.free(this.flags);
+            GW.grid.free(this.choke);
+            GW.grid.free(this.machine);
+            super.free();
+        }
+        backup() {
+            const backup = new GridSite$1(this.width, this.height);
+            backup.tiles.copy(this.tiles);
+            backup.flags.copy(this.flags);
+            backup.choke.copy(this.choke);
+            return backup;
+        }
+        restore(backup) {
+            this.tiles.copy(backup.tiles);
+            this.flags.copy(backup.flags);
+            this.choke.copy(backup.choke);
+            backup.free();
+        }
+        deleteBackup(backup) {
+            backup.free();
+        }
+        hasSiteFlag(x, y, flag) {
+            const have = this.flags.get(x, y) || 0;
+            return !!(have & flag);
+        }
+        setSiteFlag(x, y, flag) {
+            const value = (this.flags.get(x, y) || 0) | flag;
+            this.flags.set(x, y, value);
+        }
+        clearSiteFlag(x, y, flag) {
+            const value = (this.flags.get(x, y) || 0) & ~flag;
+            this.flags.set(x, y, value);
+        }
+        getChokeCount(x, y) {
+            return this.choke.get(x, y) || 0;
+        }
+        setChokeCount(x, y, count) {
+            this.choke.set(x, y, count);
+        }
+        isOccupied(_x, _y) {
+            return false;
+        }
+        hasItem(_x, _y) {
+            return false;
+        }
+        hasActor(_x, _y) {
+            return false;
+        }
+        placeTile(x, y, tile, _options) {
+            return this.setTile(x, y, tile);
+        }
+        nextMachineId() {
+            return ++this.machineCount;
+        }
+        getMachine(x, y) {
+            return this.machine[x][y];
+        }
+        setMachine(x, y, id, isRoom = true) {
+            this.machine[x][y] = id;
+            if (id == 0) {
+                this.clearSiteFlag(x, y, Flags.IS_IN_MACHINE);
+            }
+            else {
+                this.setSiteFlag(x, y, isRoom ? Flags.IS_IN_ROOM_MACHINE : Flags.IS_IN_AREA_MACHINE);
+            }
+        }
+    }
+
+    var site$1 = {
+        __proto__: null,
+        get Flags () { return Flags; },
+        GridSite: GridSite$1
+    };
+
+    class Spawner {
+        constructor(info) {
+            this.info = info;
+            if (!info.tile)
+                throw new Error('Invalid effect - requires "tile".');
+            // if (this.growProb >= 100) {
+            //     this.probDecrement = this.probDecrement || 100;
+            //     if (this.probDecrement <= 0) {
+            //         this.probDecrement = growProb;
+            //     }
+            // }
+        }
+        get abortIfBlocks() {
+            return !!(this.info.flags & GW.effect.Flags.E_ABORT_IF_BLOCKS_MAP);
+        }
+        spawn(x, y, site) {
+            const locs = GW.grid.alloc(site.width, site.height);
+            const count = this.fill(x, y, site, locs);
+            if (this.abortIfBlocks) {
+                if (siteDisruptedBy(site, locs)) {
+                    return false;
+                }
+            }
+            this.spawnTiles(site, locs);
+            GW.grid.free(locs);
+            return count;
+        }
+        compute(x, y, cb) {
+            const config = this.info.tile;
+            let growProb = config.grow;
+            let probDec = config.decrement;
+            if (!cb(x, y)) {
+                return 0;
+            }
+            let todo = [
+                [x + 1, y],
+                [x - 1, y],
+                [x, y + 1],
+                [x, y - 1],
+            ];
+            let working = [];
+            const done = new Set([`${x},${y}`]);
+            let count = 1;
+            while (todo.length && growProb > 0) {
+                [working, todo] = [todo, working];
+                while (working.length) {
+                    let [i, j] = working.pop();
+                    if (GW.random.chance(growProb) && cb(i, j)) {
+                        count++;
+                        GW.utils.eachNeighbor(i, j, (i2, j2) => {
+                            const index = i2 + ',' + j2;
+                            if (done.has(index))
+                                return;
+                            done.add(index);
+                            todo.push([i2, j2]);
+                        }, true);
+                    }
+                }
+                growProb -= probDec;
+            }
+            return count;
+        }
+        fill(x, y, site, grid) {
+            return this.compute(x, y, (i, j) => {
+                if (!this.cellIsOk(site, i, j, i == x && j == y))
+                    return false;
+                grid[i][j] = 1;
+                return true;
+            });
+        }
+        cellIsOk(site, x, y, isStart) {
+            if (!site.hasXY(x, y))
+                return false;
+            if (site.blocksEffects(x, y) && !this.info.tile.matchTile && !isStart) {
+                return false;
+            }
+            if (this.info.flags & GW.effect.Flags.E_BUILD_IN_WALLS) {
+                if (!site.isWall(x, y))
+                    return false;
+            }
+            else if (this.info.flags & GW.effect.Flags.E_MUST_TOUCH_WALLS) {
+                let ok = false;
+                GW.utils.eachNeighbor(x, y, (i, j) => {
+                    if (site.isWall(i, j)) {
+                        ok = true;
+                    }
+                }, true);
+                if (!ok)
+                    return false;
+            }
+            else if (this.info.flags & GW.effect.Flags.E_NO_TOUCH_WALLS) {
+                let ok = true;
+                if (site.isWall(x, y))
+                    return false; // or on wall
+                GW.utils.eachNeighbor(x, y, (i, j) => {
+                    if (site.isWall(i, j)) {
+                        ok = false;
+                    }
+                }, true);
+                if (!ok)
+                    return false;
+            }
+            if (this.info.tile.matchTile &&
+                !isStart &&
+                !site.hasTile(x, y, this.info.tile.matchTile)) {
+                return false;
+            }
+            return true;
+        }
+        spawnTiles(site, locs) {
+            let didSomething = false;
+            const options = {
+                superpriority: !!(this.info.flags & GW.effect.Flags.E_SUPERPRIORITY),
+                blockedByOtherLayers: !!(this.info.flags & GW.effect.Flags.E_BLOCKED_BY_OTHER_LAYERS),
+                blockedByActors: !!(this.info.flags & GW.effect.Flags.E_BLOCKED_BY_ACTORS),
+                blockedByItems: !!(this.info.flags & GW.effect.Flags.E_BLOCKED_BY_ITEMS),
+                volume: this.info.tile.volume,
+            };
+            locs.forEach((v, i, j) => {
+                if (v) {
+                    locs[i][j] = 0;
+                    if (site.placeTile(i, j, this.info.tile, options)) {
+                        locs[i][j] = 1;
+                        didSomething = true;
+                    }
+                }
+            });
+            return didSomething;
+        }
+    }
+
     const Fl$1 = GW.flag.fl;
+    var StepFlags;
+    (function (StepFlags) {
+        // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
+        // BF_GENERATE_HORDE			= Fl(5),	// generate a monster horde that has all of the horde flags
+        // BF_NO_THROWING_WEAPONS	    = Fl(4),	// the generated item cannot be a throwing weapon
+        // BF_REQUIRE_GOOD_RUNIC		= Fl(18),	// generated item must be uncursed runic
+        StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
+        StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl$1(2)] = "BF_BUILD_VESTIBULE";
+        StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl$1(3)] = "BF_ADOPT_ITEM";
+        StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl$1(6)] = "BF_BUILD_AT_ORIGIN";
+        // unused                   = Fl(7),	//
+        StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl$1(8)] = "BF_PERMIT_BLOCKING";
+        StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl$1(9)] = "BF_TREAT_AS_BLOCKING";
+        StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl$1(10)] = "BF_NEAR_ORIGIN";
+        StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl$1(11)] = "BF_FAR_FROM_ORIGIN";
+        StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl$1(25)] = "BF_IN_VIEW_OF_ORIGIN";
+        StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(26)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
+        StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl$1(12)] = "BF_MONSTER_TAKE_ITEM";
+        StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl$1(13)] = "BF_MONSTER_SLEEPING";
+        StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl$1(14)] = "BF_MONSTER_FLEEING";
+        StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl$1(19)] = "BF_MONSTERS_DORMANT";
+        StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl$1(0)] = "BF_ITEM_IS_KEY";
+        StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl$1(5)] = "BF_ITEM_IDENTIFIED";
+        StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl$1(4)] = "BF_ITEM_PLAYER_AVOIDS";
+        StepFlags[StepFlags["BF_EVERYWHERE"] = Fl$1(15)] = "BF_EVERYWHERE";
+        StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl$1(16)] = "BF_ALTERNATIVE";
+        StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl$1(17)] = "BF_ALTERNATIVE_2";
+        // unused                       = Fl(20),	//
+        StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl$1(21)] = "BF_BUILD_IN_WALLS";
+        StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
+        StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
+        StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
+        StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
+        StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl$1(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
+        StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl$1(29)] = "BF_SKELETON_KEY";
+        StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl$1(30)] = "BF_KEY_DISPOSABLE";
+    })(StepFlags || (StepFlags = {}));
+    class BuildStep {
+        constructor(cfg = {}) {
+            this.tile = 0;
+            this.flags = 0;
+            this.pad = 0;
+            this.item = null;
+            this.horde = null;
+            this.spawn = null;
+            if (cfg.tile) {
+                if (typeof cfg.tile === 'string') {
+                    const t = GW.tile.tiles[cfg.tile];
+                    if (!t) {
+                        throw new Error('Failed to find tile: ' + cfg.tile);
+                    }
+                    this.tile = t.index;
+                }
+                else {
+                    this.tile = cfg.tile;
+                }
+            }
+            if (cfg.flags) {
+                this.flags = GW.flag.from(StepFlags, cfg.flags);
+            }
+            if (cfg.pad) {
+                this.pad = cfg.pad;
+            }
+            this.count = GW.range.make(cfg.count || 1);
+            this.item = cfg.item || null;
+            this.horde = cfg.horde || null;
+            if (cfg.spawn) {
+                this.spawn = GW.effect.from(cfg.spawn);
+            }
+        }
+        cellIsCandidate(builder, blueprint, x, y, distanceBound) {
+            const site = builder.site;
+            // No building in the hallway if it's prohibited.
+            // This check comes before the origin check, so an area machine will fail altogether
+            // if its origin is in a hallway and the feature that must be built there does not permit as much.
+            if (this.flags & StepFlags.BF_NOT_IN_HALLWAY &&
+                GW.utils.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
+                return false;
+            }
+            // No building along the perimeter of the level if it's prohibited.
+            if (this.flags & StepFlags.BF_NOT_ON_LEVEL_PERIMETER &&
+                (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1)) {
+                return false;
+            }
+            // The origin is a candidate if the feature is flagged to be built at the origin.
+            // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
+            if (this.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
+                return x == builder.originX && y == builder.originY ? true : false;
+            }
+            else if (blueprint.isRoom &&
+                x == builder.originX &&
+                y == builder.originY) {
+                return false;
+            }
+            // No building in another feature's personal space!
+            if (builder.occupied[x][y]) {
+                return false;
+            }
+            // Must be in the viewmap if the appropriate flag is set.
+            if (this.flags &
+                (StepFlags.BF_IN_VIEW_OF_ORIGIN |
+                    StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
+                !builder.viewMap[x][y]) {
+                return false;
+            }
+            // Do a distance check if the feature requests it.
+            let distance = 10000;
+            if (site.isWall(x, y)) {
+                // Distance is calculated for walls too.
+                GW.utils.eachNeighbor(x, y, (i, j) => {
+                    if (!builder.distanceMap.hasXY(i, j))
+                        return;
+                    if (!site.blocksPathing(i, j) &&
+                        distance > builder.distanceMap[i][j] + 1) {
+                        distance = builder.distanceMap[i][j] + 1;
+                    }
+                }, true);
+            }
+            else {
+                distance = builder.distanceMap[x][y];
+            }
+            if (distance > distanceBound[1] || // distance exceeds max
+                distance < distanceBound[0]) {
+                // distance falls short of min
+                return false;
+            }
+            if (this.flags & StepFlags.BF_BUILD_IN_WALLS) {
+                // If we're supposed to build in a wall...
+                const cellMachine = site.getMachine(x, y);
+                if (!builder.interior[x][y] &&
+                    (!cellMachine || cellMachine == builder.machineNumber) &&
+                    site.isWall(x, y)) {
+                    let ok = false;
+                    // ...and this location is a wall that's not already machined...
+                    GW.utils.eachNeighbor(x, y, (newX, newY) => {
+                        if (site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
+                            ((builder.interior[newX][newY] &&
+                                !(newX == builder.originX &&
+                                    newY == builder.originY)) ||
+                                (this.flags &
+                                    StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL &&
+                                    !site.blocksPathing(newX, newY) &&
+                                    !site.getMachine(newX, newY)))) {
+                            ok = true;
+                        }
+                    });
+                    return ok;
+                }
+                return false;
+            }
+            else if (site.isWall(x, y)) {
+                // Can't build in a wall unless instructed to do so.
+                return false;
+            }
+            else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
+                if ((this.item && site.blocksItems(x, y)) ||
+                    site.hasSiteFlag(x, y, Flags.IS_CHOKEPOINT |
+                        Flags.IS_IN_LOOP |
+                        Flags.IS_IN_MACHINE)) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            }
+            else if (builder.interior[x][y]) {
+                return true;
+            }
+            return false;
+        }
+        makePersonalSpace(builder, x, y, candidates) {
+            const personalSpace = this.pad;
+            let count = 0;
+            for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
+                for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
+                    if (builder.site.hasXY(i, j)) {
+                        if (candidates[i][j]) {
+                            candidates[i][j] = 0;
+                            ++count;
+                        }
+                        builder.occupied[i][j] = 1;
+                    }
+                }
+            }
+            return count;
+        }
+        build(builder, blueprint) {
+            let generateEverywhere = false;
+            let instanceCount = 0;
+            let instance = 0;
+            const site = builder.site;
+            const candidates = GW.grid.alloc(site.width, site.height);
+            // Figure out the distance bounds.
+            const distanceBound = [0, 10000];
+            if (this.flags & StepFlags.BF_NEAR_ORIGIN) {
+                distanceBound[1] = builder.distance25;
+            }
+            if (this.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
+                distanceBound[0] = builder.distance75;
+            }
+            if (this.flags &
+                (StepFlags.BF_IN_VIEW_OF_ORIGIN |
+                    StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
+                if (this.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
+                    const fov = new GW.fov.FOV({
+                        isBlocked: (x, y) => {
+                            return site.blocksPathing(x, y);
+                        },
+                        hasXY: (x, y) => {
+                            return site.hasXY(x, y);
+                        },
+                    });
+                    fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                        builder.viewMap[x][y] = 1;
+                    });
+                }
+                else {
+                    const fov = new GW.fov.FOV({
+                        // TileFlags.T_OBSTRUCTS_PASSABILITY |
+                        //     TileFlags.T_OBSTRUCTS_VISION,
+                        isBlocked: (x, y) => {
+                            return (site.blocksPathing(x, y) || site.blocksVision(x, y));
+                        },
+                        hasXY: (x, y) => {
+                            return site.hasXY(x, y);
+                        },
+                    });
+                    fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                        builder.viewMap[x][y] = 1;
+                    });
+                }
+                builder.viewMap[builder.originX][builder.originY] = 1;
+            }
+            do {
+                // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+                // Make a master map of candidate locations for this feature.
+                let qualifyingTileCount = 0;
+                candidates.update((_v, i, j) => {
+                    if (this.cellIsCandidate(builder, blueprint, i, j, distanceBound)) {
+                        qualifyingTileCount++;
+                        return 1;
+                    }
+                    else {
+                        return 0;
+                    }
+                });
+                if (this.flags &
+                    StepFlags.BF_EVERYWHERE &
+                    ~StepFlags.BF_BUILD_AT_ORIGIN) {
+                    // Generate everywhere that qualifies -- instead of randomly picking tiles, keep spawning until we run out of eligible tiles.
+                    generateEverywhere = true;
+                }
+                else {
+                    // build as many instances as required
+                    generateEverywhere = false;
+                    instanceCount = this.count.value();
+                }
+                if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
+                    console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
+                }
+                let x = 0, y = 0;
+                for (instance = 0; (generateEverywhere || instance < instanceCount) &&
+                    qualifyingTileCount > 0;) {
+                    // Find a location for the feature.
+                    if (this.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
+                        // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+                        x = builder.originX;
+                        y = builder.originY;
+                    }
+                    else {
+                        // Pick our candidate location randomly, and also strike it from
+                        // the candidates map so that subsequent instances of this same feature can't choose it.
+                        x = -1;
+                        let randIndex = GW.random.range(1, qualifyingTileCount);
+                        candidates.forEach((v, i, j) => {
+                            if (!v)
+                                return;
+                            if (randIndex == 1) {
+                                // This is the place!
+                                x = i;
+                                y = j;
+                                return false;
+                            }
+                            else {
+                                randIndex--;
+                            }
+                        });
+                    }
+                    // Don't waste time trying the same place again whether or not this attempt succeeds.
+                    candidates[x][y] = 0;
+                    qualifyingTileCount--;
+                    let terrainSucceeded = true;
+                    // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+                    if (this.spawn) {
+                        const spawner = new Spawner(this.spawn);
+                        spawner.spawn(x, y, site);
+                    }
+                    // Now try to place the terrain tile, if any.
+                    if (this.tile) {
+                        let tile = this.tile;
+                        if (typeof tile == 'string')
+                            tile = GW.tile.tiles[tile].index;
+                        if (!tile) {
+                            terrainSucceeded = false;
+                            console.error('placing invalid tile', this.tile, x, y);
+                        }
+                        else if (!(this.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+                            (site.tileBlocksMove(tile) ||
+                                this.flags & StepFlags.BF_TREAT_AS_BLOCKING)) {
+                            // Yes, check for blocking.
+                            const blockingMap = GW.grid.alloc(site.width, site.height);
+                            blockingMap[x][y] = 1;
+                            terrainSucceeded = !siteDisruptedBy(site, blockingMap);
+                            GW.grid.free(blockingMap);
+                        }
+                        if (terrainSucceeded) {
+                            site.setTile(x, y, tile);
+                        }
+                    }
+                    // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+                    // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
+                    if (terrainSucceeded) {
+                        qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
+                        instance++; // we've placed an instance
+                        //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
+                    }
+                    if (terrainSucceeded) {
+                        // Proceed only if the terrain stuff for this instance succeeded.
+                        // Mark the feature location as part of the machine, in case it is not already inside of it.
+                        if (!(blueprint.flags & Flags$1.BP_NO_INTERIOR_FLAG)) {
+                            site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+                        }
+                        // Mark the feature location as impregnable if requested.
+                        if (this.flags & StepFlags.BF_IMPREGNABLE) {
+                            site.setSiteFlag(x, y, Flags.IMPREGNABLE);
+                        }
+                        // let success = RUT.Component.generateAdoptItem(
+                        //     component,
+                        //     blueprint,
+                        //     map,
+                        //     xy.x,
+                        //     xy.y,
+                        //     context
+                        // );
+                        // if (!success) {
+                        //     GW.grid.free(candidates);
+                        //     return false;
+                        // }
+                        // // Generate a horde as necessary.
+                        // success = RUT.Component.generateMonsters(
+                        //     component,
+                        //     blueprint,
+                        //     map,
+                        //     xy.x,
+                        //     xy.y,
+                        //     context
+                        // );
+                        // if (!success) {
+                        //     GW.grid.free(candidates);
+                        //     return false;
+                        // }
+                    }
+                    // Finished with this instance!
+                }
+            } while (this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS &&
+                instance <= this.count.lo);
+            //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
+            //DEBUG logBuffer(candidates);
+            GW.grid.free(candidates);
+            return instance;
+        }
+    }
+
+    const Fl$2 = GW.flag.fl;
     var Flags$1;
     (function (Flags) {
-        Flags[Flags["BP_ROOM"] = Fl$1(10)] = "BP_ROOM";
-        Flags[Flags["BP_VESTIBULE"] = Fl$1(1)] = "BP_VESTIBULE";
-        Flags[Flags["BP_REWARD"] = Fl$1(7)] = "BP_REWARD";
-        Flags[Flags["BP_ADOPT_ITEM"] = Fl$1(0)] = "BP_ADOPT_ITEM";
-        Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl$1(2)] = "BP_PURGE_PATHING_BLOCKERS";
-        Flags[Flags["BP_PURGE_INTERIOR"] = Fl$1(3)] = "BP_PURGE_INTERIOR";
-        Flags[Flags["BP_PURGE_LIQUIDS"] = Fl$1(4)] = "BP_PURGE_LIQUIDS";
-        Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl$1(5)] = "BP_SURROUND_WITH_WALLS";
-        Flags[Flags["BP_IMPREGNABLE"] = Fl$1(6)] = "BP_IMPREGNABLE";
-        Flags[Flags["BP_OPEN_INTERIOR"] = Fl$1(8)] = "BP_OPEN_INTERIOR";
-        Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl$1(9)] = "BP_MAXIMIZE_INTERIOR";
-        Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl$1(14)] = "BP_REDESIGN_INTERIOR";
-        Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl$1(11)] = "BP_TREAT_AS_BLOCKING";
-        Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl$1(12)] = "BP_REQUIRE_BLOCKING";
-        Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl$1(13)] = "BP_NO_INTERIOR_FLAG";
+        Flags[Flags["BP_ROOM"] = Fl$2(10)] = "BP_ROOM";
+        Flags[Flags["BP_VESTIBULE"] = Fl$2(1)] = "BP_VESTIBULE";
+        Flags[Flags["BP_REWARD"] = Fl$2(7)] = "BP_REWARD";
+        Flags[Flags["BP_ADOPT_ITEM"] = Fl$2(0)] = "BP_ADOPT_ITEM";
+        Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl$2(2)] = "BP_PURGE_PATHING_BLOCKERS";
+        Flags[Flags["BP_PURGE_INTERIOR"] = Fl$2(3)] = "BP_PURGE_INTERIOR";
+        Flags[Flags["BP_PURGE_LIQUIDS"] = Fl$2(4)] = "BP_PURGE_LIQUIDS";
+        Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl$2(5)] = "BP_SURROUND_WITH_WALLS";
+        Flags[Flags["BP_IMPREGNABLE"] = Fl$2(6)] = "BP_IMPREGNABLE";
+        Flags[Flags["BP_OPEN_INTERIOR"] = Fl$2(8)] = "BP_OPEN_INTERIOR";
+        Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl$2(9)] = "BP_MAXIMIZE_INTERIOR";
+        Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl$2(14)] = "BP_REDESIGN_INTERIOR";
+        Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl$2(11)] = "BP_TREAT_AS_BLOCKING";
+        Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl$2(12)] = "BP_REQUIRE_BLOCKING";
+        Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl$2(13)] = "BP_NO_INTERIOR_FLAG";
     })(Flags$1 || (Flags$1 = {}));
     class Blueprint {
         constructor(opts = {}) {
             this.tags = [];
             this.size = [-1, -1];
             this.flags = 0;
+            this.steps = [];
+            this.id = 'n/a';
             if (opts.tags) {
                 if (typeof opts.tags === 'string') {
                     opts.tags = opts.tags.split(/[,|]/).map((v) => v.trim());
@@ -2471,6 +3164,9 @@
             if (opts.flags) {
                 this.flags = GW.flag.from(Flags$1, opts.flags);
             }
+            if (opts.steps) {
+                this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
+            }
         }
         getChance(level, tags) {
             if (tags && tags.length) {
@@ -2484,21 +3180,487 @@
             return this.frequency(level);
         }
         get isRoom() {
-            return this.flags & Flags$1.BP_ROOM;
+            return !!(this.flags & Flags$1.BP_ROOM);
         }
         get isReward() {
-            return this.flags & Flags$1.BP_REWARD;
+            return !!(this.flags & Flags$1.BP_REWARD);
         }
         get isVestiblue() {
-            return this.flags & Flags$1.BP_VESTIBULE;
+            return !!(this.flags & Flags$1.BP_VESTIBULE);
         }
         get adoptsItem() {
-            return this.flags & Flags$1.BP_ADOPT_ITEM;
+            return !!(this.flags & Flags$1.BP_ADOPT_ITEM);
+        }
+        get treatAsBlocking() {
+            return !!(this.flags & Flags$1.BP_TREAT_AS_BLOCKING);
+        }
+        get requireBlocking() {
+            return !!(this.flags & Flags$1.BP_REQUIRE_BLOCKING);
+        }
+        get purgeInterior() {
+            return !!(this.flags & Flags$1.BP_PURGE_INTERIOR);
+        }
+        get purgeBlockers() {
+            return !!(this.flags & Flags$1.BP_PURGE_PATHING_BLOCKERS);
+        }
+        get purgeLiquids() {
+            return !!(this.flags & Flags$1.BP_PURGE_LIQUIDS);
+        }
+        get surroundWithWalls() {
+            return !!(this.flags & Flags$1.BP_SURROUND_WITH_WALLS);
+        }
+        get makeImpregnable() {
+            return !!(this.flags & Flags$1.BP_IMPREGNABLE);
+        }
+        get maximizeInterior() {
+            return !!(this.flags & Flags$1.BP_MAXIMIZE_INTERIOR);
+        }
+        get openInterior() {
+            return !!(this.flags & Flags$1.BP_OPEN_INTERIOR);
+        }
+        get noInteriorFlag() {
+            return !!(this.flags & Flags$1.BP_NO_INTERIOR_FLAG);
+        }
+        qualifies(requiredFlags, depth) {
+            if (this.frequency(depth) <= 0 ||
+                // Must have the required flags:
+                ~this.flags & requiredFlags ||
+                // May NOT have BP_ADOPT_ITEM unless that flag is required:
+                this.flags & Flags$1.BP_ADOPT_ITEM & ~requiredFlags ||
+                // May NOT have BP_VESTIBULE unless that flag is required:
+                this.flags & Flags$1.BP_VESTIBULE & ~requiredFlags) {
+                return false;
+            }
+            return true;
+        }
+        pickLocation(site) {
+            // Find a location and map out the machine interior.
+            if (this.isRoom) {
+                // If it's a room machine, count up the gates of appropriate
+                // choke size and remember where they are. The origin of the room will be the gate location.
+                // RUT.Map.analyze(map, true); // Make sure the chokeMap is up to date.
+                const randSite = GW.random.matchingLoc(site.width, site.height, (x, y) => site.hasSiteFlag(x, y, Flags.IS_GATE_SITE));
+                if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
+                    // If no suitable sites, abort.
+                    console.log('Failed to build a machine; there was no eligible door candidate for the chosen room machine from blueprint.');
+                    return false;
+                }
+                return randSite;
+            }
+            else if (this.isVestiblue) {
+                //  Door machines must have locations passed in. We can't pick one ourselves.
+                console.log('ERROR: Attempted to build a vestiblue without a location being provided.');
+                return false;
+            }
+            // Pick a random origin location.
+            const pos = GW.random.matchingLoc(site.width, site.height, (x, y) => site.isPassable(x, y));
+            if (!pos || pos[0] < 0 || pos[1] < 0)
+                return false;
+            return pos;
+        }
+        // Assume site has been analyzed (aka GateSites and ChokeCounts set)
+        computeInterior(builder) {
+            let failsafe = this.isRoom ? 10 : 20;
+            let tryAgain;
+            const interior = builder.interior;
+            const site = builder.site;
+            do {
+                tryAgain = false;
+                if (--failsafe <= 0) {
+                    console.log('Failed to build a machine; failed repeatedly to find a suitable blueprint location.');
+                    return false;
+                }
+                interior.fill(0);
+                // Find a location and map out the machine interior.
+                if (this.isRoom) {
+                    // If it's a room machine, count up the gates of appropriate
+                    // choke size and remember where they are. The origin of the room will be the gate location.
+                    // Now map out the interior into interior[][].
+                    // Start at the gate location and do a depth-first floodfill to grab all adjoining tiles with the
+                    // same or lower choke value, ignoring any tiles that are already part of a machine.
+                    // If we get false from this, try again. If we've tried too many times already, abort.
+                    tryAgain = !this.addTileToInteriorAndIterate(builder, builder.originX, builder.originY);
+                }
+                else if (this.isVestiblue) {
+                    if (!this.computeInteriorForVestibuleMachine(builder)) {
+                        // TODO - tryagain = true?
+                        console.error('ERROR: Attempted to build a door machine from blueprint: not enough room.');
+                        return false;
+                    }
+                    // success
+                }
+                else {
+                    // Find a location and map out the interior for a non-room machine.
+                    // The strategy here is simply to pick a random location on the map,
+                    // expand it along a pathing map by one space in all directions until the size reaches
+                    // the chosen size, and then make sure the resulting space qualifies.
+                    // If not, try again. If we've tried too many times already, abort.
+                    let distanceMap = GW.grid.alloc(interior.width, interior.height);
+                    computeDistanceMap(site, distanceMap, builder.originX, builder.originY, this.size[1]);
+                    const seq = GW.random.sequence(site.width * site.height);
+                    let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+                    let totalFreq = GW.random.range(this.size[0], this.size[1]); // Keeps track of the goal size.
+                    for (let k = 0; k < 1000 && qualifyingTileCount < totalFreq; k++) {
+                        for (let n = 0; n < seq.length && qualifyingTileCount < totalFreq; n++) {
+                            const i = Math.floor(seq[n] / site.height);
+                            const j = seq[n] % site.height;
+                            if (distanceMap[i][j] == k) {
+                                interior[i][j] = 1;
+                                qualifyingTileCount++;
+                                if (site.isOccupied(i, j) ||
+                                    site.hasSiteFlag(i, j, Flags.IS_IN_MACHINE)) {
+                                    // Abort if we've entered another machine or engulfed another machine's item or monster.
+                                    tryAgain = true;
+                                    qualifyingTileCount = totalFreq; // This is a hack to drop out of these three for-loops.
+                                }
+                            }
+                        }
+                    }
+                    // Now make sure the interior map satisfies the machine's qualifications.
+                    if (qualifyingTileCount < totalFreq) {
+                        tryAgain = true;
+                        console.log('too small');
+                    }
+                    else if (this.treatAsBlocking &&
+                        siteDisruptedBy(site, interior)) {
+                        console.log('disconnected');
+                        tryAgain = true;
+                    }
+                    else if (this.requireBlocking &&
+                        siteDisruptedSize(site, interior) < 100) {
+                        console.log('not disconnected enough');
+                        tryAgain = true; // BP_REQUIRE_BLOCKING needs some work to make sure the disconnect is interesting.
+                    }
+                    // If locationFailsafe runs out, tryAgain will still be true, and we'll try a different machine.
+                    // If we're not choosing the blueprint, then don't bother with the locationFailsafe; just use the higher-level failsafe.
+                    GW.grid.free(distanceMap);
+                }
+                // Now loop if necessary.
+            } while (tryAgain);
+            console.log(tryAgain, failsafe);
+            return true;
+        }
+        // Assumes (startX, startY) is in the machine.
+        // Returns true if everything went well, and false if we ran into a machine component
+        // that was already there, as we don't want to build a machine around it.
+        addTileToInteriorAndIterate(builder, startX, startY) {
+            let goodSoFar = true;
+            const interior = builder.interior;
+            const site = builder.site;
+            interior[startX][startY] = 1;
+            const startChokeCount = site.getChokeCount(startX, startY);
+            for (let dir = 0; dir < 4 && goodSoFar; dir++) {
+                const newX = startX + GW.utils.DIRS[dir][0];
+                const newY = startY + GW.utils.DIRS[dir][1];
+                if (!site.hasXY(newX, newY))
+                    continue;
+                if (interior[newX][newY])
+                    continue; // already done
+                if (site.isOccupied(newX, newY) ||
+                    (site.hasSiteFlag(newX, newY, Flags.IS_IN_MACHINE) &&
+                        !site.hasSiteFlag(newX, newY, Flags.IS_GATE_SITE))) {
+                    // Abort if there's an item in the room.
+                    // Items haven't been populated yet, so the only way this could happen is if another machine
+                    // previously placed an item here.
+                    // Also abort if we're touching another machine at any point other than a gate tile.
+                    return false;
+                }
+                if (site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
+                    !site.hasSiteFlag(newX, newY, Flags.IS_IN_MACHINE)) {
+                    goodSoFar = this.addTileToInteriorAndIterate(builder, newX, newY);
+                }
+            }
+            return goodSoFar;
+        }
+        computeInteriorForVestibuleMachine(builder) {
+            let success = true;
+            const interior = builder.interior;
+            const site = builder.site;
+            interior.fill(0);
+            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+            const totalFreq = GW.random.range(this.size[0], this.size[1]); // Keeps track of the goal size.
+            const distMap = GW.grid.alloc(site.width, site.height);
+            computeDistanceMap(site, distMap, builder.originX, builder.originY, this.size[1]);
+            // console.log('DISTANCE MAP', originX, originY);
+            // RUT.Grid.dump(distMap);
+            const cells = GW.random.sequence(site.width * site.height);
+            for (let k = 0; k < 1000 && qualifyingTileCount < totalFreq; k++) {
+                for (let i = 0; i < cells.length && qualifyingTileCount < totalFreq; ++i) {
+                    const x = Math.floor(cells[i] / site.height);
+                    const y = cells[i] % site.height;
+                    const dist = distMap[x][y];
+                    if (dist != k)
+                        continue;
+                    if (site.isOccupied(x, y)) {
+                        success = false;
+                        qualifyingTileCount = totalFreq;
+                    }
+                    interior[x][y] = 1;
+                    qualifyingTileCount += 1;
+                }
+            }
+            // Now make sure the interior map satisfies the machine's qualifications.
+            if (this.treatAsBlocking && siteDisruptedBy(site, interior)) {
+                success = false;
+            }
+            else if (this.requireBlocking &&
+                siteDisruptedSize(site, interior) < 100) {
+                success = false;
+            }
+            GW.grid.free(distMap);
+            return success;
+        }
+        prepareInteriorWithMachineFlags(builder) {
+            const interior = builder.interior;
+            const site$2 = builder.site;
+            // If requested, clear and expand the room as far as possible until either it's convex or it bumps into surrounding rooms
+            if (this.maximizeInterior) {
+                this.expandMachineInterior(builder, 1);
+            }
+            else if (this.openInterior) {
+                this.expandMachineInterior(builder, 4);
+            }
+            // If requested, cleanse the interior -- no interesting terrain allowed.
+            if (this.purgeInterior) {
+                interior.forEach((v, x, y) => {
+                    if (v)
+                        site$2.setTile(x, y, FLOOR);
+                });
+            }
+            // If requested, purge pathing blockers -- no traps allowed.
+            if (this.purgeBlockers) {
+                interior.forEach((v, x, y) => {
+                    if (!v)
+                        return;
+                    if (site$2.blocksPathing(x, y)) {
+                        site$2.setTile(x, y, FLOOR);
+                    }
+                });
+            }
+            // If requested, purge the liquid layer in the interior -- no liquids allowed.
+            if (this.purgeLiquids) {
+                interior.forEach((v, x, y) => {
+                    if (v && site$2.isAnyLiquid(x, y)) {
+                        site$2.setTile(x, y, FLOOR);
+                    }
+                });
+            }
+            // Surround with walls if requested.
+            if (this.surroundWithWalls) {
+                interior.forEach((v, x, y) => {
+                    if (!v || site$2.hasSiteFlag(x, y, Flags.IS_GATE_SITE))
+                        return;
+                    GW.utils.eachNeighbor(x, y, (i, j) => {
+                        if (!interior.hasXY(i, j))
+                            return; // Not valid x,y
+                        if (interior[i][j])
+                            return; // is part of machine
+                        if (site$2.isWall(i, j))
+                            return; // is already a wall (of some sort)
+                        if (site$2.hasSiteFlag(i, j, Flags.IS_GATE_SITE))
+                            return; // is a door site
+                        if (site$2.hasSiteFlag(i, j, Flags.IS_IN_MACHINE))
+                            return; // is part of a machine
+                        if (!site$2.blocksPathing(i, j))
+                            return; // is not a blocker for the player (water?)
+                        site$2.setTile(i, j, WALL);
+                    }, false);
+                });
+            }
+            // Completely clear the interior, fill with granite, and cut entirely new rooms into it from the gate site.
+            // Then zero out any portion of the interior that is still wall.
+            // if (flags & BPFlags.BP_REDESIGN_INTERIOR) {
+            //     RUT.Map.Blueprint.redesignInterior(map, interior, originX, originY, dungeonProfileIndex);
+            // }
+            // Reinforce surrounding tiles and interior tiles if requested to prevent tunneling in or through.
+            if (this.makeImpregnable) {
+                interior.forEach((v, x, y) => {
+                    if (!v || site$2.hasSiteFlag(x, y, Flags.IS_GATE_SITE))
+                        return;
+                    site$2.setSiteFlag(x, y, Flags.IMPREGNABLE);
+                    GW.utils.eachNeighbor(x, y, (i, j) => {
+                        if (!interior.hasXY(i, j))
+                            return;
+                        if (interior[i][j])
+                            return;
+                        if (site$2.hasSiteFlag(i, j, Flags.IS_GATE_SITE))
+                            return;
+                        site$2.setSiteFlag(i, j, Flags.IMPREGNABLE);
+                    }, false);
+                });
+            }
+            // If necessary, label the interior as IS_IN_AREA_MACHINE or IS_IN_ROOM_MACHINE and mark down the number.
+            const machineNumber = builder.machineNumber;
+            interior.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                site$2.setMachine(x, y, machineNumber, this.isRoom);
+                // secret doors mess up machines
+                if (site$2.isSecretDoor(x, y)) {
+                    site$2.setTile(x, y, DOOR);
+                }
+            });
+        }
+        expandMachineInterior(builder, minimumInteriorNeighbors = 1) {
+            let madeChange;
+            const interior = builder.interior;
+            const site$2 = builder.site;
+            do {
+                madeChange = false;
+                interior.forEach((_v, x, y) => {
+                    // if (v && site.isDoor(x, y)) {
+                    //     site.setTile(x, y, DIG_SITE.FLOOR); // clean out the doors...
+                    //     return;
+                    // }
+                    if (site$2.hasSiteFlag(x, y, Flags.IS_IN_MACHINE))
+                        return;
+                    if (!site$2.blocksPathing(x, y))
+                        return;
+                    let nbcount = 0;
+                    GW.utils.eachNeighbor(x, y, (i, j) => {
+                        if (!interior.hasXY(i, j))
+                            return; // Not in map
+                        if (interior[i][j] && !site$2.blocksPathing(i, j)) {
+                            ++nbcount; // in machine and open tile
+                        }
+                    }, false);
+                    if (nbcount < minimumInteriorNeighbors)
+                        return;
+                    nbcount = 0;
+                    GW.utils.eachNeighbor(x, y, (i, j) => {
+                        if (!interior.hasXY(i, j))
+                            return; // not on map
+                        if (interior[i][j])
+                            return; // already part of machine
+                        if (!site$2.isWall(i, j) ||
+                            site$2.hasSiteFlag(i, j, Flags.IS_IN_MACHINE)) {
+                            ++nbcount; // tile is not a wall or is in a machine
+                        }
+                    }, false);
+                    if (nbcount)
+                        return;
+                    // Eliminate this obstruction; welcome its location into the machine.
+                    madeChange = true;
+                    interior[x][y] = 1;
+                    if (site$2.blocksPathing(x, y)) {
+                        site$2.setTile(x, y, FLOOR);
+                    }
+                    GW.utils.eachNeighbor(x, y, (i, j) => {
+                        if (!interior.hasXY(i, j))
+                            return;
+                        if (site$2.isSet(i, j))
+                            return;
+                        site$2.setTile(i, j, WALL);
+                    });
+                });
+            } while (madeChange);
+        }
+        calcDistances(builder) {
+            builder.distanceMap.fill(0);
+            computeDistanceMap(builder.site, builder.distanceMap, builder.originX, builder.originY, this.size[1]);
+            let qualifyingTileCount = 0;
+            const distances = new Array(100).fill(0);
+            builder.interior.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                const dist = builder.distanceMap[x][y];
+                if (dist < 100) {
+                    distances[dist]++; // create a histogram of distances -- poor man's sort function
+                    qualifyingTileCount++;
+                }
+            });
+            let distance25 = Math.round(qualifyingTileCount / 4);
+            let distance75 = Math.round((3 * qualifyingTileCount) / 4);
+            for (let i = 0; i < 100; i++) {
+                if (distance25 <= distances[i]) {
+                    distance25 = i;
+                    break;
+                }
+                else {
+                    distance25 -= distances[i];
+                }
+            }
+            for (let i = 0; i < 100; i++) {
+                if (distance75 <= distances[i]) {
+                    distance75 = i;
+                    break;
+                }
+                else {
+                    distance75 -= distances[i];
+                }
+            }
+            builder.distance25 = distance25;
+            builder.distance75 = distance75;
+        }
+        pickComponents() {
+            const alternativeFlags = [
+                StepFlags.BF_ALTERNATIVE,
+                StepFlags.BF_ALTERNATIVE_2,
+            ];
+            const keepFeature = new Array(this.steps.length).fill(true);
+            for (let j = 0; j <= 1; j++) {
+                let totalFreq = 0;
+                for (let i = 0; i < keepFeature.length; i++) {
+                    if (this.steps[i].flags & alternativeFlags[j]) {
+                        keepFeature[i] = false;
+                        totalFreq++;
+                    }
+                }
+                if (totalFreq > 0) {
+                    let randIndex = GW.random.range(1, totalFreq);
+                    for (let i = 0; i < keepFeature.length; i++) {
+                        if (this.steps[i].flags & alternativeFlags[j]) {
+                            if (randIndex == 1) {
+                                keepFeature[i] = true; // This is the alternative that gets built. The rest do not.
+                                break;
+                            }
+                            else {
+                                randIndex--;
+                            }
+                        }
+                    }
+                }
+            }
+            return this.steps.filter((_f, i) => keepFeature[i]);
+        }
+        clearInteriorFlag(builder) {
+            builder.interior.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                if (!builder.site.hasSiteFlag(x, y, Flags.IS_WIRED | Flags.IS_CIRCUIT_BREAKER)) {
+                    builder.site.setMachine(x, y, 0);
+                }
+            });
+            // for (i = 0; i < map.width; i++) {
+            //     for (j = 0; j < map.height; j++) {
+            //         const cell = RUT.Map.getCell(map, i, j);
+            //         if (
+            //             cell.machineNumber == map.machineNumber &&
+            //             !RUT.Cell.hasMechFlag(
+            //                 cell,
+            //                 MechFlags.TM_IS_WIRED |
+            //                     MechFlags.TM_IS_CIRCUIT_BREAKER
+            //             )
+            //         ) {
+            //             cell.flags &= ~CellFlags.IS_IN_MACHINE;
+            //             cell.machineNumber = 0;
+            //         }
+            //     }
+            // }
         }
     }
     const blueprints = {};
     function install$2(id, blueprint) {
+        if (!(blueprint instanceof Blueprint)) {
+            blueprint = new Blueprint(blueprint);
+        }
         blueprints[id] = blueprint;
+        blueprint.id = id;
+        return blueprint;
+    }
+    function random(requiredFlags, depth) {
+        const matches = Object.values(blueprints).filter((b) => b.qualifies(requiredFlags, depth));
+        return GW.random.item(matches);
     }
 
     var blueprint = {
@@ -2506,7 +3668,8 @@
         get Flags () { return Flags$1; },
         Blueprint: Blueprint,
         blueprints: blueprints,
-        install: install$2
+        install: install$2,
+        random: random
     };
 
     // import { LoopFinder } from './loopFinder';
@@ -2647,30 +3810,30 @@
             // grid.forEach((v, x, y) => cb(x, y, !!v));
             // GW.grid.free(grid);
         }
-        _initGrid(site$1) {
-            GW.utils.forRect(site$1.width, site$1.height, (x, y) => {
-                if (site$1.isPassable(x, y)) {
-                    site$1.setSiteFlag(x, y, Flags.IS_IN_LOOP);
+        _initGrid(site) {
+            GW.utils.forRect(site.width, site.height, (x, y) => {
+                if (site.isPassable(x, y)) {
+                    site.setSiteFlag(x, y, Flags.IS_IN_LOOP);
                 }
                 else {
-                    site$1.clearSiteFlag(x, y, Flags.IS_IN_LOOP);
+                    site.clearSiteFlag(x, y, Flags.IS_IN_LOOP);
                 }
             });
         }
-        _checkCell(site$1, x, y) {
+        _checkCell(site, x, y) {
             let inString;
             let newX, newY, dir, sdir;
             let numStrings, maxStringLength, currentStringLength;
-            const v = site$1.hasSiteFlag(x, y, Flags.IS_IN_LOOP);
+            const v = site.hasSiteFlag(x, y, Flags.IS_IN_LOOP);
             if (!v)
                 return;
             // find an unloopy neighbor to start on
             for (sdir = 0; sdir < 8; sdir++) {
                 newX = x + GW.utils.CLOCK_DIRS[sdir][0];
                 newY = y + GW.utils.CLOCK_DIRS[sdir][1];
-                if (!site$1.hasXY(newX, newY))
+                if (!site.hasXY(newX, newY))
                     continue;
-                if (!site$1.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP)) {
+                if (!site.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP)) {
                     break;
                 }
             }
@@ -2687,9 +3850,9 @@
             for (dir = sdir; dir < sdir + 8; dir++) {
                 newX = x + GW.utils.CLOCK_DIRS[dir % 8][0];
                 newY = y + GW.utils.CLOCK_DIRS[dir % 8][1];
-                if (!site$1.hasXY(newX, newY))
+                if (!site.hasXY(newX, newY))
                     continue;
-                const newCell = site$1.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP);
+                const newCell = site.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP);
                 if (newCell) {
                     currentStringLength++;
                     if (!inString) {
@@ -2712,25 +3875,25 @@
                 maxStringLength = currentStringLength;
             }
             if (numStrings == 1 && maxStringLength <= 4) {
-                site$1.clearSiteFlag(x, y, Flags.IS_IN_LOOP);
+                site.clearSiteFlag(x, y, Flags.IS_IN_LOOP);
                 for (dir = 0; dir < 8; dir++) {
                     const newX = x + GW.utils.CLOCK_DIRS[dir][0];
                     const newY = y + GW.utils.CLOCK_DIRS[dir][1];
-                    if (site$1.hasXY(newX, newY)) {
-                        this._checkCell(site$1, newX, newY);
+                    if (site.hasXY(newX, newY)) {
+                        this._checkCell(site, newX, newY);
                     }
                 }
             }
         }
-        _fillInnerLoopGrid(site$1, innerGrid) {
-            for (let x = 0; x < site$1.width; ++x) {
-                for (let y = 0; y < site$1.height; ++y) {
-                    if (site$1.hasSiteFlag(x, y, Flags.IS_IN_LOOP)) {
+        _fillInnerLoopGrid(site, innerGrid) {
+            for (let x = 0; x < site.width; ++x) {
+                for (let y = 0; y < site.height; ++y) {
+                    if (site.hasSiteFlag(x, y, Flags.IS_IN_LOOP)) {
                         innerGrid[x][y] = 1;
                     }
                     else if (x > 0 && y > 0) {
-                        const up = site$1.hasSiteFlag(x, y - 1, Flags.IS_IN_LOOP);
-                        const left = site$1.hasSiteFlag(x - 1, y, Flags.IS_IN_LOOP);
+                        const up = site.hasSiteFlag(x, y - 1, Flags.IS_IN_LOOP);
+                        const left = site.hasSiteFlag(x - 1, y, Flags.IS_IN_LOOP);
                         if (up && left) {
                             innerGrid[x][y] = 1;
                         }
@@ -2738,29 +3901,29 @@
                 }
             }
         }
-        _update(site$1) {
+        _update(site) {
             // remove extraneous loop markings
-            const innerLoop = GW.grid.alloc(site$1.width, site$1.height);
-            this._fillInnerLoopGrid(site$1, innerLoop);
+            const innerLoop = GW.grid.alloc(site.width, site.height);
+            this._fillInnerLoopGrid(site, innerLoop);
             // const xy = { x: 0, y: 0 };
             let designationSurvives;
-            for (let i = 0; i < site$1.width; i++) {
-                for (let j = 0; j < site$1.height; j++) {
-                    if (site$1.hasSiteFlag(i, j, Flags.IS_IN_LOOP)) {
+            for (let i = 0; i < site.width; i++) {
+                for (let j = 0; j < site.height; j++) {
+                    if (site.hasSiteFlag(i, j, Flags.IS_IN_LOOP)) {
                         designationSurvives = false;
                         for (let dir = 0; dir < 8; dir++) {
                             let newX = i + GW.utils.CLOCK_DIRS[dir][0];
                             let newY = j + GW.utils.CLOCK_DIRS[dir][1];
-                            if (site$1.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
+                            if (site.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                                 !innerLoop[newX][newY] &&
-                                !site$1.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP)) {
+                                !site.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP)) {
                                 designationSurvives = true;
                                 break;
                             }
                         }
                         if (!designationSurvives) {
                             innerLoop[i][j] = 1;
-                            site$1.clearSiteFlag(i, j, Flags.IS_IN_LOOP);
+                            site.clearSiteFlag(i, j, Flags.IS_IN_LOOP);
                         }
                     }
                 }
@@ -2771,7 +3934,8 @@
     ////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////
 
-    function analyze(site) {
+    const analyze = { ChokeFinder, LoopFinder };
+    function analyzeSite(site) {
         const loops = new LoopFinder();
         loops.compute(site);
         const chokes = new ChokeFinder(true);
@@ -2781,15 +3945,20 @@
     var index$1 = {
         __proto__: null,
         blueprint: blueprint,
+        site: site$1,
         analyze: analyze,
-        LoopFinder: LoopFinder,
-        ChokeFinder: ChokeFinder,
-        floodFillCount: floodFillCount
+        analyzeSite: analyzeSite,
+        get Flags () { return Flags$1; },
+        Blueprint: Blueprint,
+        blueprints: blueprints,
+        install: install$2,
+        random: random,
+        get StepFlags () { return StepFlags; },
+        BuildStep: BuildStep
     };
 
     exports.build = index$1;
     exports.dig = index;
-    exports.site = site;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

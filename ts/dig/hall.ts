@@ -1,12 +1,12 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
+import * as SITE from './site';
 import * as UTILS from './utils';
 import * as TYPES from './types';
 
 const DIRS = GW.utils.DIRS;
 
 export function isDoorLoc(
-    site: SITE.Site,
+    site: SITE.DigSite,
     loc: GW.utils.Loc,
     dir: GW.utils.Loc
 ) {
@@ -56,7 +56,7 @@ export function pickLength(
 }
 
 export function pickHallDirection(
-    site: SITE.Site,
+    site: SITE.DigSite,
     doors: GW.utils.Loc[],
     lengths: [GW.range.Range, GW.range.Range]
 ): number {
@@ -82,7 +82,7 @@ export function pickHallDirection(
 }
 
 export function pickHallExits(
-    site: SITE.Site,
+    site: SITE.DigSite,
     x: number,
     y: number,
     dir: number,
@@ -278,7 +278,7 @@ export class HallDigger {
         }
     }
 
-    create(site: SITE.Site, doors: GW.utils.Loc[] = []): TYPES.Hall | null {
+    create(site: SITE.DigSite, doors: GW.utils.Loc[] = []): TYPES.Hall | null {
         doors = doors || UTILS.chooseRandomDoorSites(site);
 
         if (!GW.random.chance(this.config.chance)) return null;
@@ -299,7 +299,7 @@ export class HallDigger {
     }
 
     _digLine(
-        site: SITE.Site,
+        site: SITE.DigSite,
         door: GW.utils.Loc,
         dir: GW.utils.Loc,
         length: number
@@ -320,7 +320,7 @@ export class HallDigger {
         return [x, y];
     }
 
-    dig(site: SITE.Site, dir: number, door: GW.utils.Loc, length: number) {
+    dig(site: SITE.DigSite, dir: number, door: GW.utils.Loc, length: number) {
         const DIR = DIRS[dir];
         const [x, y] = this._digLine(site, door, DIR, length);
         const hall = new TYPES.Hall(door, dir, length);
@@ -329,7 +329,7 @@ export class HallDigger {
     }
 
     digWide(
-        site: SITE.Site,
+        site: SITE.DigSite,
         dir: number,
         door: GW.utils.Loc,
         length: number,
@@ -372,7 +372,7 @@ export class HallDigger {
 
 export function dig(
     config: Partial<HallOptions>,
-    site: SITE.Site,
+    site: SITE.DigSite,
     doors: GW.utils.Loc[]
 ) {
     const digger = new HallDigger(config);
