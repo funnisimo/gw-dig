@@ -32,20 +32,20 @@ describe('Level', () => {
         });
 
         // grid.dump((v) => {
-        //     if (v == 1) return '.';
-        //     if (v == 3) return '#';
+        //     if (v == Dig.site.FLOOR) return '.';
+        //     if (v == Dig.site.WALL) return '#';
         //     return '' + v;
         // });
 
-        expect(grid.count(0)).toEqual(0);
-        expect(grid.count(1)).toBeGreaterThan(0);
-        expect(grid.count(2)).toBeGreaterThan(0);
-        expect(grid.count(3)).toBeGreaterThan(0);
-        expect(grid.count(4)).toBeGreaterThan(0);
-        expect(grid.count(5)).toBeGreaterThan(0);
-        expect(grid.count(6)).toBeGreaterThan(0);
-        expect(grid.count(7)).toEqual(1);
-        expect(grid.count(8)).toBeGreaterThan(0);
-        expect(grid.count(17)).toEqual(1);
+        expect(grid.count(Dig.site.NOTHING)).toEqual(0);
+        expect(grid.count(Dig.site.FLOOR)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.WALL)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.DOOR)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.DEEP)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.SHALLOW)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.BRIDGE)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.DOWN_STAIRS)).toEqual(1);
+        expect(grid.count(Dig.site.IMPREGNABLE)).toBeGreaterThan(0);
+        expect(grid.count(Dig.site.UP_STAIRS)).toEqual(1);
     });
 });

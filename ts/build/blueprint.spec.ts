@@ -1,4 +1,4 @@
-import * as MAP from 'gw-map';
+import * as GW from 'gw-utils';
 import * as BUILD from './index';
 
 describe('Blueprint', () => {
@@ -28,9 +28,9 @@ describe('Blueprint', () => {
         // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
         //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BF_TREAT_AS_BLOCKING | BF_BUILD_IN_WALLS | BF_IMPREGNABLE)]]],
 
-        MAP.tile.install('CARPET', { ch: '#', fg: 0xb36 });
-        MAP.tile.install('ALTAR', { ch: 'T', fg: 0xf63 });
-        MAP.tile.install('STATUE', { ch: '&', fg: 0x663 });
+        GW.tile.install('CARPET', { ch: '#', fg: 0xb36 });
+        GW.tile.install('ALTAR', { ch: 'T', fg: 0xf63 });
+        GW.tile.install('STATUE', { ch: '&', fg: 0x663 });
 
         BUILD.blueprint.install('MIXED_ITEM_LIBRARY', {
             frequency: '1-12: 30',

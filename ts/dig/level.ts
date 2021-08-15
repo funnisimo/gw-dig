@@ -63,11 +63,12 @@ export class Level {
     ) {
         this.height = height;
         this.width = width;
-        this.seq = GW.random.sequence(width * height);
 
         if (options.seed) {
             GW.random.seed(options.seed);
         }
+
+        this.seq = GW.random.sequence(width * height);
 
         GW.utils.setOptions(this.rooms, options.rooms);
         GW.utils.setOptions(this.halls, options.halls);

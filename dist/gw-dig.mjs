@@ -1818,10 +1818,10 @@ class Level {
         this.endLoc = [-1, -1];
         this.height = height;
         this.width = width;
-        this.seq = random$1.sequence(width * height);
         if (options.seed) {
             random$1.seed(options.seed);
         }
+        this.seq = random$1.sequence(width * height);
         utils$1.setOptions(this.rooms, options.rooms);
         utils$1.setOptions(this.halls, options.halls);
         utils$1.setOptions(this.loops, options.loops);

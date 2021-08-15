@@ -1822,10 +1822,10 @@
             this.endLoc = [-1, -1];
             this.height = height;
             this.width = width;
-            this.seq = GW.random.sequence(width * height);
             if (options.seed) {
                 GW.random.seed(options.seed);
             }
+            this.seq = GW.random.sequence(width * height);
             GW.utils.setOptions(this.rooms, options.rooms);
             GW.utils.setOptions(this.halls, options.halls);
             GW.utils.setOptions(this.loops, options.loops);

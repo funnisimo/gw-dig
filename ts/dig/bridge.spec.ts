@@ -16,7 +16,7 @@ describe('Bridge', () => {
 
     test('candidate test', () => {
         site.tiles.fill(SITE.FLOOR);
-        GW.utils.forRect(1, 9, 18, 3, (x, y) => (site.setTile(x, y, SITE.DEEP)));
+        GW.utils.forRect(1, 9, 18, 3, (x, y) => site.setTile(x, y, SITE.DEEP));
 
         const bridge = new BRIDGE.Bridges();
         expect(bridge.isBridgeCandidate(site, 10, 9, [1, 0])).toBeFalsy();
@@ -25,15 +25,15 @@ describe('Bridge', () => {
 
     test('create', () => {
         site.tiles.fill(SITE.FLOOR);
-        GW.utils.forRect(2, 9, 16, 3, (x, y) => (site.setTile(x, y, SITE.DEEP)));
+        GW.utils.forRect(2, 9, 16, 3, (x, y) => site.setTile(x, y, SITE.DEEP));
 
-        expect(site.tiles.count(6)).toEqual(0);
+        expect(site.tiles.count(SITE.BRIDGE)).toEqual(0);
 
         const bridge = new BRIDGE.Bridges({ maxLength: 5, minDistance: 18 });
         bridge.create(site);
 
         // grid.dump();
 
-        expect(site.tiles.count(6)).toEqual(3);
+        expect(site.tiles.count(SITE.BRIDGE)).toEqual(3);
     });
 });
