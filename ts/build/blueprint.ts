@@ -158,7 +158,7 @@ export class Blueprint {
             // If it's a room machine, count up the gates of appropriate
             // choke size and remember where they are. The origin of the room will be the gate location.
 
-            // RUT.Map.analyze(map, true); // Make sure the chokeMap is up to date.
+            site.analyze(); // Make sure the chokeMap is up to date.
             const randSite = GW.random.matchingLoc(
                 site.width,
                 site.height,
@@ -312,7 +312,7 @@ export class Blueprint {
             // Now loop if necessary.
         } while (tryAgain);
 
-        console.log(tryAgain, failsafe);
+        // console.log(tryAgain, failsafe);
 
         return true;
     }

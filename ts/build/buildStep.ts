@@ -2,7 +2,6 @@ import * as GW from 'gw-utils';
 import * as DIG_UTILS from '../dig/utils';
 import { BuildData } from './builder';
 import { Blueprint, Flags } from './blueprint';
-import { Spawner } from './spawn';
 
 export interface StepOptions {
     tile: string | number;
@@ -11,7 +10,7 @@ export interface StepOptions {
     count: GW.range.RangeBase;
     item: any;
     horde: any;
-    spawn: Partial<GW.effect.EffectConfig> | string;
+    effect: Partial<GW.effect.EffectConfig>;
 }
 
 const Fl = GW.flag.fl;
@@ -68,7 +67,10 @@ export class BuildStep {
     public count: GW.range.Range;
     public item: any | null = null;
     public horde: any | null = null;
-    public spawn: GW.effect.EffectInfo | null = null;
+    public effect: GW.effect.EffectInfo | null = null;
+    public chance = 0;
+    public next: null;
+    public id = 'n/a';
 
     constructor(cfg: Partial<StepOptions> = {}) {
         if (cfg.tile) {
@@ -92,8 +94,8 @@ export class BuildStep {
         this.item = cfg.item || null;
         this.horde = cfg.horde || null;
 
-        if (cfg.spawn) {
-            this.spawn = GW.effect.from(cfg.spawn);
+        if (cfg.effect) {
+            this.effect = GW.effect.make(cfg.effect);
         }
     }
 
@@ -402,7 +404,7 @@ export class BuildStep {
                     [x, y] = GW.random.matchingLoc(
                         candidates.width,
                         candidates.height,
-                        (v) => v > 0
+                        (x, y) => candidates[x][y] > 0
                     );
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
@@ -413,9 +415,8 @@ export class BuildStep {
                 let terrainSucceeded = true;
 
                 // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-                if (this.spawn) {
-                    const spawner = new Spawner(this.spawn);
-                    DFSucceeded = spawner.spawn(x, y, site) > 0;
+                if (this.effect) {
+                    DFSucceeded = GW.effect.fireSync(this.effect, site, x, y);
                 }
 
                 // Now try to place the terrain tile, if any.

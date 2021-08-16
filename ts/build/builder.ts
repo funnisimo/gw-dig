@@ -122,7 +122,7 @@ export class Builder {
         // Now tick through the features and build them.
         for (let index = 0; index < components.length; index++) {
             const component = components[index];
-            console.log('BUILD COMPONENT', component);
+            // console.log('BUILD COMPONENT', component);
             const count = component.build(this, blueprint);
 
             if (

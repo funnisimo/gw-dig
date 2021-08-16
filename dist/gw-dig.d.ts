@@ -1,4 +1,4 @@
-import { utils, grid, range, types, map, item, actor, flag, effect, frequency } from 'gw-utils';
+import { utils, tile, map, grid, range, types, item, actor, flag, effect, frequency } from 'gw-utils';
 
 declare const NOTHING: number;
 declare const FLOOR: number;
@@ -39,8 +39,8 @@ interface DigSite {
     isDeep: utils.XYMatchFunc;
     isShallow: utils.XYMatchFunc;
     isAnyLiquid: utils.XYMatchFunc;
-    setTile: (x: number, y: number, tile: number | string) => boolean;
-    hasTile: (x: number, y: number, tile: number | string) => boolean;
+    setTile(x: number, y: number, tile: string | number | tile.Tile, opts?: map.SetTileOptions): boolean;
+    hasTile: (x: number, y: number, tile: number | string | tile.Tile) => boolean;
     getTileIndex: (x: number, y: number) => number;
     tileBlocksMove: (tile: number) => boolean;
 }
@@ -72,8 +72,8 @@ declare class GridSite implements DigSite {
     isAnyLiquid(x: number, y: number): boolean;
     isSet(x: number, y: number): boolean;
     getTileIndex(x: number, y: number): number;
-    setTile(x: number, y: number, tile: number | string): boolean;
-    hasTile(x: number, y: number, tile: number | string): boolean;
+    setTile(x: number, y: number, tile: number | string | tile.Tile): boolean;
+    hasTile(x: number, y: number, tile: number | string | tile.Tile): boolean;
     tileBlocksMove(tile: number): boolean;
 }
 
@@ -582,65 +582,46 @@ declare namespace index_d {
   };
 }
 
-interface BuildSite extends DigSite {
-    hasCellFlag: (x: number, y: number, flag: number) => boolean;
-    setCellFlag: (x: number, y: number, flag: number) => void;
-    clearCellFlag: (x: number, y: number, flag: number) => void;
+interface BuildSite extends DigSite, map.MapType {
     getChokeCount: (x: number, y: number) => number;
     setChokeCount: (x: number, y: number, count: number) => void;
     isOccupied: utils.XYMatchFunc;
     hasItem: utils.XYMatchFunc;
     hasActor: utils.XYMatchFunc;
-    setTile: (x: number, y: number, tile: number | string, options?: map.SetTileOptions) => boolean;
+    analyze(): void;
     backup: () => any;
     restore: (backup: any) => void;
     nextMachineId: () => number;
     getMachine: (x: number, y: number) => number;
     setMachine: (x: number, y: number, id: number, isRoom?: boolean) => void;
 }
-declare class MapSite implements BuildSite {
-    map: map.Map;
+declare class MapSite extends map.Map implements BuildSite {
     machineId: grid.NumGrid;
     machineCount: number;
     constructor(width: number, height: number);
-    hasCellFlag(x: number, y: number, flag: number): boolean;
-    setCellFlag(x: number, y: number, flag: number): void;
-    clearCellFlag(x: number, y: number, flag: number): void;
     free(): void;
-    hasXY(x: number, y: number): boolean;
-    isBoundaryXY(x: number, y: number): boolean;
     isSet(x: number, y: number): boolean;
     isDiggable(x: number, y: number): boolean;
     isNothing(x: number, y: number): boolean;
-    isPassable(x: number, y: number): boolean;
     isFloor(x: number, y: number): boolean;
     isBridge(x: number, y: number): boolean;
     isDoor(x: number, y: number): boolean;
     isSecretDoor(x: number, y: number): boolean;
-    blocksMove(x: number, y: number): boolean;
     blocksDiagonal(x: number, y: number): boolean;
     blocksPathing(x: number, y: number): boolean;
-    blocksVision(x: number, y: number): boolean;
     blocksItems(x: number, y: number): boolean;
     blocksEffects(x: number, y: number): boolean;
-    isWall(x: number, y: number): boolean;
-    isStairs(x: number, y: number): boolean;
     isDeep(x: number, y: number): boolean;
     isShallow(x: number, y: number): boolean;
     isAnyLiquid(x: number, y: number): boolean;
-    hasTile(x: number, y: number, tile: string | number): boolean;
     getTileIndex(x: number, y: number): number;
     tileBlocksMove(tile: number): boolean;
-    get width(): number;
-    get height(): number;
     backup(): MapSite;
     restore(backup: MapSite): void;
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
     isOccupied(x: number, y: number): boolean;
-    hasItem(x: number, y: number): boolean;
-    hasActor(x: number, y: number): boolean;
-    setTile(x: number, y: number, tile: number | string, options?: map.SetTileOptions): boolean;
+    analyze(): void;
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -649,10 +630,39 @@ declare class MapSite implements BuildSite {
 type site_d$1_BuildSite = BuildSite;
 type site_d$1_MapSite = MapSite;
 declare const site_d$1_MapSite: typeof MapSite;
+declare const site_d$1_NOTHING: typeof NOTHING;
+declare const site_d$1_FLOOR: typeof FLOOR;
+declare const site_d$1_DOOR: typeof DOOR;
+declare const site_d$1_SECRET_DOOR: typeof SECRET_DOOR;
+declare const site_d$1_WALL: typeof WALL;
+declare const site_d$1_DEEP: typeof DEEP;
+declare const site_d$1_SHALLOW: typeof SHALLOW;
+declare const site_d$1_BRIDGE: typeof BRIDGE;
+declare const site_d$1_UP_STAIRS: typeof UP_STAIRS;
+declare const site_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
+declare const site_d$1_IMPREGNABLE: typeof IMPREGNABLE;
+declare const site_d$1_TILEMAP: typeof TILEMAP;
+type site_d$1_DigSite = DigSite;
+type site_d$1_GridSite = GridSite;
+declare const site_d$1_GridSite: typeof GridSite;
 declare namespace site_d$1 {
   export {
     site_d$1_BuildSite as BuildSite,
     site_d$1_MapSite as MapSite,
+    site_d$1_NOTHING as NOTHING,
+    site_d$1_FLOOR as FLOOR,
+    site_d$1_DOOR as DOOR,
+    site_d$1_SECRET_DOOR as SECRET_DOOR,
+    site_d$1_WALL as WALL,
+    site_d$1_DEEP as DEEP,
+    site_d$1_SHALLOW as SHALLOW,
+    site_d$1_BRIDGE as BRIDGE,
+    site_d$1_UP_STAIRS as UP_STAIRS,
+    site_d$1_DOWN_STAIRS as DOWN_STAIRS,
+    site_d$1_IMPREGNABLE as IMPREGNABLE,
+    site_d$1_TILEMAP as TILEMAP,
+    site_d$1_DigSite as DigSite,
+    site_d$1_GridSite as GridSite,
   };
 }
 
@@ -698,7 +708,7 @@ interface StepOptions {
     count: range.RangeBase;
     item: any;
     horde: any;
-    spawn: Partial<effect.EffectConfig> | string;
+    effect: Partial<effect.EffectConfig>;
 }
 declare enum StepFlags {
     BF_OUTSOURCE_ITEM_TO_MACHINE,
@@ -737,7 +747,10 @@ declare class BuildStep {
     count: range.Range;
     item: any | null;
     horde: any | null;
-    spawn: effect.EffectInfo | null;
+    effect: effect.EffectInfo | null;
+    chance: number;
+    next: null;
+    id: string;
     constructor(cfg?: Partial<StepOptions>);
     cellIsCandidate(builder: BuildData, blueprint: Blueprint, x: number, y: number, distanceBound: [number, number]): boolean;
     makePersonalSpace(builder: BuildData, x: number, y: number, candidates: grid.NumGrid): number;

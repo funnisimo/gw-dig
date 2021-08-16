@@ -16,7 +16,7 @@ describe('LoopFinder', () => {
     });
 
     test('basic loop', () => {
-        site.map.fill(WALL);
+        site.fill(WALL);
         const opts = { superpriority: true };
 
         GW.utils.forRect(1, 1, 4, 4, (x, y) => site.setTile(x, y, FLOOR, opts));
@@ -34,7 +34,7 @@ describe('LoopFinder', () => {
         // site.map.dump();
 
         expect(
-            site.map.count((c) => c.hasCellFlag(GW.map.flags.Cell.IS_IN_LOOP))
+            site.count((c) => c.hasCellFlag(GW.map.flags.Cell.IS_IN_LOOP))
         ).toBeGreaterThan(0);
     });
 });

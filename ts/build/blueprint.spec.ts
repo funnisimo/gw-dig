@@ -3,7 +3,7 @@ import * as BUILD from './index';
 import * as DIG from '../dig';
 
 function dumpSite(site: BUILD.site.MapSite) {
-    site.map.dump((c) => {
+    site.dump((c) => {
         const tile = c.highestPriorityTile();
         return tile.sprite.ch || '?';
     });

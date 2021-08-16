@@ -1,4 +1,4 @@
-import { tile, grid, utils as utils$1, random as random$1, path, range, blob, effect, flag, map, fov, frequency, gameObject } from 'gw-utils';
+import { tile, grid, utils as utils$1, random as random$1, path, range, blob, flag, effect, map, fov, frequency, gameObject } from 'gw-utils';
 
 var _a, _b;
 const NOTHING = tile.get('NULL').index;
@@ -118,6 +118,9 @@ class GridSite {
         return this.tiles.get(x, y) || 0;
     }
     setTile(x, y, tile$1) {
+        if (tile$1 instanceof tile.Tile) {
+            tile$1 = tile$1.index;
+        }
         if (typeof tile$1 === 'string') {
             const obj = tile.tiles[tile$1];
             if (!obj)
@@ -130,6 +133,9 @@ class GridSite {
         return true;
     }
     hasTile(x, y, tile$1) {
+        if (tile$1 instanceof tile.Tile) {
+            tile$1 = tile$1.index;
+        }
         if (typeof tile$1 === 'string') {
             const obj = tile.tiles[tile$1];
             if (!obj)
@@ -2502,138 +2508,6 @@ var index = {
     Dungeon: Dungeon
 };
 
-class Spawner {
-    constructor(info) {
-        this.info = info;
-        if (!info.tile)
-            throw new Error('Invalid effect - requires "tile".');
-        // if (this.growProb >= 100) {
-        //     this.probDecrement = this.probDecrement || 100;
-        //     if (this.probDecrement <= 0) {
-        //         this.probDecrement = growProb;
-        //     }
-        // }
-    }
-    get abortIfBlocks() {
-        return !!(this.info.flags & effect.Flags.E_ABORT_IF_BLOCKS_MAP);
-    }
-    spawn(x, y, site) {
-        const locs = grid.alloc(site.width, site.height);
-        const count = this.fill(x, y, site, locs);
-        if (this.abortIfBlocks) {
-            if (siteDisruptedBy(site, locs)) {
-                return false;
-            }
-        }
-        this.spawnTiles(site, locs);
-        grid.free(locs);
-        return count;
-    }
-    compute(x, y, cb) {
-        const config = this.info.tile;
-        let growProb = config.grow;
-        let probDec = config.decrement;
-        if (!cb(x, y)) {
-            return 0;
-        }
-        let todo = [
-            [x + 1, y],
-            [x - 1, y],
-            [x, y + 1],
-            [x, y - 1],
-        ];
-        let working = [];
-        const done = new Set([`${x},${y}`]);
-        let count = 1;
-        while (todo.length && growProb > 0) {
-            [working, todo] = [todo, working];
-            while (working.length) {
-                let [i, j] = working.pop();
-                if (random$1.chance(growProb) && cb(i, j)) {
-                    count++;
-                    utils$1.eachNeighbor(i, j, (i2, j2) => {
-                        const index = i2 + ',' + j2;
-                        if (done.has(index))
-                            return;
-                        done.add(index);
-                        todo.push([i2, j2]);
-                    }, true);
-                }
-            }
-            growProb -= probDec;
-        }
-        return count;
-    }
-    fill(x, y, site, grid) {
-        return this.compute(x, y, (i, j) => {
-            if (!this.cellIsOk(site, i, j, i == x && j == y))
-                return false;
-            grid[i][j] = 1;
-            return true;
-        });
-    }
-    cellIsOk(site, x, y, isStart) {
-        if (!site.hasXY(x, y))
-            return false;
-        if (site.blocksEffects(x, y) && !this.info.tile.matchTile && !isStart) {
-            return false;
-        }
-        if (this.info.flags & effect.Flags.E_BUILD_IN_WALLS) {
-            if (!site.isWall(x, y))
-                return false;
-        }
-        else if (this.info.flags & effect.Flags.E_MUST_TOUCH_WALLS) {
-            let ok = false;
-            utils$1.eachNeighbor(x, y, (i, j) => {
-                if (site.isWall(i, j)) {
-                    ok = true;
-                }
-            }, true);
-            if (!ok)
-                return false;
-        }
-        else if (this.info.flags & effect.Flags.E_NO_TOUCH_WALLS) {
-            let ok = true;
-            if (site.isWall(x, y))
-                return false; // or on wall
-            utils$1.eachNeighbor(x, y, (i, j) => {
-                if (site.isWall(i, j)) {
-                    ok = false;
-                }
-            }, true);
-            if (!ok)
-                return false;
-        }
-        if (this.info.tile.matchTile &&
-            !isStart &&
-            !site.hasTile(x, y, this.info.tile.matchTile)) {
-            return false;
-        }
-        return true;
-    }
-    spawnTiles(site, locs) {
-        var _a;
-        let didSomething = false;
-        const options = {
-            superpriority: !!(this.info.flags & effect.Flags.E_SUPERPRIORITY),
-            blockedByOtherLayers: !!(this.info.flags & effect.Flags.E_BLOCKED_BY_OTHER_LAYERS),
-            blockedByActors: !!(this.info.flags & effect.Flags.E_BLOCKED_BY_ACTORS),
-            blockedByItems: !!(this.info.flags & effect.Flags.E_BLOCKED_BY_ITEMS),
-            volume: (_a = this.info.tile) === null || _a === void 0 ? void 0 : _a.volume,
-        };
-        locs.forEach((v, i, j) => {
-            if (v) {
-                locs[i][j] = 0;
-                if (site.setTile(i, j, this.info.tile, options)) {
-                    locs[i][j] = 1;
-                    didSomething = true;
-                }
-            }
-        });
-        return didSomething;
-    }
-}
-
 const Fl = flag.fl;
 var StepFlags;
 (function (StepFlags) {
@@ -2679,7 +2553,9 @@ class BuildStep {
         this.pad = 0;
         this.item = null;
         this.horde = null;
-        this.spawn = null;
+        this.effect = null;
+        this.chance = 0;
+        this.id = 'n/a';
         if (cfg.tile) {
             if (typeof cfg.tile === 'string') {
                 const t = tile.tiles[cfg.tile];
@@ -2701,8 +2577,8 @@ class BuildStep {
         this.count = range.make(cfg.count || 1);
         this.item = cfg.item || null;
         this.horde = cfg.horde || null;
-        if (cfg.spawn) {
-            this.spawn = effect.from(cfg.spawn);
+        if (cfg.effect) {
+            this.effect = effect.make(cfg.effect);
         }
     }
     cellIsCandidate(builder, blueprint, x, y, distanceBound) {
@@ -2919,7 +2795,7 @@ class BuildStep {
                 else {
                     // Pick our candidate location randomly, and also strike it from
                     // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = random$1.matchingLoc(candidates.width, candidates.height, (v) => v > 0);
+                    [x, y] = random$1.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
                 candidates[x][y] = 0;
@@ -2927,15 +2803,12 @@ class BuildStep {
                 let DFSucceeded = true;
                 let terrainSucceeded = true;
                 // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-                if (this.spawn) {
-                    const spawner = new Spawner(this.spawn);
-                    DFSucceeded = spawner.spawn(x, y, site) > 0;
+                if (this.effect) {
+                    DFSucceeded = effect.fireSync(this.effect, site, x, y);
                 }
                 // Now try to place the terrain tile, if any.
                 if (DFSucceeded && this.tile) {
-                    let tile$1 = this.tile;
-                    if (typeof tile$1 == 'string')
-                        tile$1 = tile.get(tile$1).index;
+                    let tile$1 = tile.get(this.tile).index;
                     if (!tile$1) {
                         terrainSucceeded = false;
                         console.error('placing invalid tile', this.tile, x, y);
@@ -3138,7 +3011,7 @@ class Blueprint {
         if (this.isRoom) {
             // If it's a room machine, count up the gates of appropriate
             // choke size and remember where they are. The origin of the room will be the gate location.
-            // RUT.Map.analyze(map, true); // Make sure the chokeMap is up to date.
+            site.analyze(); // Make sure the chokeMap is up to date.
             const randSite = random$1.matchingLoc(site.width, site.height, (x, y) => site.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE));
             if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
                 // If no suitable sites, abort.
@@ -3237,7 +3110,7 @@ class Blueprint {
             }
             // Now loop if necessary.
         } while (tryAgain);
-        console.log(tryAgain, failsafe);
+        // console.log(tryAgain, failsafe);
         return true;
     }
     // Assumes (startX, startY) is in the machine.
@@ -3844,35 +3717,20 @@ class LoopFinder {
 ////////////////////////////////////////////////////////
 
 const Flags$1 = map.flags.Cell;
-class MapSite {
+class MapSite extends map.Map {
     constructor(width, height) {
+        super(width, height);
         this.machineCount = 0;
-        this.map = new map.Map(width, height);
         this.machineId = new grid.NumGrid(width, height);
     }
-    hasCellFlag(x, y, flag) {
-        return this.map.hasCellFlag(x, y, flag);
-    }
-    setCellFlag(x, y, flag) {
-        this.map.setCellFlag(x, y, flag);
-    }
-    clearCellFlag(x, y, flag) {
-        this.map.clearCellFlag(x, y, flag);
-    }
     free() { }
-    hasXY(x, y) {
-        return this.map.hasXY(x, y);
-    }
-    isBoundaryXY(x, y) {
-        return this.map.isBoundaryXY(x, y);
-    }
     isSet(x, y) {
-        return this.map.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
+        return this.hasXY(x, y) && !this.cell(x, y).isEmpty();
     }
     isDiggable(x, y) {
-        if (!this.map.hasXY(x, y))
+        if (!this.hasXY(x, y))
             return false;
-        const cell = this.map.cell(x, y);
+        const cell = this.cell(x, y);
         if (cell.isEmpty())
             return true;
         if (cell.isWall())
@@ -3880,113 +3738,82 @@ class MapSite {
         return false;
     }
     isNothing(x, y) {
-        return this.map.hasXY(x, y) && this.map.cell(x, y).isEmpty();
-    }
-    isPassable(x, y) {
-        return this.map.isPassable(x, y);
+        return this.hasXY(x, y) && this.cell(x, y).isEmpty();
     }
     isFloor(x, y) {
-        return this.map.isPassable(x, y);
+        return this.isPassable(x, y);
     }
     isBridge(x, y) {
-        return this.map.hasTileFlag(x, y, tile.flags.Tile.T_BRIDGE);
+        return this.hasTileFlag(x, y, tile.flags.Tile.T_BRIDGE);
     }
     isDoor(x, y) {
-        return this.map.hasTileFlag(x, y, tile.flags.Tile.T_IS_DOOR);
+        return this.hasTileFlag(x, y, tile.flags.Tile.T_IS_DOOR);
     }
     isSecretDoor(x, y) {
-        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
-    }
-    blocksMove(x, y) {
-        return this.map.blocksMove(x, y);
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
     }
     blocksDiagonal(x, y) {
-        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x, y) {
-        return (this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
-            this.map.hasTileFlag(x, y, tile.flags.Tile.T_PATHING_BLOCKER));
-    }
-    blocksVision(x, y) {
-        return this.map.blocksVision(x, y);
+        return (this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_MOVE) || this.hasTileFlag(x, y, tile.flags.Tile.T_PATHING_BLOCKER));
     }
     blocksItems(x, y) {
-        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_ITEMS);
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_ITEMS);
     }
     blocksEffects(x, y) {
-        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
-    }
-    isWall(x, y) {
-        return this.map.isWall(x, y);
-    }
-    isStairs(x, y) {
-        return this.map.isStairs(x, y);
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
     }
     isDeep(x, y) {
-        return this.map.hasTileFlag(x, y, tile.flags.Tile.T_DEEP_WATER);
+        return this.hasTileFlag(x, y, tile.flags.Tile.T_DEEP_WATER);
     }
     isShallow(x, y) {
         if (!this.hasXY(x, y))
             return false;
-        const cell = this.map.cell(x, y);
+        const cell = this.cell(x, y);
         return (cell.depthTile(gameObject.flags.Depth.LIQUID) &&
             !cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
     }
     isAnyLiquid(x, y) {
         if (!this.hasXY(x, y))
             return false;
-        const cell = this.map.cell(x, y);
+        const cell = this.cell(x, y);
         return (cell.hasDepthTile(gameObject.flags.Depth.LIQUID) ||
             cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
     }
-    hasTile(x, y, tile) {
-        return this.map.hasTile(x, y, tile);
-    }
     getTileIndex(x, y) {
-        if (!this.map.hasXY(x, y))
+        if (!this.hasXY(x, y))
             return 0;
-        const cell = this.map.cell(x, y);
+        const cell = this.cell(x, y);
         const tile = cell.highestPriorityTile();
         return tile.index;
     }
     tileBlocksMove(tile$1) {
         return tile.get(tile$1).blocksMove();
     }
-    get width() {
-        return this.map.width;
-    }
-    get height() {
-        return this.map.height;
-    }
     backup() {
         const backup = new MapSite(this.width, this.height);
-        backup.map.copy(this.map);
+        backup.copy(this);
         backup.machineId.copy(this.machineId);
         backup.machineCount = this.machineCount;
         return backup;
     }
     restore(backup) {
-        this.map.copy(backup.map);
+        this.copy(backup);
         this.machineId.copy(backup.machineId);
         this.machineCount = backup.machineCount;
     }
     getChokeCount(x, y) {
-        return this.map.cell(x, y).chokeCount;
+        return this.cell(x, y).chokeCount;
     }
     setChokeCount(x, y, count) {
-        this.map.cell(x, y).chokeCount = count;
+        this.cell(x, y).chokeCount = count;
     }
     isOccupied(x, y) {
         return this.hasItem(x, y) || this.hasActor(x, y);
     }
-    hasItem(x, y) {
-        return this.map.hasItem(x, y);
-    }
-    hasActor(x, y) {
-        return this.map.hasActor(x, y);
-    }
-    setTile(x, y, tile, options) {
-        return this.map.setTile(x, y, tile, options);
+    analyze() {
+        map.analyze(this);
     }
     nextMachineId() {
         return ++this.machineCount;
@@ -4007,7 +3834,20 @@ class MapSite {
 
 var site$1 = {
     __proto__: null,
-    MapSite: MapSite
+    MapSite: MapSite,
+    NOTHING: NOTHING,
+    FLOOR: FLOOR,
+    DOOR: DOOR,
+    SECRET_DOOR: SECRET_DOOR,
+    WALL: WALL,
+    DEEP: DEEP,
+    SHALLOW: SHALLOW,
+    BRIDGE: BRIDGE,
+    UP_STAIRS: UP_STAIRS,
+    DOWN_STAIRS: DOWN_STAIRS,
+    IMPREGNABLE: IMPREGNABLE,
+    TILEMAP: TILEMAP,
+    GridSite: GridSite
 };
 
 class Builder {
@@ -4091,7 +3931,7 @@ class Builder {
         // Now tick through the features and build them.
         for (let index = 0; index < components.length; index++) {
             const component = components[index];
-            console.log('BUILD COMPONENT', component);
+            // console.log('BUILD COMPONENT', component);
             const count = component.build(this, blueprint);
             if (count < component.count.lo &&
                 !(component.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)) {

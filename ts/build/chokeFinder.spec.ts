@@ -17,7 +17,7 @@ describe('LoopFinder', () => {
     });
 
     test('basic loop', () => {
-        site.map.fill(WALL);
+        site.fill(WALL);
 
         const opts = { superpriority: true };
 
@@ -76,12 +76,10 @@ describe('LoopFinder', () => {
         // site.flags.dump( (v) => v & Flags.IS_CHOKEPOINT ? '*' : ' ');
 
         expect(
-            site.map.count((c) => c.hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE))
+            site.count((c) => c.hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE))
         ).toBeGreaterThan(0);
         expect(
-            site.map.count((c) =>
-                c.hasCellFlag(GW.map.flags.Cell.IS_CHOKEPOINT)
-            )
+            site.count((c) => c.hasCellFlag(GW.map.flags.Cell.IS_CHOKEPOINT))
         ).toBeGreaterThan(0);
     });
 });

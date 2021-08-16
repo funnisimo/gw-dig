@@ -64,8 +64,18 @@ export interface DigSite {
     isShallow: GW.utils.XYMatchFunc;
     isAnyLiquid: GW.utils.XYMatchFunc;
 
-    setTile: (x: number, y: number, tile: number | string) => boolean;
-    hasTile: (x: number, y: number, tile: number | string) => boolean;
+    setTile(
+        x: number,
+        y: number,
+        tile: string | number | GW.tile.Tile,
+        opts?: GW.map.SetTileOptions
+    ): boolean;
+
+    hasTile: (
+        x: number,
+        y: number,
+        tile: number | string | GW.tile.Tile
+    ) => boolean;
     getTileIndex: (x: number, y: number) => number;
 
     tileBlocksMove: (tile: number) => boolean;
@@ -193,7 +203,10 @@ export class GridSite implements DigSite {
     getTileIndex(x: number, y: number): number {
         return this.tiles.get(x, y) || 0;
     }
-    setTile(x: number, y: number, tile: number | string) {
+    setTile(x: number, y: number, tile: number | string | GW.tile.Tile) {
+        if (tile instanceof GW.tile.Tile) {
+            tile = tile.index;
+        }
         if (typeof tile === 'string') {
             const obj = GW.tile.tiles[tile];
             if (!obj) throw new Error('Failed to find tie: ' + tile);
@@ -204,7 +217,10 @@ export class GridSite implements DigSite {
         return true;
     }
 
-    hasTile(x: number, y: number, tile: number | string) {
+    hasTile(x: number, y: number, tile: number | string | GW.tile.Tile) {
+        if (tile instanceof GW.tile.Tile) {
+            tile = tile.index;
+        }
         if (typeof tile === 'string') {
             const obj = GW.tile.tiles[tile];
             if (!obj) throw new Error('Failed to find tie: ' + tile);
