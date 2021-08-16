@@ -2,7 +2,7 @@ import * as GW from 'gw-utils';
 import * as BUILD from './index';
 import * as DIG from '../dig';
 
-function dumpSite(site: BUILD.site.MapSite) {
+function dumpSite(site: BUILD.MapSite) {
     site.dump((c) => {
         const tile = c.highestPriorityTile();
         return tile.sprite.ch || '?';
@@ -59,13 +59,13 @@ describe('Blueprint', () => {
         expect(a.steps).toHaveLength(2);
 
         // Create Dig Site
-        const site = new BUILD.site.MapSite(50, 50);
+        const site = new BUILD.MapSite(50, 50);
         const level = new DIG.Level(50, 50, { seed: 12345 });
         level.create((x, y, tile) => {
             site.setTile(x, y, tile);
         });
 
-        BUILD.analyzeSite(site);
+        GW.map.analyze(site);
 
         dumpSite(site);
 

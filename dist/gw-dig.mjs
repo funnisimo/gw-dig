@@ -1,4 +1,4 @@
-import { tile, grid, utils as utils$1, random as random$1, path, range, blob, flag, effect, map, fov, frequency, gameObject } from 'gw-utils';
+import { tile, grid, utils as utils$1, random as random$1, path, range, blob, map, gameObject, flag, frequency, effect, fov } from 'gw-utils';
 
 var _a, _b;
 const NOTHING = tile.get('NULL').index;
@@ -2508,397 +2508,141 @@ var index = {
     Dungeon: Dungeon
 };
 
-const Fl = flag.fl;
-var StepFlags;
-(function (StepFlags) {
-    // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
-    // BF_GENERATE_HORDE			= Fl(5),	// generate a monster horde that has all of the horde flags
-    // BF_NO_THROWING_WEAPONS	    = Fl(4),	// the generated item cannot be a throwing weapon
-    // BF_REQUIRE_GOOD_RUNIC		= Fl(18),	// generated item must be uncursed runic
-    StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
-    StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl(2)] = "BF_BUILD_VESTIBULE";
-    StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl(3)] = "BF_ADOPT_ITEM";
-    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl(6)] = "BF_BUILD_AT_ORIGIN";
-    // unused                   = Fl(7),	//
-    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl(8)] = "BF_PERMIT_BLOCKING";
-    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl(9)] = "BF_TREAT_AS_BLOCKING";
-    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl(10)] = "BF_NEAR_ORIGIN";
-    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl(11)] = "BF_FAR_FROM_ORIGIN";
-    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl(25)] = "BF_IN_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl(26)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl(12)] = "BF_MONSTER_TAKE_ITEM";
-    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl(13)] = "BF_MONSTER_SLEEPING";
-    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl(14)] = "BF_MONSTER_FLEEING";
-    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl(19)] = "BF_MONSTERS_DORMANT";
-    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl(0)] = "BF_ITEM_IS_KEY";
-    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl(5)] = "BF_ITEM_IDENTIFIED";
-    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl(4)] = "BF_ITEM_PLAYER_AVOIDS";
-    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl(15)] = "BF_EVERYWHERE";
-    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl(16)] = "BF_ALTERNATIVE";
-    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl(17)] = "BF_ALTERNATIVE_2";
-    // unused                       = Fl(20),	//
-    StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl(21)] = "BF_BUILD_IN_WALLS";
-    StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
-    StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
-    StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl(24)] = "BF_IMPREGNABLE";
-    StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl(27)] = "BF_NOT_IN_HALLWAY";
-    StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
-    StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl(29)] = "BF_SKELETON_KEY";
-    StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl(30)] = "BF_KEY_DISPOSABLE";
-})(StepFlags || (StepFlags = {}));
-class BuildStep {
-    constructor(cfg = {}) {
-        this.tile = 0;
-        this.flags = 0;
-        this.pad = 0;
-        this.item = null;
-        this.horde = null;
-        this.effect = null;
-        this.chance = 0;
-        this.id = 'n/a';
-        if (cfg.tile) {
-            if (typeof cfg.tile === 'string') {
-                const t = tile.tiles[cfg.tile];
-                if (!t) {
-                    throw new Error('Failed to find tile: ' + cfg.tile);
-                }
-                this.tile = t.index;
-            }
-            else {
-                this.tile = cfg.tile;
-            }
-        }
-        if (cfg.flags) {
-            this.flags = flag.from(StepFlags, cfg.flags);
-        }
-        if (cfg.pad) {
-            this.pad = cfg.pad;
-        }
-        this.count = range.make(cfg.count || 1);
-        this.item = cfg.item || null;
-        this.horde = cfg.horde || null;
-        if (cfg.effect) {
-            this.effect = effect.make(cfg.effect);
-        }
+const Flags = map.flags.Cell;
+class MapSite extends map.Map {
+    constructor(width, height) {
+        super(width, height);
+        this.machineCount = 0;
+        this.machineId = new grid.NumGrid(width, height);
     }
-    cellIsCandidate(builder, blueprint, x, y, distanceBound) {
-        const site = builder.site;
-        // No building in the hallway if it's prohibited.
-        // This check comes before the origin check, so an area machine will fail altogether
-        // if its origin is in a hallway and the feature that must be built there does not permit as much.
-        if (this.flags & StepFlags.BF_NOT_IN_HALLWAY &&
-            utils$1.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
+    free() { }
+    isSet(x, y) {
+        return this.hasXY(x, y) && !this.cell(x, y).isEmpty();
+    }
+    isDiggable(x, y) {
+        if (!this.hasXY(x, y))
             return false;
-        }
-        // No building along the perimeter of the level if it's prohibited.
-        if (this.flags & StepFlags.BF_NOT_ON_LEVEL_PERIMETER &&
-            (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1)) {
-            return false;
-        }
-        // The origin is a candidate if the feature is flagged to be built at the origin.
-        // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
-        if (this.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
-            return x == builder.originX && y == builder.originY ? true : false;
-        }
-        else if (blueprint.isRoom &&
-            x == builder.originX &&
-            y == builder.originY) {
-            return false;
-        }
-        // No building in another feature's personal space!
-        if (builder.occupied[x][y]) {
-            return false;
-        }
-        // Must be in the viewmap if the appropriate flag is set.
-        if (this.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
-            !builder.viewMap[x][y]) {
-            return false;
-        }
-        // Do a distance check if the feature requests it.
-        let distance = 10000;
-        if (site.isWall(x, y)) {
-            // Distance is calculated for walls too.
-            utils$1.eachNeighbor(x, y, (i, j) => {
-                if (!builder.distanceMap.hasXY(i, j))
-                    return;
-                if (!site.blocksPathing(i, j) &&
-                    distance > builder.distanceMap[i][j] + 1) {
-                    distance = builder.distanceMap[i][j] + 1;
-                }
-            }, true);
-        }
-        else {
-            distance = builder.distanceMap[x][y];
-        }
-        if (distance > distanceBound[1] || // distance exceeds max
-            distance < distanceBound[0]) {
-            // distance falls short of min
-            return false;
-        }
-        if (this.flags & StepFlags.BF_BUILD_IN_WALLS) {
-            // If we're supposed to build in a wall...
-            const cellMachine = site.getMachine(x, y);
-            if (!builder.interior[x][y] &&
-                (!cellMachine || cellMachine == builder.machineNumber) &&
-                site.isWall(x, y)) {
-                let ok = false;
-                // ...and this location is a wall that's not already machined...
-                utils$1.eachNeighbor(x, y, (newX, newY) => {
-                    if (site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
-                        ((builder.interior[newX][newY] &&
-                            !(newX == builder.originX &&
-                                newY == builder.originY)) ||
-                            (this.flags &
-                                StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL &&
-                                !site.blocksPathing(newX, newY) &&
-                                !site.getMachine(newX, newY)))) {
-                        ok = true;
-                    }
-                });
-                return ok;
-            }
-            return false;
-        }
-        else if (site.isWall(x, y)) {
-            // Can't build in a wall unless instructed to do so.
-            return false;
-        }
-        else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
-            if ((this.item && site.blocksItems(x, y)) ||
-                site.hasCellFlag(x, y, map.flags.Cell.IS_CHOKEPOINT |
-                    map.flags.Cell.IS_IN_LOOP |
-                    map.flags.Cell.IS_IN_MACHINE)) {
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-        else if (builder.interior[x][y]) {
+        const cell = this.cell(x, y);
+        if (cell.isEmpty())
             return true;
-        }
+        if (cell.isWall())
+            return true;
         return false;
     }
-    makePersonalSpace(builder, x, y, candidates) {
-        const personalSpace = this.pad;
-        let count = 0;
-        for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
-            for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
-                if (builder.site.hasXY(i, j)) {
-                    if (candidates[i][j]) {
-                        candidates[i][j] = 0;
-                        ++count;
-                    }
-                    builder.occupied[i][j] = 1;
-                }
-            }
+    isNothing(x, y) {
+        return this.hasXY(x, y) && this.cell(x, y).isEmpty();
+    }
+    isFloor(x, y) {
+        return this.isPassable(x, y);
+    }
+    isBridge(x, y) {
+        return this.hasTileFlag(x, y, tile.flags.Tile.T_BRIDGE);
+    }
+    isDoor(x, y) {
+        return this.hasTileFlag(x, y, tile.flags.Tile.T_IS_DOOR);
+    }
+    isSecretDoor(x, y) {
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
+    }
+    blocksDiagonal(x, y) {
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
+    }
+    blocksPathing(x, y) {
+        return (this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_MOVE) || this.hasTileFlag(x, y, tile.flags.Tile.T_PATHING_BLOCKER));
+    }
+    blocksItems(x, y) {
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_ITEMS);
+    }
+    blocksEffects(x, y) {
+        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
+    }
+    isDeep(x, y) {
+        return this.hasTileFlag(x, y, tile.flags.Tile.T_DEEP_WATER);
+    }
+    isShallow(x, y) {
+        if (!this.hasXY(x, y))
+            return false;
+        const cell = this.cell(x, y);
+        return (cell.depthTile(gameObject.flags.Depth.LIQUID) &&
+            !cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
+    }
+    isAnyLiquid(x, y) {
+        if (!this.hasXY(x, y))
+            return false;
+        const cell = this.cell(x, y);
+        return (cell.hasDepthTile(gameObject.flags.Depth.LIQUID) ||
+            cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
+    }
+    getTileIndex(x, y) {
+        if (!this.hasXY(x, y))
+            return 0;
+        const cell = this.cell(x, y);
+        const tile = cell.highestPriorityTile();
+        return tile.index;
+    }
+    tileBlocksMove(tile$1) {
+        return tile.get(tile$1).blocksMove();
+    }
+    backup() {
+        const backup = new MapSite(this.width, this.height);
+        backup.copy(this);
+        backup.machineId.copy(this.machineId);
+        backup.machineCount = this.machineCount;
+        return backup;
+    }
+    restore(backup) {
+        this.copy(backup);
+        this.machineId.copy(backup.machineId);
+        this.machineCount = backup.machineCount;
+    }
+    getChokeCount(x, y) {
+        return this.cell(x, y).chokeCount;
+    }
+    setChokeCount(x, y, count) {
+        this.cell(x, y).chokeCount = count;
+    }
+    isOccupied(x, y) {
+        return this.hasItem(x, y) || this.hasActor(x, y);
+    }
+    analyze() {
+        map.analyze(this);
+    }
+    nextMachineId() {
+        return ++this.machineCount;
+    }
+    getMachine(x, y) {
+        return this.machineId[x][y];
+    }
+    setMachine(x, y, id, isRoom = true) {
+        this.machineId[x][y] = id;
+        if (id == 0) {
+            this.clearCellFlag(x, y, Flags.IS_IN_MACHINE);
         }
-        return count;
-    }
-    get generateEverywhere() {
-        return !!(this.flags &
-            StepFlags.BF_EVERYWHERE &
-            ~StepFlags.BF_BUILD_AT_ORIGIN);
-    }
-    get buildAtOrigin() {
-        return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
-    }
-    distanceBound(builder) {
-        const distanceBound = [0, 10000];
-        if (this.flags & StepFlags.BF_NEAR_ORIGIN) {
-            distanceBound[1] = builder.distance25;
+        else {
+            this.setCellFlag(x, y, isRoom ? Flags.IS_IN_ROOM_MACHINE : Flags.IS_IN_AREA_MACHINE);
         }
-        if (this.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
-            distanceBound[0] = builder.distance75;
-        }
-        return distanceBound;
-    }
-    updateViewMap(builder) {
-        if (this.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
-            const site = builder.site;
-            if (this.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
-                const fov$1 = new fov.FOV({
-                    isBlocked: (x, y) => {
-                        return site.blocksPathing(x, y);
-                    },
-                    hasXY: (x, y) => {
-                        return site.hasXY(x, y);
-                    },
-                });
-                fov$1.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                    builder.viewMap[x][y] = 1;
-                });
-            }
-            else {
-                const fov$1 = new fov.FOV({
-                    // TileFlags.T_OBSTRUCTS_PASSABILITY |
-                    //     TileFlags.T_OBSTRUCTS_VISION,
-                    isBlocked: (x, y) => {
-                        return (site.blocksPathing(x, y) || site.blocksVision(x, y));
-                    },
-                    hasXY: (x, y) => {
-                        return site.hasXY(x, y);
-                    },
-                });
-                fov$1.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                    builder.viewMap[x][y] = 1;
-                });
-            }
-            builder.viewMap[builder.originX][builder.originY] = 1;
-        }
-    }
-    markCandidates(candidates, builder, blueprint, distanceBound) {
-        let count = 0;
-        candidates.update((_v, i, j) => {
-            if (this.cellIsCandidate(builder, blueprint, i, j, distanceBound)) {
-                count++;
-                return 1;
-            }
-            else {
-                return 0;
-            }
-        });
-        return count;
-    }
-    build(builder, blueprint) {
-        let instanceCount = 0;
-        let instance = 0;
-        const site = builder.site;
-        const candidates = grid.alloc(site.width, site.height);
-        // Figure out the distance bounds.
-        const distanceBound = this.distanceBound(builder);
-        this.updateViewMap(builder);
-        do {
-            // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
-            // Make a master map of candidate locations for this feature.
-            let qualifyingTileCount = this.markCandidates(candidates, builder, blueprint, distanceBound);
-            if (!this.generateEverywhere) {
-                instanceCount = this.count.value();
-            }
-            if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
-                console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
-                return 0; // ?? Failed ??
-            }
-            let x = 0, y = 0;
-            for (instance = 0; (this.generateEverywhere || instance < instanceCount) &&
-                qualifyingTileCount > 0;) {
-                // Find a location for the feature.
-                if (this.buildAtOrigin) {
-                    // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-                    x = builder.originX;
-                    y = builder.originY;
-                }
-                else {
-                    // Pick our candidate location randomly, and also strike it from
-                    // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = random$1.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
-                }
-                // Don't waste time trying the same place again whether or not this attempt succeeds.
-                candidates[x][y] = 0;
-                qualifyingTileCount--;
-                let DFSucceeded = true;
-                let terrainSucceeded = true;
-                // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-                if (this.effect) {
-                    DFSucceeded = effect.fireSync(this.effect, site, x, y);
-                }
-                // Now try to place the terrain tile, if any.
-                if (DFSucceeded && this.tile) {
-                    let tile$1 = tile.get(this.tile).index;
-                    if (!tile$1) {
-                        terrainSucceeded = false;
-                        console.error('placing invalid tile', this.tile, x, y);
-                    }
-                    else if (!(this.flags & StepFlags.BF_PERMIT_BLOCKING) &&
-                        (site.tileBlocksMove(tile$1) ||
-                            this.flags & StepFlags.BF_TREAT_AS_BLOCKING)) {
-                        // Yes, check for blocking.
-                        const blockingMap = grid.alloc(site.width, site.height);
-                        blockingMap[x][y] = 1;
-                        terrainSucceeded = !siteDisruptedBy(site, blockingMap);
-                        grid.free(blockingMap);
-                    }
-                    if (terrainSucceeded) {
-                        site.setTile(x, y, tile$1);
-                    }
-                }
-                // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
-                if (DFSucceeded && terrainSucceeded) {
-                    qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
-                    instance++; // we've placed an instance
-                    //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
-                }
-                if (DFSucceeded && terrainSucceeded) {
-                    // Proceed only if the terrain stuff for this instance succeeded.
-                    // Mark the feature location as part of the machine, in case it is not already inside of it.
-                    if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
-                        site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
-                    }
-                    // Mark the feature location as impregnable if requested.
-                    if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                        site.setCellFlag(x, y, map.flags.Cell.IMPREGNABLE);
-                    }
-                    // let success = RUT.Component.generateAdoptItem(
-                    //     component,
-                    //     blueprint,
-                    //     map,
-                    //     xy.x,
-                    //     xy.y,
-                    //     context
-                    // );
-                    // if (!success) {
-                    //     GW.grid.free(candidates);
-                    //     return false;
-                    // }
-                    // // Generate a horde as necessary.
-                    // success = RUT.Component.generateMonsters(
-                    //     component,
-                    //     blueprint,
-                    //     map,
-                    //     xy.x,
-                    //     xy.y,
-                    //     context
-                    // );
-                    // if (!success) {
-                    //     GW.grid.free(candidates);
-                    //     return false;
-                    // }
-                }
-                // Finished with this instance!
-            }
-        } while (this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS &&
-            instance <= this.count.lo);
-        //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
-        //DEBUG logBuffer(candidates);
-        grid.free(candidates);
-        return instance;
     }
 }
 
-const Fl$1 = flag.fl;
-var Flags;
+const Fl = flag.fl;
+var Flags$1;
 (function (Flags) {
-    Flags[Flags["BP_ROOM"] = Fl$1(10)] = "BP_ROOM";
-    Flags[Flags["BP_VESTIBULE"] = Fl$1(1)] = "BP_VESTIBULE";
-    Flags[Flags["BP_REWARD"] = Fl$1(7)] = "BP_REWARD";
-    Flags[Flags["BP_ADOPT_ITEM"] = Fl$1(0)] = "BP_ADOPT_ITEM";
-    Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl$1(2)] = "BP_PURGE_PATHING_BLOCKERS";
-    Flags[Flags["BP_PURGE_INTERIOR"] = Fl$1(3)] = "BP_PURGE_INTERIOR";
-    Flags[Flags["BP_PURGE_LIQUIDS"] = Fl$1(4)] = "BP_PURGE_LIQUIDS";
-    Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl$1(5)] = "BP_SURROUND_WITH_WALLS";
-    Flags[Flags["BP_IMPREGNABLE"] = Fl$1(6)] = "BP_IMPREGNABLE";
-    Flags[Flags["BP_OPEN_INTERIOR"] = Fl$1(8)] = "BP_OPEN_INTERIOR";
-    Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl$1(9)] = "BP_MAXIMIZE_INTERIOR";
-    Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl$1(14)] = "BP_REDESIGN_INTERIOR";
-    Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl$1(11)] = "BP_TREAT_AS_BLOCKING";
-    Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl$1(12)] = "BP_REQUIRE_BLOCKING";
-    Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl$1(13)] = "BP_NO_INTERIOR_FLAG";
-})(Flags || (Flags = {}));
+    Flags[Flags["BP_ROOM"] = Fl(10)] = "BP_ROOM";
+    Flags[Flags["BP_VESTIBULE"] = Fl(1)] = "BP_VESTIBULE";
+    Flags[Flags["BP_REWARD"] = Fl(7)] = "BP_REWARD";
+    Flags[Flags["BP_ADOPT_ITEM"] = Fl(0)] = "BP_ADOPT_ITEM";
+    Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl(2)] = "BP_PURGE_PATHING_BLOCKERS";
+    Flags[Flags["BP_PURGE_INTERIOR"] = Fl(3)] = "BP_PURGE_INTERIOR";
+    Flags[Flags["BP_PURGE_LIQUIDS"] = Fl(4)] = "BP_PURGE_LIQUIDS";
+    Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl(5)] = "BP_SURROUND_WITH_WALLS";
+    Flags[Flags["BP_IMPREGNABLE"] = Fl(6)] = "BP_IMPREGNABLE";
+    Flags[Flags["BP_OPEN_INTERIOR"] = Fl(8)] = "BP_OPEN_INTERIOR";
+    Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl(9)] = "BP_MAXIMIZE_INTERIOR";
+    Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl(14)] = "BP_REDESIGN_INTERIOR";
+    Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl(11)] = "BP_TREAT_AS_BLOCKING";
+    Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl(12)] = "BP_REQUIRE_BLOCKING";
+    Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl(13)] = "BP_NO_INTERIOR_FLAG";
+})(Flags$1 || (Flags$1 = {}));
 class Blueprint {
     constructor(opts = {}) {
         this.tags = [];
@@ -2935,7 +2679,7 @@ class Blueprint {
                 throw new Error('Blueprint size must be small to large.');
         }
         if (opts.flags) {
-            this.flags = flag.from(Flags, opts.flags);
+            this.flags = flag.from(Flags$1, opts.flags);
         }
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
@@ -2953,55 +2697,55 @@ class Blueprint {
         return this.frequency(level);
     }
     get isRoom() {
-        return !!(this.flags & Flags.BP_ROOM);
+        return !!(this.flags & Flags$1.BP_ROOM);
     }
     get isReward() {
-        return !!(this.flags & Flags.BP_REWARD);
+        return !!(this.flags & Flags$1.BP_REWARD);
     }
     get isVestiblue() {
-        return !!(this.flags & Flags.BP_VESTIBULE);
+        return !!(this.flags & Flags$1.BP_VESTIBULE);
     }
     get adoptsItem() {
-        return !!(this.flags & Flags.BP_ADOPT_ITEM);
+        return !!(this.flags & Flags$1.BP_ADOPT_ITEM);
     }
     get treatAsBlocking() {
-        return !!(this.flags & Flags.BP_TREAT_AS_BLOCKING);
+        return !!(this.flags & Flags$1.BP_TREAT_AS_BLOCKING);
     }
     get requireBlocking() {
-        return !!(this.flags & Flags.BP_REQUIRE_BLOCKING);
+        return !!(this.flags & Flags$1.BP_REQUIRE_BLOCKING);
     }
     get purgeInterior() {
-        return !!(this.flags & Flags.BP_PURGE_INTERIOR);
+        return !!(this.flags & Flags$1.BP_PURGE_INTERIOR);
     }
     get purgeBlockers() {
-        return !!(this.flags & Flags.BP_PURGE_PATHING_BLOCKERS);
+        return !!(this.flags & Flags$1.BP_PURGE_PATHING_BLOCKERS);
     }
     get purgeLiquids() {
-        return !!(this.flags & Flags.BP_PURGE_LIQUIDS);
+        return !!(this.flags & Flags$1.BP_PURGE_LIQUIDS);
     }
     get surroundWithWalls() {
-        return !!(this.flags & Flags.BP_SURROUND_WITH_WALLS);
+        return !!(this.flags & Flags$1.BP_SURROUND_WITH_WALLS);
     }
     get makeImpregnable() {
-        return !!(this.flags & Flags.BP_IMPREGNABLE);
+        return !!(this.flags & Flags$1.BP_IMPREGNABLE);
     }
     get maximizeInterior() {
-        return !!(this.flags & Flags.BP_MAXIMIZE_INTERIOR);
+        return !!(this.flags & Flags$1.BP_MAXIMIZE_INTERIOR);
     }
     get openInterior() {
-        return !!(this.flags & Flags.BP_OPEN_INTERIOR);
+        return !!(this.flags & Flags$1.BP_OPEN_INTERIOR);
     }
     get noInteriorFlag() {
-        return !!(this.flags & Flags.BP_NO_INTERIOR_FLAG);
+        return !!(this.flags & Flags$1.BP_NO_INTERIOR_FLAG);
     }
     qualifies(requiredFlags, depth) {
         if (this.frequency(depth) <= 0 ||
             // Must have the required flags:
             ~this.flags & requiredFlags ||
             // May NOT have BP_ADOPT_ITEM unless that flag is required:
-            this.flags & Flags.BP_ADOPT_ITEM & ~requiredFlags ||
+            this.flags & Flags$1.BP_ADOPT_ITEM & ~requiredFlags ||
             // May NOT have BP_VESTIBULE unless that flag is required:
-            this.flags & Flags.BP_VESTIBULE & ~requiredFlags) {
+            this.flags & Flags$1.BP_VESTIBULE & ~requiredFlags) {
             return false;
         }
         return true;
@@ -3441,414 +3185,384 @@ function random(requiredFlags, depth) {
 
 var blueprint = {
     __proto__: null,
-    get Flags () { return Flags; },
+    get Flags () { return Flags$1; },
     Blueprint: Blueprint,
     blueprints: blueprints,
     install: install$2,
     random: random
 };
 
-// import { LoopFinder } from './loopFinder';
-class ChokeFinder {
-    constructor(withCounts = false) {
-        this.withCounts = withCounts;
-    }
-    /////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////
-    // TODO - Move to Map?
-    compute(site) {
-        const floodGrid = grid.alloc(site.width, site.height);
-        const passMap = grid.alloc(site.width, site.height);
-        passMap.update((_v, x, y) => (site.isPassable(x, y) ? 1 : 0));
-        // Assume loops are done already!
-        // const loopFinder = new LoopFinder();
-        // loopFinder.compute(
-        //     site
-        // );
-        let passableArcCount;
-        // done finding loops; now flag chokepoints
-        for (let i = 1; i < passMap.width - 1; i++) {
-            for (let j = 1; j < passMap.height - 1; j++) {
-                site.clearCellFlag(i, j, map.flags.Cell.IS_CHOKEPOINT);
-                site.setChokeCount(i, j, 30000);
-                if (passMap[i][j] &&
-                    !site.hasCellFlag(i, j, map.flags.Cell.IS_IN_LOOP)) {
-                    passableArcCount = 0;
-                    for (let dir = 0; dir < 8; dir++) {
-                        const oldX = i + utils$1.CLOCK_DIRS[(dir + 7) % 8][0];
-                        const oldY = j + utils$1.CLOCK_DIRS[(dir + 7) % 8][1];
-                        const newX = i + utils$1.CLOCK_DIRS[dir][0];
-                        const newY = j + utils$1.CLOCK_DIRS[dir][1];
-                        if (passMap.hasXY(newX, newY) &&
-                            passMap.hasXY(oldX, oldY) &&
-                            passMap[newX][newY] != passMap[oldX][oldY]) {
-                            if (++passableArcCount > 2) {
-                                if ((!passMap[i - 1][j] &&
-                                    !passMap[i + 1][j]) ||
-                                    (!passMap[i][j - 1] && !passMap[i][j + 1])) {
-                                    site.setCellFlag(i, j, map.flags.Cell.IS_CHOKEPOINT);
-                                }
-                                break;
-                            }
-                        }
-                    }
+const Fl$1 = flag.fl;
+var StepFlags;
+(function (StepFlags) {
+    // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
+    // BF_GENERATE_HORDE			= Fl(5),	// generate a monster horde that has all of the horde flags
+    // BF_NO_THROWING_WEAPONS	    = Fl(4),	// the generated item cannot be a throwing weapon
+    // BF_REQUIRE_GOOD_RUNIC		= Fl(18),	// generated item must be uncursed runic
+    StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
+    StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl$1(2)] = "BF_BUILD_VESTIBULE";
+    StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl$1(3)] = "BF_ADOPT_ITEM";
+    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl$1(6)] = "BF_BUILD_AT_ORIGIN";
+    // unused                   = Fl(7),	//
+    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl$1(8)] = "BF_PERMIT_BLOCKING";
+    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl$1(9)] = "BF_TREAT_AS_BLOCKING";
+    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl$1(10)] = "BF_NEAR_ORIGIN";
+    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl$1(11)] = "BF_FAR_FROM_ORIGIN";
+    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl$1(25)] = "BF_IN_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(26)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl$1(12)] = "BF_MONSTER_TAKE_ITEM";
+    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl$1(13)] = "BF_MONSTER_SLEEPING";
+    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl$1(14)] = "BF_MONSTER_FLEEING";
+    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl$1(19)] = "BF_MONSTERS_DORMANT";
+    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl$1(0)] = "BF_ITEM_IS_KEY";
+    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl$1(5)] = "BF_ITEM_IDENTIFIED";
+    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl$1(4)] = "BF_ITEM_PLAYER_AVOIDS";
+    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl$1(15)] = "BF_EVERYWHERE";
+    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl$1(16)] = "BF_ALTERNATIVE";
+    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl$1(17)] = "BF_ALTERNATIVE_2";
+    // unused                       = Fl(20),	//
+    StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl$1(21)] = "BF_BUILD_IN_WALLS";
+    StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
+    StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
+    StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
+    StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
+    StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl$1(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
+    StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl$1(29)] = "BF_SKELETON_KEY";
+    StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl$1(30)] = "BF_KEY_DISPOSABLE";
+})(StepFlags || (StepFlags = {}));
+class BuildStep {
+    constructor(cfg = {}) {
+        this.tile = 0;
+        this.flags = 0;
+        this.pad = 0;
+        this.item = null;
+        this.horde = null;
+        this.effect = null;
+        this.chance = 0;
+        this.id = 'n/a';
+        if (cfg.tile) {
+            if (typeof cfg.tile === 'string') {
+                const t = tile.tiles[cfg.tile];
+                if (!t) {
+                    throw new Error('Failed to find tile: ' + cfg.tile);
                 }
-            }
-        }
-        if (this.withCounts) {
-            // Done finding chokepoints; now create a chokepoint map.
-            // The chokepoint map is a number for each passable tile. If the tile is a chokepoint,
-            // then the number indicates the number of tiles that would be rendered unreachable if the
-            // chokepoint were blocked. If the tile is not a chokepoint, then the number indicates
-            // the number of tiles that would be rendered unreachable if the nearest exit chokepoint
-            // were blocked.
-            // The cost of all of this is one depth-first flood-fill per open point that is adjacent to a chokepoint.
-            // Start by roping off room machines.
-            passMap.update((v, x, y) => v &&
-                site.hasCellFlag(x, y, map.flags.Cell.IS_IN_ROOM_MACHINE)
-                ? 0
-                : v);
-            // Scan through and find a chokepoint next to an open point.
-            for (let i = 0; i < site.width; i++) {
-                for (let j = 0; j < site.height; j++) {
-                    if (passMap[i][j] &&
-                        site.hasCellFlag(i, j, map.flags.Cell.IS_CHOKEPOINT)) {
-                        for (let dir = 0; dir < 4; dir++) {
-                            const newX = i + utils$1.DIRS[dir][0];
-                            const newY = j + utils$1.DIRS[dir][1];
-                            if (passMap.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                                passMap[newX][newY] &&
-                                !site.hasCellFlag(newX, newY, map.flags.Cell.IS_CHOKEPOINT)) {
-                                // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
-                                // Pretend (i, j) is blocked by changing passMap, and run a flood-fill cell count starting on (newX, newY).
-                                // Keep track of the flooded region in grid[][].
-                                floodGrid.fill(0);
-                                passMap[i][j] = 0;
-                                let cellCount = floodFillCount(site, floodGrid, passMap, newX, newY);
-                                passMap[i][j] = 1;
-                                // CellCount is the size of the region that would be obstructed if the chokepoint were blocked.
-                                // CellCounts less than 4 are not useful, so we skip those cases.
-                                if (cellCount >= 4) {
-                                    // Now, on the chokemap, all of those flooded cells should take the lesser of their current value or this resultant number.
-                                    for (let i2 = 0; i2 < floodGrid.width; i2++) {
-                                        for (let j2 = 0; j2 < floodGrid.height; j2++) {
-                                            if (floodGrid[i2][j2] &&
-                                                cellCount <
-                                                    site.getChokeCount(i2, j2)) {
-                                                site.setChokeCount(i2, j2, cellCount);
-                                                site.clearCellFlag(i2, j2, map.flags.Cell
-                                                    .IS_GATE_SITE);
-                                            }
-                                        }
-                                    }
-                                    // The chokepoint itself should also take the lesser of its current value or the flood count.
-                                    if (cellCount < site.getChokeCount(i, j)) {
-                                        site.setChokeCount(i, j, cellCount);
-                                        site.setCellFlag(i, j, map.flags.Cell.IS_GATE_SITE);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        grid.free(passMap);
-        grid.free(floodGrid);
-    }
-}
-// Assumes it is called with respect to a passable (startX, startY), and that the same is not already included in results.
-// Returns 10000 if the area included an area machine.
-function floodFillCount(site, results, passMap, startX, startY) {
-    let count = passMap[startX][startY] == 2 ? 5000 : 1;
-    if (site.isDeep(startX, startY)
-    // map.cells[startX][startY].flags.cellMech &
-    // FLAGS.CellMech.IS_IN_AREA_MACHINE
-    ) {
-        count = 10000;
-    }
-    results[startX][startY] = 1;
-    for (let dir = 0; dir < 4; dir++) {
-        const newX = startX + utils$1.DIRS[dir][0];
-        const newY = startY + utils$1.DIRS[dir][1];
-        if (site.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-            passMap[newX][newY] &&
-            !results[newX][newY]) {
-            count += floodFillCount(site, results, passMap, newX, newY);
-        }
-    }
-    return Math.min(count, 10000);
-}
-
-////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////
-class LoopFinder {
-    constructor() { }
-    compute(site) {
-        // const grid = GW.grid.alloc(site.width, site.height);
-        this._initGrid(site);
-        utils$1.forRect(site.width, site.height, (x, y) => this._checkCell(site, x, y));
-        // grid.forEach((_v, x, y) => this._checkCell(site, grid, x, y));
-        // grid.forEach((v, x, y) => cb(x, y, !!v));
-        // GW.grid.free(grid);
-    }
-    _initGrid(site) {
-        utils$1.forRect(site.width, site.height, (x, y) => {
-            if (site.isPassable(x, y)) {
-                site.setCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
+                this.tile = t.index;
             }
             else {
-                site.clearCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
-            }
-        });
-    }
-    _checkCell(site, x, y) {
-        let inString;
-        let newX, newY, dir, sdir;
-        let numStrings, maxStringLength, currentStringLength;
-        const v = site.hasCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
-        if (!v)
-            return;
-        // find an unloopy neighbor to start on
-        for (sdir = 0; sdir < 8; sdir++) {
-            newX = x + utils$1.CLOCK_DIRS[sdir][0];
-            newY = y + utils$1.CLOCK_DIRS[sdir][1];
-            if (!site.hasXY(newX, newY))
-                continue;
-            if (!site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_LOOP)) {
-                break;
+                this.tile = cfg.tile;
             }
         }
-        if (sdir == 8) {
-            // no unloopy neighbors
-            return; // leave cell loopy
+        if (cfg.flags) {
+            this.flags = flag.from(StepFlags, cfg.flags);
         }
-        // starting on this unloopy neighbor,
-        // work clockwise and count up:
-        // (a) the number of strings of loopy neighbors, and
-        // (b) the length of the longest such string.
-        numStrings = maxStringLength = currentStringLength = 0;
-        inString = false;
-        for (dir = sdir; dir < sdir + 8; dir++) {
-            newX = x + utils$1.CLOCK_DIRS[dir % 8][0];
-            newY = y + utils$1.CLOCK_DIRS[dir % 8][1];
-            if (!site.hasXY(newX, newY))
-                continue;
-            const newCell = site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_LOOP);
-            if (newCell) {
-                currentStringLength++;
-                if (!inString) {
-                    if (numStrings > 0) {
-                        return false; // more than one string here; leave loopy
-                    }
-                    numStrings++;
-                    inString = true;
-                }
-            }
-            else if (inString) {
-                if (currentStringLength > maxStringLength) {
-                    maxStringLength = currentStringLength;
-                }
-                currentStringLength = 0;
-                inString = false;
-            }
+        if (cfg.pad) {
+            this.pad = cfg.pad;
         }
-        if (inString && currentStringLength > maxStringLength) {
-            maxStringLength = currentStringLength;
-        }
-        if (numStrings == 1 && maxStringLength <= 4) {
-            site.clearCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
-            for (dir = 0; dir < 8; dir++) {
-                const newX = x + utils$1.CLOCK_DIRS[dir][0];
-                const newY = y + utils$1.CLOCK_DIRS[dir][1];
-                if (site.hasXY(newX, newY)) {
-                    this._checkCell(site, newX, newY);
-                }
-            }
+        this.count = range.make(cfg.count || 1);
+        this.item = cfg.item || null;
+        this.horde = cfg.horde || null;
+        if (cfg.effect) {
+            this.effect = effect.make(cfg.effect);
         }
     }
-    _fillInnerLoopGrid(site, innerGrid) {
-        for (let x = 0; x < site.width; ++x) {
-            for (let y = 0; y < site.height; ++y) {
-                if (site.hasCellFlag(x, y, map.flags.Cell.IS_IN_LOOP)) {
-                    innerGrid[x][y] = 1;
-                }
-                else if (x > 0 && y > 0) {
-                    const up = site.hasCellFlag(x, y - 1, map.flags.Cell.IS_IN_LOOP);
-                    const left = site.hasCellFlag(x - 1, y, map.flags.Cell.IS_IN_LOOP);
-                    if (up && left) {
-                        innerGrid[x][y] = 1;
-                    }
-                }
-            }
-        }
-    }
-    _update(site) {
-        // remove extraneous loop markings
-        const innerLoop = grid.alloc(site.width, site.height);
-        this._fillInnerLoopGrid(site, innerLoop);
-        // const xy = { x: 0, y: 0 };
-        let designationSurvives;
-        for (let i = 0; i < site.width; i++) {
-            for (let j = 0; j < site.height; j++) {
-                if (site.hasCellFlag(i, j, map.flags.Cell.IS_IN_LOOP)) {
-                    designationSurvives = false;
-                    for (let dir = 0; dir < 8; dir++) {
-                        let newX = i + utils$1.CLOCK_DIRS[dir][0];
-                        let newY = j + utils$1.CLOCK_DIRS[dir][1];
-                        if (site.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
-                            !innerLoop[newX][newY] &&
-                            !site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_LOOP)) {
-                            designationSurvives = true;
-                            break;
-                        }
-                    }
-                    if (!designationSurvives) {
-                        innerLoop[i][j] = 1;
-                        site.clearCellFlag(i, j, map.flags.Cell.IS_IN_LOOP);
-                    }
-                }
-            }
-        }
-        grid.free(innerLoop);
-    }
-}
-////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////
-
-const Flags$1 = map.flags.Cell;
-class MapSite extends map.Map {
-    constructor(width, height) {
-        super(width, height);
-        this.machineCount = 0;
-        this.machineId = new grid.NumGrid(width, height);
-    }
-    free() { }
-    isSet(x, y) {
-        return this.hasXY(x, y) && !this.cell(x, y).isEmpty();
-    }
-    isDiggable(x, y) {
-        if (!this.hasXY(x, y))
+    cellIsCandidate(builder, blueprint, x, y, distanceBound) {
+        const site = builder.site;
+        // No building in the hallway if it's prohibited.
+        // This check comes before the origin check, so an area machine will fail altogether
+        // if its origin is in a hallway and the feature that must be built there does not permit as much.
+        if (this.flags & StepFlags.BF_NOT_IN_HALLWAY &&
+            utils$1.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
             return false;
-        const cell = this.cell(x, y);
-        if (cell.isEmpty())
-            return true;
-        if (cell.isWall())
-            return true;
-        return false;
-    }
-    isNothing(x, y) {
-        return this.hasXY(x, y) && this.cell(x, y).isEmpty();
-    }
-    isFloor(x, y) {
-        return this.isPassable(x, y);
-    }
-    isBridge(x, y) {
-        return this.hasTileFlag(x, y, tile.flags.Tile.T_BRIDGE);
-    }
-    isDoor(x, y) {
-        return this.hasTileFlag(x, y, tile.flags.Tile.T_IS_DOOR);
-    }
-    isSecretDoor(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
-    }
-    blocksDiagonal(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
-    }
-    blocksPathing(x, y) {
-        return (this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_MOVE) || this.hasTileFlag(x, y, tile.flags.Tile.T_PATHING_BLOCKER));
-    }
-    blocksItems(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_ITEMS);
-    }
-    blocksEffects(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
-    }
-    isDeep(x, y) {
-        return this.hasTileFlag(x, y, tile.flags.Tile.T_DEEP_WATER);
-    }
-    isShallow(x, y) {
-        if (!this.hasXY(x, y))
+        }
+        // No building along the perimeter of the level if it's prohibited.
+        if (this.flags & StepFlags.BF_NOT_ON_LEVEL_PERIMETER &&
+            (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1)) {
             return false;
-        const cell = this.cell(x, y);
-        return (cell.depthTile(gameObject.flags.Depth.LIQUID) &&
-            !cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
-    }
-    isAnyLiquid(x, y) {
-        if (!this.hasXY(x, y))
+        }
+        // The origin is a candidate if the feature is flagged to be built at the origin.
+        // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
+        if (this.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
+            return x == builder.originX && y == builder.originY ? true : false;
+        }
+        else if (blueprint.isRoom &&
+            x == builder.originX &&
+            y == builder.originY) {
             return false;
-        const cell = this.cell(x, y);
-        return (cell.hasDepthTile(gameObject.flags.Depth.LIQUID) ||
-            cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
-    }
-    getTileIndex(x, y) {
-        if (!this.hasXY(x, y))
-            return 0;
-        const cell = this.cell(x, y);
-        const tile = cell.highestPriorityTile();
-        return tile.index;
-    }
-    tileBlocksMove(tile$1) {
-        return tile.get(tile$1).blocksMove();
-    }
-    backup() {
-        const backup = new MapSite(this.width, this.height);
-        backup.copy(this);
-        backup.machineId.copy(this.machineId);
-        backup.machineCount = this.machineCount;
-        return backup;
-    }
-    restore(backup) {
-        this.copy(backup);
-        this.machineId.copy(backup.machineId);
-        this.machineCount = backup.machineCount;
-    }
-    getChokeCount(x, y) {
-        return this.cell(x, y).chokeCount;
-    }
-    setChokeCount(x, y, count) {
-        this.cell(x, y).chokeCount = count;
-    }
-    isOccupied(x, y) {
-        return this.hasItem(x, y) || this.hasActor(x, y);
-    }
-    analyze() {
-        map.analyze(this);
-    }
-    nextMachineId() {
-        return ++this.machineCount;
-    }
-    getMachine(x, y) {
-        return this.machineId[x][y];
-    }
-    setMachine(x, y, id, isRoom = true) {
-        this.machineId[x][y] = id;
-        if (id == 0) {
-            this.clearCellFlag(x, y, Flags$1.IS_IN_MACHINE);
+        }
+        // No building in another feature's personal space!
+        if (builder.occupied[x][y]) {
+            return false;
+        }
+        // Must be in the viewmap if the appropriate flag is set.
+        if (this.flags &
+            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
+                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
+            !builder.viewMap[x][y]) {
+            return false;
+        }
+        // Do a distance check if the feature requests it.
+        let distance = 10000;
+        if (site.isWall(x, y)) {
+            // Distance is calculated for walls too.
+            utils$1.eachNeighbor(x, y, (i, j) => {
+                if (!builder.distanceMap.hasXY(i, j))
+                    return;
+                if (!site.blocksPathing(i, j) &&
+                    distance > builder.distanceMap[i][j] + 1) {
+                    distance = builder.distanceMap[i][j] + 1;
+                }
+            }, true);
         }
         else {
-            this.setCellFlag(x, y, isRoom ? Flags$1.IS_IN_ROOM_MACHINE : Flags$1.IS_IN_AREA_MACHINE);
+            distance = builder.distanceMap[x][y];
+        }
+        if (distance > distanceBound[1] || // distance exceeds max
+            distance < distanceBound[0]) {
+            // distance falls short of min
+            return false;
+        }
+        if (this.flags & StepFlags.BF_BUILD_IN_WALLS) {
+            // If we're supposed to build in a wall...
+            const cellMachine = site.getMachine(x, y);
+            if (!builder.interior[x][y] &&
+                (!cellMachine || cellMachine == builder.machineNumber) &&
+                site.isWall(x, y)) {
+                let ok = false;
+                // ...and this location is a wall that's not already machined...
+                utils$1.eachNeighbor(x, y, (newX, newY) => {
+                    if (site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
+                        ((builder.interior[newX][newY] &&
+                            !(newX == builder.originX &&
+                                newY == builder.originY)) ||
+                            (this.flags &
+                                StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL &&
+                                !site.blocksPathing(newX, newY) &&
+                                !site.getMachine(newX, newY)))) {
+                        ok = true;
+                    }
+                });
+                return ok;
+            }
+            return false;
+        }
+        else if (site.isWall(x, y)) {
+            // Can't build in a wall unless instructed to do so.
+            return false;
+        }
+        else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
+            if ((this.item && site.blocksItems(x, y)) ||
+                site.hasCellFlag(x, y, map.flags.Cell.IS_CHOKEPOINT |
+                    map.flags.Cell.IS_IN_LOOP |
+                    map.flags.Cell.IS_IN_MACHINE)) {
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
+        else if (builder.interior[x][y]) {
+            return true;
+        }
+        return false;
+    }
+    makePersonalSpace(builder, x, y, candidates) {
+        const personalSpace = this.pad;
+        let count = 0;
+        for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
+            for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
+                if (builder.site.hasXY(i, j)) {
+                    if (candidates[i][j]) {
+                        candidates[i][j] = 0;
+                        ++count;
+                    }
+                    builder.occupied[i][j] = 1;
+                }
+            }
+        }
+        return count;
+    }
+    get generateEverywhere() {
+        return !!(this.flags &
+            StepFlags.BF_EVERYWHERE &
+            ~StepFlags.BF_BUILD_AT_ORIGIN);
+    }
+    get buildAtOrigin() {
+        return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
+    }
+    distanceBound(builder) {
+        const distanceBound = [0, 10000];
+        if (this.flags & StepFlags.BF_NEAR_ORIGIN) {
+            distanceBound[1] = builder.distance25;
+        }
+        if (this.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
+            distanceBound[0] = builder.distance75;
+        }
+        return distanceBound;
+    }
+    updateViewMap(builder) {
+        if (this.flags &
+            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
+                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
+            const site = builder.site;
+            if (this.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
+                const fov$1 = new fov.FOV({
+                    isBlocked: (x, y) => {
+                        return site.blocksPathing(x, y);
+                    },
+                    hasXY: (x, y) => {
+                        return site.hasXY(x, y);
+                    },
+                });
+                fov$1.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                    builder.viewMap[x][y] = 1;
+                });
+            }
+            else {
+                const fov$1 = new fov.FOV({
+                    // TileFlags.T_OBSTRUCTS_PASSABILITY |
+                    //     TileFlags.T_OBSTRUCTS_VISION,
+                    isBlocked: (x, y) => {
+                        return (site.blocksPathing(x, y) || site.blocksVision(x, y));
+                    },
+                    hasXY: (x, y) => {
+                        return site.hasXY(x, y);
+                    },
+                });
+                fov$1.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                    builder.viewMap[x][y] = 1;
+                });
+            }
+            builder.viewMap[builder.originX][builder.originY] = 1;
         }
     }
+    markCandidates(candidates, builder, blueprint, distanceBound) {
+        let count = 0;
+        candidates.update((_v, i, j) => {
+            if (this.cellIsCandidate(builder, blueprint, i, j, distanceBound)) {
+                count++;
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        });
+        return count;
+    }
+    build(builder, blueprint) {
+        let instanceCount = 0;
+        let instance = 0;
+        const site = builder.site;
+        const candidates = grid.alloc(site.width, site.height);
+        // Figure out the distance bounds.
+        const distanceBound = this.distanceBound(builder);
+        this.updateViewMap(builder);
+        do {
+            // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+            // Make a master map of candidate locations for this feature.
+            let qualifyingTileCount = this.markCandidates(candidates, builder, blueprint, distanceBound);
+            if (!this.generateEverywhere) {
+                instanceCount = this.count.value();
+            }
+            if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
+                console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
+                return 0; // ?? Failed ??
+            }
+            let x = 0, y = 0;
+            for (instance = 0; (this.generateEverywhere || instance < instanceCount) &&
+                qualifyingTileCount > 0;) {
+                // Find a location for the feature.
+                if (this.buildAtOrigin) {
+                    // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+                    x = builder.originX;
+                    y = builder.originY;
+                }
+                else {
+                    // Pick our candidate location randomly, and also strike it from
+                    // the candidates map so that subsequent instances of this same feature can't choose it.
+                    [x, y] = random$1.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+                }
+                // Don't waste time trying the same place again whether or not this attempt succeeds.
+                candidates[x][y] = 0;
+                qualifyingTileCount--;
+                let DFSucceeded = true;
+                let terrainSucceeded = true;
+                // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+                if (this.effect) {
+                    DFSucceeded = effect.fireSync(this.effect, site, x, y);
+                }
+                // Now try to place the terrain tile, if any.
+                if (DFSucceeded && this.tile) {
+                    let tile$1 = tile.get(this.tile).index;
+                    if (!tile$1) {
+                        terrainSucceeded = false;
+                        console.error('placing invalid tile', this.tile, x, y);
+                    }
+                    else if (!(this.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+                        (site.tileBlocksMove(tile$1) ||
+                            this.flags & StepFlags.BF_TREAT_AS_BLOCKING)) {
+                        // Yes, check for blocking.
+                        const blockingMap = grid.alloc(site.width, site.height);
+                        blockingMap[x][y] = 1;
+                        terrainSucceeded = !siteDisruptedBy(site, blockingMap);
+                        grid.free(blockingMap);
+                    }
+                    if (terrainSucceeded) {
+                        site.setTile(x, y, tile$1);
+                    }
+                }
+                // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+                // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
+                if (DFSucceeded && terrainSucceeded) {
+                    qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
+                    instance++; // we've placed an instance
+                    //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
+                }
+                if (DFSucceeded && terrainSucceeded) {
+                    // Proceed only if the terrain stuff for this instance succeeded.
+                    // Mark the feature location as part of the machine, in case it is not already inside of it.
+                    if (!(blueprint.flags & Flags$1.BP_NO_INTERIOR_FLAG)) {
+                        site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+                    }
+                    // Mark the feature location as impregnable if requested.
+                    if (this.flags & StepFlags.BF_IMPREGNABLE) {
+                        site.setCellFlag(x, y, map.flags.Cell.IMPREGNABLE);
+                    }
+                    // let success = RUT.Component.generateAdoptItem(
+                    //     component,
+                    //     blueprint,
+                    //     map,
+                    //     xy.x,
+                    //     xy.y,
+                    //     context
+                    // );
+                    // if (!success) {
+                    //     GW.grid.free(candidates);
+                    //     return false;
+                    // }
+                    // // Generate a horde as necessary.
+                    // success = RUT.Component.generateMonsters(
+                    //     component,
+                    //     blueprint,
+                    //     map,
+                    //     xy.x,
+                    //     xy.y,
+                    //     context
+                    // );
+                    // if (!success) {
+                    //     GW.grid.free(candidates);
+                    //     return false;
+                    // }
+                }
+                // Finished with this instance!
+            }
+        } while (this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS &&
+            instance <= this.count.lo);
+        //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
+        //DEBUG logBuffer(candidates);
+        grid.free(candidates);
+        return instance;
+    }
 }
-
-var site$1 = {
-    __proto__: null,
-    MapSite: MapSite,
-    NOTHING: NOTHING,
-    FLOOR: FLOOR,
-    DOOR: DOOR,
-    SECRET_DOOR: SECRET_DOOR,
-    WALL: WALL,
-    DEEP: DEEP,
-    SHALLOW: SHALLOW,
-    BRIDGE: BRIDGE,
-    UP_STAIRS: UP_STAIRS,
-    DOWN_STAIRS: DOWN_STAIRS,
-    IMPREGNABLE: IMPREGNABLE,
-    TILEMAP: TILEMAP,
-    GridSite: GridSite
-};
 
 class Builder {
     constructor(site, depth) {
@@ -3872,7 +3586,7 @@ class Builder {
         grid.free(this.viewMap);
         grid.free(this.distanceMap);
     }
-    buildRandom(requiredMachineFlags = Flags.BP_ROOM) {
+    buildRandom(requiredMachineFlags = Flags$1.BP_ROOM) {
         let tries = 10;
         while (tries--) {
             const blueprint$1 = random(requiredMachineFlags, this.depth);
@@ -3884,7 +3598,7 @@ class Builder {
             }
         }
         console.log('Failed to find blueprint matching flags: ' +
-            flag.toString(Flags, requiredMachineFlags));
+            flag.toString(Flags$1, requiredMachineFlags));
         return false;
     }
     buildBlueprint(blueprint) {
@@ -3959,25 +3673,23 @@ class Builder {
     }
 }
 
-const analyze = { ChokeFinder, LoopFinder };
-function analyzeSite(site) {
-    const loops = new LoopFinder();
-    loops.compute(site);
-    const chokes = new ChokeFinder(true);
-    chokes.compute(site);
-}
-
 var index$1 = {
     __proto__: null,
     blueprint: blueprint,
-    site: site$1,
-    analyze: analyze,
-    analyzeSite: analyzeSite,
-    get Flags () { return Flags; },
-    Blueprint: Blueprint,
-    blueprints: blueprints,
-    install: install$2,
-    random: random,
+    NOTHING: NOTHING,
+    FLOOR: FLOOR,
+    DOOR: DOOR,
+    SECRET_DOOR: SECRET_DOOR,
+    WALL: WALL,
+    DEEP: DEEP,
+    SHALLOW: SHALLOW,
+    BRIDGE: BRIDGE,
+    UP_STAIRS: UP_STAIRS,
+    DOWN_STAIRS: DOWN_STAIRS,
+    IMPREGNABLE: IMPREGNABLE,
+    TILEMAP: TILEMAP,
+    GridSite: GridSite,
+    MapSite: MapSite,
     get StepFlags () { return StepFlags; },
     BuildStep: BuildStep,
     Builder: Builder

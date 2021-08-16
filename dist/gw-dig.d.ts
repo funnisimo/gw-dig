@@ -1,4 +1,4 @@
-import { utils, tile, map, grid, range, types, item, actor, flag, effect, frequency } from 'gw-utils';
+import { utils, tile, map, grid, range, types, frequency, flag, item, actor, effect } from 'gw-utils';
 
 declare const NOTHING: number;
 declare const FLOOR: number;
@@ -627,42 +627,83 @@ declare class MapSite extends map.Map implements BuildSite {
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
 }
 
-type site_d$1_BuildSite = BuildSite;
-type site_d$1_MapSite = MapSite;
-declare const site_d$1_MapSite: typeof MapSite;
-declare const site_d$1_NOTHING: typeof NOTHING;
-declare const site_d$1_FLOOR: typeof FLOOR;
-declare const site_d$1_DOOR: typeof DOOR;
-declare const site_d$1_SECRET_DOOR: typeof SECRET_DOOR;
-declare const site_d$1_WALL: typeof WALL;
-declare const site_d$1_DEEP: typeof DEEP;
-declare const site_d$1_SHALLOW: typeof SHALLOW;
-declare const site_d$1_BRIDGE: typeof BRIDGE;
-declare const site_d$1_UP_STAIRS: typeof UP_STAIRS;
-declare const site_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
-declare const site_d$1_IMPREGNABLE: typeof IMPREGNABLE;
-declare const site_d$1_TILEMAP: typeof TILEMAP;
-type site_d$1_DigSite = DigSite;
-type site_d$1_GridSite = GridSite;
-declare const site_d$1_GridSite: typeof GridSite;
-declare namespace site_d$1 {
+declare enum Flags {
+    BP_ROOM,
+    BP_VESTIBULE,
+    BP_REWARD,
+    BP_ADOPT_ITEM,
+    BP_PURGE_PATHING_BLOCKERS,
+    BP_PURGE_INTERIOR,
+    BP_PURGE_LIQUIDS,
+    BP_SURROUND_WITH_WALLS,
+    BP_IMPREGNABLE,
+    BP_OPEN_INTERIOR,
+    BP_MAXIMIZE_INTERIOR,
+    BP_REDESIGN_INTERIOR,
+    BP_TREAT_AS_BLOCKING,
+    BP_REQUIRE_BLOCKING,
+    BP_NO_INTERIOR_FLAG
+}
+interface Options {
+    tags: string | string[];
+    frequency: frequency.FrequencyConfig;
+    size: string | number[];
+    flags: flag.FlagBase;
+    steps: Partial<StepOptions>[];
+}
+declare class Blueprint {
+    tags: string[];
+    frequency: frequency.FrequencyFn;
+    size: [number, number];
+    flags: number;
+    steps: BuildStep[];
+    id: string;
+    constructor(opts?: Partial<Options>);
+    getChance(level: number, tags?: string | string[]): number;
+    get isRoom(): boolean;
+    get isReward(): boolean;
+    get isVestiblue(): boolean;
+    get adoptsItem(): boolean;
+    get treatAsBlocking(): boolean;
+    get requireBlocking(): boolean;
+    get purgeInterior(): boolean;
+    get purgeBlockers(): boolean;
+    get purgeLiquids(): boolean;
+    get surroundWithWalls(): boolean;
+    get makeImpregnable(): boolean;
+    get maximizeInterior(): boolean;
+    get openInterior(): boolean;
+    get noInteriorFlag(): boolean;
+    qualifies(requiredFlags: number, depth: number): boolean;
+    pickLocation(site: BuildSite): false | types.Loc;
+    computeInterior(builder: BuildData): boolean;
+    addTileToInteriorAndIterate(builder: BuildData, startX: number, startY: number): boolean;
+    computeInteriorForVestibuleMachine(builder: BuildData): boolean;
+    prepareInteriorWithMachineFlags(builder: BuildData): void;
+    expandMachineInterior(builder: BuildData, minimumInteriorNeighbors?: number): void;
+    calcDistances(builder: BuildData): void;
+    pickComponents(): BuildStep[];
+    clearInteriorFlag(builder: BuildData): void;
+}
+declare const blueprints: Record<string, Blueprint>;
+declare function install$2(id: string, blueprint: Blueprint | Partial<Options>): Blueprint;
+declare function random(requiredFlags: number, depth: number): Blueprint;
+
+type blueprint_d_Flags = Flags;
+declare const blueprint_d_Flags: typeof Flags;
+type blueprint_d_Options = Options;
+type blueprint_d_Blueprint = Blueprint;
+declare const blueprint_d_Blueprint: typeof Blueprint;
+declare const blueprint_d_blueprints: typeof blueprints;
+declare const blueprint_d_random: typeof random;
+declare namespace blueprint_d {
   export {
-    site_d$1_BuildSite as BuildSite,
-    site_d$1_MapSite as MapSite,
-    site_d$1_NOTHING as NOTHING,
-    site_d$1_FLOOR as FLOOR,
-    site_d$1_DOOR as DOOR,
-    site_d$1_SECRET_DOOR as SECRET_DOOR,
-    site_d$1_WALL as WALL,
-    site_d$1_DEEP as DEEP,
-    site_d$1_SHALLOW as SHALLOW,
-    site_d$1_BRIDGE as BRIDGE,
-    site_d$1_UP_STAIRS as UP_STAIRS,
-    site_d$1_DOWN_STAIRS as DOWN_STAIRS,
-    site_d$1_IMPREGNABLE as IMPREGNABLE,
-    site_d$1_TILEMAP as TILEMAP,
-    site_d$1_DigSite as DigSite,
-    site_d$1_GridSite as GridSite,
+    blueprint_d_Flags as Flags,
+    blueprint_d_Options as Options,
+    blueprint_d_Blueprint as Blueprint,
+    blueprint_d_blueprints as blueprints,
+    install$2 as install,
+    blueprint_d_random as random,
   };
 }
 
@@ -762,117 +803,24 @@ declare class BuildStep {
     build(builder: BuildData, blueprint: Blueprint): number;
 }
 
-declare enum Flags {
-    BP_ROOM,
-    BP_VESTIBULE,
-    BP_REWARD,
-    BP_ADOPT_ITEM,
-    BP_PURGE_PATHING_BLOCKERS,
-    BP_PURGE_INTERIOR,
-    BP_PURGE_LIQUIDS,
-    BP_SURROUND_WITH_WALLS,
-    BP_IMPREGNABLE,
-    BP_OPEN_INTERIOR,
-    BP_MAXIMIZE_INTERIOR,
-    BP_REDESIGN_INTERIOR,
-    BP_TREAT_AS_BLOCKING,
-    BP_REQUIRE_BLOCKING,
-    BP_NO_INTERIOR_FLAG
-}
-interface Options {
-    tags: string | string[];
-    frequency: frequency.FrequencyConfig;
-    size: string | number[];
-    flags: flag.FlagBase;
-    steps: Partial<StepOptions>[];
-}
-declare class Blueprint {
-    tags: string[];
-    frequency: frequency.FrequencyFn;
-    size: [number, number];
-    flags: number;
-    steps: BuildStep[];
-    id: string;
-    constructor(opts?: Partial<Options>);
-    getChance(level: number, tags?: string | string[]): number;
-    get isRoom(): boolean;
-    get isReward(): boolean;
-    get isVestiblue(): boolean;
-    get adoptsItem(): boolean;
-    get treatAsBlocking(): boolean;
-    get requireBlocking(): boolean;
-    get purgeInterior(): boolean;
-    get purgeBlockers(): boolean;
-    get purgeLiquids(): boolean;
-    get surroundWithWalls(): boolean;
-    get makeImpregnable(): boolean;
-    get maximizeInterior(): boolean;
-    get openInterior(): boolean;
-    get noInteriorFlag(): boolean;
-    qualifies(requiredFlags: number, depth: number): boolean;
-    pickLocation(site: BuildSite): false | types.Loc;
-    computeInterior(builder: BuildData): boolean;
-    addTileToInteriorAndIterate(builder: BuildData, startX: number, startY: number): boolean;
-    computeInteriorForVestibuleMachine(builder: BuildData): boolean;
-    prepareInteriorWithMachineFlags(builder: BuildData): void;
-    expandMachineInterior(builder: BuildData, minimumInteriorNeighbors?: number): void;
-    calcDistances(builder: BuildData): void;
-    pickComponents(): BuildStep[];
-    clearInteriorFlag(builder: BuildData): void;
-}
-declare const blueprints: Record<string, Blueprint>;
-declare function install$2(id: string, blueprint: Blueprint | Partial<Options>): Blueprint;
-declare function random(requiredFlags: number, depth: number): Blueprint;
-
-type blueprint_d_Flags = Flags;
-declare const blueprint_d_Flags: typeof Flags;
-type blueprint_d_Options = Options;
-type blueprint_d_Blueprint = Blueprint;
-declare const blueprint_d_Blueprint: typeof Blueprint;
-declare const blueprint_d_blueprints: typeof blueprints;
-declare const blueprint_d_random: typeof random;
-declare namespace blueprint_d {
-  export {
-    blueprint_d_Flags as Flags,
-    blueprint_d_Options as Options,
-    blueprint_d_Blueprint as Blueprint,
-    blueprint_d_blueprints as blueprints,
-    install$2 as install,
-    blueprint_d_random as random,
-  };
-}
-
-declare class ChokeFinder {
-    withCounts: boolean;
-    constructor(withCounts?: boolean);
-    compute(site: BuildSite): void;
-}
-
-declare class LoopFinder {
-    constructor();
-    compute(site: BuildSite): void;
-    _initGrid(site: BuildSite): void;
-    _checkCell(site: BuildSite, x: number, y: number): false | undefined;
-    _fillInnerLoopGrid(site: BuildSite, innerGrid: grid.NumGrid): void;
-    _update(site: BuildSite): void;
-}
-
-declare const analyze: {
-    ChokeFinder: typeof ChokeFinder;
-    LoopFinder: typeof LoopFinder;
-};
-
-declare function analyzeSite(site: BuildSite): void;
-
-declare const index_d$1_analyze: typeof analyze;
-declare const index_d$1_analyzeSite: typeof analyzeSite;
-type index_d$1_Flags = Flags;
-declare const index_d$1_Flags: typeof Flags;
-type index_d$1_Options = Options;
-type index_d$1_Blueprint = Blueprint;
-declare const index_d$1_Blueprint: typeof Blueprint;
-declare const index_d$1_blueprints: typeof blueprints;
-declare const index_d$1_random: typeof random;
+declare const index_d$1_NOTHING: typeof NOTHING;
+declare const index_d$1_FLOOR: typeof FLOOR;
+declare const index_d$1_DOOR: typeof DOOR;
+declare const index_d$1_SECRET_DOOR: typeof SECRET_DOOR;
+declare const index_d$1_WALL: typeof WALL;
+declare const index_d$1_DEEP: typeof DEEP;
+declare const index_d$1_SHALLOW: typeof SHALLOW;
+declare const index_d$1_BRIDGE: typeof BRIDGE;
+declare const index_d$1_UP_STAIRS: typeof UP_STAIRS;
+declare const index_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
+declare const index_d$1_IMPREGNABLE: typeof IMPREGNABLE;
+declare const index_d$1_TILEMAP: typeof TILEMAP;
+type index_d$1_DigSite = DigSite;
+type index_d$1_GridSite = GridSite;
+declare const index_d$1_GridSite: typeof GridSite;
+type index_d$1_BuildSite = BuildSite;
+type index_d$1_MapSite = MapSite;
+declare const index_d$1_MapSite: typeof MapSite;
 type index_d$1_StepOptions = StepOptions;
 type index_d$1_StepFlags = StepFlags;
 declare const index_d$1_StepFlags: typeof StepFlags;
@@ -883,16 +831,23 @@ type index_d$1_Builder = Builder;
 declare const index_d$1_Builder: typeof Builder;
 declare namespace index_d$1 {
   export {
-    index_d$1_analyze as analyze,
-    index_d$1_analyzeSite as analyzeSite,
     blueprint_d as blueprint,
-    site_d$1 as site,
-    index_d$1_Flags as Flags,
-    index_d$1_Options as Options,
-    index_d$1_Blueprint as Blueprint,
-    index_d$1_blueprints as blueprints,
-    install$2 as install,
-    index_d$1_random as random,
+    index_d$1_NOTHING as NOTHING,
+    index_d$1_FLOOR as FLOOR,
+    index_d$1_DOOR as DOOR,
+    index_d$1_SECRET_DOOR as SECRET_DOOR,
+    index_d$1_WALL as WALL,
+    index_d$1_DEEP as DEEP,
+    index_d$1_SHALLOW as SHALLOW,
+    index_d$1_BRIDGE as BRIDGE,
+    index_d$1_UP_STAIRS as UP_STAIRS,
+    index_d$1_DOWN_STAIRS as DOWN_STAIRS,
+    index_d$1_IMPREGNABLE as IMPREGNABLE,
+    index_d$1_TILEMAP as TILEMAP,
+    index_d$1_DigSite as DigSite,
+    index_d$1_GridSite as GridSite,
+    index_d$1_BuildSite as BuildSite,
+    index_d$1_MapSite as MapSite,
     index_d$1_StepOptions as StepOptions,
     index_d$1_StepFlags as StepFlags,
     index_d$1_BuildStep as BuildStep,
