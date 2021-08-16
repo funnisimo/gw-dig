@@ -1,16 +1,15 @@
-
 import * as GW from 'gw-utils';
 
 import * as CHOKE from './chokeFinder';
 import * as LOOP from './loopFinder';
 import { WALL, FLOOR } from '../dig/site';
-import { GridSite, Flags } from './site';
+import { MapSite } from './site';
 
 describe('LoopFinder', () => {
-    let site: GridSite;
+    let site: MapSite;
 
     beforeEach(() => {
-        site = new GridSite(19, 19);
+        site = new MapSite(19, 19);
     });
 
     afterEach(() => {
@@ -18,31 +17,44 @@ describe('LoopFinder', () => {
     });
 
     test('basic loop', () => {
-        site.tiles.fill(WALL);
-        GW.utils.forRect(1, 1, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
-        GW.utils.forRect(7, 1, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
-        GW.utils.forRect(13, 1, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
+        site.map.fill(WALL);
 
-        GW.utils.forRect(1, 7, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
-        GW.utils.forRect(7, 7, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
-        GW.utils.forRect(13, 7, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
+        const opts = { superpriority: true };
 
-        GW.utils.forRect(1, 13, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
-        GW.utils.forRect(7, 13, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
-        GW.utils.forRect(13, 13, 5, 5, (x, y) => (site.setTile(x, y, FLOOR)));
+        GW.utils.forRect(1, 1, 5, 5, (x, y) => site.setTile(x, y, FLOOR, opts));
+        GW.utils.forRect(7, 1, 5, 5, (x, y) => site.setTile(x, y, FLOOR, opts));
+        GW.utils.forRect(13, 1, 5, 5, (x, y) =>
+            site.setTile(x, y, FLOOR, opts)
+        );
 
-        site.setTile(1, 6, FLOOR);
-        site.setTile(17, 6, FLOOR);
+        GW.utils.forRect(1, 7, 5, 5, (x, y) => site.setTile(x, y, FLOOR, opts));
+        GW.utils.forRect(7, 7, 5, 5, (x, y) => site.setTile(x, y, FLOOR, opts));
+        GW.utils.forRect(13, 7, 5, 5, (x, y) =>
+            site.setTile(x, y, FLOOR, opts)
+        );
 
-        site.setTile(6, 3, FLOOR);
-        site.setTile(12, 3, FLOOR);
+        GW.utils.forRect(1, 13, 5, 5, (x, y) =>
+            site.setTile(x, y, FLOOR, opts)
+        );
+        GW.utils.forRect(7, 13, 5, 5, (x, y) =>
+            site.setTile(x, y, FLOOR, opts)
+        );
+        GW.utils.forRect(13, 13, 5, 5, (x, y) =>
+            site.setTile(x, y, FLOOR, opts)
+        );
 
-        site.setTile(6, 8, FLOOR);
-        site.setTile(12, 8, FLOOR);
+        site.setTile(1, 6, FLOOR, opts);
+        site.setTile(17, 6, FLOOR, opts);
 
-        site.setTile(1, 12, FLOOR);
-        site.setTile(6, 16, FLOOR);
-        site.setTile(12, 16, FLOOR);
+        site.setTile(6, 3, FLOOR, opts);
+        site.setTile(12, 3, FLOOR, opts);
+
+        site.setTile(6, 8, FLOOR, opts);
+        site.setTile(12, 8, FLOOR, opts);
+
+        site.setTile(1, 12, FLOOR, opts);
+        site.setTile(6, 16, FLOOR, opts);
+        site.setTile(12, 16, FLOOR, opts);
 
         // site.tiles.dump();
 
@@ -63,7 +75,13 @@ describe('LoopFinder', () => {
         // site.flags.dump( (v) => v & Flags.IS_GATE_SITE ? '*' : ' ');
         // site.flags.dump( (v) => v & Flags.IS_CHOKEPOINT ? '*' : ' ');
 
-        expect(site.flags.count((v) => v & Flags.IS_GATE_SITE ? true : false)).toBeGreaterThan(0);
-        expect(site.flags.count((v) => v & Flags.IS_CHOKEPOINT ? true : false)).toBeGreaterThan(0);
+        expect(
+            site.map.count((c) => c.hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE))
+        ).toBeGreaterThan(0);
+        expect(
+            site.map.count((c) =>
+                c.hasCellFlag(GW.map.flags.Cell.IS_CHOKEPOINT)
+            )
+        ).toBeGreaterThan(0);
     });
 });

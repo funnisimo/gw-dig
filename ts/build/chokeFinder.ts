@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import { BuildSite, Flags } from './site';
+import { BuildSite } from './site';
 // import { LoopFinder } from './loopFinder';
 
 export class ChokeFinder {
@@ -9,9 +9,7 @@ export class ChokeFinder {
     /////////////////////////////////////////////////////
     // TODO - Move to Map?
 
-    compute(
-        site: BuildSite
-    ) {
+    compute(site: BuildSite) {
         const floodGrid = GW.grid.alloc(site.width, site.height);
 
         const passMap = GW.grid.alloc(site.width, site.height);
@@ -28,10 +26,13 @@ export class ChokeFinder {
         // done finding loops; now flag chokepoints
         for (let i = 1; i < passMap.width - 1; i++) {
             for (let j = 1; j < passMap.height - 1; j++) {
-                site.clearSiteFlag(i, j, Flags.IS_CHOKEPOINT);
+                site.clearCellFlag(i, j, GW.map.flags.Cell.IS_CHOKEPOINT);
                 site.setChokeCount(i, j, 30000);
 
-                if (passMap[i][j] && !site.hasSiteFlag(i, j, Flags.IS_IN_LOOP)) {
+                if (
+                    passMap[i][j] &&
+                    !site.hasCellFlag(i, j, GW.map.flags.Cell.IS_IN_LOOP)
+                ) {
                     passableArcCount = 0;
                     for (let dir = 0; dir < 8; dir++) {
                         const oldX = i + GW.utils.CLOCK_DIRS[(dir + 7) % 8][0];
@@ -49,7 +50,11 @@ export class ChokeFinder {
                                         !passMap[i + 1][j]) ||
                                     (!passMap[i][j - 1] && !passMap[i][j + 1])
                                 ) {
-                                    site.setSiteFlag(i, j, Flags.IS_CHOKEPOINT);
+                                    site.setCellFlag(
+                                        i,
+                                        j,
+                                        GW.map.flags.Cell.IS_CHOKEPOINT
+                                    );
                                 }
                                 break;
                             }
@@ -70,7 +75,12 @@ export class ChokeFinder {
             // The cost of all of this is one depth-first flood-fill per open point that is adjacent to a chokepoint.
 
             // Start by roping off room machines.
-            passMap.update( (v, x, y) => v && site.hasSiteFlag(x, y, Flags.IS_IN_ROOM_MACHINE) ? 0 : v);
+            passMap.update((v, x, y) =>
+                v &&
+                site.hasCellFlag(x, y, GW.map.flags.Cell.IS_IN_ROOM_MACHINE)
+                    ? 0
+                    : v
+            );
 
             // Scan through and find a chokepoint next to an open point.
 
@@ -78,7 +88,7 @@ export class ChokeFinder {
                 for (let j = 0; j < site.height; j++) {
                     if (
                         passMap[i][j] &&
-                        site.hasSiteFlag(i, j, Flags.IS_CHOKEPOINT)
+                        site.hasCellFlag(i, j, GW.map.flags.Cell.IS_CHOKEPOINT)
                     ) {
                         for (let dir = 0; dir < 4; dir++) {
                             const newX = i + GW.utils.DIRS[dir][0];
@@ -86,7 +96,11 @@ export class ChokeFinder {
                             if (
                                 passMap.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                                 passMap[newX][newY] &&
-                                !(site.hasSiteFlag(newX, newY, Flags.IS_CHOKEPOINT))
+                                !site.hasCellFlag(
+                                    newX,
+                                    newY,
+                                    GW.map.flags.Cell.IS_CHOKEPOINT
+                                )
                             ) {
                                 // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
                                 // Pretend (i, j) is blocked by changing passMap, and run a flood-fill cell count starting on (newX, newY).
@@ -107,7 +121,11 @@ export class ChokeFinder {
 
                                 if (cellCount >= 4) {
                                     // Now, on the chokemap, all of those flooded cells should take the lesser of their current value or this resultant number.
-                                    for (let i2 = 0; i2 < floodGrid.width; i2++) {
+                                    for (
+                                        let i2 = 0;
+                                        i2 < floodGrid.width;
+                                        i2++
+                                    ) {
                                         for (
                                             let j2 = 0;
                                             j2 < floodGrid.height;
@@ -115,10 +133,20 @@ export class ChokeFinder {
                                         ) {
                                             if (
                                                 floodGrid[i2][j2] &&
-                                                cellCount < site.getChokeCount(i2, j2)
+                                                cellCount <
+                                                    site.getChokeCount(i2, j2)
                                             ) {
-                                                site.setChokeCount(i2, j2, cellCount);
-                                                site.clearSiteFlag(i2, j2, Flags.IS_GATE_SITE);
+                                                site.setChokeCount(
+                                                    i2,
+                                                    j2,
+                                                    cellCount
+                                                );
+                                                site.clearCellFlag(
+                                                    i2,
+                                                    j2,
+                                                    GW.map.flags.Cell
+                                                        .IS_GATE_SITE
+                                                );
                                             }
                                         }
                                     }
@@ -126,7 +154,11 @@ export class ChokeFinder {
                                     // The chokepoint itself should also take the lesser of its current value or the flood count.
                                     if (cellCount < site.getChokeCount(i, j)) {
                                         site.setChokeCount(i, j, cellCount);
-                                        site.setSiteFlag(i, j, Flags.IS_GATE_SITE);
+                                        site.setCellFlag(
+                                            i,
+                                            j,
+                                            GW.map.flags.Cell.IS_GATE_SITE
+                                        );
                                     }
                                 }
                             }

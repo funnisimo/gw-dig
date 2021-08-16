@@ -162,7 +162,7 @@ export class Blueprint {
             const randSite = GW.random.matchingLoc(
                 site.width,
                 site.height,
-                (x, y) => site.hasSiteFlag(x, y, SITE.Flags.IS_GATE_SITE)
+                (x, y) => site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
             );
             if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
                 // If no suitable sites, abort.
@@ -272,7 +272,11 @@ export class Blueprint {
 
                             if (
                                 site.isOccupied(i, j) ||
-                                site.hasSiteFlag(i, j, SITE.Flags.IS_IN_MACHINE)
+                                site.hasCellFlag(
+                                    i,
+                                    j,
+                                    GW.map.flags.Cell.IS_IN_MACHINE
+                                )
                             ) {
                                 // Abort if we've entered another machine or engulfed another machine's item or monster.
                                 tryAgain = true;
@@ -336,8 +340,16 @@ export class Blueprint {
 
             if (
                 site.isOccupied(newX, newY) ||
-                (site.hasSiteFlag(newX, newY, SITE.Flags.IS_IN_MACHINE) &&
-                    !site.hasSiteFlag(newX, newY, SITE.Flags.IS_GATE_SITE))
+                (site.hasCellFlag(
+                    newX,
+                    newY,
+                    GW.map.flags.Cell.IS_IN_MACHINE
+                ) &&
+                    !site.hasCellFlag(
+                        newX,
+                        newY,
+                        GW.map.flags.Cell.IS_GATE_SITE
+                    ))
             ) {
                 // Abort if there's an item in the room.
                 // Items haven't been populated yet, so the only way this could happen is if another machine
@@ -347,7 +359,7 @@ export class Blueprint {
             }
             if (
                 site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-                !site.hasSiteFlag(newX, newY, SITE.Flags.IS_IN_MACHINE)
+                !site.hasCellFlag(newX, newY, GW.map.flags.Cell.IS_IN_MACHINE)
             ) {
                 goodSoFar = this.addTileToInteriorAndIterate(
                     builder,
@@ -458,7 +470,10 @@ export class Blueprint {
         // Surround with walls if requested.
         if (this.surroundWithWalls) {
             interior.forEach((v, x, y) => {
-                if (!v || site.hasSiteFlag(x, y, SITE.Flags.IS_GATE_SITE))
+                if (
+                    !v ||
+                    site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
+                )
                     return;
                 GW.utils.eachNeighbor(
                     x,
@@ -467,9 +482,21 @@ export class Blueprint {
                         if (!interior.hasXY(i, j)) return; // Not valid x,y
                         if (interior[i][j]) return; // is part of machine
                         if (site.isWall(i, j)) return; // is already a wall (of some sort)
-                        if (site.hasSiteFlag(i, j, SITE.Flags.IS_GATE_SITE))
+                        if (
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_GATE_SITE
+                            )
+                        )
                             return; // is a door site
-                        if (site.hasSiteFlag(i, j, SITE.Flags.IS_IN_MACHINE))
+                        if (
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_IN_MACHINE
+                            )
+                        )
                             return; // is part of a machine
                         if (!site.blocksPathing(i, j)) return; // is not a blocker for the player (water?)
                         site.setTile(i, j, DIG_SITE.WALL);
@@ -488,18 +515,27 @@ export class Blueprint {
         // Reinforce surrounding tiles and interior tiles if requested to prevent tunneling in or through.
         if (this.makeImpregnable) {
             interior.forEach((v, x, y) => {
-                if (!v || site.hasSiteFlag(x, y, SITE.Flags.IS_GATE_SITE))
+                if (
+                    !v ||
+                    site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
+                )
                     return;
-                site.setSiteFlag(x, y, SITE.Flags.IMPREGNABLE);
+                site.setCellFlag(x, y, GW.map.flags.Cell.IMPREGNABLE);
                 GW.utils.eachNeighbor(
                     x,
                     y,
                     (i, j) => {
                         if (!interior.hasXY(i, j)) return;
                         if (interior[i][j]) return;
-                        if (site.hasSiteFlag(i, j, SITE.Flags.IS_GATE_SITE))
+                        if (
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_GATE_SITE
+                            )
+                        )
                             return;
-                        site.setSiteFlag(i, j, SITE.Flags.IMPREGNABLE);
+                        site.setCellFlag(i, j, GW.map.flags.Cell.IMPREGNABLE);
                     },
                     false
                 );
@@ -530,7 +566,8 @@ export class Blueprint {
                 //     site.setTile(x, y, DIG_SITE.FLOOR); // clean out the doors...
                 //     return;
                 // }
-                if (site.hasSiteFlag(x, y, SITE.Flags.IS_IN_MACHINE)) return;
+                if (site.hasCellFlag(x, y, GW.map.flags.Cell.IS_IN_MACHINE))
+                    return;
                 if (!site.blocksPathing(x, y)) return;
 
                 let nbcount = 0;
@@ -557,7 +594,11 @@ export class Blueprint {
                         if (interior[i][j]) return; // already part of machine
                         if (
                             !site.isWall(i, j) ||
-                            site.hasSiteFlag(i, j, SITE.Flags.IS_IN_MACHINE)
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_IN_MACHINE
+                            )
                         ) {
                             ++nbcount; // tile is not a wall or is in a machine
                         }
@@ -665,10 +706,11 @@ export class Blueprint {
         builder.interior.forEach((v, x, y) => {
             if (!v) return;
             if (
-                !builder.site.hasSiteFlag(
+                !builder.site.hasCellFlag(
                     x,
                     y,
-                    SITE.Flags.IS_WIRED | SITE.Flags.IS_CIRCUIT_BREAKER
+                    GW.map.flags.Cell.IS_WIRED |
+                        GW.map.flags.Cell.IS_CIRCUIT_BREAKER
                 )
             ) {
                 builder.site.setMachine(x, y, 0);

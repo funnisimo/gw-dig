@@ -1,4 +1,4 @@
-import { utils, grid, range, flag, effect, frequency } from 'gw-utils';
+import { utils, grid, range, types, map, item, actor, flag, effect, frequency } from 'gw-utils';
 
 declare const NOTHING: number;
 declare const FLOOR: number;
@@ -261,7 +261,7 @@ declare function isDoorLoc(site: DigSite, loc: utils.Loc, dir: utils.Loc): boole
 declare function pickWidth(opts?: any): number;
 declare function pickLength(dir: number, lengths: [range.Range, range.Range]): number;
 declare function pickHallDirection(site: DigSite, doors: utils.Loc[], lengths: [range.Range, range.Range]): number;
-declare function pickHallExits(site: DigSite, x: number, y: number, dir: number, obliqueChance: number): [number, number][];
+declare function pickHallExits(site: DigSite, x: number, y: number, dir: number, obliqueChance: number): types.Loc[];
 interface HallOptions {
     width: number | string;
     length: number | string | number[] | string[];
@@ -378,7 +378,7 @@ interface StairOpts {
 declare class Stairs {
     options: StairOpts;
     constructor(options?: Partial<StairOpts>);
-    create(site: DigSite): Record<string, [number, number]> | null;
+    create(site: DigSite): Record<string, types.Loc> | null;
     hasXY(site: DigSite, x: number, y: number): boolean;
     isStairXY(site: DigSite, x: number, y: number): boolean;
     setupStairs(site: DigSite, x: number, y: number, tile: number): boolean;
@@ -500,7 +500,7 @@ declare class Level {
     addLoops(site: DigSite, opts: Partial<LoopOptions>): number;
     addLakes(site: DigSite, opts: Partial<LakeOpts>): number;
     addBridges(site: DigSite, opts: Partial<BridgeOpts>): number;
-    addStairs(site: DigSite, opts: Partial<StairOpts>): Record<string, [number, number]> | null;
+    addStairs(site: DigSite, opts: Partial<StairOpts>): Record<string, types.Loc> | null;
     finish(site: DigSite): void;
     _removeDiagonalOpenings(site: DigSite): void;
     _finishDoors(site: DigSite): void;
@@ -582,78 +582,77 @@ declare namespace index_d {
   };
 }
 
-declare enum Flags {
-    IS_IN_LOOP,
-    IS_CHOKEPOINT,
-    IS_GATE_SITE,
-    IS_IN_ROOM_MACHINE,
-    IS_IN_AREA_MACHINE,
-    IMPREGNABLE,
-    IS_WIRED,
-    IS_CIRCUIT_BREAKER,
-    IS_IN_MACHINE
-}
-interface PlaceOptions {
-    superpriority: boolean;
-    blockedByOtherLayers: boolean;
-    blockedByActors: boolean;
-    blockedByItems: boolean;
-    volume: number;
-}
-declare type PlaceTileOptions = Partial<PlaceOptions>;
 interface BuildSite extends DigSite {
-    hasSiteFlag: (x: number, y: number, flag: number) => boolean;
-    setSiteFlag: (x: number, y: number, flag: number) => void;
-    clearSiteFlag: (x: number, y: number, flag: number) => void;
+    hasCellFlag: (x: number, y: number, flag: number) => boolean;
+    setCellFlag: (x: number, y: number, flag: number) => void;
+    clearCellFlag: (x: number, y: number, flag: number) => void;
     getChokeCount: (x: number, y: number) => number;
     setChokeCount: (x: number, y: number, count: number) => void;
     isOccupied: utils.XYMatchFunc;
     hasItem: utils.XYMatchFunc;
     hasActor: utils.XYMatchFunc;
-    placeTile: (x: number, y: number, tile: number | string, options: PlaceTileOptions) => boolean;
+    setTile: (x: number, y: number, tile: number | string, options?: map.SetTileOptions) => boolean;
     backup: () => any;
     restore: (backup: any) => void;
-    deleteBackup: (backup: any) => void;
     nextMachineId: () => number;
     getMachine: (x: number, y: number) => number;
     setMachine: (x: number, y: number, id: number, isRoom?: boolean) => void;
 }
-declare class GridSite$1 extends GridSite implements BuildSite {
-    flags: grid.NumGrid;
-    choke: grid.NumGrid;
-    machine: grid.NumGrid;
+declare class MapSite implements BuildSite {
+    map: map.Map;
+    machineId: grid.NumGrid;
     machineCount: number;
     constructor(width: number, height: number);
+    hasCellFlag(x: number, y: number, flag: number): boolean;
+    setCellFlag(x: number, y: number, flag: number): void;
+    clearCellFlag(x: number, y: number, flag: number): void;
     free(): void;
-    backup(): GridSite$1;
-    restore(backup: GridSite$1): void;
-    deleteBackup(backup: GridSite$1): void;
-    hasSiteFlag(x: number, y: number, flag: number): boolean;
-    setSiteFlag(x: number, y: number, flag: number): void;
-    clearSiteFlag(x: number, y: number, flag: number): void;
+    hasXY(x: number, y: number): boolean;
+    isBoundaryXY(x: number, y: number): boolean;
+    isSet(x: number, y: number): boolean;
+    isDiggable(x: number, y: number): boolean;
+    isNothing(x: number, y: number): boolean;
+    isPassable(x: number, y: number): boolean;
+    isFloor(x: number, y: number): boolean;
+    isBridge(x: number, y: number): boolean;
+    isDoor(x: number, y: number): boolean;
+    isSecretDoor(x: number, y: number): boolean;
+    blocksMove(x: number, y: number): boolean;
+    blocksDiagonal(x: number, y: number): boolean;
+    blocksPathing(x: number, y: number): boolean;
+    blocksVision(x: number, y: number): boolean;
+    blocksItems(x: number, y: number): boolean;
+    blocksEffects(x: number, y: number): boolean;
+    isWall(x: number, y: number): boolean;
+    isStairs(x: number, y: number): boolean;
+    isDeep(x: number, y: number): boolean;
+    isShallow(x: number, y: number): boolean;
+    isAnyLiquid(x: number, y: number): boolean;
+    hasTile(x: number, y: number, tile: string | number): boolean;
+    getTileIndex(x: number, y: number): number;
+    tileBlocksMove(tile: number): boolean;
+    get width(): number;
+    get height(): number;
+    backup(): MapSite;
+    restore(backup: MapSite): void;
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
-    isOccupied(_x: number, _y: number): boolean;
-    hasItem(_x: number, _y: number): boolean;
-    hasActor(_x: number, _y: number): boolean;
-    placeTile(x: number, y: number, tile: number | string, _options?: PlaceTileOptions): boolean;
+    isOccupied(x: number, y: number): boolean;
+    hasItem(x: number, y: number): boolean;
+    hasActor(x: number, y: number): boolean;
+    setTile(x: number, y: number, tile: number | string, options?: map.SetTileOptions): boolean;
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
 }
 
-type site_d$1_Flags = Flags;
-declare const site_d$1_Flags: typeof Flags;
-type site_d$1_PlaceOptions = PlaceOptions;
-type site_d$1_PlaceTileOptions = PlaceTileOptions;
 type site_d$1_BuildSite = BuildSite;
+type site_d$1_MapSite = MapSite;
+declare const site_d$1_MapSite: typeof MapSite;
 declare namespace site_d$1 {
   export {
-    site_d$1_Flags as Flags,
-    site_d$1_PlaceOptions as PlaceOptions,
-    site_d$1_PlaceTileOptions as PlaceTileOptions,
     site_d$1_BuildSite as BuildSite,
-    GridSite$1 as GridSite,
+    site_d$1_MapSite as MapSite,
   };
 }
 
@@ -670,6 +669,26 @@ interface BuildData {
     distance25: number;
     distance75: number;
     machineNumber: number;
+}
+declare class Builder {
+    site: BuildSite;
+    depth: number;
+    spawnedItems: item.Item[];
+    spawnedHordes: actor.Actor[];
+    interior: grid.NumGrid;
+    occupied: grid.NumGrid;
+    viewMap: grid.NumGrid;
+    distanceMap: grid.NumGrid;
+    originX: number;
+    originY: number;
+    distance25: number;
+    distance75: number;
+    machineNumber: number;
+    constructor(site: BuildSite, depth: number);
+    free(): void;
+    buildRandom(requiredMachineFlags?: Flags): boolean;
+    buildBlueprint(blueprint: Blueprint): boolean;
+    build(blueprint: Blueprint, originX: number, originY: number): boolean;
 }
 
 interface StepOptions {
@@ -722,10 +741,15 @@ declare class BuildStep {
     constructor(cfg?: Partial<StepOptions>);
     cellIsCandidate(builder: BuildData, blueprint: Blueprint, x: number, y: number, distanceBound: [number, number]): boolean;
     makePersonalSpace(builder: BuildData, x: number, y: number, candidates: grid.NumGrid): number;
+    get generateEverywhere(): boolean;
+    get buildAtOrigin(): boolean;
+    distanceBound(builder: BuildData): [number, number];
+    updateViewMap(builder: BuildData): void;
+    markCandidates(candidates: grid.NumGrid, builder: BuildData, blueprint: Blueprint, distanceBound: [number, number]): number;
     build(builder: BuildData, blueprint: Blueprint): number;
 }
 
-declare enum Flags$1 {
+declare enum Flags {
     BP_ROOM,
     BP_VESTIBULE,
     BP_REWARD,
@@ -773,7 +797,7 @@ declare class Blueprint {
     get openInterior(): boolean;
     get noInteriorFlag(): boolean;
     qualifies(requiredFlags: number, depth: number): boolean;
-    pickLocation(site: BuildSite): false | [number, number];
+    pickLocation(site: BuildSite): false | types.Loc;
     computeInterior(builder: BuildData): boolean;
     addTileToInteriorAndIterate(builder: BuildData, startX: number, startY: number): boolean;
     computeInteriorForVestibuleMachine(builder: BuildData): boolean;
@@ -787,6 +811,8 @@ declare const blueprints: Record<string, Blueprint>;
 declare function install$2(id: string, blueprint: Blueprint | Partial<Options>): Blueprint;
 declare function random(requiredFlags: number, depth: number): Blueprint;
 
+type blueprint_d_Flags = Flags;
+declare const blueprint_d_Flags: typeof Flags;
 type blueprint_d_Options = Options;
 type blueprint_d_Blueprint = Blueprint;
 declare const blueprint_d_Blueprint: typeof Blueprint;
@@ -794,7 +820,7 @@ declare const blueprint_d_blueprints: typeof blueprints;
 declare const blueprint_d_random: typeof random;
 declare namespace blueprint_d {
   export {
-    Flags$1 as Flags,
+    blueprint_d_Flags as Flags,
     blueprint_d_Options as Options,
     blueprint_d_Blueprint as Blueprint,
     blueprint_d_blueprints as blueprints,
@@ -827,6 +853,8 @@ declare function analyzeSite(site: BuildSite): void;
 
 declare const index_d$1_analyze: typeof analyze;
 declare const index_d$1_analyzeSite: typeof analyzeSite;
+type index_d$1_Flags = Flags;
+declare const index_d$1_Flags: typeof Flags;
 type index_d$1_Options = Options;
 type index_d$1_Blueprint = Blueprint;
 declare const index_d$1_Blueprint: typeof Blueprint;
@@ -837,13 +865,16 @@ type index_d$1_StepFlags = StepFlags;
 declare const index_d$1_StepFlags: typeof StepFlags;
 type index_d$1_BuildStep = BuildStep;
 declare const index_d$1_BuildStep: typeof BuildStep;
+type index_d$1_BuildData = BuildData;
+type index_d$1_Builder = Builder;
+declare const index_d$1_Builder: typeof Builder;
 declare namespace index_d$1 {
   export {
     index_d$1_analyze as analyze,
     index_d$1_analyzeSite as analyzeSite,
     blueprint_d as blueprint,
     site_d$1 as site,
-    Flags$1 as Flags,
+    index_d$1_Flags as Flags,
     index_d$1_Options as Options,
     index_d$1_Blueprint as Blueprint,
     index_d$1_blueprints as blueprints,
@@ -852,6 +883,8 @@ declare namespace index_d$1 {
     index_d$1_StepOptions as StepOptions,
     index_d$1_StepFlags as StepFlags,
     index_d$1_BuildStep as BuildStep,
+    index_d$1_BuildData as BuildData,
+    index_d$1_Builder as Builder,
   };
 }
 

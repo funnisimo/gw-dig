@@ -1,5 +1,4 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
 import * as DIG_UTILS from '../dig/utils';
 import { BuildData } from './builder';
 import { Blueprint, Flags } from './blueprint';
@@ -221,12 +220,12 @@ export class BuildStep {
         } else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
             if (
                 (this.item && site.blocksItems(x, y)) ||
-                site.hasSiteFlag(
+                site.hasCellFlag(
                     x,
                     y,
-                    SITE.Flags.IS_CHOKEPOINT |
-                        SITE.Flags.IS_IN_LOOP |
-                        SITE.Flags.IS_IN_MACHINE
+                    GW.map.flags.Cell.IS_CHOKEPOINT |
+                        GW.map.flags.Cell.IS_IN_LOOP |
+                        GW.map.flags.Cell.IS_IN_MACHINE
                 )
             ) {
                 return false;
@@ -266,16 +265,19 @@ export class BuildStep {
         return count;
     }
 
-    build(builder: BuildData, blueprint: Blueprint) {
-        let generateEverywhere = false;
-        let instanceCount = 0;
-        let instance = 0;
+    get generateEverywhere(): boolean {
+        return !!(
+            this.flags &
+            StepFlags.BF_EVERYWHERE &
+            ~StepFlags.BF_BUILD_AT_ORIGIN
+        );
+    }
 
-        const site = builder.site;
+    get buildAtOrigin(): boolean {
+        return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
+    }
 
-        const candidates = GW.grid.alloc(site.width, site.height);
-
-        // Figure out the distance bounds.
+    distanceBound(builder: BuildData): [number, number] {
         const distanceBound: [number, number] = [0, 10000];
         if (this.flags & StepFlags.BF_NEAR_ORIGIN) {
             distanceBound[1] = builder.distance25;
@@ -283,12 +285,16 @@ export class BuildStep {
         if (this.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
             distanceBound[0] = builder.distance75;
         }
+        return distanceBound;
+    }
 
+    updateViewMap(builder: BuildData): void {
         if (
             this.flags &
             (StepFlags.BF_IN_VIEW_OF_ORIGIN |
                 StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)
         ) {
+            const site = builder.site;
             if (this.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
                 const fov = new GW.fov.FOV({
                     isBlocked: (x, y) => {
@@ -320,39 +326,50 @@ export class BuildStep {
             }
             builder.viewMap[builder.originX][builder.originY] = 1;
         }
+    }
+
+    markCandidates(
+        candidates: GW.grid.NumGrid,
+        builder: BuildData,
+        blueprint: Blueprint,
+        distanceBound: [number, number]
+    ): number {
+        let count = 0;
+        candidates.update((_v, i, j) => {
+            if (this.cellIsCandidate(builder, blueprint, i, j, distanceBound)) {
+                count++;
+                return 1;
+            } else {
+                return 0;
+            }
+        });
+        return count;
+    }
+
+    build(builder: BuildData, blueprint: Blueprint) {
+        let instanceCount = 0;
+        let instance = 0;
+
+        const site = builder.site;
+
+        const candidates = GW.grid.alloc(site.width, site.height);
+
+        // Figure out the distance bounds.
+        const distanceBound = this.distanceBound(builder);
+        this.updateViewMap(builder);
 
         do {
             // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
 
             // Make a master map of candidate locations for this feature.
-            let qualifyingTileCount = 0;
-            candidates.update((_v, i, j) => {
-                if (
-                    this.cellIsCandidate(
-                        builder,
-                        blueprint,
-                        i,
-                        j,
-                        distanceBound
-                    )
-                ) {
-                    qualifyingTileCount++;
-                    return 1;
-                } else {
-                    return 0;
-                }
-            });
+            let qualifyingTileCount = this.markCandidates(
+                candidates,
+                builder,
+                blueprint,
+                distanceBound
+            );
 
-            if (
-                this.flags &
-                StepFlags.BF_EVERYWHERE &
-                ~StepFlags.BF_BUILD_AT_ORIGIN
-            ) {
-                // Generate everywhere that qualifies -- instead of randomly picking tiles, keep spawning until we run out of eligible tiles.
-                generateEverywhere = true;
-            } else {
-                // build as many instances as required
-                generateEverywhere = false;
+            if (!this.generateEverywhere) {
                 instanceCount = this.count.value();
             }
 
@@ -362,6 +379,7 @@ export class BuildStep {
                     qualifyingTileCount,
                     this.count.lo
                 );
+                return 0; // ?? Failed ??
             }
 
             let x = 0,
@@ -369,31 +387,23 @@ export class BuildStep {
 
             for (
                 instance = 0;
-                (generateEverywhere || instance < instanceCount) &&
+                (this.generateEverywhere || instance < instanceCount) &&
                 qualifyingTileCount > 0;
 
             ) {
                 // Find a location for the feature.
-                if (this.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
+                if (this.buildAtOrigin) {
                     // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
                     x = builder.originX;
                     y = builder.originY;
                 } else {
                     // Pick our candidate location randomly, and also strike it from
                     // the candidates map so that subsequent instances of this same feature can't choose it.
-                    x = -1;
-                    let randIndex = GW.random.range(1, qualifyingTileCount);
-                    candidates.forEach((v, i, j) => {
-                        if (!v) return;
-                        if (randIndex == 1) {
-                            // This is the place!
-                            x = i;
-                            y = j;
-                            return false;
-                        } else {
-                            randIndex--;
-                        }
-                    });
+                    [x, y] = GW.random.matchingLoc(
+                        candidates.width,
+                        candidates.height,
+                        (v) => v > 0
+                    );
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
                 candidates[x][y] = 0;
@@ -405,14 +415,12 @@ export class BuildStep {
                 // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
                 if (this.spawn) {
                     const spawner = new Spawner(this.spawn);
-                    spawner.spawn(x, y, site);
+                    DFSucceeded = spawner.spawn(x, y, site) > 0;
                 }
 
                 // Now try to place the terrain tile, if any.
                 if (DFSucceeded && this.tile) {
-                    let tile: number = this.tile;
-                    if (typeof tile == 'string')
-                        tile = GW.tile.tiles[tile].index;
+                    let tile: number = GW.tile.get(this.tile).index;
 
                     if (!tile) {
                         terrainSucceeded = false;
@@ -468,7 +476,7 @@ export class BuildStep {
 
                     // Mark the feature location as impregnable if requested.
                     if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                        site.setSiteFlag(x, y, SITE.Flags.IMPREGNABLE);
+                        site.setCellFlag(x, y, GW.map.flags.Cell.IMPREGNABLE);
                     }
 
                     // let success = RUT.Component.generateAdoptItem(

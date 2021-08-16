@@ -8,13 +8,13 @@ import * as SITE from './site';
 export class LoopFinder {
     constructor() {}
 
-    compute(
-        site: SITE.BuildSite
-    ) {
+    compute(site: SITE.BuildSite) {
         // const grid = GW.grid.alloc(site.width, site.height);
 
         this._initGrid(site);
-        GW.utils.forRect(site.width, site.height, (x, y) => this._checkCell(site, x, y));
+        GW.utils.forRect(site.width, site.height, (x, y) =>
+            this._checkCell(site, x, y)
+        );
         // grid.forEach((_v, x, y) => this._checkCell(site, grid, x, y));
 
         // grid.forEach((v, x, y) => cb(x, y, !!v));
@@ -24,10 +24,9 @@ export class LoopFinder {
     _initGrid(site: SITE.BuildSite) {
         GW.utils.forRect(site.width, site.height, (x, y) => {
             if (site.isPassable(x, y)) {
-                site.setSiteFlag(x, y, SITE.Flags.IS_IN_LOOP);
-            }
-            else {
-                site.clearSiteFlag(x, y, SITE.Flags.IS_IN_LOOP);
+                site.setCellFlag(x, y, GW.map.flags.Cell.IS_IN_LOOP);
+            } else {
+                site.clearCellFlag(x, y, GW.map.flags.Cell.IS_IN_LOOP);
             }
         });
     }
@@ -37,7 +36,7 @@ export class LoopFinder {
         let newX, newY, dir, sdir;
         let numStrings, maxStringLength, currentStringLength;
 
-        const v = site.hasSiteFlag(x, y, SITE.Flags.IS_IN_LOOP);
+        const v = site.hasCellFlag(x, y, GW.map.flags.Cell.IS_IN_LOOP);
         if (!v) return;
 
         // find an unloopy neighbor to start on
@@ -46,7 +45,7 @@ export class LoopFinder {
             newY = y + GW.utils.CLOCK_DIRS[sdir][1];
 
             if (!site.hasXY(newX, newY)) continue;
-            if (!site.hasSiteFlag(newX, newY, SITE.Flags.IS_IN_LOOP)) {
+            if (!site.hasCellFlag(newX, newY, GW.map.flags.Cell.IS_IN_LOOP)) {
                 break;
             }
         }
@@ -66,7 +65,11 @@ export class LoopFinder {
             newY = y + GW.utils.CLOCK_DIRS[dir % 8][1];
             if (!site.hasXY(newX, newY)) continue;
 
-            const newCell = site.hasSiteFlag(newX, newY, SITE.Flags.IS_IN_LOOP);
+            const newCell = site.hasCellFlag(
+                newX,
+                newY,
+                GW.map.flags.Cell.IS_IN_LOOP
+            );
             if (newCell) {
                 currentStringLength++;
                 if (!inString) {
@@ -89,7 +92,7 @@ export class LoopFinder {
             maxStringLength = currentStringLength;
         }
         if (numStrings == 1 && maxStringLength <= 4) {
-            site.clearSiteFlag(x, y, SITE.Flags.IS_IN_LOOP);
+            site.clearCellFlag(x, y, GW.map.flags.Cell.IS_IN_LOOP);
 
             for (dir = 0; dir < 8; dir++) {
                 const newX = x + GW.utils.CLOCK_DIRS[dir][0];
@@ -104,11 +107,19 @@ export class LoopFinder {
     _fillInnerLoopGrid(site: SITE.BuildSite, innerGrid: GW.grid.NumGrid) {
         for (let x = 0; x < site.width; ++x) {
             for (let y = 0; y < site.height; ++y) {
-                if (site.hasSiteFlag(x, y, SITE.Flags.IS_IN_LOOP)) {
+                if (site.hasCellFlag(x, y, GW.map.flags.Cell.IS_IN_LOOP)) {
                     innerGrid[x][y] = 1;
                 } else if (x > 0 && y > 0) {
-                    const up = site.hasSiteFlag(x, y - 1, SITE.Flags.IS_IN_LOOP);
-                    const left = site.hasSiteFlag(x - 1, y, SITE.Flags.IS_IN_LOOP);
+                    const up = site.hasCellFlag(
+                        x,
+                        y - 1,
+                        GW.map.flags.Cell.IS_IN_LOOP
+                    );
+                    const left = site.hasCellFlag(
+                        x - 1,
+                        y,
+                        GW.map.flags.Cell.IS_IN_LOOP
+                    );
                     if (up && left) {
                         innerGrid[x][y] = 1;
                     }
@@ -127,7 +138,7 @@ export class LoopFinder {
 
         for (let i = 0; i < site.width; i++) {
             for (let j = 0; j < site.height; j++) {
-                if (site.hasSiteFlag(i, j, SITE.Flags.IS_IN_LOOP)) {
+                if (site.hasCellFlag(i, j, GW.map.flags.Cell.IS_IN_LOOP)) {
                     designationSurvives = false;
                     for (let dir = 0; dir < 8; dir++) {
                         let newX = i + GW.utils.CLOCK_DIRS[dir][0];
@@ -136,7 +147,11 @@ export class LoopFinder {
                         if (
                             site.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                             !innerLoop[newX][newY] &&
-                            !site.hasSiteFlag(newX, newY, SITE.Flags.IS_IN_LOOP)
+                            !site.hasCellFlag(
+                                newX,
+                                newY,
+                                GW.map.flags.Cell.IS_IN_LOOP
+                            )
                         ) {
                             designationSurvives = true;
                             break;
@@ -144,7 +159,7 @@ export class LoopFinder {
                     }
                     if (!designationSurvives) {
                         innerLoop[i][j] = 1;
-                        site.clearSiteFlag(i, j, SITE.Flags.IS_IN_LOOP);
+                        site.clearCellFlag(i, j, GW.map.flags.Cell.IS_IN_LOOP);
                     }
                 }
             }

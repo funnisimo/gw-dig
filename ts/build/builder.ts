@@ -19,8 +19,8 @@ export interface BuildData {
 }
 
 export class Builder {
-    public spawnedItems: any[] = [];
-    public spawnedHordes: any[] = [];
+    public spawnedItems: GW.item.Item[] = [];
+    public spawnedHordes: GW.actor.Actor[] = [];
     public interior: GW.grid.NumGrid;
     public occupied: GW.grid.NumGrid;
     public viewMap: GW.grid.NumGrid;

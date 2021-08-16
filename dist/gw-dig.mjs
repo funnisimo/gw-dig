@@ -1,4 +1,4 @@
-import { tile, grid, utils as utils$1, random as random$1, path, range, blob, flag, effect, fov, frequency } from 'gw-utils';
+import { tile, grid, utils as utils$1, random as random$1, path, range, blob, effect, flag, map, fov, frequency, gameObject } from 'gw-utils';
 
 var _a, _b;
 const NOTHING = tile.get('NULL').index;
@@ -2502,102 +2502,6 @@ var index = {
     Dungeon: Dungeon
 };
 
-const Fl = flag.fl;
-var Flags;
-(function (Flags) {
-    Flags[Flags["IS_IN_LOOP"] = Fl(0)] = "IS_IN_LOOP";
-    Flags[Flags["IS_CHOKEPOINT"] = Fl(1)] = "IS_CHOKEPOINT";
-    Flags[Flags["IS_GATE_SITE"] = Fl(2)] = "IS_GATE_SITE";
-    Flags[Flags["IS_IN_ROOM_MACHINE"] = Fl(3)] = "IS_IN_ROOM_MACHINE";
-    Flags[Flags["IS_IN_AREA_MACHINE"] = Fl(4)] = "IS_IN_AREA_MACHINE";
-    Flags[Flags["IMPREGNABLE"] = Fl(5)] = "IMPREGNABLE";
-    Flags[Flags["IS_WIRED"] = Fl(6)] = "IS_WIRED";
-    Flags[Flags["IS_CIRCUIT_BREAKER"] = Fl(7)] = "IS_CIRCUIT_BREAKER";
-    Flags[Flags["IS_IN_MACHINE"] = Flags.IS_IN_ROOM_MACHINE | Flags.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
-})(Flags || (Flags = {}));
-class GridSite$1 extends GridSite {
-    constructor(width, height) {
-        super(width, height);
-        this.machineCount = 0;
-        this.flags = grid.alloc(width, height);
-        this.choke = grid.alloc(width, height);
-        this.machine = grid.alloc(width, height);
-    }
-    free() {
-        grid.free(this.flags);
-        grid.free(this.choke);
-        grid.free(this.machine);
-        super.free();
-    }
-    backup() {
-        const backup = new GridSite$1(this.width, this.height);
-        backup.tiles.copy(this.tiles);
-        backup.flags.copy(this.flags);
-        backup.choke.copy(this.choke);
-        return backup;
-    }
-    restore(backup) {
-        this.tiles.copy(backup.tiles);
-        this.flags.copy(backup.flags);
-        this.choke.copy(backup.choke);
-        backup.free();
-    }
-    deleteBackup(backup) {
-        backup.free();
-    }
-    hasSiteFlag(x, y, flag) {
-        const have = this.flags.get(x, y) || 0;
-        return !!(have & flag);
-    }
-    setSiteFlag(x, y, flag) {
-        const value = (this.flags.get(x, y) || 0) | flag;
-        this.flags.set(x, y, value);
-    }
-    clearSiteFlag(x, y, flag) {
-        const value = (this.flags.get(x, y) || 0) & ~flag;
-        this.flags.set(x, y, value);
-    }
-    getChokeCount(x, y) {
-        return this.choke.get(x, y) || 0;
-    }
-    setChokeCount(x, y, count) {
-        this.choke.set(x, y, count);
-    }
-    isOccupied(_x, _y) {
-        return false;
-    }
-    hasItem(_x, _y) {
-        return false;
-    }
-    hasActor(_x, _y) {
-        return false;
-    }
-    placeTile(x, y, tile, _options) {
-        return this.setTile(x, y, tile);
-    }
-    nextMachineId() {
-        return ++this.machineCount;
-    }
-    getMachine(x, y) {
-        return this.machine[x][y];
-    }
-    setMachine(x, y, id, isRoom = true) {
-        this.machine[x][y] = id;
-        if (id == 0) {
-            this.clearSiteFlag(x, y, Flags.IS_IN_MACHINE);
-        }
-        else {
-            this.setSiteFlag(x, y, isRoom ? Flags.IS_IN_ROOM_MACHINE : Flags.IS_IN_AREA_MACHINE);
-        }
-    }
-}
-
-var site$1 = {
-    __proto__: null,
-    get Flags () { return Flags; },
-    GridSite: GridSite$1
-};
-
 class Spawner {
     constructor(info) {
         this.info = info;
@@ -2708,18 +2612,19 @@ class Spawner {
         return true;
     }
     spawnTiles(site, locs) {
+        var _a;
         let didSomething = false;
         const options = {
             superpriority: !!(this.info.flags & effect.Flags.E_SUPERPRIORITY),
             blockedByOtherLayers: !!(this.info.flags & effect.Flags.E_BLOCKED_BY_OTHER_LAYERS),
             blockedByActors: !!(this.info.flags & effect.Flags.E_BLOCKED_BY_ACTORS),
             blockedByItems: !!(this.info.flags & effect.Flags.E_BLOCKED_BY_ITEMS),
-            volume: this.info.tile.volume,
+            volume: (_a = this.info.tile) === null || _a === void 0 ? void 0 : _a.volume,
         };
         locs.forEach((v, i, j) => {
             if (v) {
                 locs[i][j] = 0;
-                if (site.placeTile(i, j, this.info.tile, options)) {
+                if (site.setTile(i, j, this.info.tile, options)) {
                     locs[i][j] = 1;
                     didSomething = true;
                 }
@@ -2729,43 +2634,43 @@ class Spawner {
     }
 }
 
-const Fl$1 = flag.fl;
+const Fl = flag.fl;
 var StepFlags;
 (function (StepFlags) {
     // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
     // BF_GENERATE_HORDE			= Fl(5),	// generate a monster horde that has all of the horde flags
     // BF_NO_THROWING_WEAPONS	    = Fl(4),	// the generated item cannot be a throwing weapon
     // BF_REQUIRE_GOOD_RUNIC		= Fl(18),	// generated item must be uncursed runic
-    StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
-    StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl$1(2)] = "BF_BUILD_VESTIBULE";
-    StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl$1(3)] = "BF_ADOPT_ITEM";
-    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl$1(6)] = "BF_BUILD_AT_ORIGIN";
+    StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
+    StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl(2)] = "BF_BUILD_VESTIBULE";
+    StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl(3)] = "BF_ADOPT_ITEM";
+    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl(6)] = "BF_BUILD_AT_ORIGIN";
     // unused                   = Fl(7),	//
-    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl$1(8)] = "BF_PERMIT_BLOCKING";
-    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl$1(9)] = "BF_TREAT_AS_BLOCKING";
-    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl$1(10)] = "BF_NEAR_ORIGIN";
-    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl$1(11)] = "BF_FAR_FROM_ORIGIN";
-    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl$1(25)] = "BF_IN_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(26)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl$1(12)] = "BF_MONSTER_TAKE_ITEM";
-    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl$1(13)] = "BF_MONSTER_SLEEPING";
-    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl$1(14)] = "BF_MONSTER_FLEEING";
-    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl$1(19)] = "BF_MONSTERS_DORMANT";
-    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl$1(0)] = "BF_ITEM_IS_KEY";
-    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl$1(5)] = "BF_ITEM_IDENTIFIED";
-    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl$1(4)] = "BF_ITEM_PLAYER_AVOIDS";
-    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl$1(15)] = "BF_EVERYWHERE";
-    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl$1(16)] = "BF_ALTERNATIVE";
-    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl$1(17)] = "BF_ALTERNATIVE_2";
+    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl(8)] = "BF_PERMIT_BLOCKING";
+    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl(9)] = "BF_TREAT_AS_BLOCKING";
+    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl(10)] = "BF_NEAR_ORIGIN";
+    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl(11)] = "BF_FAR_FROM_ORIGIN";
+    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl(25)] = "BF_IN_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl(26)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl(12)] = "BF_MONSTER_TAKE_ITEM";
+    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl(13)] = "BF_MONSTER_SLEEPING";
+    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl(14)] = "BF_MONSTER_FLEEING";
+    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl(19)] = "BF_MONSTERS_DORMANT";
+    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl(0)] = "BF_ITEM_IS_KEY";
+    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl(5)] = "BF_ITEM_IDENTIFIED";
+    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl(4)] = "BF_ITEM_PLAYER_AVOIDS";
+    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl(15)] = "BF_EVERYWHERE";
+    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl(16)] = "BF_ALTERNATIVE";
+    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl(17)] = "BF_ALTERNATIVE_2";
     // unused                       = Fl(20),	//
-    StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl$1(21)] = "BF_BUILD_IN_WALLS";
-    StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
-    StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
-    StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
-    StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
-    StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl$1(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
-    StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl$1(29)] = "BF_SKELETON_KEY";
-    StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl$1(30)] = "BF_KEY_DISPOSABLE";
+    StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl(21)] = "BF_BUILD_IN_WALLS";
+    StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
+    StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
+    StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl(24)] = "BF_IMPREGNABLE";
+    StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl(27)] = "BF_NOT_IN_HALLWAY";
+    StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
+    StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl(29)] = "BF_SKELETON_KEY";
+    StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl(30)] = "BF_KEY_DISPOSABLE";
 })(StepFlags || (StepFlags = {}));
 class BuildStep {
     constructor(cfg = {}) {
@@ -2886,9 +2791,9 @@ class BuildStep {
         }
         else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
             if ((this.item && site.blocksItems(x, y)) ||
-                site.hasSiteFlag(x, y, Flags.IS_CHOKEPOINT |
-                    Flags.IS_IN_LOOP |
-                    Flags.IS_IN_MACHINE)) {
+                site.hasCellFlag(x, y, map.flags.Cell.IS_CHOKEPOINT |
+                    map.flags.Cell.IS_IN_LOOP |
+                    map.flags.Cell.IS_IN_MACHINE)) {
                 return false;
             }
             else {
@@ -2916,13 +2821,15 @@ class BuildStep {
         }
         return count;
     }
-    build(builder, blueprint) {
-        let generateEverywhere = false;
-        let instanceCount = 0;
-        let instance = 0;
-        const site = builder.site;
-        const candidates = grid.alloc(site.width, site.height);
-        // Figure out the distance bounds.
+    get generateEverywhere() {
+        return !!(this.flags &
+            StepFlags.BF_EVERYWHERE &
+            ~StepFlags.BF_BUILD_AT_ORIGIN);
+    }
+    get buildAtOrigin() {
+        return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
+    }
+    distanceBound(builder) {
         const distanceBound = [0, 10000];
         if (this.flags & StepFlags.BF_NEAR_ORIGIN) {
             distanceBound[1] = builder.distance25;
@@ -2930,9 +2837,13 @@ class BuildStep {
         if (this.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
             distanceBound[0] = builder.distance75;
         }
+        return distanceBound;
+    }
+    updateViewMap(builder) {
         if (this.flags &
             (StepFlags.BF_IN_VIEW_OF_ORIGIN |
                 StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
+            const site = builder.site;
             if (this.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
                 const fov$1 = new fov.FOV({
                     isBlocked: (x, y) => {
@@ -2963,38 +2874,44 @@ class BuildStep {
             }
             builder.viewMap[builder.originX][builder.originY] = 1;
         }
+    }
+    markCandidates(candidates, builder, blueprint, distanceBound) {
+        let count = 0;
+        candidates.update((_v, i, j) => {
+            if (this.cellIsCandidate(builder, blueprint, i, j, distanceBound)) {
+                count++;
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        });
+        return count;
+    }
+    build(builder, blueprint) {
+        let instanceCount = 0;
+        let instance = 0;
+        const site = builder.site;
+        const candidates = grid.alloc(site.width, site.height);
+        // Figure out the distance bounds.
+        const distanceBound = this.distanceBound(builder);
+        this.updateViewMap(builder);
         do {
             // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
             // Make a master map of candidate locations for this feature.
-            let qualifyingTileCount = 0;
-            candidates.update((_v, i, j) => {
-                if (this.cellIsCandidate(builder, blueprint, i, j, distanceBound)) {
-                    qualifyingTileCount++;
-                    return 1;
-                }
-                else {
-                    return 0;
-                }
-            });
-            if (this.flags &
-                StepFlags.BF_EVERYWHERE &
-                ~StepFlags.BF_BUILD_AT_ORIGIN) {
-                // Generate everywhere that qualifies -- instead of randomly picking tiles, keep spawning until we run out of eligible tiles.
-                generateEverywhere = true;
-            }
-            else {
-                // build as many instances as required
-                generateEverywhere = false;
+            let qualifyingTileCount = this.markCandidates(candidates, builder, blueprint, distanceBound);
+            if (!this.generateEverywhere) {
                 instanceCount = this.count.value();
             }
             if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
                 console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
+                return 0; // ?? Failed ??
             }
             let x = 0, y = 0;
-            for (instance = 0; (generateEverywhere || instance < instanceCount) &&
+            for (instance = 0; (this.generateEverywhere || instance < instanceCount) &&
                 qualifyingTileCount > 0;) {
                 // Find a location for the feature.
-                if (this.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
+                if (this.buildAtOrigin) {
                     // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
                     x = builder.originX;
                     y = builder.originY;
@@ -3002,36 +2919,23 @@ class BuildStep {
                 else {
                     // Pick our candidate location randomly, and also strike it from
                     // the candidates map so that subsequent instances of this same feature can't choose it.
-                    x = -1;
-                    let randIndex = random$1.range(1, qualifyingTileCount);
-                    candidates.forEach((v, i, j) => {
-                        if (!v)
-                            return;
-                        if (randIndex == 1) {
-                            // This is the place!
-                            x = i;
-                            y = j;
-                            return false;
-                        }
-                        else {
-                            randIndex--;
-                        }
-                    });
+                    [x, y] = random$1.matchingLoc(candidates.width, candidates.height, (v) => v > 0);
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
                 candidates[x][y] = 0;
                 qualifyingTileCount--;
+                let DFSucceeded = true;
                 let terrainSucceeded = true;
                 // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
                 if (this.spawn) {
                     const spawner = new Spawner(this.spawn);
-                    spawner.spawn(x, y, site);
+                    DFSucceeded = spawner.spawn(x, y, site) > 0;
                 }
                 // Now try to place the terrain tile, if any.
-                if (this.tile) {
+                if (DFSucceeded && this.tile) {
                     let tile$1 = this.tile;
                     if (typeof tile$1 == 'string')
-                        tile$1 = tile.tiles[tile$1].index;
+                        tile$1 = tile.get(tile$1).index;
                     if (!tile$1) {
                         terrainSucceeded = false;
                         console.error('placing invalid tile', this.tile, x, y);
@@ -3051,20 +2955,20 @@ class BuildStep {
                 }
                 // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
                 // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
-                if (terrainSucceeded) {
+                if (DFSucceeded && terrainSucceeded) {
                     qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
                     instance++; // we've placed an instance
                     //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
                 }
-                if (terrainSucceeded) {
+                if (DFSucceeded && terrainSucceeded) {
                     // Proceed only if the terrain stuff for this instance succeeded.
                     // Mark the feature location as part of the machine, in case it is not already inside of it.
-                    if (!(blueprint.flags & Flags$1.BP_NO_INTERIOR_FLAG)) {
+                    if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
                         site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
                     }
                     // Mark the feature location as impregnable if requested.
                     if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                        site.setSiteFlag(x, y, Flags.IMPREGNABLE);
+                        site.setCellFlag(x, y, map.flags.Cell.IMPREGNABLE);
                     }
                     // let success = RUT.Component.generateAdoptItem(
                     //     component,
@@ -3103,25 +3007,25 @@ class BuildStep {
     }
 }
 
-const Fl$2 = flag.fl;
-var Flags$1;
+const Fl$1 = flag.fl;
+var Flags;
 (function (Flags) {
-    Flags[Flags["BP_ROOM"] = Fl$2(10)] = "BP_ROOM";
-    Flags[Flags["BP_VESTIBULE"] = Fl$2(1)] = "BP_VESTIBULE";
-    Flags[Flags["BP_REWARD"] = Fl$2(7)] = "BP_REWARD";
-    Flags[Flags["BP_ADOPT_ITEM"] = Fl$2(0)] = "BP_ADOPT_ITEM";
-    Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl$2(2)] = "BP_PURGE_PATHING_BLOCKERS";
-    Flags[Flags["BP_PURGE_INTERIOR"] = Fl$2(3)] = "BP_PURGE_INTERIOR";
-    Flags[Flags["BP_PURGE_LIQUIDS"] = Fl$2(4)] = "BP_PURGE_LIQUIDS";
-    Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl$2(5)] = "BP_SURROUND_WITH_WALLS";
-    Flags[Flags["BP_IMPREGNABLE"] = Fl$2(6)] = "BP_IMPREGNABLE";
-    Flags[Flags["BP_OPEN_INTERIOR"] = Fl$2(8)] = "BP_OPEN_INTERIOR";
-    Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl$2(9)] = "BP_MAXIMIZE_INTERIOR";
-    Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl$2(14)] = "BP_REDESIGN_INTERIOR";
-    Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl$2(11)] = "BP_TREAT_AS_BLOCKING";
-    Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl$2(12)] = "BP_REQUIRE_BLOCKING";
-    Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl$2(13)] = "BP_NO_INTERIOR_FLAG";
-})(Flags$1 || (Flags$1 = {}));
+    Flags[Flags["BP_ROOM"] = Fl$1(10)] = "BP_ROOM";
+    Flags[Flags["BP_VESTIBULE"] = Fl$1(1)] = "BP_VESTIBULE";
+    Flags[Flags["BP_REWARD"] = Fl$1(7)] = "BP_REWARD";
+    Flags[Flags["BP_ADOPT_ITEM"] = Fl$1(0)] = "BP_ADOPT_ITEM";
+    Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl$1(2)] = "BP_PURGE_PATHING_BLOCKERS";
+    Flags[Flags["BP_PURGE_INTERIOR"] = Fl$1(3)] = "BP_PURGE_INTERIOR";
+    Flags[Flags["BP_PURGE_LIQUIDS"] = Fl$1(4)] = "BP_PURGE_LIQUIDS";
+    Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl$1(5)] = "BP_SURROUND_WITH_WALLS";
+    Flags[Flags["BP_IMPREGNABLE"] = Fl$1(6)] = "BP_IMPREGNABLE";
+    Flags[Flags["BP_OPEN_INTERIOR"] = Fl$1(8)] = "BP_OPEN_INTERIOR";
+    Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl$1(9)] = "BP_MAXIMIZE_INTERIOR";
+    Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl$1(14)] = "BP_REDESIGN_INTERIOR";
+    Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl$1(11)] = "BP_TREAT_AS_BLOCKING";
+    Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl$1(12)] = "BP_REQUIRE_BLOCKING";
+    Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl$1(13)] = "BP_NO_INTERIOR_FLAG";
+})(Flags || (Flags = {}));
 class Blueprint {
     constructor(opts = {}) {
         this.tags = [];
@@ -3158,7 +3062,7 @@ class Blueprint {
                 throw new Error('Blueprint size must be small to large.');
         }
         if (opts.flags) {
-            this.flags = flag.from(Flags$1, opts.flags);
+            this.flags = flag.from(Flags, opts.flags);
         }
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
@@ -3176,55 +3080,55 @@ class Blueprint {
         return this.frequency(level);
     }
     get isRoom() {
-        return !!(this.flags & Flags$1.BP_ROOM);
+        return !!(this.flags & Flags.BP_ROOM);
     }
     get isReward() {
-        return !!(this.flags & Flags$1.BP_REWARD);
+        return !!(this.flags & Flags.BP_REWARD);
     }
     get isVestiblue() {
-        return !!(this.flags & Flags$1.BP_VESTIBULE);
+        return !!(this.flags & Flags.BP_VESTIBULE);
     }
     get adoptsItem() {
-        return !!(this.flags & Flags$1.BP_ADOPT_ITEM);
+        return !!(this.flags & Flags.BP_ADOPT_ITEM);
     }
     get treatAsBlocking() {
-        return !!(this.flags & Flags$1.BP_TREAT_AS_BLOCKING);
+        return !!(this.flags & Flags.BP_TREAT_AS_BLOCKING);
     }
     get requireBlocking() {
-        return !!(this.flags & Flags$1.BP_REQUIRE_BLOCKING);
+        return !!(this.flags & Flags.BP_REQUIRE_BLOCKING);
     }
     get purgeInterior() {
-        return !!(this.flags & Flags$1.BP_PURGE_INTERIOR);
+        return !!(this.flags & Flags.BP_PURGE_INTERIOR);
     }
     get purgeBlockers() {
-        return !!(this.flags & Flags$1.BP_PURGE_PATHING_BLOCKERS);
+        return !!(this.flags & Flags.BP_PURGE_PATHING_BLOCKERS);
     }
     get purgeLiquids() {
-        return !!(this.flags & Flags$1.BP_PURGE_LIQUIDS);
+        return !!(this.flags & Flags.BP_PURGE_LIQUIDS);
     }
     get surroundWithWalls() {
-        return !!(this.flags & Flags$1.BP_SURROUND_WITH_WALLS);
+        return !!(this.flags & Flags.BP_SURROUND_WITH_WALLS);
     }
     get makeImpregnable() {
-        return !!(this.flags & Flags$1.BP_IMPREGNABLE);
+        return !!(this.flags & Flags.BP_IMPREGNABLE);
     }
     get maximizeInterior() {
-        return !!(this.flags & Flags$1.BP_MAXIMIZE_INTERIOR);
+        return !!(this.flags & Flags.BP_MAXIMIZE_INTERIOR);
     }
     get openInterior() {
-        return !!(this.flags & Flags$1.BP_OPEN_INTERIOR);
+        return !!(this.flags & Flags.BP_OPEN_INTERIOR);
     }
     get noInteriorFlag() {
-        return !!(this.flags & Flags$1.BP_NO_INTERIOR_FLAG);
+        return !!(this.flags & Flags.BP_NO_INTERIOR_FLAG);
     }
     qualifies(requiredFlags, depth) {
         if (this.frequency(depth) <= 0 ||
             // Must have the required flags:
             ~this.flags & requiredFlags ||
             // May NOT have BP_ADOPT_ITEM unless that flag is required:
-            this.flags & Flags$1.BP_ADOPT_ITEM & ~requiredFlags ||
+            this.flags & Flags.BP_ADOPT_ITEM & ~requiredFlags ||
             // May NOT have BP_VESTIBULE unless that flag is required:
-            this.flags & Flags$1.BP_VESTIBULE & ~requiredFlags) {
+            this.flags & Flags.BP_VESTIBULE & ~requiredFlags) {
             return false;
         }
         return true;
@@ -3235,7 +3139,7 @@ class Blueprint {
             // If it's a room machine, count up the gates of appropriate
             // choke size and remember where they are. The origin of the room will be the gate location.
             // RUT.Map.analyze(map, true); // Make sure the chokeMap is up to date.
-            const randSite = random$1.matchingLoc(site.width, site.height, (x, y) => site.hasSiteFlag(x, y, Flags.IS_GATE_SITE));
+            const randSite = random$1.matchingLoc(site.width, site.height, (x, y) => site.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE));
             if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
                 // If no suitable sites, abort.
                 console.log('Failed to build a machine; there was no eligible door candidate for the chosen room machine from blueprint.');
@@ -3304,7 +3208,7 @@ class Blueprint {
                             interior[i][j] = 1;
                             qualifyingTileCount++;
                             if (site.isOccupied(i, j) ||
-                                site.hasSiteFlag(i, j, Flags.IS_IN_MACHINE)) {
+                                site.hasCellFlag(i, j, map.flags.Cell.IS_IN_MACHINE)) {
                                 // Abort if we've entered another machine or engulfed another machine's item or monster.
                                 tryAgain = true;
                                 qualifyingTileCount = totalFreq; // This is a hack to drop out of these three for-loops.
@@ -3353,8 +3257,8 @@ class Blueprint {
             if (interior[newX][newY])
                 continue; // already done
             if (site.isOccupied(newX, newY) ||
-                (site.hasSiteFlag(newX, newY, Flags.IS_IN_MACHINE) &&
-                    !site.hasSiteFlag(newX, newY, Flags.IS_GATE_SITE))) {
+                (site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_MACHINE) &&
+                    !site.hasCellFlag(newX, newY, map.flags.Cell.IS_GATE_SITE))) {
                 // Abort if there's an item in the room.
                 // Items haven't been populated yet, so the only way this could happen is if another machine
                 // previously placed an item here.
@@ -3362,7 +3266,7 @@ class Blueprint {
                 return false;
             }
             if (site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-                !site.hasSiteFlag(newX, newY, Flags.IS_IN_MACHINE)) {
+                !site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_MACHINE)) {
                 goodSoFar = this.addTileToInteriorAndIterate(builder, newX, newY);
             }
         }
@@ -3408,7 +3312,7 @@ class Blueprint {
     }
     prepareInteriorWithMachineFlags(builder) {
         const interior = builder.interior;
-        const site$2 = builder.site;
+        const site$1 = builder.site;
         // If requested, clear and expand the room as far as possible until either it's convex or it bumps into surrounding rooms
         if (this.maximizeInterior) {
             this.expandMachineInterior(builder, 1);
@@ -3420,7 +3324,7 @@ class Blueprint {
         if (this.purgeInterior) {
             interior.forEach((v, x, y) => {
                 if (v)
-                    site$2.setTile(x, y, FLOOR);
+                    site$1.setTile(x, y, FLOOR);
             });
         }
         // If requested, purge pathing blockers -- no traps allowed.
@@ -3428,38 +3332,39 @@ class Blueprint {
             interior.forEach((v, x, y) => {
                 if (!v)
                     return;
-                if (site$2.blocksPathing(x, y)) {
-                    site$2.setTile(x, y, FLOOR);
+                if (site$1.blocksPathing(x, y)) {
+                    site$1.setTile(x, y, FLOOR);
                 }
             });
         }
         // If requested, purge the liquid layer in the interior -- no liquids allowed.
         if (this.purgeLiquids) {
             interior.forEach((v, x, y) => {
-                if (v && site$2.isAnyLiquid(x, y)) {
-                    site$2.setTile(x, y, FLOOR);
+                if (v && site$1.isAnyLiquid(x, y)) {
+                    site$1.setTile(x, y, FLOOR);
                 }
             });
         }
         // Surround with walls if requested.
         if (this.surroundWithWalls) {
             interior.forEach((v, x, y) => {
-                if (!v || site$2.hasSiteFlag(x, y, Flags.IS_GATE_SITE))
+                if (!v ||
+                    site$1.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE))
                     return;
                 utils$1.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
                         return; // Not valid x,y
                     if (interior[i][j])
                         return; // is part of machine
-                    if (site$2.isWall(i, j))
+                    if (site$1.isWall(i, j))
                         return; // is already a wall (of some sort)
-                    if (site$2.hasSiteFlag(i, j, Flags.IS_GATE_SITE))
+                    if (site$1.hasCellFlag(i, j, map.flags.Cell.IS_GATE_SITE))
                         return; // is a door site
-                    if (site$2.hasSiteFlag(i, j, Flags.IS_IN_MACHINE))
+                    if (site$1.hasCellFlag(i, j, map.flags.Cell.IS_IN_MACHINE))
                         return; // is part of a machine
-                    if (!site$2.blocksPathing(i, j))
+                    if (!site$1.blocksPathing(i, j))
                         return; // is not a blocker for the player (water?)
-                    site$2.setTile(i, j, WALL);
+                    site$1.setTile(i, j, WALL);
                 }, false);
             });
         }
@@ -3471,17 +3376,18 @@ class Blueprint {
         // Reinforce surrounding tiles and interior tiles if requested to prevent tunneling in or through.
         if (this.makeImpregnable) {
             interior.forEach((v, x, y) => {
-                if (!v || site$2.hasSiteFlag(x, y, Flags.IS_GATE_SITE))
+                if (!v ||
+                    site$1.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE))
                     return;
-                site$2.setSiteFlag(x, y, Flags.IMPREGNABLE);
+                site$1.setCellFlag(x, y, map.flags.Cell.IMPREGNABLE);
                 utils$1.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
                         return;
                     if (interior[i][j])
                         return;
-                    if (site$2.hasSiteFlag(i, j, Flags.IS_GATE_SITE))
+                    if (site$1.hasCellFlag(i, j, map.flags.Cell.IS_GATE_SITE))
                         return;
-                    site$2.setSiteFlag(i, j, Flags.IMPREGNABLE);
+                    site$1.setCellFlag(i, j, map.flags.Cell.IMPREGNABLE);
                 }, false);
             });
         }
@@ -3490,17 +3396,17 @@ class Blueprint {
         interior.forEach((v, x, y) => {
             if (!v)
                 return;
-            site$2.setMachine(x, y, machineNumber, this.isRoom);
+            site$1.setMachine(x, y, machineNumber, this.isRoom);
             // secret doors mess up machines
-            if (site$2.isSecretDoor(x, y)) {
-                site$2.setTile(x, y, DOOR);
+            if (site$1.isSecretDoor(x, y)) {
+                site$1.setTile(x, y, DOOR);
             }
         });
     }
     expandMachineInterior(builder, minimumInteriorNeighbors = 1) {
         let madeChange;
         const interior = builder.interior;
-        const site$2 = builder.site;
+        const site$1 = builder.site;
         do {
             madeChange = false;
             interior.forEach((_v, x, y) => {
@@ -3508,15 +3414,15 @@ class Blueprint {
                 //     site.setTile(x, y, DIG_SITE.FLOOR); // clean out the doors...
                 //     return;
                 // }
-                if (site$2.hasSiteFlag(x, y, Flags.IS_IN_MACHINE))
+                if (site$1.hasCellFlag(x, y, map.flags.Cell.IS_IN_MACHINE))
                     return;
-                if (!site$2.blocksPathing(x, y))
+                if (!site$1.blocksPathing(x, y))
                     return;
                 let nbcount = 0;
                 utils$1.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
                         return; // Not in map
-                    if (interior[i][j] && !site$2.blocksPathing(i, j)) {
+                    if (interior[i][j] && !site$1.blocksPathing(i, j)) {
                         ++nbcount; // in machine and open tile
                     }
                 }, false);
@@ -3528,8 +3434,8 @@ class Blueprint {
                         return; // not on map
                     if (interior[i][j])
                         return; // already part of machine
-                    if (!site$2.isWall(i, j) ||
-                        site$2.hasSiteFlag(i, j, Flags.IS_IN_MACHINE)) {
+                    if (!site$1.isWall(i, j) ||
+                        site$1.hasCellFlag(i, j, map.flags.Cell.IS_IN_MACHINE)) {
                         ++nbcount; // tile is not a wall or is in a machine
                     }
                 }, false);
@@ -3538,15 +3444,15 @@ class Blueprint {
                 // Eliminate this obstruction; welcome its location into the machine.
                 madeChange = true;
                 interior[x][y] = 1;
-                if (site$2.blocksPathing(x, y)) {
-                    site$2.setTile(x, y, FLOOR);
+                if (site$1.blocksPathing(x, y)) {
+                    site$1.setTile(x, y, FLOOR);
                 }
                 utils$1.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
                         return;
-                    if (site$2.isSet(i, j))
+                    if (site$1.isSet(i, j))
                         return;
-                    site$2.setTile(i, j, WALL);
+                    site$1.setTile(i, j, WALL);
                 });
             });
         } while (madeChange);
@@ -3623,7 +3529,8 @@ class Blueprint {
         builder.interior.forEach((v, x, y) => {
             if (!v)
                 return;
-            if (!builder.site.hasSiteFlag(x, y, Flags.IS_WIRED | Flags.IS_CIRCUIT_BREAKER)) {
+            if (!builder.site.hasCellFlag(x, y, map.flags.Cell.IS_WIRED |
+                map.flags.Cell.IS_CIRCUIT_BREAKER)) {
                 builder.site.setMachine(x, y, 0);
             }
         });
@@ -3661,7 +3568,7 @@ function random(requiredFlags, depth) {
 
 var blueprint = {
     __proto__: null,
-    get Flags () { return Flags$1; },
+    get Flags () { return Flags; },
     Blueprint: Blueprint,
     blueprints: blueprints,
     install: install$2,
@@ -3689,9 +3596,10 @@ class ChokeFinder {
         // done finding loops; now flag chokepoints
         for (let i = 1; i < passMap.width - 1; i++) {
             for (let j = 1; j < passMap.height - 1; j++) {
-                site.clearSiteFlag(i, j, Flags.IS_CHOKEPOINT);
+                site.clearCellFlag(i, j, map.flags.Cell.IS_CHOKEPOINT);
                 site.setChokeCount(i, j, 30000);
-                if (passMap[i][j] && !site.hasSiteFlag(i, j, Flags.IS_IN_LOOP)) {
+                if (passMap[i][j] &&
+                    !site.hasCellFlag(i, j, map.flags.Cell.IS_IN_LOOP)) {
                     passableArcCount = 0;
                     for (let dir = 0; dir < 8; dir++) {
                         const oldX = i + utils$1.CLOCK_DIRS[(dir + 7) % 8][0];
@@ -3705,7 +3613,7 @@ class ChokeFinder {
                                 if ((!passMap[i - 1][j] &&
                                     !passMap[i + 1][j]) ||
                                     (!passMap[i][j - 1] && !passMap[i][j + 1])) {
-                                    site.setSiteFlag(i, j, Flags.IS_CHOKEPOINT);
+                                    site.setCellFlag(i, j, map.flags.Cell.IS_CHOKEPOINT);
                                 }
                                 break;
                             }
@@ -3723,18 +3631,21 @@ class ChokeFinder {
             // were blocked.
             // The cost of all of this is one depth-first flood-fill per open point that is adjacent to a chokepoint.
             // Start by roping off room machines.
-            passMap.update((v, x, y) => v && site.hasSiteFlag(x, y, Flags.IS_IN_ROOM_MACHINE) ? 0 : v);
+            passMap.update((v, x, y) => v &&
+                site.hasCellFlag(x, y, map.flags.Cell.IS_IN_ROOM_MACHINE)
+                ? 0
+                : v);
             // Scan through and find a chokepoint next to an open point.
             for (let i = 0; i < site.width; i++) {
                 for (let j = 0; j < site.height; j++) {
                     if (passMap[i][j] &&
-                        site.hasSiteFlag(i, j, Flags.IS_CHOKEPOINT)) {
+                        site.hasCellFlag(i, j, map.flags.Cell.IS_CHOKEPOINT)) {
                         for (let dir = 0; dir < 4; dir++) {
                             const newX = i + utils$1.DIRS[dir][0];
                             const newY = j + utils$1.DIRS[dir][1];
                             if (passMap.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                                 passMap[newX][newY] &&
-                                !(site.hasSiteFlag(newX, newY, Flags.IS_CHOKEPOINT))) {
+                                !site.hasCellFlag(newX, newY, map.flags.Cell.IS_CHOKEPOINT)) {
                                 // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
                                 // Pretend (i, j) is blocked by changing passMap, and run a flood-fill cell count starting on (newX, newY).
                                 // Keep track of the flooded region in grid[][].
@@ -3749,16 +3660,18 @@ class ChokeFinder {
                                     for (let i2 = 0; i2 < floodGrid.width; i2++) {
                                         for (let j2 = 0; j2 < floodGrid.height; j2++) {
                                             if (floodGrid[i2][j2] &&
-                                                cellCount < site.getChokeCount(i2, j2)) {
+                                                cellCount <
+                                                    site.getChokeCount(i2, j2)) {
                                                 site.setChokeCount(i2, j2, cellCount);
-                                                site.clearSiteFlag(i2, j2, Flags.IS_GATE_SITE);
+                                                site.clearCellFlag(i2, j2, map.flags.Cell
+                                                    .IS_GATE_SITE);
                                             }
                                         }
                                     }
                                     // The chokepoint itself should also take the lesser of its current value or the flood count.
                                     if (cellCount < site.getChokeCount(i, j)) {
                                         site.setChokeCount(i, j, cellCount);
-                                        site.setSiteFlag(i, j, Flags.IS_GATE_SITE);
+                                        site.setCellFlag(i, j, map.flags.Cell.IS_GATE_SITE);
                                     }
                                 }
                             }
@@ -3809,10 +3722,10 @@ class LoopFinder {
     _initGrid(site) {
         utils$1.forRect(site.width, site.height, (x, y) => {
             if (site.isPassable(x, y)) {
-                site.setSiteFlag(x, y, Flags.IS_IN_LOOP);
+                site.setCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
             }
             else {
-                site.clearSiteFlag(x, y, Flags.IS_IN_LOOP);
+                site.clearCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
             }
         });
     }
@@ -3820,7 +3733,7 @@ class LoopFinder {
         let inString;
         let newX, newY, dir, sdir;
         let numStrings, maxStringLength, currentStringLength;
-        const v = site.hasSiteFlag(x, y, Flags.IS_IN_LOOP);
+        const v = site.hasCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
         if (!v)
             return;
         // find an unloopy neighbor to start on
@@ -3829,7 +3742,7 @@ class LoopFinder {
             newY = y + utils$1.CLOCK_DIRS[sdir][1];
             if (!site.hasXY(newX, newY))
                 continue;
-            if (!site.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP)) {
+            if (!site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_LOOP)) {
                 break;
             }
         }
@@ -3848,7 +3761,7 @@ class LoopFinder {
             newY = y + utils$1.CLOCK_DIRS[dir % 8][1];
             if (!site.hasXY(newX, newY))
                 continue;
-            const newCell = site.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP);
+            const newCell = site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_LOOP);
             if (newCell) {
                 currentStringLength++;
                 if (!inString) {
@@ -3871,7 +3784,7 @@ class LoopFinder {
             maxStringLength = currentStringLength;
         }
         if (numStrings == 1 && maxStringLength <= 4) {
-            site.clearSiteFlag(x, y, Flags.IS_IN_LOOP);
+            site.clearCellFlag(x, y, map.flags.Cell.IS_IN_LOOP);
             for (dir = 0; dir < 8; dir++) {
                 const newX = x + utils$1.CLOCK_DIRS[dir][0];
                 const newY = y + utils$1.CLOCK_DIRS[dir][1];
@@ -3884,12 +3797,12 @@ class LoopFinder {
     _fillInnerLoopGrid(site, innerGrid) {
         for (let x = 0; x < site.width; ++x) {
             for (let y = 0; y < site.height; ++y) {
-                if (site.hasSiteFlag(x, y, Flags.IS_IN_LOOP)) {
+                if (site.hasCellFlag(x, y, map.flags.Cell.IS_IN_LOOP)) {
                     innerGrid[x][y] = 1;
                 }
                 else if (x > 0 && y > 0) {
-                    const up = site.hasSiteFlag(x, y - 1, Flags.IS_IN_LOOP);
-                    const left = site.hasSiteFlag(x - 1, y, Flags.IS_IN_LOOP);
+                    const up = site.hasCellFlag(x, y - 1, map.flags.Cell.IS_IN_LOOP);
+                    const left = site.hasCellFlag(x - 1, y, map.flags.Cell.IS_IN_LOOP);
                     if (up && left) {
                         innerGrid[x][y] = 1;
                     }
@@ -3905,21 +3818,21 @@ class LoopFinder {
         let designationSurvives;
         for (let i = 0; i < site.width; i++) {
             for (let j = 0; j < site.height; j++) {
-                if (site.hasSiteFlag(i, j, Flags.IS_IN_LOOP)) {
+                if (site.hasCellFlag(i, j, map.flags.Cell.IS_IN_LOOP)) {
                     designationSurvives = false;
                     for (let dir = 0; dir < 8; dir++) {
                         let newX = i + utils$1.CLOCK_DIRS[dir][0];
                         let newY = j + utils$1.CLOCK_DIRS[dir][1];
                         if (site.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                             !innerLoop[newX][newY] &&
-                            !site.hasSiteFlag(newX, newY, Flags.IS_IN_LOOP)) {
+                            !site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_LOOP)) {
                             designationSurvives = true;
                             break;
                         }
                     }
                     if (!designationSurvives) {
                         innerLoop[i][j] = 1;
-                        site.clearSiteFlag(i, j, Flags.IS_IN_LOOP);
+                        site.clearCellFlag(i, j, map.flags.Cell.IS_IN_LOOP);
                     }
                 }
             }
@@ -3929,6 +3842,282 @@ class LoopFinder {
 }
 ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////
+
+const Flags$1 = map.flags.Cell;
+class MapSite {
+    constructor(width, height) {
+        this.machineCount = 0;
+        this.map = new map.Map(width, height);
+        this.machineId = new grid.NumGrid(width, height);
+    }
+    hasCellFlag(x, y, flag) {
+        return this.map.hasCellFlag(x, y, flag);
+    }
+    setCellFlag(x, y, flag) {
+        this.map.setCellFlag(x, y, flag);
+    }
+    clearCellFlag(x, y, flag) {
+        this.map.clearCellFlag(x, y, flag);
+    }
+    free() { }
+    hasXY(x, y) {
+        return this.map.hasXY(x, y);
+    }
+    isBoundaryXY(x, y) {
+        return this.map.isBoundaryXY(x, y);
+    }
+    isSet(x, y) {
+        return this.map.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
+    }
+    isDiggable(x, y) {
+        if (!this.map.hasXY(x, y))
+            return false;
+        const cell = this.map.cell(x, y);
+        if (cell.isEmpty())
+            return true;
+        if (cell.isWall())
+            return true;
+        return false;
+    }
+    isNothing(x, y) {
+        return this.map.hasXY(x, y) && this.map.cell(x, y).isEmpty();
+    }
+    isPassable(x, y) {
+        return this.map.isPassable(x, y);
+    }
+    isFloor(x, y) {
+        return this.map.isPassable(x, y);
+    }
+    isBridge(x, y) {
+        return this.map.hasTileFlag(x, y, tile.flags.Tile.T_BRIDGE);
+    }
+    isDoor(x, y) {
+        return this.map.hasTileFlag(x, y, tile.flags.Tile.T_IS_DOOR);
+    }
+    isSecretDoor(x, y) {
+        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
+    }
+    blocksMove(x, y) {
+        return this.map.blocksMove(x, y);
+    }
+    blocksDiagonal(x, y) {
+        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
+    }
+    blocksPathing(x, y) {
+        return (this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
+            this.map.hasTileFlag(x, y, tile.flags.Tile.T_PATHING_BLOCKER));
+    }
+    blocksVision(x, y) {
+        return this.map.blocksVision(x, y);
+    }
+    blocksItems(x, y) {
+        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_ITEMS);
+    }
+    blocksEffects(x, y) {
+        return this.map.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
+    }
+    isWall(x, y) {
+        return this.map.isWall(x, y);
+    }
+    isStairs(x, y) {
+        return this.map.isStairs(x, y);
+    }
+    isDeep(x, y) {
+        return this.map.hasTileFlag(x, y, tile.flags.Tile.T_DEEP_WATER);
+    }
+    isShallow(x, y) {
+        if (!this.hasXY(x, y))
+            return false;
+        const cell = this.map.cell(x, y);
+        return (cell.depthTile(gameObject.flags.Depth.LIQUID) &&
+            !cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
+    }
+    isAnyLiquid(x, y) {
+        if (!this.hasXY(x, y))
+            return false;
+        const cell = this.map.cell(x, y);
+        return (cell.hasDepthTile(gameObject.flags.Depth.LIQUID) ||
+            cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
+    }
+    hasTile(x, y, tile) {
+        return this.map.hasTile(x, y, tile);
+    }
+    getTileIndex(x, y) {
+        if (!this.map.hasXY(x, y))
+            return 0;
+        const cell = this.map.cell(x, y);
+        const tile = cell.highestPriorityTile();
+        return tile.index;
+    }
+    tileBlocksMove(tile$1) {
+        return tile.get(tile$1).blocksMove();
+    }
+    get width() {
+        return this.map.width;
+    }
+    get height() {
+        return this.map.height;
+    }
+    backup() {
+        const backup = new MapSite(this.width, this.height);
+        backup.map.copy(this.map);
+        backup.machineId.copy(this.machineId);
+        backup.machineCount = this.machineCount;
+        return backup;
+    }
+    restore(backup) {
+        this.map.copy(backup.map);
+        this.machineId.copy(backup.machineId);
+        this.machineCount = backup.machineCount;
+    }
+    getChokeCount(x, y) {
+        return this.map.cell(x, y).chokeCount;
+    }
+    setChokeCount(x, y, count) {
+        this.map.cell(x, y).chokeCount = count;
+    }
+    isOccupied(x, y) {
+        return this.hasItem(x, y) || this.hasActor(x, y);
+    }
+    hasItem(x, y) {
+        return this.map.hasItem(x, y);
+    }
+    hasActor(x, y) {
+        return this.map.hasActor(x, y);
+    }
+    setTile(x, y, tile, options) {
+        return this.map.setTile(x, y, tile, options);
+    }
+    nextMachineId() {
+        return ++this.machineCount;
+    }
+    getMachine(x, y) {
+        return this.machineId[x][y];
+    }
+    setMachine(x, y, id, isRoom = true) {
+        this.machineId[x][y] = id;
+        if (id == 0) {
+            this.clearCellFlag(x, y, Flags$1.IS_IN_MACHINE);
+        }
+        else {
+            this.setCellFlag(x, y, isRoom ? Flags$1.IS_IN_ROOM_MACHINE : Flags$1.IS_IN_AREA_MACHINE);
+        }
+    }
+}
+
+var site$1 = {
+    __proto__: null,
+    MapSite: MapSite
+};
+
+class Builder {
+    constructor(site, depth) {
+        this.site = site;
+        this.depth = depth;
+        this.spawnedItems = [];
+        this.spawnedHordes = [];
+        this.originX = -1;
+        this.originY = -1;
+        this.distance25 = -1;
+        this.distance75 = -1;
+        this.machineNumber = 0;
+        this.interior = grid.alloc(site.width, site.height);
+        this.occupied = grid.alloc(site.width, site.height);
+        this.viewMap = grid.alloc(site.width, site.height);
+        this.distanceMap = grid.alloc(site.width, site.height);
+    }
+    free() {
+        grid.free(this.interior);
+        grid.free(this.occupied);
+        grid.free(this.viewMap);
+        grid.free(this.distanceMap);
+    }
+    buildRandom(requiredMachineFlags = Flags.BP_ROOM) {
+        let tries = 10;
+        while (tries--) {
+            const blueprint$1 = random(requiredMachineFlags, this.depth);
+            if (!blueprint$1) {
+                continue;
+            }
+            if (this.buildBlueprint(blueprint$1)) {
+                return true;
+            }
+        }
+        console.log('Failed to find blueprint matching flags: ' +
+            flag.toString(Flags, requiredMachineFlags));
+        return false;
+    }
+    buildBlueprint(blueprint) {
+        let tries = 10;
+        while (tries--) {
+            const loc = blueprint.pickLocation(this.site);
+            if (!loc) {
+                continue;
+            }
+            if (this.build(blueprint, loc[0], loc[1])) {
+                return true;
+            }
+        }
+        console.log('Failed to build blueprint.');
+        return false;
+    }
+    //////////////////////////////////////////
+    // Returns true if the machine got built; false if it was aborted.
+    // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
+    build(blueprint, originX, originY) {
+        this.interior.fill(0);
+        this.occupied.fill(0);
+        this.viewMap.fill(0);
+        this.distanceMap.fill(0);
+        this.originX = originX;
+        this.originY = originY;
+        if (!blueprint.computeInterior(this)) {
+            return false;
+        }
+        // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
+        const levelBackup = this.site.backup();
+        this.machineNumber = this.site.nextMachineId(); // Reserve this machine number, starting with 1.
+        // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
+        blueprint.prepareInteriorWithMachineFlags(this);
+        // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
+        // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
+        blueprint.calcDistances(this);
+        // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
+        // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
+        const components = blueprint.pickComponents();
+        // Keep track of all monsters and items that we spawn -- if we abort, we have to go back and delete them all.
+        // let itemCount = 0, monsterCount = 0;
+        // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
+        // Now tick through the features and build them.
+        for (let index = 0; index < components.length; index++) {
+            const component = components[index];
+            console.log('BUILD COMPONENT', component);
+            const count = component.build(this, blueprint);
+            if (count < component.count.lo &&
+                !(component.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)) {
+                // failure! abort!
+                console.log('Failed to place blueprint because of feature; needed more instances.');
+                // Restore the map to how it was before we touched it.
+                this.site.restore(levelBackup);
+                // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
+                return false;
+            }
+        }
+        // Clear out the interior flag for all non-wired cells, if requested.
+        if (blueprint.noInteriorFlag) {
+            blueprint.clearInteriorFlag(this);
+        }
+        // if (torchBearer && torch) {
+        // 	if (torchBearer->carriedItem) {
+        // 		deleteItem(torchBearer->carriedItem);
+        // 	}
+        // 	removeItemFromChain(torch, floorItems);
+        // 	torchBearer->carriedItem = torch;
+        // }
+        // console.log('Built a machine from blueprint:', originX, originY);
+        return true;
+    }
+}
 
 const analyze = { ChokeFinder, LoopFinder };
 function analyzeSite(site) {
@@ -3944,13 +4133,14 @@ var index$1 = {
     site: site$1,
     analyze: analyze,
     analyzeSite: analyzeSite,
-    get Flags () { return Flags$1; },
+    get Flags () { return Flags; },
     Blueprint: Blueprint,
     blueprints: blueprints,
     install: install$2,
     random: random,
     get StepFlags () { return StepFlags; },
-    BuildStep: BuildStep
+    BuildStep: BuildStep,
+    Builder: Builder
 };
 
 export { index$1 as build, index as dig };

@@ -294,14 +294,14 @@ export class Spawner {
             blockedByItems: !!(
                 this.info.flags & GW.effect.Flags.E_BLOCKED_BY_ITEMS
             ),
-            volume: this.info.tile.volume,
+            volume: this.info.tile?.volume,
         };
 
         locs.forEach((v, i, j) => {
             if (v) {
                 locs[i][j] = 0;
 
-                if (site.placeTile(i, j, this.info.tile, options)) {
+                if (site.setTile(i, j, this.info.tile, options)) {
                     locs[i][j] = 1;
                     didSomething = true;
                 }
