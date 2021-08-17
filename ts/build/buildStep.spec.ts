@@ -42,9 +42,7 @@ describe('buildStep', () => {
         // const step = blue.steps[0];
 
         const level = new DIG.Level(80, 34);
-        level.create((x, y, t) =>
-            site.setTile(x, y, t, { superpriority: true })
-        );
+        level.create((x, y, t) => site.setTile(x, y, t));
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
@@ -53,7 +51,7 @@ describe('buildStep', () => {
         expect(site.count((c) => c.hasTile('TEST'))).toBeGreaterThan(1);
     });
 
-    test.only('build spawn', () => {
+    test('build spawn', () => {
         GW.random.seed(12345);
 
         GW.tile.install('A', {
@@ -71,8 +69,6 @@ describe('buildStep', () => {
         const site = new SITE.MapSite(80, 34);
         const builder = new BUILDER.Builder(site, 1);
 
-        debugger;
-
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
@@ -81,15 +77,117 @@ describe('buildStep', () => {
         // const step = blue.steps[0];
 
         const level = new DIG.Level(80, 34);
-        level.create((x, y, t) =>
-            site.setTile(x, y, t, { superpriority: true })
-        );
+        level.create((x, y, t) => site.setTile(x, y, t));
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
-        site.dump();
+        // site.dump();
 
         expect(site.count((c) => c.hasTile('A'))).toBeGreaterThan(1);
         expect(site.count((c) => c.hasTile('B'))).toEqual(1);
+    });
+
+    test('tile everywhere', () => {
+        GW.random.seed(12345);
+
+        GW.tile.install('A', {
+            name: 'A',
+            ch: 'A',
+        });
+
+        const site = new SITE.MapSite(80, 34);
+        const builder = new BUILDER.Builder(site, 1);
+
+        const blue = new BLUE.Blueprint({
+            flags: 'BP_ROOM',
+            size: '10-25',
+            steps: [{ tile: 'A', flags: 'BF_EVERYWHERE' }],
+        });
+        // const step = blue.steps[0];
+
+        const level = new DIG.Level(80, 34);
+        level.create((x, y, t) => site.setTile(x, y, t));
+
+        expect(builder.buildBlueprint(blue)).toBeTruthy();
+
+        // site.dump();
+
+        expect(site.count((c) => c.hasTile('A'))).toEqual(20);
+    });
+
+    test('tile near origin', () => {
+        GW.random.seed(12345);
+
+        GW.tile.install('A', {
+            name: 'A',
+            ch: 'A',
+        });
+
+        const site = new SITE.MapSite(80, 34);
+        const builder = new BUILDER.Builder(site, 1);
+
+        const blue = new BLUE.Blueprint({
+            flags: 'BP_ROOM',
+            size: '10-25',
+            steps: [{ tile: 'A', flags: 'BF_NEAR_ORIGIN' }],
+        });
+        // const step = blue.steps[0];
+
+        const level = new DIG.Level(80, 34);
+        level.create((x, y, t) => site.setTile(x, y, t));
+
+        expect(builder.buildBlueprint(blue)).toBeTruthy();
+
+        // site.dump();
+
+        expect(builder.originX).toEqual(65);
+        expect(builder.originY).toEqual(22);
+
+        expect(site.count((c) => c.hasTile('A'))).toEqual(1);
+
+        site.cells.forEach((c, x, y) => {
+            if (!c.hasTile('A')) return;
+            expect(
+                GW.utils.distanceBetween(x, y, builder.originX, builder.originY)
+            ).toBeLessThan(4);
+        });
+    });
+
+    test('tile far from origin', () => {
+        GW.random.seed(12345);
+
+        GW.tile.install('A', {
+            name: 'A',
+            ch: 'A',
+        });
+
+        const site = new SITE.MapSite(80, 34);
+        const builder = new BUILDER.Builder(site, 1);
+
+        const blue = new BLUE.Blueprint({
+            flags: 'BP_ROOM',
+            size: '10-25',
+            steps: [{ tile: 'A', flags: 'BF_FAR_FROM_ORIGIN' }],
+        });
+        // const step = blue.steps[0];
+
+        const level = new DIG.Level(80, 34);
+        level.create((x, y, t) => site.setTile(x, y, t));
+
+        expect(builder.buildBlueprint(blue)).toBeTruthy();
+
+        // site.dump();
+
+        expect(builder.originX).toEqual(65);
+        expect(builder.originY).toEqual(22);
+
+        expect(site.count((c) => c.hasTile('A'))).toEqual(1);
+
+        site.cells.forEach((c, x, y) => {
+            if (!c.hasTile('A')) return;
+            expect(
+                GW.utils.distanceBetween(x, y, builder.originX, builder.originY)
+            ).toBeGreaterThan(3);
+        });
     });
 });

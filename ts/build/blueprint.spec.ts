@@ -2,12 +2,12 @@ import * as GW from 'gw-utils';
 import * as BUILD from './index';
 import * as DIG from '../dig';
 
-function dumpSite(site: BUILD.MapSite) {
-    site.dump((c) => {
-        const tile = c.highestPriorityTile();
-        return tile.sprite.ch || '?';
-    });
-}
+// function dumpSite(site: BUILD.MapSite) {
+//     site.dump((c) => {
+//         const tile = c.highestPriorityTile();
+//         return tile.sprite.ch || '?';
+//     });
+// }
 
 describe('Blueprint', () => {
     test('install', () => {
@@ -26,7 +26,35 @@ describe('Blueprint', () => {
         expect(a.getChance(10)).toEqual(50);
     });
 
-    test.only('Carpet Secret Room', () => {
+    test('random', () => {
+        const sd = BUILD.blueprint.install('SECRET_DOOR', {
+            frequency: 10,
+            flags: 'BP_VESTIBULE',
+            steps: [{ tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' }],
+        });
+
+        const rm = BUILD.blueprint.install('WET_ROOM', {
+            frequency: 10,
+            size: '10-20',
+            flags: 'BP_ROOM',
+            steps: [
+                { tile: 'SHALLOW', flags: 'BF_EVERYWHERE' },
+                {
+                    flags:
+                        'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE, BF_PERMIT_BLOCKING',
+                },
+            ],
+        });
+
+        expect(
+            BUILD.blueprint.random(BUILD.blueprint.Flags.BP_VESTIBULE, 1)
+        ).toBe(sd);
+        expect(BUILD.blueprint.random(BUILD.blueprint.Flags.BP_ROOM, 1)).toBe(
+            rm
+        );
+    });
+
+    test('Carpet Secret Room', () => {
         // Mixed item library -- can check one item out at a time
         // [[1, 12],           [30, 50],	30,		6,			0,                  (BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD),	[
         // 	[0,	CARPET,		DUNGEON,		[0,0],		0,			0,			-1,			0,				0,				0,			0,			(BF_EVERYWHERE)],
@@ -40,6 +68,9 @@ describe('Blueprint', () => {
         GW.tile.install('DOOR_SECRET', {
             extends: 'WALL',
             flags: 'L_SECRETLY_PASSABLE',
+            effects: {
+                discover: { tile: 'DOOR' },
+            },
         });
 
         BUILD.blueprint.install('SECRET_ROOM', {
@@ -67,13 +98,13 @@ describe('Blueprint', () => {
 
         GW.map.analyze(site);
 
-        dumpSite(site);
+        // dumpSite(site);
 
         // Create a build site
         const builder = new BUILD.Builder(site, 1);
         expect(builder.buildBlueprint(a)).toBeTruthy();
 
-        dumpSite(site);
+        // dumpSite(site);
 
         // Check that there is carpet
         // Check that there is a secret door
