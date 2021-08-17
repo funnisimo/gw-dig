@@ -2515,6 +2515,24 @@ class MapSite extends map.Map {
         this.machineCount = 0;
         this.machineId = new grid.NumGrid(width, height);
     }
+    hasItem(x, y) {
+        return this.cellInfo(x, y).hasItem();
+    }
+    isPassable(x, y) {
+        return !this.cellInfo(x, y).blocksMove();
+    }
+    blocksMove(x, y) {
+        return this.cellInfo(x, y).blocksMove();
+    }
+    isWall(x, y) {
+        return this.cellInfo(x, y).isWall();
+    }
+    isStairs(x, y) {
+        return this.cellInfo(x, y).isStairs();
+    }
+    hasTile(x, y, tile) {
+        return this.cellInfo(x, y).hasTile(tile);
+    }
     free() { }
     isSet(x, y) {
         return this.hasXY(x, y) && !this.cell(x, y).isEmpty();
@@ -2536,28 +2554,30 @@ class MapSite extends map.Map {
         return this.isPassable(x, y);
     }
     isBridge(x, y) {
-        return this.hasTileFlag(x, y, tile.flags.Tile.T_BRIDGE);
+        return this.cellInfo(x, y).hasTileFlag(tile.flags.Tile.T_BRIDGE);
     }
     isDoor(x, y) {
-        return this.hasTileFlag(x, y, tile.flags.Tile.T_IS_DOOR);
+        return this.cellInfo(x, y).hasTileFlag(tile.flags.Tile.T_IS_DOOR);
     }
     isSecretDoor(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
+        return this.cellInfo(x, y).hasObjectFlag(gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
     }
     blocksDiagonal(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
+        return this.cellInfo(x, y).hasObjectFlag(gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x, y) {
-        return (this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_MOVE) || this.hasTileFlag(x, y, tile.flags.Tile.T_PATHING_BLOCKER));
+        const info = this.cellInfo(x, y);
+        return (info.hasObjectFlag(gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
+            info.hasTileFlag(tile.flags.Tile.T_PATHING_BLOCKER));
     }
     blocksItems(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_ITEMS);
+        return this.cellInfo(x, y).hasObjectFlag(gameObject.flags.GameObject.L_BLOCKS_ITEMS);
     }
     blocksEffects(x, y) {
-        return this.hasObjectFlag(x, y, gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
+        return this.cellInfo(x, y).hasObjectFlag(gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
     }
     isDeep(x, y) {
-        return this.hasTileFlag(x, y, tile.flags.Tile.T_DEEP_WATER);
+        return this.cellInfo(x, y).hasTileFlag(tile.flags.Tile.T_DEEP_WATER);
     }
     isShallow(x, y) {
         if (!this.hasXY(x, y))
@@ -2756,7 +2776,9 @@ class Blueprint {
             // If it's a room machine, count up the gates of appropriate
             // choke size and remember where they are. The origin of the room will be the gate location.
             site.analyze(); // Make sure the chokeMap is up to date.
-            const randSite = random$1.matchingLoc(site.width, site.height, (x, y) => site.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE));
+            const randSite = random$1.matchingLoc(site.width, site.height, (x, y) => site
+                .cellInfo(x, y)
+                .hasCellFlag(map.flags.Cell.IS_GATE_SITE));
             if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
                 // If no suitable sites, abort.
                 console.log('Failed to build a machine; there was no eligible door candidate for the chosen room machine from blueprint.');
@@ -2825,7 +2847,9 @@ class Blueprint {
                             interior[i][j] = 1;
                             qualifyingTileCount++;
                             if (site.isOccupied(i, j) ||
-                                site.hasCellFlag(i, j, map.flags.Cell.IS_IN_MACHINE)) {
+                                site
+                                    .cellInfo(i, j)
+                                    .hasCellFlag(map.flags.Cell.IS_IN_MACHINE)) {
                                 // Abort if we've entered another machine or engulfed another machine's item or monster.
                                 tryAgain = true;
                                 qualifyingTileCount = totalFreq; // This is a hack to drop out of these three for-loops.
@@ -2874,8 +2898,12 @@ class Blueprint {
             if (interior[newX][newY])
                 continue; // already done
             if (site.isOccupied(newX, newY) ||
-                (site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_MACHINE) &&
-                    !site.hasCellFlag(newX, newY, map.flags.Cell.IS_GATE_SITE))) {
+                (site
+                    .cellInfo(newX, newY)
+                    .hasCellFlag(map.flags.Cell.IS_IN_MACHINE) &&
+                    !site
+                        .cellInfo(newX, newY)
+                        .hasCellFlag(map.flags.Cell.IS_GATE_SITE))) {
                 // Abort if there's an item in the room.
                 // Items haven't been populated yet, so the only way this could happen is if another machine
                 // previously placed an item here.
@@ -2883,7 +2911,9 @@ class Blueprint {
                 return false;
             }
             if (site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-                !site.hasCellFlag(newX, newY, map.flags.Cell.IS_IN_MACHINE)) {
+                !site
+                    .cellInfo(newX, newY)
+                    .hasCellFlag(map.flags.Cell.IS_IN_MACHINE)) {
                 goodSoFar = this.addTileToInteriorAndIterate(builder, newX, newY);
             }
         }
@@ -2966,7 +2996,9 @@ class Blueprint {
         if (this.surroundWithWalls) {
             interior.forEach((v, x, y) => {
                 if (!v ||
-                    site$1.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE))
+                    site$1
+                        .cellInfo(x, y)
+                        .hasCellFlag(map.flags.Cell.IS_GATE_SITE))
                     return;
                 utils$1.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
@@ -2975,9 +3007,13 @@ class Blueprint {
                         return; // is part of machine
                     if (site$1.isWall(i, j))
                         return; // is already a wall (of some sort)
-                    if (site$1.hasCellFlag(i, j, map.flags.Cell.IS_GATE_SITE))
+                    if (site$1
+                        .cellInfo(i, j)
+                        .hasCellFlag(map.flags.Cell.IS_GATE_SITE))
                         return; // is a door site
-                    if (site$1.hasCellFlag(i, j, map.flags.Cell.IS_IN_MACHINE))
+                    if (site$1
+                        .cellInfo(i, j)
+                        .hasCellFlag(map.flags.Cell.IS_IN_MACHINE))
                         return; // is part of a machine
                     if (!site$1.blocksPathing(i, j))
                         return; // is not a blocker for the player (water?)
@@ -2994,7 +3030,9 @@ class Blueprint {
         if (this.makeImpregnable) {
             interior.forEach((v, x, y) => {
                 if (!v ||
-                    site$1.hasCellFlag(x, y, map.flags.Cell.IS_GATE_SITE))
+                    site$1
+                        .cellInfo(x, y)
+                        .hasCellFlag(map.flags.Cell.IS_GATE_SITE))
                     return;
                 site$1.setCellFlag(x, y, map.flags.Cell.IMPREGNABLE);
                 utils$1.eachNeighbor(x, y, (i, j) => {
@@ -3002,7 +3040,9 @@ class Blueprint {
                         return;
                     if (interior[i][j])
                         return;
-                    if (site$1.hasCellFlag(i, j, map.flags.Cell.IS_GATE_SITE))
+                    if (site$1
+                        .cellInfo(i, j)
+                        .hasCellFlag(map.flags.Cell.IS_GATE_SITE))
                         return;
                     site$1.setCellFlag(i, j, map.flags.Cell.IMPREGNABLE);
                 }, false);
@@ -3031,7 +3071,9 @@ class Blueprint {
                 //     site.setTile(x, y, DIG_SITE.FLOOR); // clean out the doors...
                 //     return;
                 // }
-                if (site$1.hasCellFlag(x, y, map.flags.Cell.IS_IN_MACHINE))
+                if (site$1
+                    .cellInfo(x, y)
+                    .hasCellFlag(map.flags.Cell.IS_IN_MACHINE))
                     return;
                 if (!site$1.blocksPathing(x, y))
                     return;
@@ -3052,7 +3094,9 @@ class Blueprint {
                     if (interior[i][j])
                         return; // already part of machine
                     if (!site$1.isWall(i, j) ||
-                        site$1.hasCellFlag(i, j, map.flags.Cell.IS_IN_MACHINE)) {
+                        site$1
+                            .cellInfo(i, j)
+                            .hasCellFlag(map.flags.Cell.IS_IN_MACHINE)) {
                         ++nbcount; // tile is not a wall or is in a machine
                     }
                 }, false);
@@ -3146,7 +3190,9 @@ class Blueprint {
         builder.interior.forEach((v, x, y) => {
             if (!v)
                 return;
-            if (!builder.site.hasCellFlag(x, y, map.flags.Cell.IS_WIRED |
+            if (!builder.site
+                .cellInfo(x, y)
+                .hasCellFlag(map.flags.Cell.IS_WIRED |
                 map.flags.Cell.IS_CIRCUIT_BREAKER)) {
                 builder.site.setMachine(x, y, 0);
             }
@@ -3351,7 +3397,9 @@ class BuildStep {
         }
         else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
             if ((this.item && site.blocksItems(x, y)) ||
-                site.hasCellFlag(x, y, map.flags.Cell.IS_CHOKEPOINT |
+                site
+                    .cellInfo(x, y)
+                    .hasCellFlag(map.flags.Cell.IS_CHOKEPOINT |
                     map.flags.Cell.IS_IN_LOOP |
                     map.flags.Cell.IS_IN_MACHINE)) {
                 return false;

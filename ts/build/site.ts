@@ -32,6 +32,29 @@ export class MapSite extends GW.map.Map implements BuildSite {
         this.machineId = new GW.grid.NumGrid(width, height);
     }
 
+    hasItem(x: number, y: number): boolean {
+        return this.cellInfo(x, y).hasItem();
+    }
+    isPassable(x: number, y: number): boolean {
+        return !this.cellInfo(x, y).blocksMove();
+    }
+    blocksMove(x: number, y: number): boolean {
+        return this.cellInfo(x, y).blocksMove();
+    }
+    isWall(x: number, y: number): boolean {
+        return this.cellInfo(x, y).isWall();
+    }
+    isStairs(x: number, y: number): boolean {
+        return this.cellInfo(x, y).isStairs();
+    }
+    hasTile(
+        x: number,
+        y: number,
+        tile: string | number | GW.tile.Tile
+    ): boolean {
+        return this.cellInfo(x, y).hasTile(tile);
+    }
+
     free() {}
 
     isSet(x: number, y: number): boolean {
@@ -51,50 +74,40 @@ export class MapSite extends GW.map.Map implements BuildSite {
         return this.isPassable(x, y);
     }
     isBridge(x: number, y: number): boolean {
-        return this.hasTileFlag(x, y, GW.tile.flags.Tile.T_BRIDGE);
+        return this.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_BRIDGE);
     }
     isDoor(x: number, y: number): boolean {
-        return this.hasTileFlag(x, y, GW.tile.flags.Tile.T_IS_DOOR);
+        return this.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_IS_DOOR);
     }
     isSecretDoor(x: number, y: number): boolean {
-        return this.hasObjectFlag(
-            x,
-            y,
+        return this.cellInfo(x, y).hasObjectFlag(
             GW.gameObject.flags.GameObject.L_SECRETLY_PASSABLE
         );
     }
     blocksDiagonal(x: number, y: number): boolean {
-        return this.hasObjectFlag(
-            x,
-            y,
+        return this.cellInfo(x, y).hasObjectFlag(
             GW.gameObject.flags.GameObject.L_BLOCKS_DIAGONAL
         );
     }
     blocksPathing(x: number, y: number): boolean {
+        const info = this.cellInfo(x, y);
         return (
-            this.hasObjectFlag(
-                x,
-                y,
-                GW.gameObject.flags.GameObject.L_BLOCKS_MOVE
-            ) || this.hasTileFlag(x, y, GW.tile.flags.Tile.T_PATHING_BLOCKER)
+            info.hasObjectFlag(GW.gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
+            info.hasTileFlag(GW.tile.flags.Tile.T_PATHING_BLOCKER)
         );
     }
     blocksItems(x: number, y: number): boolean {
-        return this.hasObjectFlag(
-            x,
-            y,
+        return this.cellInfo(x, y).hasObjectFlag(
             GW.gameObject.flags.GameObject.L_BLOCKS_ITEMS
         );
     }
     blocksEffects(x: number, y: number): boolean {
-        return this.hasObjectFlag(
-            x,
-            y,
+        return this.cellInfo(x, y).hasObjectFlag(
             GW.gameObject.flags.GameObject.L_BLOCKS_EFFECTS
         );
     }
     isDeep(x: number, y: number): boolean {
-        return this.hasTileFlag(x, y, GW.tile.flags.Tile.T_DEEP_WATER);
+        return this.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_DEEP_WATER);
     }
     isShallow(x: number, y: number): boolean {
         if (!this.hasXY(x, y)) return false;

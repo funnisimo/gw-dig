@@ -599,6 +599,12 @@ declare class MapSite extends map.Map implements BuildSite {
     machineId: grid.NumGrid;
     machineCount: number;
     constructor(width: number, height: number);
+    hasItem(x: number, y: number): boolean;
+    isPassable(x: number, y: number): boolean;
+    blocksMove(x: number, y: number): boolean;
+    isWall(x: number, y: number): boolean;
+    isStairs(x: number, y: number): boolean;
+    hasTile(x: number, y: number, tile: string | number | tile.Tile): boolean;
     free(): void;
     isSet(x: number, y: number): boolean;
     isDiggable(x: number, y: number): boolean;

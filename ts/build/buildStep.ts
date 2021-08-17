@@ -222,13 +222,13 @@ export class BuildStep {
         } else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
             if (
                 (this.item && site.blocksItems(x, y)) ||
-                site.hasCellFlag(
-                    x,
-                    y,
-                    GW.map.flags.Cell.IS_CHOKEPOINT |
-                        GW.map.flags.Cell.IS_IN_LOOP |
-                        GW.map.flags.Cell.IS_IN_MACHINE
-                )
+                site
+                    .cellInfo(x, y)
+                    .hasCellFlag(
+                        GW.map.flags.Cell.IS_CHOKEPOINT |
+                            GW.map.flags.Cell.IS_IN_LOOP |
+                            GW.map.flags.Cell.IS_IN_MACHINE
+                    )
             ) {
                 return false;
             } else {
