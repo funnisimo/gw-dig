@@ -2583,7 +2583,7 @@ class MapSite extends map.Map {
         if (!this.hasXY(x, y))
             return false;
         const cell = this.cell(x, y);
-        return (cell.depthTile(gameObject.flags.Depth.LIQUID) &&
+        return (!!cell.depthTile(gameObject.flags.Depth.LIQUID) &&
             !cell.hasTileFlag(tile.flags.Tile.T_IS_DEEP_LIQUID));
     }
     isAnyLiquid(x, y) {

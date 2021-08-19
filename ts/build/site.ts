@@ -113,7 +113,7 @@ export class MapSite extends GW.map.Map implements BuildSite {
         if (!this.hasXY(x, y)) return false;
         const cell = this.cell(x, y);
         return (
-            cell.depthTile(GW.gameObject.flags.Depth.LIQUID) &&
+            !!cell.depthTile(GW.gameObject.flags.Depth.LIQUID) &&
             !cell.hasTileFlag(GW.tile.flags.Tile.T_IS_DEEP_LIQUID)
         );
     }
