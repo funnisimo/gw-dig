@@ -1,6 +1,5 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
-import * as UTILS from './utils';
 import * as TYPES from './types';
 
 const DIRS = GW.utils.DIRS;
@@ -279,7 +278,7 @@ export class HallDigger {
     }
 
     create(site: SITE.DigSite, doors: GW.utils.Loc[] = []): TYPES.Hall | null {
-        doors = doors || UTILS.chooseRandomDoorSites(site);
+        doors = doors || SITE.chooseRandomDoorSites(site);
 
         if (!GW.random.chance(this.config.chance)) return null;
 

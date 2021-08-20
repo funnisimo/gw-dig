@@ -1,9 +1,7 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
-import * as DIG_SITE from '../dig/site';
-import * as STEP from './buildStep';
-import * as DIG_UTILS from '../dig/utils';
-import { BuildData } from './builder';
+import * as STEP from './build/buildStep';
+import { BuildData } from './build/builder';
 
 const Fl = GW.flag.fl;
 
@@ -244,7 +242,7 @@ export class Blueprint {
                     interior.height
                 );
 
-                DIG_UTILS.computeDistanceMap(
+                SITE.computeDistanceMap(
                     site,
                     distanceMap,
                     builder.originX,
@@ -295,13 +293,13 @@ export class Blueprint {
                     console.log('too small');
                 } else if (
                     this.treatAsBlocking &&
-                    DIG_UTILS.siteDisruptedBy(site, interior)
+                    SITE.siteDisruptedBy(site, interior)
                 ) {
                     console.log('disconnected');
                     tryAgain = true;
                 } else if (
                     this.requireBlocking &&
-                    DIG_UTILS.siteDisruptedSize(site, interior) < 100
+                    SITE.siteDisruptedSize(site, interior) < 100
                 ) {
                     console.log('not disconnected enough');
                     tryAgain = true; // BP_REQUIRE_BLOCKING needs some work to make sure the disconnect is interesting.
@@ -384,7 +382,7 @@ export class Blueprint {
         const totalFreq = GW.random.range(this.size[0], this.size[1]); // Keeps track of the goal size.
 
         const distMap = GW.grid.alloc(site.width, site.height);
-        DIG_UTILS.computeDistanceMap(
+        SITE.computeDistanceMap(
             site,
             distMap,
             builder.originX,
@@ -419,11 +417,11 @@ export class Blueprint {
         }
 
         // Now make sure the interior map satisfies the machine's qualifications.
-        if (this.treatAsBlocking && DIG_UTILS.siteDisruptedBy(site, interior)) {
+        if (this.treatAsBlocking && SITE.siteDisruptedBy(site, interior)) {
             success = false;
         } else if (
             this.requireBlocking &&
-            DIG_UTILS.siteDisruptedSize(site, interior) < 100
+            SITE.siteDisruptedSize(site, interior) < 100
         ) {
             success = false;
         }
@@ -445,7 +443,7 @@ export class Blueprint {
         // If requested, cleanse the interior -- no interesting terrain allowed.
         if (this.purgeInterior) {
             interior.forEach((v, x, y) => {
-                if (v) site.setTile(x, y, DIG_SITE.FLOOR);
+                if (v) site.setTile(x, y, SITE.FLOOR);
             });
         }
 
@@ -454,7 +452,7 @@ export class Blueprint {
             interior.forEach((v, x, y) => {
                 if (!v) return;
                 if (site.blocksPathing(x, y)) {
-                    site.setTile(x, y, DIG_SITE.FLOOR);
+                    site.setTile(x, y, SITE.FLOOR);
                 }
             });
         }
@@ -463,7 +461,7 @@ export class Blueprint {
         if (this.purgeLiquids) {
             interior.forEach((v, x, y) => {
                 if (v && site.isAnyLiquid(x, y)) {
-                    site.setTile(x, y, DIG_SITE.FLOOR);
+                    site.setTile(x, y, SITE.FLOOR);
                 }
             });
         }
@@ -498,7 +496,7 @@ export class Blueprint {
                         )
                             return; // is part of a machine
                         if (!site.blocksPathing(i, j)) return; // is not a blocker for the player (water?)
-                        site.setTile(i, j, DIG_SITE.WALL);
+                        site.setTile(i, j, SITE.WALL);
                     },
                     false
                 );
@@ -548,7 +546,7 @@ export class Blueprint {
             site.setMachine(x, y, machineNumber, this.isRoom);
             // secret doors mess up machines
             if (site.isSecretDoor(x, y)) {
-                site.setTile(x, y, DIG_SITE.DOOR);
+                site.setTile(x, y, SITE.DOOR);
             }
         });
     }
@@ -562,7 +560,7 @@ export class Blueprint {
             madeChange = false;
             interior.forEach((_v, x, y) => {
                 // if (v && site.isDoor(x, y)) {
-                //     site.setTile(x, y, DIG_SITE.FLOOR); // clean out the doors...
+                //     site.setTile(x, y, SITE.FLOOR); // clean out the doors...
                 //     return;
                 // }
                 if (
@@ -613,12 +611,12 @@ export class Blueprint {
                 madeChange = true;
                 interior[x][y] = 1;
                 if (site.blocksPathing(x, y)) {
-                    site.setTile(x, y, DIG_SITE.FLOOR);
+                    site.setTile(x, y, SITE.FLOOR);
                 }
                 GW.utils.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j)) return;
                     if (site.isSet(i, j)) return;
-                    site.setTile(i, j, DIG_SITE.WALL);
+                    site.setTile(i, j, SITE.WALL);
                 });
             });
         } while (madeChange);
@@ -626,7 +624,7 @@ export class Blueprint {
 
     calcDistances(builder: BuildData) {
         builder.distanceMap.fill(0);
-        DIG_UTILS.computeDistanceMap(
+        SITE.computeDistanceMap(
             builder.site,
             builder.distanceMap,
             builder.originX,

@@ -1,5 +1,5 @@
 import 'jest-extended';
-import * as UTILS from '../../test/utils';
+import * as UTILS from '../test/utils';
 import * as GW from 'gw-utils';
 import * as HALL from './hall';
 import * as SITE from './site';

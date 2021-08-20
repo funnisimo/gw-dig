@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
+import * as SITE from './digSite';
 // import * as TYPES from './types';
 
 const DIRS = GW.utils.DIRS;

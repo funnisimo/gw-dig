@@ -1,4 +1,4 @@
-import { utils, tile, map, grid, range, types, frequency, flag, item, actor, effect } from 'gw-utils';
+import * as GW from 'gw-utils';
 
 declare const NOTHING: number;
 declare const FLOOR: number;
@@ -18,34 +18,34 @@ interface DigSite {
     readonly width: number;
     readonly height: number;
     free: () => void;
-    hasXY: utils.XYMatchFunc;
-    isBoundaryXY: utils.XYMatchFunc;
-    isSet: utils.XYMatchFunc;
-    isDiggable: utils.XYMatchFunc;
-    isNothing: utils.XYMatchFunc;
-    isPassable: utils.XYMatchFunc;
-    isFloor: utils.XYMatchFunc;
-    isBridge: utils.XYMatchFunc;
-    isDoor: utils.XYMatchFunc;
-    isSecretDoor: utils.XYMatchFunc;
-    blocksMove: utils.XYMatchFunc;
-    blocksDiagonal: utils.XYMatchFunc;
-    blocksPathing: utils.XYMatchFunc;
-    blocksVision: utils.XYMatchFunc;
-    blocksItems: utils.XYMatchFunc;
-    blocksEffects: utils.XYMatchFunc;
-    isWall: utils.XYMatchFunc;
-    isStairs: utils.XYMatchFunc;
-    isDeep: utils.XYMatchFunc;
-    isShallow: utils.XYMatchFunc;
-    isAnyLiquid: utils.XYMatchFunc;
-    setTile(x: number, y: number, tile: string | number | tile.Tile, opts?: map.SetTileOptions): boolean;
-    hasTile: (x: number, y: number, tile: number | string | tile.Tile) => boolean;
+    hasXY: GW.utils.XYMatchFunc;
+    isBoundaryXY: GW.utils.XYMatchFunc;
+    isSet: GW.utils.XYMatchFunc;
+    isDiggable: GW.utils.XYMatchFunc;
+    isNothing: GW.utils.XYMatchFunc;
+    isPassable: GW.utils.XYMatchFunc;
+    isFloor: GW.utils.XYMatchFunc;
+    isBridge: GW.utils.XYMatchFunc;
+    isDoor: GW.utils.XYMatchFunc;
+    isSecretDoor: GW.utils.XYMatchFunc;
+    blocksMove: GW.utils.XYMatchFunc;
+    blocksDiagonal: GW.utils.XYMatchFunc;
+    blocksPathing: GW.utils.XYMatchFunc;
+    blocksVision: GW.utils.XYMatchFunc;
+    blocksItems: GW.utils.XYMatchFunc;
+    blocksEffects: GW.utils.XYMatchFunc;
+    isWall: GW.utils.XYMatchFunc;
+    isStairs: GW.utils.XYMatchFunc;
+    isDeep: GW.utils.XYMatchFunc;
+    isShallow: GW.utils.XYMatchFunc;
+    isAnyLiquid: GW.utils.XYMatchFunc;
+    setTile(x: number, y: number, tile: string | number | GW.tile.Tile, opts?: GW.map.SetTileOptions): boolean;
+    hasTile: (x: number, y: number, tile: string | number | GW.tile.Tile) => boolean;
     getTileIndex: (x: number, y: number) => number;
     tileBlocksMove: (tile: number) => boolean;
 }
 declare class GridSite implements DigSite {
-    tiles: grid.NumGrid;
+    tiles: GW.grid.NumGrid;
     constructor(width: number, height: number);
     free(): void;
     get width(): number;
@@ -72,42 +72,120 @@ declare class GridSite implements DigSite {
     isAnyLiquid(x: number, y: number): boolean;
     isSet(x: number, y: number): boolean;
     getTileIndex(x: number, y: number): number;
-    setTile(x: number, y: number, tile: number | string | tile.Tile): boolean;
-    hasTile(x: number, y: number, tile: number | string | tile.Tile): boolean;
+    setTile(x: number, y: number, tile: number | string | GW.tile.Tile): boolean;
+    hasTile(x: number, y: number, tile: number | string | GW.tile.Tile): boolean;
     tileBlocksMove(tile: number): boolean;
 }
 
-declare const site_d_NOTHING: typeof NOTHING;
-declare const site_d_FLOOR: typeof FLOOR;
-declare const site_d_DOOR: typeof DOOR;
-declare const site_d_SECRET_DOOR: typeof SECRET_DOOR;
-declare const site_d_WALL: typeof WALL;
-declare const site_d_DEEP: typeof DEEP;
-declare const site_d_SHALLOW: typeof SHALLOW;
-declare const site_d_BRIDGE: typeof BRIDGE;
-declare const site_d_UP_STAIRS: typeof UP_STAIRS;
-declare const site_d_DOWN_STAIRS: typeof DOWN_STAIRS;
-declare const site_d_IMPREGNABLE: typeof IMPREGNABLE;
-declare const site_d_TILEMAP: typeof TILEMAP;
-type site_d_DigSite = DigSite;
-type site_d_GridSite = GridSite;
-declare const site_d_GridSite: typeof GridSite;
-declare namespace site_d {
+interface BuildSite extends DigSite, GW.map.MapType {
+    getChokeCount: (x: number, y: number) => number;
+    setChokeCount: (x: number, y: number, count: number) => void;
+    isOccupied: GW.utils.XYMatchFunc;
+    hasItem: GW.utils.XYMatchFunc;
+    hasActor: GW.utils.XYMatchFunc;
+    analyze(): void;
+    backup: () => any;
+    restore: (backup: any) => void;
+    nextMachineId: () => number;
+    getMachine: (x: number, y: number) => number;
+    setMachine: (x: number, y: number, id: number, isRoom?: boolean) => void;
+}
+declare class MapSite extends GW.map.Map implements BuildSite {
+    machineId: GW.grid.NumGrid;
+    machineCount: number;
+    constructor(width: number, height: number);
+    hasItem(x: number, y: number): boolean;
+    isPassable(x: number, y: number): boolean;
+    blocksMove(x: number, y: number): boolean;
+    isWall(x: number, y: number): boolean;
+    isStairs(x: number, y: number): boolean;
+    hasTile(x: number, y: number, tile: string | number | GW.tile.Tile): boolean;
+    free(): void;
+    isSet(x: number, y: number): boolean;
+    isDiggable(x: number, y: number): boolean;
+    isNothing(x: number, y: number): boolean;
+    isFloor(x: number, y: number): boolean;
+    isBridge(x: number, y: number): boolean;
+    isDoor(x: number, y: number): boolean;
+    isSecretDoor(x: number, y: number): boolean;
+    blocksDiagonal(x: number, y: number): boolean;
+    blocksPathing(x: number, y: number): boolean;
+    blocksItems(x: number, y: number): boolean;
+    blocksEffects(x: number, y: number): boolean;
+    isDeep(x: number, y: number): boolean;
+    isShallow(x: number, y: number): boolean;
+    isAnyLiquid(x: number, y: number): boolean;
+    getTileIndex(x: number, y: number): number;
+    tileBlocksMove(tile: number): boolean;
+    backup(): MapSite;
+    restore(backup: MapSite): void;
+    getChokeCount(x: number, y: number): number;
+    setChokeCount(x: number, y: number, count: number): void;
+    isOccupied(x: number, y: number): boolean;
+    analyze(): void;
+    nextMachineId(): number;
+    getMachine(x: number, y: number): number;
+    setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
+}
+
+declare function directionOfDoorSite(site: DigSite, x: number, y: number): number;
+declare function chooseRandomDoorSites(site: DigSite): GW.utils.Loc[];
+declare function copySite(dest: DigSite, source: DigSite, offsetX?: number, offsetY?: number): void;
+declare function fillCostGrid(source: DigSite, costGrid: GW.grid.NumGrid): void;
+declare function siteDisruptedBy(site: DigSite, blockingGrid: GW.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
+declare function siteDisruptedSize(site: DigSite, blockingGrid: GW.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
+declare function computeDistanceMap(site: DigSite, distanceMap: GW.grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
+
+declare const index_d$1_NOTHING: typeof NOTHING;
+declare const index_d$1_FLOOR: typeof FLOOR;
+declare const index_d$1_DOOR: typeof DOOR;
+declare const index_d$1_SECRET_DOOR: typeof SECRET_DOOR;
+declare const index_d$1_WALL: typeof WALL;
+declare const index_d$1_DEEP: typeof DEEP;
+declare const index_d$1_SHALLOW: typeof SHALLOW;
+declare const index_d$1_BRIDGE: typeof BRIDGE;
+declare const index_d$1_UP_STAIRS: typeof UP_STAIRS;
+declare const index_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
+declare const index_d$1_IMPREGNABLE: typeof IMPREGNABLE;
+declare const index_d$1_TILEMAP: typeof TILEMAP;
+type index_d$1_DigSite = DigSite;
+type index_d$1_GridSite = GridSite;
+declare const index_d$1_GridSite: typeof GridSite;
+type index_d$1_BuildSite = BuildSite;
+type index_d$1_MapSite = MapSite;
+declare const index_d$1_MapSite: typeof MapSite;
+declare const index_d$1_directionOfDoorSite: typeof directionOfDoorSite;
+declare const index_d$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
+declare const index_d$1_copySite: typeof copySite;
+declare const index_d$1_fillCostGrid: typeof fillCostGrid;
+declare const index_d$1_siteDisruptedBy: typeof siteDisruptedBy;
+declare const index_d$1_siteDisruptedSize: typeof siteDisruptedSize;
+declare const index_d$1_computeDistanceMap: typeof computeDistanceMap;
+declare namespace index_d$1 {
   export {
-    site_d_NOTHING as NOTHING,
-    site_d_FLOOR as FLOOR,
-    site_d_DOOR as DOOR,
-    site_d_SECRET_DOOR as SECRET_DOOR,
-    site_d_WALL as WALL,
-    site_d_DEEP as DEEP,
-    site_d_SHALLOW as SHALLOW,
-    site_d_BRIDGE as BRIDGE,
-    site_d_UP_STAIRS as UP_STAIRS,
-    site_d_DOWN_STAIRS as DOWN_STAIRS,
-    site_d_IMPREGNABLE as IMPREGNABLE,
-    site_d_TILEMAP as TILEMAP,
-    site_d_DigSite as DigSite,
-    site_d_GridSite as GridSite,
+    index_d$1_NOTHING as NOTHING,
+    index_d$1_FLOOR as FLOOR,
+    index_d$1_DOOR as DOOR,
+    index_d$1_SECRET_DOOR as SECRET_DOOR,
+    index_d$1_WALL as WALL,
+    index_d$1_DEEP as DEEP,
+    index_d$1_SHALLOW as SHALLOW,
+    index_d$1_BRIDGE as BRIDGE,
+    index_d$1_UP_STAIRS as UP_STAIRS,
+    index_d$1_DOWN_STAIRS as DOWN_STAIRS,
+    index_d$1_IMPREGNABLE as IMPREGNABLE,
+    index_d$1_TILEMAP as TILEMAP,
+    index_d$1_DigSite as DigSite,
+    index_d$1_GridSite as GridSite,
+    index_d$1_BuildSite as BuildSite,
+    index_d$1_MapSite as MapSite,
+    index_d$1_directionOfDoorSite as directionOfDoorSite,
+    index_d$1_chooseRandomDoorSites as chooseRandomDoorSites,
+    index_d$1_copySite as copySite,
+    index_d$1_fillCostGrid as fillCostGrid,
+    index_d$1_siteDisruptedBy as siteDisruptedBy,
+    index_d$1_siteDisruptedSize as siteDisruptedSize,
+    index_d$1_computeDistanceMap as computeDistanceMap,
   };
 }
 
@@ -126,12 +204,12 @@ declare class Hall {
     length: number;
     dir: number;
     width: number;
-    doors: utils.Loc[];
-    constructor(loc: utils.Loc, dir: number, length: number, width?: number);
+    doors: GW.utils.Loc[];
+    constructor(loc: GW.utils.Loc, dir: number, length: number, width?: number);
     translate(dx: number, dy: number): void;
 }
-declare class Room extends utils.Bounds {
-    doors: utils.Loc[];
+declare class Room extends GW.utils.Bounds {
+    doors: GW.utils.Loc[];
     hall: Hall | null;
     constructor(x: number, y: number, width: number, height: number);
     get cx(): number;
@@ -142,7 +220,7 @@ declare class Room extends utils.Bounds {
 declare function checkConfig(config: RoomConfig, expected?: RoomConfig): RoomConfig;
 declare abstract class RoomDigger {
     options: RoomConfig;
-    doors: utils.Loc[];
+    doors: GW.utils.Loc[];
     constructor(config: RoomConfig, expected?: RoomConfig);
     _setOptions(config: RoomConfig, expected?: RoomConfig): void;
     create(site: DigSite): Room;
@@ -196,7 +274,7 @@ declare class ChunkyRoom extends RoomDigger {
     carve(site: DigSite): Room;
 }
 declare function chunkyRoom(config: RoomConfig, site: DigSite): Room;
-declare function install(id: string, room: RoomDigger): RoomDigger;
+declare function install$2(id: string, room: RoomDigger): RoomDigger;
 
 declare const room_d_checkConfig: typeof checkConfig;
 type room_d_RoomDigger = RoomDigger;
@@ -229,7 +307,6 @@ declare const room_d_brogueDonut: typeof brogueDonut;
 type room_d_ChunkyRoom = ChunkyRoom;
 declare const room_d_ChunkyRoom: typeof ChunkyRoom;
 declare const room_d_chunkyRoom: typeof chunkyRoom;
-declare const room_d_install: typeof install;
 declare namespace room_d {
   export {
     room_d_checkConfig as checkConfig,
@@ -253,15 +330,15 @@ declare namespace room_d {
     room_d_brogueDonut as brogueDonut,
     room_d_ChunkyRoom as ChunkyRoom,
     room_d_chunkyRoom as chunkyRoom,
-    room_d_install as install,
+    install$2 as install,
   };
 }
 
-declare function isDoorLoc(site: DigSite, loc: utils.Loc, dir: utils.Loc): boolean;
+declare function isDoorLoc(site: DigSite, loc: GW.utils.Loc, dir: GW.utils.Loc): boolean;
 declare function pickWidth(opts?: any): number;
-declare function pickLength(dir: number, lengths: [range.Range, range.Range]): number;
-declare function pickHallDirection(site: DigSite, doors: utils.Loc[], lengths: [range.Range, range.Range]): number;
-declare function pickHallExits(site: DigSite, x: number, y: number, dir: number, obliqueChance: number): types.Loc[];
+declare function pickLength(dir: number, lengths: [GW.range.Range, GW.range.Range]): number;
+declare function pickHallDirection(site: DigSite, doors: GW.utils.Loc[], lengths: [GW.range.Range, GW.range.Range]): number;
+declare function pickHallExits(site: DigSite, x: number, y: number, dir: number, obliqueChance: number): GW.types.Loc[];
 interface HallOptions {
     width: number | string;
     length: number | string | number[] | string[];
@@ -270,8 +347,8 @@ interface HallOptions {
     chance: number;
 }
 interface HallConfig {
-    width: range.Range;
-    length: [range.Range, range.Range];
+    width: GW.range.Range;
+    length: [GW.range.Range, GW.range.Range];
     tile: number;
     obliqueChance: number;
     chance: number;
@@ -280,12 +357,12 @@ declare class HallDigger {
     config: HallConfig;
     constructor(options?: Partial<HallOptions>);
     _setOptions(options?: Partial<HallOptions>): void;
-    create(site: DigSite, doors?: utils.Loc[]): Hall | null;
-    _digLine(site: DigSite, door: utils.Loc, dir: utils.Loc, length: number): number[];
-    dig(site: DigSite, dir: number, door: utils.Loc, length: number): Hall;
-    digWide(site: DigSite, dir: number, door: utils.Loc, length: number, width: number): Hall;
+    create(site: DigSite, doors?: GW.utils.Loc[]): Hall | null;
+    _digLine(site: DigSite, door: GW.utils.Loc, dir: GW.utils.Loc, length: number): number[];
+    dig(site: DigSite, dir: number, door: GW.utils.Loc, length: number): Hall;
+    digWide(site: DigSite, dir: number, door: GW.utils.Loc, length: number, width: number): Hall;
 }
-declare function dig(config: Partial<HallOptions>, site: DigSite, doors: utils.Loc[]): Hall | null;
+declare function dig(config: Partial<HallOptions>, site: DigSite, doors: GW.utils.Loc[]): Hall | null;
 declare var halls: Record<string, HallDigger>;
 declare function install$1(id: string, hall: HallDigger): HallDigger;
 
@@ -332,7 +409,7 @@ declare class Lakes {
     options: LakeOpts;
     constructor(options?: Partial<LakeOpts>);
     create(site: DigSite): number;
-    isDisruptedBy(site: DigSite, lakeGrid: grid.NumGrid, lakeToMapX?: number, lakeToMapY?: number): boolean;
+    isDisruptedBy(site: DigSite, lakeGrid: GW.grid.NumGrid, lakeToMapX?: number, lakeToMapY?: number): boolean;
 }
 
 type lake_d_LakeOpts = LakeOpts;
@@ -367,10 +444,10 @@ declare namespace bridge_d {
 }
 
 interface StairOpts {
-    up: boolean | utils.Loc;
-    down: boolean | utils.Loc;
+    up: boolean | GW.utils.Loc;
+    down: boolean | GW.utils.Loc;
     minDistance: number;
-    start: boolean | string | utils.Loc;
+    start: boolean | string | GW.utils.Loc;
     upTile: number;
     downTile: number;
     wall: number;
@@ -378,7 +455,7 @@ interface StairOpts {
 declare class Stairs {
     options: StairOpts;
     constructor(options?: Partial<StairOpts>);
-    create(site: DigSite): Record<string, types.Loc> | null;
+    create(site: DigSite): Record<string, GW.types.Loc> | null;
     hasXY(site: DigSite, x: number, y: number): boolean;
     isStairXY(site: DigSite, x: number, y: number): boolean;
     setupStairs(site: DigSite, x: number, y: number, tile: number): boolean;
@@ -391,33 +468,6 @@ declare namespace stairs_d {
   export {
     stairs_d_StairOpts as StairOpts,
     stairs_d_Stairs as Stairs,
-  };
-}
-
-declare function directionOfDoorSite(site: DigSite, x: number, y: number): number;
-declare function chooseRandomDoorSites(site: DigSite): utils.Loc[];
-declare function copySite(dest: DigSite, source: DigSite, offsetX?: number, offsetY?: number): void;
-declare function fillCostGrid(source: DigSite, costGrid: grid.NumGrid): void;
-declare function siteDisruptedBy(site: DigSite, blockingGrid: grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
-declare function siteDisruptedSize(site: DigSite, blockingGrid: grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
-declare function computeDistanceMap(site: DigSite, distanceMap: grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
-
-declare const utils_d_directionOfDoorSite: typeof directionOfDoorSite;
-declare const utils_d_chooseRandomDoorSites: typeof chooseRandomDoorSites;
-declare const utils_d_copySite: typeof copySite;
-declare const utils_d_fillCostGrid: typeof fillCostGrid;
-declare const utils_d_siteDisruptedBy: typeof siteDisruptedBy;
-declare const utils_d_siteDisruptedSize: typeof siteDisruptedSize;
-declare const utils_d_computeDistanceMap: typeof computeDistanceMap;
-declare namespace utils_d {
-  export {
-    utils_d_directionOfDoorSite as directionOfDoorSite,
-    utils_d_chooseRandomDoorSites as chooseRandomDoorSites,
-    utils_d_copySite as copySite,
-    utils_d_fillCostGrid as fillCostGrid,
-    utils_d_siteDisruptedBy as siteDisruptedBy,
-    utils_d_siteDisruptedSize as siteDisruptedSize,
-    utils_d_computeDistanceMap as computeDistanceMap,
   };
 }
 
@@ -467,8 +517,8 @@ interface LevelOptions {
     stairs?: Partial<StairOpts>;
     doors?: Partial<DoorOpts>;
     rooms: Partial<RoomOptions>;
-    startLoc?: utils.Loc;
-    endLoc?: utils.Loc;
+    startLoc?: GW.utils.Loc;
+    endLoc?: GW.utils.Loc;
     seed?: number;
     boundary?: boolean;
 }
@@ -483,8 +533,8 @@ declare class Level {
     bridges: Partial<BridgeOpts>;
     stairs: Partial<StairOpts>;
     boundary: boolean;
-    startLoc: utils.Loc;
-    endLoc: utils.Loc;
+    startLoc: GW.utils.Loc;
+    endLoc: GW.utils.Loc;
     seq: number[];
     constructor(width: number, height: number, options?: Partial<LevelOptions>);
     makeSite(width: number, height: number): GridSite;
@@ -494,13 +544,13 @@ declare class Level {
     addFirstRoom(site: DigSite): Room | null;
     addRoom(site: DigSite): Room | null;
     _attachRoom(site: DigSite, roomSite: DigSite, room: Room): boolean;
-    _attachRoomAtLoc(site: DigSite, roomSite: DigSite, room: Room, attachLoc: utils.Loc): boolean;
+    _attachRoomAtLoc(site: DigSite, roomSite: DigSite, room: Room, attachLoc: GW.utils.Loc): boolean;
     _roomFitsAt(map: DigSite, roomGrid: DigSite, roomToSiteX: number, roomToSiteY: number): boolean;
     _attachDoor(map: DigSite, room: Room, x: number, y: number, dir: number): void;
     addLoops(site: DigSite, opts: Partial<LoopOptions>): number;
     addLakes(site: DigSite, opts: Partial<LakeOpts>): number;
     addBridges(site: DigSite, opts: Partial<BridgeOpts>): number;
-    addStairs(site: DigSite, opts: Partial<StairOpts>): Record<string, types.Loc> | null;
+    addStairs(site: DigSite, opts: Partial<StairOpts>): Record<string, GW.types.Loc> | null;
     finish(site: DigSite): void;
     _removeDiagonalOpenings(site: DigSite): void;
     _finishDoors(site: DigSite): void;
@@ -513,7 +563,7 @@ interface DungeonOptions {
     goesUp?: boolean;
     width: number;
     height: number;
-    startLoc?: utils.Loc;
+    startLoc?: GW.utils.Loc;
     startTile?: number;
     stairDistance?: number;
     endTile?: number;
@@ -530,7 +580,7 @@ interface DungeonOptions {
     stairs: Partial<StairOpts>;
     boundary: boolean;
 }
-declare type LocPair = [utils.Loc, utils.Loc];
+declare type LocPair = [GW.utils.Loc, GW.utils.Loc];
 declare class Dungeon {
     config: DungeonOptions;
     seeds: number[];
@@ -543,184 +593,14 @@ declare class Dungeon {
     makeLevel(id: number, opts: Partial<LevelOptions>, cb: DigFn): boolean;
 }
 
-type index_d_RoomConfig = RoomConfig;
-type index_d_DigFn = DigFn;
-type index_d_Hall = Hall;
-declare const index_d_Hall: typeof Hall;
-type index_d_Room = Room;
-declare const index_d_Room: typeof Room;
-type index_d_DoorOpts = DoorOpts;
-type index_d_RoomOptions = RoomOptions;
-type index_d_LevelOptions = LevelOptions;
-type index_d_Level = Level;
-declare const index_d_Level: typeof Level;
-type index_d_DungeonOptions = DungeonOptions;
-type index_d_LocPair = LocPair;
-type index_d_Dungeon = Dungeon;
-declare const index_d_Dungeon: typeof Dungeon;
-declare namespace index_d {
-  export {
-    site_d as site,
-    room_d as room,
-    hall_d as hall,
-    lake_d as lake,
-    bridge_d as bridge,
-    stairs_d as stairs,
-    utils_d as utils,
-    loop_d as loop,
-    index_d_RoomConfig as RoomConfig,
-    index_d_DigFn as DigFn,
-    index_d_Hall as Hall,
-    index_d_Room as Room,
-    index_d_DoorOpts as DoorOpts,
-    index_d_RoomOptions as RoomOptions,
-    index_d_LevelOptions as LevelOptions,
-    index_d_Level as Level,
-    index_d_DungeonOptions as DungeonOptions,
-    index_d_LocPair as LocPair,
-    index_d_Dungeon as Dungeon,
-  };
-}
-
-interface BuildSite extends DigSite, map.MapType {
-    getChokeCount: (x: number, y: number) => number;
-    setChokeCount: (x: number, y: number, count: number) => void;
-    isOccupied: utils.XYMatchFunc;
-    hasItem: utils.XYMatchFunc;
-    hasActor: utils.XYMatchFunc;
-    analyze(): void;
-    backup: () => any;
-    restore: (backup: any) => void;
-    nextMachineId: () => number;
-    getMachine: (x: number, y: number) => number;
-    setMachine: (x: number, y: number, id: number, isRoom?: boolean) => void;
-}
-declare class MapSite extends map.Map implements BuildSite {
-    machineId: grid.NumGrid;
-    machineCount: number;
-    constructor(width: number, height: number);
-    hasItem(x: number, y: number): boolean;
-    isPassable(x: number, y: number): boolean;
-    blocksMove(x: number, y: number): boolean;
-    isWall(x: number, y: number): boolean;
-    isStairs(x: number, y: number): boolean;
-    hasTile(x: number, y: number, tile: string | number | tile.Tile): boolean;
-    free(): void;
-    isSet(x: number, y: number): boolean;
-    isDiggable(x: number, y: number): boolean;
-    isNothing(x: number, y: number): boolean;
-    isFloor(x: number, y: number): boolean;
-    isBridge(x: number, y: number): boolean;
-    isDoor(x: number, y: number): boolean;
-    isSecretDoor(x: number, y: number): boolean;
-    blocksDiagonal(x: number, y: number): boolean;
-    blocksPathing(x: number, y: number): boolean;
-    blocksItems(x: number, y: number): boolean;
-    blocksEffects(x: number, y: number): boolean;
-    isDeep(x: number, y: number): boolean;
-    isShallow(x: number, y: number): boolean;
-    isAnyLiquid(x: number, y: number): boolean;
-    getTileIndex(x: number, y: number): number;
-    tileBlocksMove(tile: number): boolean;
-    backup(): MapSite;
-    restore(backup: MapSite): void;
-    getChokeCount(x: number, y: number): number;
-    setChokeCount(x: number, y: number, count: number): void;
-    isOccupied(x: number, y: number): boolean;
-    analyze(): void;
-    nextMachineId(): number;
-    getMachine(x: number, y: number): number;
-    setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
-}
-
-declare enum Flags {
-    BP_ROOM,
-    BP_VESTIBULE,
-    BP_REWARD,
-    BP_ADOPT_ITEM,
-    BP_PURGE_PATHING_BLOCKERS,
-    BP_PURGE_INTERIOR,
-    BP_PURGE_LIQUIDS,
-    BP_SURROUND_WITH_WALLS,
-    BP_IMPREGNABLE,
-    BP_OPEN_INTERIOR,
-    BP_MAXIMIZE_INTERIOR,
-    BP_REDESIGN_INTERIOR,
-    BP_TREAT_AS_BLOCKING,
-    BP_REQUIRE_BLOCKING,
-    BP_NO_INTERIOR_FLAG
-}
-interface Options {
-    tags: string | string[];
-    frequency: frequency.FrequencyConfig;
-    size: string | number[];
-    flags: flag.FlagBase;
-    steps: Partial<StepOptions>[];
-}
-declare class Blueprint {
-    tags: string[];
-    frequency: frequency.FrequencyFn;
-    size: [number, number];
-    flags: number;
-    steps: BuildStep[];
-    id: string;
-    constructor(opts?: Partial<Options>);
-    getChance(level: number, tags?: string | string[]): number;
-    get isRoom(): boolean;
-    get isReward(): boolean;
-    get isVestiblue(): boolean;
-    get adoptsItem(): boolean;
-    get treatAsBlocking(): boolean;
-    get requireBlocking(): boolean;
-    get purgeInterior(): boolean;
-    get purgeBlockers(): boolean;
-    get purgeLiquids(): boolean;
-    get surroundWithWalls(): boolean;
-    get makeImpregnable(): boolean;
-    get maximizeInterior(): boolean;
-    get openInterior(): boolean;
-    get noInteriorFlag(): boolean;
-    qualifies(requiredFlags: number, depth: number): boolean;
-    pickLocation(site: BuildSite): false | types.Loc;
-    computeInterior(builder: BuildData): boolean;
-    addTileToInteriorAndIterate(builder: BuildData, startX: number, startY: number): boolean;
-    computeInteriorForVestibuleMachine(builder: BuildData): boolean;
-    prepareInteriorWithMachineFlags(builder: BuildData): void;
-    expandMachineInterior(builder: BuildData, minimumInteriorNeighbors?: number): void;
-    calcDistances(builder: BuildData): void;
-    pickComponents(): BuildStep[];
-    clearInteriorFlag(builder: BuildData): void;
-}
-declare const blueprints: Record<string, Blueprint>;
-declare function install$2(id: string, blueprint: Blueprint | Partial<Options>): Blueprint;
-declare function random(requiredFlags: number, depth: number): Blueprint;
-
-type blueprint_d_Flags = Flags;
-declare const blueprint_d_Flags: typeof Flags;
-type blueprint_d_Options = Options;
-type blueprint_d_Blueprint = Blueprint;
-declare const blueprint_d_Blueprint: typeof Blueprint;
-declare const blueprint_d_blueprints: typeof blueprints;
-declare const blueprint_d_random: typeof random;
-declare namespace blueprint_d {
-  export {
-    blueprint_d_Flags as Flags,
-    blueprint_d_Options as Options,
-    blueprint_d_Blueprint as Blueprint,
-    blueprint_d_blueprints as blueprints,
-    install$2 as install,
-    blueprint_d_random as random,
-  };
-}
-
 interface BuildData {
     site: BuildSite;
     spawnedItems: any[];
     spawnedHordes: any[];
-    interior: grid.NumGrid;
-    occupied: grid.NumGrid;
-    viewMap: grid.NumGrid;
-    distanceMap: grid.NumGrid;
+    interior: GW.grid.NumGrid;
+    occupied: GW.grid.NumGrid;
+    viewMap: GW.grid.NumGrid;
+    distanceMap: GW.grid.NumGrid;
     originX: number;
     originY: number;
     distance25: number;
@@ -730,12 +610,12 @@ interface BuildData {
 declare class Builder {
     site: BuildSite;
     depth: number;
-    spawnedItems: item.Item[];
-    spawnedHordes: actor.Actor[];
-    interior: grid.NumGrid;
-    occupied: grid.NumGrid;
-    viewMap: grid.NumGrid;
-    distanceMap: grid.NumGrid;
+    spawnedItems: GW.item.Item[];
+    spawnedHordes: GW.actor.Actor[];
+    interior: GW.grid.NumGrid;
+    occupied: GW.grid.NumGrid;
+    viewMap: GW.grid.NumGrid;
+    distanceMap: GW.grid.NumGrid;
     originX: number;
     originY: number;
     distance25: number;
@@ -750,12 +630,12 @@ declare class Builder {
 
 interface StepOptions {
     tile: string | number;
-    flags: flag.FlagBase;
+    flags: GW.flag.FlagBase;
     pad: number;
-    count: range.RangeBase;
+    count: GW.range.RangeBase;
     item: any;
     horde: any;
-    effect: Partial<effect.EffectConfig>;
+    effect: Partial<GW.effect.EffectConfig>;
 }
 declare enum StepFlags {
     BF_OUTSOURCE_ITEM_TO_MACHINE,
@@ -791,75 +671,121 @@ declare class BuildStep {
     tile: number;
     flags: number;
     pad: number;
-    count: range.Range;
+    count: GW.range.Range;
     item: any | null;
     horde: any | null;
-    effect: effect.EffectInfo | null;
+    effect: GW.effect.EffectInfo | null;
     chance: number;
     next: null;
     id: string;
     constructor(cfg?: Partial<StepOptions>);
     cellIsCandidate(builder: BuildData, blueprint: Blueprint, x: number, y: number, distanceBound: [number, number]): boolean;
-    makePersonalSpace(builder: BuildData, x: number, y: number, candidates: grid.NumGrid): number;
+    makePersonalSpace(builder: BuildData, x: number, y: number, candidates: GW.grid.NumGrid): number;
     get generateEverywhere(): boolean;
     get buildAtOrigin(): boolean;
     distanceBound(builder: BuildData): [number, number];
     updateViewMap(builder: BuildData): void;
-    markCandidates(candidates: grid.NumGrid, builder: BuildData, blueprint: Blueprint, distanceBound: [number, number]): number;
+    markCandidates(candidates: GW.grid.NumGrid, builder: BuildData, blueprint: Blueprint, distanceBound: [number, number]): number;
     build(builder: BuildData, blueprint: Blueprint): number;
 }
 
-declare const index_d$1_NOTHING: typeof NOTHING;
-declare const index_d$1_FLOOR: typeof FLOOR;
-declare const index_d$1_DOOR: typeof DOOR;
-declare const index_d$1_SECRET_DOOR: typeof SECRET_DOOR;
-declare const index_d$1_WALL: typeof WALL;
-declare const index_d$1_DEEP: typeof DEEP;
-declare const index_d$1_SHALLOW: typeof SHALLOW;
-declare const index_d$1_BRIDGE: typeof BRIDGE;
-declare const index_d$1_UP_STAIRS: typeof UP_STAIRS;
-declare const index_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
-declare const index_d$1_IMPREGNABLE: typeof IMPREGNABLE;
-declare const index_d$1_TILEMAP: typeof TILEMAP;
-type index_d$1_DigSite = DigSite;
-type index_d$1_GridSite = GridSite;
-declare const index_d$1_GridSite: typeof GridSite;
-type index_d$1_BuildSite = BuildSite;
-type index_d$1_MapSite = MapSite;
-declare const index_d$1_MapSite: typeof MapSite;
-type index_d$1_StepOptions = StepOptions;
-type index_d$1_StepFlags = StepFlags;
-declare const index_d$1_StepFlags: typeof StepFlags;
-type index_d$1_BuildStep = BuildStep;
-declare const index_d$1_BuildStep: typeof BuildStep;
-type index_d$1_BuildData = BuildData;
-type index_d$1_Builder = Builder;
-declare const index_d$1_Builder: typeof Builder;
-declare namespace index_d$1 {
+declare enum Flags {
+    BP_ROOM,
+    BP_VESTIBULE,
+    BP_REWARD,
+    BP_ADOPT_ITEM,
+    BP_PURGE_PATHING_BLOCKERS,
+    BP_PURGE_INTERIOR,
+    BP_PURGE_LIQUIDS,
+    BP_SURROUND_WITH_WALLS,
+    BP_IMPREGNABLE,
+    BP_OPEN_INTERIOR,
+    BP_MAXIMIZE_INTERIOR,
+    BP_REDESIGN_INTERIOR,
+    BP_TREAT_AS_BLOCKING,
+    BP_REQUIRE_BLOCKING,
+    BP_NO_INTERIOR_FLAG
+}
+interface Options {
+    tags: string | string[];
+    frequency: GW.frequency.FrequencyConfig;
+    size: string | number[];
+    flags: GW.flag.FlagBase;
+    steps: Partial<StepOptions>[];
+}
+declare class Blueprint {
+    tags: string[];
+    frequency: GW.frequency.FrequencyFn;
+    size: [number, number];
+    flags: number;
+    steps: BuildStep[];
+    id: string;
+    constructor(opts?: Partial<Options>);
+    getChance(level: number, tags?: string | string[]): number;
+    get isRoom(): boolean;
+    get isReward(): boolean;
+    get isVestiblue(): boolean;
+    get adoptsItem(): boolean;
+    get treatAsBlocking(): boolean;
+    get requireBlocking(): boolean;
+    get purgeInterior(): boolean;
+    get purgeBlockers(): boolean;
+    get purgeLiquids(): boolean;
+    get surroundWithWalls(): boolean;
+    get makeImpregnable(): boolean;
+    get maximizeInterior(): boolean;
+    get openInterior(): boolean;
+    get noInteriorFlag(): boolean;
+    qualifies(requiredFlags: number, depth: number): boolean;
+    pickLocation(site: BuildSite): false | GW.types.Loc;
+    computeInterior(builder: BuildData): boolean;
+    addTileToInteriorAndIterate(builder: BuildData, startX: number, startY: number): boolean;
+    computeInteriorForVestibuleMachine(builder: BuildData): boolean;
+    prepareInteriorWithMachineFlags(builder: BuildData): void;
+    expandMachineInterior(builder: BuildData, minimumInteriorNeighbors?: number): void;
+    calcDistances(builder: BuildData): void;
+    pickComponents(): BuildStep[];
+    clearInteriorFlag(builder: BuildData): void;
+}
+declare const blueprints: Record<string, Blueprint>;
+declare function install(id: string, blueprint: Blueprint | Partial<Options>): Blueprint;
+declare function random(requiredFlags: number, depth: number): Blueprint;
+
+type blueprint_d_Flags = Flags;
+declare const blueprint_d_Flags: typeof Flags;
+type blueprint_d_Options = Options;
+type blueprint_d_Blueprint = Blueprint;
+declare const blueprint_d_Blueprint: typeof Blueprint;
+declare const blueprint_d_blueprints: typeof blueprints;
+declare const blueprint_d_install: typeof install;
+declare const blueprint_d_random: typeof random;
+declare namespace blueprint_d {
   export {
-    blueprint_d as blueprint,
-    index_d$1_NOTHING as NOTHING,
-    index_d$1_FLOOR as FLOOR,
-    index_d$1_DOOR as DOOR,
-    index_d$1_SECRET_DOOR as SECRET_DOOR,
-    index_d$1_WALL as WALL,
-    index_d$1_DEEP as DEEP,
-    index_d$1_SHALLOW as SHALLOW,
-    index_d$1_BRIDGE as BRIDGE,
-    index_d$1_UP_STAIRS as UP_STAIRS,
-    index_d$1_DOWN_STAIRS as DOWN_STAIRS,
-    index_d$1_IMPREGNABLE as IMPREGNABLE,
-    index_d$1_TILEMAP as TILEMAP,
-    index_d$1_DigSite as DigSite,
-    index_d$1_GridSite as GridSite,
-    index_d$1_BuildSite as BuildSite,
-    index_d$1_MapSite as MapSite,
-    index_d$1_StepOptions as StepOptions,
-    index_d$1_StepFlags as StepFlags,
-    index_d$1_BuildStep as BuildStep,
-    index_d$1_BuildData as BuildData,
-    index_d$1_Builder as Builder,
+    blueprint_d_Flags as Flags,
+    blueprint_d_Options as Options,
+    blueprint_d_Blueprint as Blueprint,
+    blueprint_d_blueprints as blueprints,
+    blueprint_d_install as install,
+    blueprint_d_random as random,
   };
 }
 
-export { index_d$1 as build, index_d as dig };
+type index_d_StepOptions = StepOptions;
+type index_d_StepFlags = StepFlags;
+declare const index_d_StepFlags: typeof StepFlags;
+type index_d_BuildStep = BuildStep;
+declare const index_d_BuildStep: typeof BuildStep;
+type index_d_BuildData = BuildData;
+type index_d_Builder = Builder;
+declare const index_d_Builder: typeof Builder;
+declare namespace index_d {
+  export {
+    index_d_StepOptions as StepOptions,
+    index_d_StepFlags as StepFlags,
+    index_d_BuildStep as BuildStep,
+    index_d_BuildData as BuildData,
+    index_d_Builder as Builder,
+  };
+}
+
+export { DigFn, DoorOpts, Dungeon, DungeonOptions, Hall, Level, LevelOptions, LocPair, Room, RoomConfig, RoomOptions, blueprint_d as blueprint, bridge_d as bridge, index_d as build, hall_d as hall, lake_d as lake, loop_d as loop, room_d as room, index_d$1 as site, stairs_d as stairs };

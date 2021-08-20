@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
-import * as DIG_UTILS from '../dig/utils';
+import * as SITE from '../site';
 import { BuildData } from './builder';
-import { Blueprint, Flags } from './blueprint';
+import { Blueprint, Flags } from '../blueprint';
 
 export interface StepOptions {
     tile: string | number;
@@ -437,7 +437,7 @@ export class BuildStep {
                             site.height
                         );
                         blockingMap[x][y] = 1;
-                        terrainSucceeded = !DIG_UTILS.siteDisruptedBy(
+                        terrainSucceeded = !SITE.siteDisruptedBy(
                             site,
                             blockingMap
                         );

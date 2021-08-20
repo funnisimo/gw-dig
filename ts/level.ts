@@ -8,7 +8,6 @@ import * as LOOP from './loop';
 import * as LAKE from './lake';
 import * as BRIDGE from './bridge';
 import * as STAIRS from './stairs';
-import * as UTILS from './utils';
 
 export interface DoorOpts {
     chance: number;
@@ -199,7 +198,7 @@ export class Level {
             const y = this.seq[i] % this.height;
 
             if (!site.isNothing(x, y)) continue;
-            const dir = UTILS.directionOfDoorSite(site, x, y);
+            const dir = SITE.directionOfDoorSite(site, x, y);
             if (dir != GW.utils.NO_DIRECTION) {
                 const oppDir = (dir + 2) % 4;
                 const door = doorSites[oppDir];
@@ -213,7 +212,7 @@ export class Level {
                     this._roomFitsAt(site, roomSite, offsetX, offsetY)
                 ) {
                     // TYPES.Room fits here.
-                    UTILS.copySite(site, roomSite, offsetX, offsetY);
+                    SITE.copySite(site, roomSite, offsetX, offsetY);
                     this._attachDoor(site, room, x, y, oppDir);
 
                     // door[0] = -1;
@@ -251,7 +250,7 @@ export class Level {
                 // dungeon.debug("attachRoom: ", x, y, oppDir);
 
                 // TYPES.Room fits here.
-                UTILS.copySite(site, roomSite, offX, offY);
+                SITE.copySite(site, roomSite, offX, offY);
                 // this._attachDoor(site, room, x, y, oppDir);  // No door on first room!
                 room.translate(offX, offY);
                 // const newDoors = doorSites.map((site) => {

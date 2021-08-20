@@ -74,7 +74,7 @@ export interface DigSite {
     hasTile: (
         x: number,
         y: number,
-        tile: number | string | GW.tile.Tile
+        tile: string | number | GW.tile.Tile
     ) => boolean;
     getTileIndex: (x: number, y: number) => number;
 
@@ -217,7 +217,11 @@ export class GridSite implements DigSite {
         return true;
     }
 
-    hasTile(x: number, y: number, tile: number | string | GW.tile.Tile) {
+    hasTile(
+        x: number,
+        y: number,
+        tile: number | string | GW.tile.Tile
+    ): boolean {
         if (tile instanceof GW.tile.Tile) {
             tile = tile.index;
         }

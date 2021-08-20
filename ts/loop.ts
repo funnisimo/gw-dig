@@ -1,6 +1,5 @@
 import * as GW from 'gw-utils';
 import * as SITE from './site';
-import * as UTILS from './utils';
 
 export interface LoopOptions {
     minDistance: number;
@@ -40,7 +39,7 @@ export class LoopDigger {
             [0, 1],
         ];
 
-        UTILS.fillCostGrid(site, costGrid);
+        SITE.fillCostGrid(site, costGrid);
 
         function isValidTunnelStart(
             x: number,

@@ -1,9 +1,9 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
+import * as SITE from '../site';
 import * as BUILDER from './builder';
-import * as BLUE from './blueprint';
+import * as BLUE from '../blueprint';
 import * as STEP from './buildStep';
-import * as DIG from '../dig';
+import * as DIG from '../index';
 
 describe('buildStep', () => {
     test('constructor', () => {

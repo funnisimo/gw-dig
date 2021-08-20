@@ -1,9 +1,7 @@
 import * as GW from 'gw-utils';
-import * as DigSite from '../dig/site';
+import * as DigSite from './digSite';
 
 const Flags = GW.map.flags.Cell;
-
-export * from '../dig/site';
 
 export interface BuildSite extends DigSite.DigSite, GW.map.MapType {
     getChokeCount: (x: number, y: number) => number;

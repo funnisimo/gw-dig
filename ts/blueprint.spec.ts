@@ -1,6 +1,7 @@
 import * as GW from 'gw-utils';
-import * as BUILD from './index';
-import * as DIG from '../dig';
+import * as BUILD from './build/index';
+import * as DIG from './index';
+import * as SITE from './site';
 
 // function dumpSite(site: BUILD.MapSite) {
 //     site.dump((c) => {
@@ -11,15 +12,15 @@ import * as DIG from '../dig';
 
 describe('Blueprint', () => {
     test('install', () => {
-        BUILD.blueprint.install(
+        DIG.blueprint.install(
             'A',
-            new BUILD.blueprint.Blueprint({
+            new DIG.blueprint.Blueprint({
                 frequency: 50,
                 tags: 'room',
             })
         );
 
-        const a = BUILD.blueprint.blueprints.A;
+        const a = DIG.blueprint.blueprints.A;
         expect(a.getChance(1, 'room')).toEqual(50);
         expect(a.getChance(10, 'room')).toEqual(50);
         expect(a.getChance(10, 'room, town')).toEqual(0);
@@ -27,13 +28,13 @@ describe('Blueprint', () => {
     });
 
     test('random', () => {
-        const sd = BUILD.blueprint.install('SECRET_DOOR', {
+        const sd = DIG.blueprint.install('SECRET_DOOR', {
             frequency: 10,
             flags: 'BP_VESTIBULE',
             steps: [{ tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' }],
         });
 
-        const rm = BUILD.blueprint.install('WET_ROOM', {
+        const rm = DIG.blueprint.install('WET_ROOM', {
             frequency: 10,
             size: '10-20',
             flags: 'BP_ROOM',
@@ -46,12 +47,10 @@ describe('Blueprint', () => {
             ],
         });
 
-        expect(
-            BUILD.blueprint.random(BUILD.blueprint.Flags.BP_VESTIBULE, 1)
-        ).toBe(sd);
-        expect(BUILD.blueprint.random(BUILD.blueprint.Flags.BP_ROOM, 1)).toBe(
-            rm
+        expect(DIG.blueprint.random(DIG.blueprint.Flags.BP_VESTIBULE, 1)).toBe(
+            sd
         );
+        expect(DIG.blueprint.random(DIG.blueprint.Flags.BP_ROOM, 1)).toBe(rm);
     });
 
     test('Carpet Secret Room', () => {
@@ -73,7 +72,7 @@ describe('Blueprint', () => {
             },
         });
 
-        BUILD.blueprint.install('SECRET_ROOM', {
+        DIG.blueprint.install('SECRET_ROOM', {
             frequency: '1-12: 30',
             size: '15-25',
             flags: 'BP_ROOM',
@@ -86,11 +85,11 @@ describe('Blueprint', () => {
             ],
         });
 
-        const a = BUILD.blueprint.blueprints.SECRET_ROOM;
+        const a = DIG.blueprint.blueprints.SECRET_ROOM;
         expect(a.steps).toHaveLength(2);
 
         // Create Dig Site
-        const site = new BUILD.MapSite(50, 50);
+        const site = new SITE.MapSite(50, 50);
         const level = new DIG.Level(50, 50, { seed: 12345 });
         level.create((x, y, tile) => {
             site.setTile(x, y, tile);
@@ -124,7 +123,7 @@ describe('Blueprint', () => {
         GW.tile.install('ALTAR', { ch: 'T', fg: 0xf63 });
         GW.tile.install('STATUE', { ch: '&', fg: 0x663 });
 
-        BUILD.blueprint.install('MIXED_ITEM_LIBRARY', {
+        DIG.blueprint.install('MIXED_ITEM_LIBRARY', {
             frequency: '1-12: 30',
             size: '30-50',
             flags:
@@ -174,7 +173,7 @@ describe('Blueprint', () => {
             ],
         });
 
-        const a = BUILD.blueprint.blueprints.MIXED_ITEM_LIBRARY;
+        const a = DIG.blueprint.blueprints.MIXED_ITEM_LIBRARY;
         expect(a.getChance(1)).toEqual(30);
         expect(a.getChance(10)).toEqual(30);
         expect(a.getChance(15)).toEqual(0);

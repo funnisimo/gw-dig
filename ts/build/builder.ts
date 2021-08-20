@@ -1,6 +1,6 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
-import * as BLUE from './blueprint';
+import * as SITE from '../site';
+import * as BLUE from '../blueprint';
 import { StepFlags } from './buildStep';
 
 export interface BuildData {

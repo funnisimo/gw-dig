@@ -1,6 +1,5 @@
 import * as GW from 'gw-utils';
 import * as TYPES from './types';
-import * as UTILS from './utils';
 import * as SITE from './site';
 
 export function checkConfig(
@@ -63,7 +62,7 @@ export abstract class RoomDigger {
                 result.doors.length == 0 ||
                 result.doors.every((loc) => !loc || loc[0] == -1)
             ) {
-                result.doors = UTILS.chooseRandomDoorSites(site);
+                result.doors = SITE.chooseRandomDoorSites(site);
             }
         }
         return result;
@@ -220,10 +219,7 @@ export class BrogueEntrance extends RoomDigger {
     }
 }
 
-export function brogueEntrance(
-    config: TYPES.RoomConfig,
-    site: SITE.DigSite
-) {
+export function brogueEntrance(config: TYPES.RoomConfig, site: SITE.DigSite) {
     // grid.fill(0);
     const digger = new BrogueEntrance(config);
     return digger.create(site);
@@ -324,10 +320,7 @@ export class SymmetricalCross extends RoomDigger {
     }
 }
 
-export function symmetricalCross(
-    config: TYPES.RoomConfig,
-    site: SITE.DigSite
-) {
+export function symmetricalCross(config: TYPES.RoomConfig, site: SITE.DigSite) {
     // grid.fill(0);
     const digger = new SymmetricalCross(config);
     return digger.create(site);
