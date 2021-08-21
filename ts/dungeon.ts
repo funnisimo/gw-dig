@@ -167,12 +167,8 @@ export class Dungeon {
     }
 
     makeLevel(id: number, opts: Partial<LEVEL.LevelOptions>, cb: TYPES.DigFn) {
-        const level = new LEVEL.Level(
-            this.config.width,
-            this.config.height,
-            opts
-        );
-        const result = level.create(cb);
+        const level = new LEVEL.Level(opts);
+        const result = level.create(this.config.width, this.config.height, cb);
 
         if (
             !GW.utils.equalsXY(level.endLoc, opts.endLoc) ||

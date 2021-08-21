@@ -35,7 +35,8 @@ export interface DigSite {
     readonly width: number;
     readonly height: number;
 
-    free: () => void;
+    free(): void;
+    clear(): void;
 
     hasXY: GW.utils.XYMatchFunc;
     isBoundaryXY: GW.utils.XYMatchFunc;
@@ -71,14 +72,14 @@ export interface DigSite {
         opts?: GW.map.SetTileOptions
     ): boolean;
 
-    hasTile: (
+    hasTile(
         x: number,
         y: number,
         tile: string | number | GW.tile.Tile
-    ) => boolean;
-    getTileIndex: (x: number, y: number) => number;
+    ): boolean;
+    getTileIndex(x: number, y: number): number;
 
-    tileBlocksMove: (tile: number) => boolean;
+    tileBlocksMove(tile: number): boolean;
 }
 
 export class GridSite implements DigSite {
@@ -90,6 +91,9 @@ export class GridSite implements DigSite {
 
     free() {
         GW.grid.free(this.tiles);
+    }
+    clear() {
+        this.tiles.fill(0);
     }
 
     get width() {

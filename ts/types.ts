@@ -2,8 +2,8 @@ import * as GW from 'gw-utils';
 
 export interface RoomConfig {
     // fn?: RoomFn;
-    door?: boolean | number;
-    doorChance?: number;
+    // door?: boolean | number;
+    // doorChance?: number;
     tile?: number;
     [x: string]: any;
 }

@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
 import * as SITE from '../site';
 import { BuildData } from './builder';
-import { Blueprint, Flags } from '../blueprint';
+import { Blueprint, Flags } from '.';
 
 export interface StepOptions {
     tile: string | number;
@@ -222,13 +222,13 @@ export class BuildStep {
         } else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
             if (
                 (this.item && site.blocksItems(x, y)) ||
-                site
-                    .cellInfo(x, y)
-                    .hasCellFlag(
-                        GW.map.flags.Cell.IS_CHOKEPOINT |
-                            GW.map.flags.Cell.IS_IN_LOOP |
-                            GW.map.flags.Cell.IS_IN_MACHINE
-                    )
+                site.hasCellFlag(
+                    x,
+                    y,
+                    GW.map.flags.Cell.IS_CHOKEPOINT |
+                        GW.map.flags.Cell.IS_IN_LOOP |
+                        GW.map.flags.Cell.IS_IN_MACHINE
+                )
             ) {
                 return false;
             } else {
@@ -416,7 +416,7 @@ export class BuildStep {
 
                 // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
                 if (this.effect) {
-                    DFSucceeded = GW.effect.fireSync(this.effect, site, x, y);
+                    DFSucceeded = site.fireEffect(this.effect, x, y);
                 }
 
                 // Now try to place the terrain tile, if any.

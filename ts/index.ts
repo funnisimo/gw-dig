@@ -9,4 +9,3 @@ export * from './types';
 export * from './level';
 export * from './dungeon';
 export * as blueprint from './blueprint';
-export * as build from './build';

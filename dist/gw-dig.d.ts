@@ -17,7 +17,8 @@ declare const TILEMAP: {
 interface DigSite {
     readonly width: number;
     readonly height: number;
-    free: () => void;
+    free(): void;
+    clear(): void;
     hasXY: GW.utils.XYMatchFunc;
     isBoundaryXY: GW.utils.XYMatchFunc;
     isSet: GW.utils.XYMatchFunc;
@@ -40,14 +41,15 @@ interface DigSite {
     isShallow: GW.utils.XYMatchFunc;
     isAnyLiquid: GW.utils.XYMatchFunc;
     setTile(x: number, y: number, tile: string | number | GW.tile.Tile, opts?: GW.map.SetTileOptions): boolean;
-    hasTile: (x: number, y: number, tile: string | number | GW.tile.Tile) => boolean;
-    getTileIndex: (x: number, y: number) => number;
-    tileBlocksMove: (tile: number) => boolean;
+    hasTile(x: number, y: number, tile: string | number | GW.tile.Tile): boolean;
+    getTileIndex(x: number, y: number): number;
+    tileBlocksMove(tile: number): boolean;
 }
 declare class GridSite implements DigSite {
     tiles: GW.grid.NumGrid;
     constructor(width: number, height: number);
     free(): void;
+    clear(): void;
     get width(): number;
     get height(): number;
     hasXY(x: number, y: number): boolean;
@@ -77,30 +79,49 @@ declare class GridSite implements DigSite {
     tileBlocksMove(tile: number): boolean;
 }
 
-interface BuildSite extends DigSite, GW.map.MapType {
-    getChokeCount: (x: number, y: number) => number;
-    setChokeCount: (x: number, y: number, count: number) => void;
+interface BuildSite extends DigSite {
+    getChokeCount(x: number, y: number): number;
+    setChokeCount(x: number, y: number, count: number): void;
     isOccupied: GW.utils.XYMatchFunc;
     hasItem: GW.utils.XYMatchFunc;
     hasActor: GW.utils.XYMatchFunc;
+    hasCellFlag(x: number, y: number, flag: number): boolean;
+    setCellFlag(x: number, y: number, flag: number): void;
+    clearCellFlag(x: number, y: number, flag: number): void;
     analyze(): void;
-    backup: () => any;
-    restore: (backup: any) => void;
-    nextMachineId: () => number;
-    getMachine: (x: number, y: number) => number;
-    setMachine: (x: number, y: number, id: number, isRoom?: boolean) => void;
+    fireEffect(effect: GW.effect.EffectInfo, x: number, y: number): boolean;
+    backup(): any;
+    restore(backup: any): void;
+    nextMachineId(): number;
+    getMachine(x: number, y: number): number;
+    setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
 }
-declare class MapSite extends GW.map.Map implements BuildSite {
+declare class MapSite implements BuildSite {
+    map: GW.map.Map;
     machineId: GW.grid.NumGrid;
     machineCount: number;
-    constructor(width: number, height: number);
+    constructor(map: GW.map.Map);
+    get width(): number;
+    get height(): number;
+    hasXY(x: number, y: number): boolean;
+    isBoundaryXY(x: number, y: number): boolean;
+    hasCellFlag(x: number, y: number, flag: number): boolean;
+    setCellFlag(x: number, y: number, flag: number): void;
+    clearCellFlag(x: number, y: number, flag: number): void;
+    hasTile(x: number, y: number, tile: string | number | GW.tile.Tile): boolean;
+    setTile(x: number, y: number, tile: string | number | GW.tile.Tile, opts?: Partial<GW.map.SetOptions>): boolean;
+    getTileIndex(x: number, y: number): number;
+    clear(): void;
     hasItem(x: number, y: number): boolean;
-    isPassable(x: number, y: number): boolean;
+    hasActor(x: number, y: number): boolean;
     blocksMove(x: number, y: number): boolean;
+    blocksVision(x: number, y: number): boolean;
+    blocksDiagonal(x: number, y: number): boolean;
+    blocksPathing(x: number, y: number): boolean;
+    blocksItems(x: number, y: number): boolean;
+    blocksEffects(x: number, y: number): boolean;
     isWall(x: number, y: number): boolean;
     isStairs(x: number, y: number): boolean;
-    hasTile(x: number, y: number, tile: string | number | GW.tile.Tile): boolean;
-    free(): void;
     isSet(x: number, y: number): boolean;
     isDiggable(x: number, y: number): boolean;
     isNothing(x: number, y: number): boolean;
@@ -108,21 +129,19 @@ declare class MapSite extends GW.map.Map implements BuildSite {
     isBridge(x: number, y: number): boolean;
     isDoor(x: number, y: number): boolean;
     isSecretDoor(x: number, y: number): boolean;
-    blocksDiagonal(x: number, y: number): boolean;
-    blocksPathing(x: number, y: number): boolean;
-    blocksItems(x: number, y: number): boolean;
-    blocksEffects(x: number, y: number): boolean;
     isDeep(x: number, y: number): boolean;
     isShallow(x: number, y: number): boolean;
     isAnyLiquid(x: number, y: number): boolean;
-    getTileIndex(x: number, y: number): number;
+    isOccupied(x: number, y: number): boolean;
+    isPassable(x: number, y: number): boolean;
     tileBlocksMove(tile: number): boolean;
-    backup(): MapSite;
-    restore(backup: MapSite): void;
+    backup(): GW.map.Map;
+    restore(backup: GW.map.Map): void;
+    free(): void;
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
-    isOccupied(x: number, y: number): boolean;
     analyze(): void;
+    fireEffect(effect: GW.effect.EffectInfo, x: number, y: number): boolean;
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -190,8 +209,6 @@ declare namespace index_d$1 {
 }
 
 interface RoomConfig {
-    door?: boolean | number;
-    doorChance?: number;
     tile?: number;
     [x: string]: any;
 }
@@ -474,10 +491,12 @@ declare namespace stairs_d {
 interface LoopOptions {
     minDistance: number;
     maxLength: number;
+    doorChance: number;
 }
 interface LoopConfig {
     minDistance: number;
     maxLength: number;
+    doorChance: number;
 }
 declare class LoopDigger {
     options: LoopConfig;
@@ -510,12 +529,12 @@ interface RoomOptions {
     digger: string | string[] | Record<string, number> | RoomDigger;
 }
 interface LevelOptions {
-    halls?: Partial<HallOptions>;
-    loops?: Partial<LoopOptions>;
-    lakes?: Partial<LakeOpts>;
-    bridges?: Partial<BridgeOpts>;
-    stairs?: Partial<StairOpts>;
-    doors?: Partial<DoorOpts>;
+    halls?: Partial<HallOptions> | boolean;
+    loops?: Partial<LoopOptions> | boolean;
+    lakes?: Partial<LakeOpts> | boolean;
+    bridges?: Partial<BridgeOpts> | boolean;
+    stairs?: Partial<StairOpts> | boolean;
+    doors?: Partial<DoorOpts> | boolean;
     rooms: Partial<RoomOptions>;
     startLoc?: GW.utils.Loc;
     endLoc?: GW.utils.Loc;
@@ -523,23 +542,25 @@ interface LevelOptions {
     boundary?: boolean;
 }
 declare class Level {
-    height: number;
-    width: number;
+    site: DigSite;
+    seed: number;
     rooms: Partial<RoomOptions>;
     doors: Partial<DoorOpts>;
     halls: Partial<HallOptions>;
-    loops: Partial<LoopOptions>;
-    lakes: Partial<LakeOpts>;
-    bridges: Partial<BridgeOpts>;
-    stairs: Partial<StairOpts>;
+    loops: Partial<LoopOptions> | null;
+    lakes: Partial<LakeOpts> | null;
+    bridges: Partial<BridgeOpts> | null;
+    stairs: Partial<StairOpts> | null;
     boundary: boolean;
     startLoc: GW.utils.Loc;
     endLoc: GW.utils.Loc;
     seq: number[];
-    constructor(width: number, height: number, options?: Partial<LevelOptions>);
-    makeSite(width: number, height: number): GridSite;
-    create(setFn: DigFn): boolean;
-    start(_site: DigSite): void;
+    constructor(options?: Partial<LevelOptions>);
+    _makeSite(width: number, height: number): GridSite;
+    create(width: number, height: number, cb: DigFn): boolean;
+    create(map: GW.map.Map): boolean;
+    _create(site: DigSite): boolean;
+    start(site: DigSite): void;
     getDigger(id: string | string[] | Record<string, number> | RoomDigger): RoomDigger;
     addFirstRoom(site: DigSite): Room | null;
     addRoom(site: DigSite): Room | null;
@@ -608,8 +629,9 @@ interface BuildData {
     machineNumber: number;
 }
 declare class Builder {
-    site: BuildSite;
+    map: GW.map.Map;
     depth: number;
+    site: MapSite;
     spawnedItems: GW.item.Item[];
     spawnedHordes: GW.actor.Actor[];
     interior: GW.grid.NumGrid;
@@ -621,7 +643,7 @@ declare class Builder {
     distance25: number;
     distance75: number;
     machineNumber: number;
-    constructor(site: BuildSite, depth: number);
+    constructor(map: GW.map.Map, depth: number);
     free(): void;
     buildRandom(requiredMachineFlags?: Flags): boolean;
     buildBlueprint(blueprint: Blueprint): boolean;
@@ -716,7 +738,7 @@ interface Options {
 declare class Blueprint {
     tags: string[];
     frequency: GW.frequency.FrequencyFn;
-    size: [number, number];
+    size: GW.range.Range;
     flags: number;
     steps: BuildStep[];
     id: string;
@@ -751,25 +773,6 @@ declare const blueprints: Record<string, Blueprint>;
 declare function install(id: string, blueprint: Blueprint | Partial<Options>): Blueprint;
 declare function random(requiredFlags: number, depth: number): Blueprint;
 
-type blueprint_d_Flags = Flags;
-declare const blueprint_d_Flags: typeof Flags;
-type blueprint_d_Options = Options;
-type blueprint_d_Blueprint = Blueprint;
-declare const blueprint_d_Blueprint: typeof Blueprint;
-declare const blueprint_d_blueprints: typeof blueprints;
-declare const blueprint_d_install: typeof install;
-declare const blueprint_d_random: typeof random;
-declare namespace blueprint_d {
-  export {
-    blueprint_d_Flags as Flags,
-    blueprint_d_Options as Options,
-    blueprint_d_Blueprint as Blueprint,
-    blueprint_d_blueprints as blueprints,
-    blueprint_d_install as install,
-    blueprint_d_random as random,
-  };
-}
-
 type index_d_StepOptions = StepOptions;
 type index_d_StepFlags = StepFlags;
 declare const index_d_StepFlags: typeof StepFlags;
@@ -778,6 +781,14 @@ declare const index_d_BuildStep: typeof BuildStep;
 type index_d_BuildData = BuildData;
 type index_d_Builder = Builder;
 declare const index_d_Builder: typeof Builder;
+type index_d_Flags = Flags;
+declare const index_d_Flags: typeof Flags;
+type index_d_Options = Options;
+type index_d_Blueprint = Blueprint;
+declare const index_d_Blueprint: typeof Blueprint;
+declare const index_d_blueprints: typeof blueprints;
+declare const index_d_install: typeof install;
+declare const index_d_random: typeof random;
 declare namespace index_d {
   export {
     index_d_StepOptions as StepOptions,
@@ -785,7 +796,13 @@ declare namespace index_d {
     index_d_BuildStep as BuildStep,
     index_d_BuildData as BuildData,
     index_d_Builder as Builder,
+    index_d_Flags as Flags,
+    index_d_Options as Options,
+    index_d_Blueprint as Blueprint,
+    index_d_blueprints as blueprints,
+    index_d_install as install,
+    index_d_random as random,
   };
 }
 
-export { DigFn, DoorOpts, Dungeon, DungeonOptions, Hall, Level, LevelOptions, LocPair, Room, RoomConfig, RoomOptions, blueprint_d as blueprint, bridge_d as bridge, index_d as build, hall_d as hall, lake_d as lake, loop_d as loop, room_d as room, index_d$1 as site, stairs_d as stairs };
+export { DigFn, DoorOpts, Dungeon, DungeonOptions, Hall, Level, LevelOptions, LocPair, Room, RoomConfig, RoomOptions, index_d as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, loop_d as loop, room_d as room, index_d$1 as site, stairs_d as stairs };

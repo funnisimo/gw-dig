@@ -127,6 +127,19 @@ describe('dig', () => {
         });
     });
 
+    test('rectangular - rangebase', () => {
+        GW.random.seed(12345);
+
+        const room = Dig.room.rectangular(
+            { width: '4-6', height: '4-6' },
+            site
+        );
+
+        expect(room).toContainKeys(['x', 'y', 'width', 'height']);
+
+        expect(site.tiles.count(1)).toBeWithin(16, 36);
+    });
+
     test('rectangular - tile', () => {
         GW.random.seed(12345);
 

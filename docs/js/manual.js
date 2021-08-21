@@ -88,7 +88,7 @@ class Example {
         this._source.on('click', this.click.bind(this));
 
         this._source.append(code);
-        hljs.highlightBlock(this._source[0]);
+        hljs.highlightElement(this._source[0]);
 
         const result = this._result;
         function show() {

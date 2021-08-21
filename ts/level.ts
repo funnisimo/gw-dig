@@ -21,12 +21,12 @@ export interface RoomOptions {
 }
 
 export interface LevelOptions {
-    halls?: Partial<HALL.HallOptions>;
-    loops?: Partial<LOOP.LoopOptions>;
-    lakes?: Partial<LAKE.LakeOpts>;
-    bridges?: Partial<BRIDGE.BridgeOpts>;
-    stairs?: Partial<STAIRS.StairOpts>;
-    doors?: Partial<DoorOpts>;
+    halls?: Partial<HALL.HallOptions> | boolean;
+    loops?: Partial<LOOP.LoopOptions> | boolean;
+    lakes?: Partial<LAKE.LakeOpts> | boolean;
+    bridges?: Partial<BRIDGE.BridgeOpts> | boolean;
+    stairs?: Partial<STAIRS.StairOpts> | boolean;
+    doors?: Partial<DoorOpts> | boolean;
 
     rooms: Partial<RoomOptions>;
 
@@ -38,55 +38,121 @@ export interface LevelOptions {
 }
 
 export class Level {
-    public height: number;
-    public width: number;
+    public site!: SITE.DigSite;
 
+    public seed = 0;
     public rooms: Partial<RoomOptions> = {};
     public doors: Partial<DoorOpts> = { chance: 15 };
     public halls: Partial<HALL.HallOptions> = { chance: 15 };
-    public loops: Partial<LOOP.LoopOptions> = {};
-    public lakes: Partial<LAKE.LakeOpts> = {};
-    public bridges: Partial<BRIDGE.BridgeOpts> = {};
-    public stairs: Partial<STAIRS.StairOpts> = {};
+    public loops: Partial<LOOP.LoopOptions> | null = {};
+    public lakes: Partial<LAKE.LakeOpts> | null = {};
+    public bridges: Partial<BRIDGE.BridgeOpts> | null = {};
+    public stairs: Partial<STAIRS.StairOpts> | null = {};
     public boundary: boolean = true;
 
     public startLoc: GW.utils.Loc = [-1, -1];
     public endLoc: GW.utils.Loc = [-1, -1];
 
-    public seq: number[];
+    public seq!: number[];
 
-    constructor(
-        width: number,
-        height: number,
-        options: Partial<LevelOptions> = {}
-    ) {
-        this.height = height;
-        this.width = width;
-
-        if (options.seed) {
-            GW.random.seed(options.seed);
-        }
-
-        this.seq = GW.random.sequence(width * height);
-
+    constructor(options: Partial<LevelOptions> = {}) {
+        this.seed = options.seed || 0;
         GW.utils.setOptions(this.rooms, options.rooms);
-        GW.utils.setOptions(this.halls, options.halls);
-        GW.utils.setOptions(this.loops, options.loops);
-        GW.utils.setOptions(this.lakes, options.lakes);
-        GW.utils.setOptions(this.bridges, options.bridges);
-        GW.utils.setOptions(this.stairs, options.stairs);
+
+        // Doors
+        if (options.doors === false) {
+            options.doors = { chance: 0 };
+        } else if (options.doors === true) {
+            options.doors = { chance: 100 };
+        }
         GW.utils.setOptions(this.doors, options.doors);
 
-        this.startLoc = options.startLoc || [Math.floor(width / 2), height - 2];
+        // Halls
+        if (options.halls === false) {
+            options.halls = { chance: 0 };
+        } else if (options.halls === true) {
+            options.halls = {};
+        }
+        GW.utils.setOptions(this.halls, options.halls);
+
+        // Loops
+        if (options.loops === false) {
+            this.loops = null;
+        } else {
+            if (options.loops === true) options.loops = {};
+            options.loops = options.loops || {};
+            options.loops.doorChance =
+                options.loops.doorChance ?? options.doors?.chance;
+            GW.utils.setOptions(this.loops, options.loops);
+        }
+
+        // Lakes
+        if (options.lakes === false) {
+            this.lakes = null;
+        } else {
+            if (options.lakes === true) options.lakes = {};
+            GW.utils.setOptions(this.lakes, options.lakes);
+        }
+
+        // Bridges
+        if (options.bridges === false) {
+            this.bridges = null;
+        } else {
+            if (options.bridges === true) options.bridges = {};
+            GW.utils.setOptions(this.bridges, options.bridges);
+        }
+
+        // Stairs
+        if (options.stairs === false) {
+            this.stairs = null;
+        } else {
+            if (options.stairs === true) options.stairs = {};
+            GW.utils.setOptions(this.stairs, options.stairs);
+        }
+
+        this.startLoc = options.startLoc || [-1, -1];
         this.endLoc = options.endLoc || [-1, -1];
     }
 
-    makeSite(width: number, height: number) {
+    _makeSite(width: number, height: number) {
         return new SITE.GridSite(width, height);
     }
 
-    create(setFn: TYPES.DigFn) {
-        const site = this.makeSite(this.width, this.height);
+    create(width: number, height: number, cb: TYPES.DigFn): boolean;
+    create(map: GW.map.Map): boolean;
+    create(...args: any[]): boolean {
+        if (args.length == 1 && args[0] instanceof GW.map.Map) {
+            const map = args[0] as GW.map.Map;
+            this.site = new SITE.MapSite(map);
+        }
+        if (args.length > 1) {
+            const width = args[0] as number;
+            const height = args[1] as number;
+            this.site = new SITE.GridSite(width, height);
+        }
+
+        const result = this._create(this.site);
+
+        if (args.length > 1) {
+            const width = args[0] as number;
+            const height = args[1] as number;
+            const cb = args[2] as TYPES.DigFn;
+
+            GW.utils.forRect(width, height, (x, y) => {
+                const t = this.site.getTileIndex(x, y);
+                if (t) cb(x, y, t);
+            });
+        }
+
+        this.site.free();
+        return result;
+    }
+
+    _create(site: SITE.DigSite): boolean {
+        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+            this.startLoc[0] = Math.floor(site.width / 2);
+            this.startLoc[1] = site.height - 2;
+        }
 
         this.start(site);
 
@@ -105,23 +171,24 @@ export class Level {
             }
         }
 
-        this.addLoops(site, this.loops);
-        this.addLakes(site, this.lakes);
-        this.addBridges(site, this.bridges);
-        this.addStairs(site, this.stairs);
+        if (this.loops) this.addLoops(site, this.loops);
+        if (this.lakes) this.addLakes(site, this.lakes);
+        if (this.bridges) this.addBridges(site, this.bridges);
+        if (this.stairs) this.addStairs(site, this.stairs);
 
         this.finish(site);
 
-        GW.utils.forRect(this.width, this.height, (x, y) => {
-            const t = site.getTileIndex(x, y);
-            if (t) setFn(x, y, t);
-        });
-
-        site.free();
         return true;
     }
 
-    start(_site: SITE.DigSite) {}
+    start(site: SITE.DigSite) {
+        if (this.seed) {
+            GW.random.seed(this.seed);
+        }
+
+        site.clear();
+        this.seq = GW.random.sequence(site.width * site.height);
+    }
 
     getDigger(
         id: string | string[] | Record<string, number> | ROOM.RoomDigger
@@ -139,7 +206,7 @@ export class Level {
     }
 
     addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
-        const roomSite = this.makeSite(this.width, this.height);
+        const roomSite = this._makeSite(site.width, site.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.first || this.rooms.digger || 'DEFAULT'
@@ -158,7 +225,7 @@ export class Level {
     }
 
     addRoom(site: SITE.DigSite): TYPES.Room | null {
-        const roomSite = this.makeSite(this.width, this.height);
+        const roomSite = this._makeSite(site.width, site.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
         );
@@ -194,8 +261,8 @@ export class Level {
 
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
         for (let i = 0; i < this.seq.length; i++) {
-            const x = Math.floor(this.seq[i] / this.height);
-            const y = this.seq[i] % this.height;
+            const x = Math.floor(this.seq[i] / site.height);
+            const y = this.seq[i] % site.height;
 
             if (!site.isNothing(x, y)) continue;
             const dir = SITE.directionOfDoorSite(site, x, y);
@@ -308,10 +375,11 @@ export class Level {
         dir: number
     ) {
         const opts = this.doors;
+        let isDoor = false;
 
-        if (opts.chance === 0) return; // no door at all
-
-        const isDoor = opts.chance && GW.random.chance(opts.chance); // did not pass chance
+        if (opts.chance && GW.random.chance(opts.chance)) {
+            isDoor = true;
+        }
 
         const tile = isDoor ? opts.tile || SITE.DOOR : SITE.FLOOR;
         map.setTile(x, y, tile); // Door site.
@@ -396,8 +464,8 @@ export class Level {
 
         do {
             diagonalCornerRemoved = false;
-            for (i = 0; i < this.width - 1; i++) {
-                for (j = 0; j < this.height - 1; j++) {
+            for (i = 0; i < site.width - 1; i++) {
+                for (j = 0; j < site.height - 1; j++) {
                     for (k = 0; k <= 1; k++) {
                         if (
                             !site.blocksMove(i + k, j) &&
@@ -424,7 +492,7 @@ export class Level {
     }
 
     _finishDoors(site: SITE.DigSite) {
-        GW.utils.forRect(this.width, this.height, (x, y) => {
+        GW.utils.forRect(site.width, site.height, (x, y) => {
             if (site.isBoundaryXY(x, y)) return;
 
             // todo - isDoorway...
@@ -454,7 +522,7 @@ export class Level {
 
     _finishWalls(site: SITE.DigSite) {
         const boundaryTile = this.boundary ? SITE.IMPREGNABLE : SITE.WALL;
-        GW.utils.forRect(this.width, this.height, (x, y) => {
+        GW.utils.forRect(site.width, site.height, (x, y) => {
             if (site.isNothing(x, y)) {
                 if (site.isBoundaryXY(x, y)) {
                     site.setTile(x, y, boundaryTile);

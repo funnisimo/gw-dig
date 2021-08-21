@@ -1,7 +1,6 @@
 import * as GW from 'gw-utils';
-import * as SITE from '../site';
 import * as BUILDER from './builder';
-import * as BLUE from '../blueprint';
+import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 import * as DIG from '../index';
 
@@ -32,8 +31,8 @@ describe('buildStep', () => {
             flags: 'L_BLOCKS_MOVE',
         });
 
-        const site = new SITE.MapSite(80, 34);
-        const builder = new BUILDER.Builder(site, 1);
+        const map = GW.map.make(80, 34);
+        const builder = new BUILDER.Builder(map, 1);
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
@@ -41,14 +40,14 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level(80, 34);
-        level.create((x, y, t) => site.setTile(x, y, t));
+        const level = new DIG.Level();
+        level.create(map);
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
         // site.map.dump();
 
-        expect(site.count((c) => c.hasTile('TEST'))).toBeGreaterThan(1);
+        expect(map.count((c) => c.hasTile('TEST'))).toBeGreaterThan(1);
     });
 
     test('build spawn', () => {
@@ -66,8 +65,8 @@ describe('buildStep', () => {
             flags: 'L_BLOCKS_MOVE',
         });
 
-        const site = new SITE.MapSite(80, 34);
-        const builder = new BUILDER.Builder(site, 1);
+        const map = GW.map.make(80, 34);
+        const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -76,15 +75,15 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level(80, 34);
-        level.create((x, y, t) => site.setTile(x, y, t));
+        const level = new DIG.Level();
+        level.create(map);
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
         // site.dump();
 
-        expect(site.count((c) => c.hasTile('A'))).toBeGreaterThan(1);
-        expect(site.count((c) => c.hasTile('B'))).toEqual(1);
+        expect(map.count((c) => c.hasTile('A'))).toBeGreaterThan(1);
+        expect(map.count((c) => c.hasTile('B'))).toEqual(1);
     });
 
     test('tile everywhere', () => {
@@ -95,8 +94,8 @@ describe('buildStep', () => {
             ch: 'A',
         });
 
-        const site = new SITE.MapSite(80, 34);
-        const builder = new BUILDER.Builder(site, 1);
+        const map = GW.map.make(80, 34);
+        const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -105,14 +104,16 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level(80, 34);
-        level.create((x, y, t) => site.setTile(x, y, t));
+        const level = new DIG.Level();
+        level.create(map);
+
+        // site.dump();
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
         // site.dump();
 
-        expect(site.count((c) => c.hasTile('A'))).toEqual(20);
+        expect(map.count((c) => c.hasTile('A'))).toEqual(12);
     });
 
     test('tile near origin', () => {
@@ -123,8 +124,8 @@ describe('buildStep', () => {
             ch: 'A',
         });
 
-        const site = new SITE.MapSite(80, 34);
-        const builder = new BUILDER.Builder(site, 1);
+        const map = GW.map.make(80, 34);
+        const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -133,19 +134,19 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level(80, 34);
-        level.create((x, y, t) => site.setTile(x, y, t));
+        const level = new DIG.Level();
+        level.create(map);
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
         // site.dump();
 
-        expect(builder.originX).toEqual(65);
-        expect(builder.originY).toEqual(22);
+        expect(builder.originX).toEqual(5);
+        expect(builder.originY).toEqual(27);
 
-        expect(site.count((c) => c.hasTile('A'))).toEqual(1);
+        expect(map.count((c) => c.hasTile('A'))).toEqual(1);
 
-        site.cells.forEach((c, x, y) => {
+        map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
                 GW.utils.distanceBetween(x, y, builder.originX, builder.originY)
@@ -161,8 +162,8 @@ describe('buildStep', () => {
             ch: 'A',
         });
 
-        const site = new SITE.MapSite(80, 34);
-        const builder = new BUILDER.Builder(site, 1);
+        const map = GW.map.make(80, 34);
+        const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -171,19 +172,19 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level(80, 34);
-        level.create((x, y, t) => site.setTile(x, y, t));
+        const level = new DIG.Level();
+        level.create(map);
 
         expect(builder.buildBlueprint(blue)).toBeTruthy();
 
         // site.dump();
 
-        expect(builder.originX).toEqual(65);
-        expect(builder.originY).toEqual(22);
+        expect(builder.originX).toEqual(5);
+        expect(builder.originY).toEqual(27);
 
-        expect(site.count((c) => c.hasTile('A'))).toEqual(1);
+        expect(map.count((c) => c.hasTile('A'))).toEqual(1);
 
-        site.cells.forEach((c, x, y) => {
+        map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
                 GW.utils.distanceBetween(x, y, builder.originX, builder.originY)

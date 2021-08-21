@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
-import * as SITE from './site';
-import * as STEP from './build/buildStep';
-import { BuildData } from './build/builder';
+import * as SITE from '../site';
+import * as STEP from './buildStep';
+import { BuildData } from './builder';
 
 const Fl = GW.flag.fl;
 
@@ -39,7 +39,7 @@ export interface Options {
 export class Blueprint {
     public tags: string[] = [];
     public frequency: GW.frequency.FrequencyFn;
-    public size: [number, number] = [-1, -1];
+    public size: GW.range.Range;
     public flags: number = 0;
     public steps: STEP.BuildStep[] = [];
     public id: string = 'n/a';
@@ -61,17 +61,19 @@ export class Blueprint {
                     .map((v) => Number.parseInt(v));
                 if (parts.length !== 2)
                     throw new Error('Blueprint size must be of format: #-#');
-                this.size = [parts[0], parts[1]];
+                this.size = GW.range.make([parts[0], parts[1]]);
             } else if (Array.isArray(opts.size)) {
                 if (opts.size.length !== 2)
                     throw new Error('Blueprint size must be [min, max]');
-                this.size = [opts.size[0], opts.size[1]];
+                this.size = GW.range.make([opts.size[0], opts.size[1]]);
             } else {
                 throw new Error('size must be string or array.');
             }
 
-            if (this.size[0] > this.size[1])
+            if (this.size.lo > this.size.hi)
                 throw new Error('Blueprint size must be small to large.');
+        } else {
+            this.size = GW.range.make([0, 999999]);
         }
         if (opts.flags) {
             this.flags = GW.flag.from(Flags, opts.flags);
@@ -160,10 +162,15 @@ export class Blueprint {
             const randSite = GW.random.matchingLoc(
                 site.width,
                 site.height,
-                (x, y) =>
-                    site
-                        .cellInfo(x, y)
-                        .hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE)
+                (x, y) => {
+                    return (
+                        site.hasCellFlag(
+                            x,
+                            y,
+                            GW.map.flags.Cell.IS_GATE_SITE
+                        ) && this.size.contains(site.getChokeCount(x, y))
+                    );
+                }
             );
             if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
                 // If no suitable sites, abort.
@@ -247,12 +254,12 @@ export class Blueprint {
                     distanceMap,
                     builder.originX,
                     builder.originY,
-                    this.size[1]
+                    this.size.hi
                 );
 
                 const seq = GW.random.sequence(site.width * site.height);
                 let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-                let totalFreq = GW.random.range(this.size[0], this.size[1]); // Keeps track of the goal size.
+                let totalFreq = this.size.value(); // Keeps track of the goal size.
 
                 for (
                     let k = 0;
@@ -273,11 +280,11 @@ export class Blueprint {
 
                             if (
                                 site.isOccupied(i, j) ||
-                                site
-                                    .cellInfo(i, j)
-                                    .hasCellFlag(
-                                        GW.map.flags.Cell.IS_IN_MACHINE
-                                    )
+                                site.hasCellFlag(
+                                    i,
+                                    j,
+                                    GW.map.flags.Cell.IS_IN_MACHINE
+                                )
                             ) {
                                 // Abort if we've entered another machine or engulfed another machine's item or monster.
                                 tryAgain = true;
@@ -341,12 +348,16 @@ export class Blueprint {
 
             if (
                 site.isOccupied(newX, newY) ||
-                (site
-                    .cellInfo(newX, newY)
-                    .hasCellFlag(GW.map.flags.Cell.IS_IN_MACHINE) &&
-                    !site
-                        .cellInfo(newX, newY)
-                        .hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE))
+                (site.hasCellFlag(
+                    newX,
+                    newY,
+                    GW.map.flags.Cell.IS_IN_MACHINE
+                ) &&
+                    !site.hasCellFlag(
+                        newX,
+                        newY,
+                        GW.map.flags.Cell.IS_GATE_SITE
+                    ))
             ) {
                 // Abort if there's an item in the room.
                 // Items haven't been populated yet, so the only way this could happen is if another machine
@@ -356,9 +367,7 @@ export class Blueprint {
             }
             if (
                 site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-                !site
-                    .cellInfo(newX, newY)
-                    .hasCellFlag(GW.map.flags.Cell.IS_IN_MACHINE)
+                !site.hasCellFlag(newX, newY, GW.map.flags.Cell.IS_IN_MACHINE)
             ) {
                 goodSoFar = this.addTileToInteriorAndIterate(
                     builder,
@@ -379,7 +388,7 @@ export class Blueprint {
         interior.fill(0);
 
         let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-        const totalFreq = GW.random.range(this.size[0], this.size[1]); // Keeps track of the goal size.
+        const totalFreq = this.size.value(); // Keeps track of the goal size.
 
         const distMap = GW.grid.alloc(site.width, site.height);
         SITE.computeDistanceMap(
@@ -387,7 +396,7 @@ export class Blueprint {
             distMap,
             builder.originX,
             builder.originY,
-            this.size[1]
+            this.size.hi
         );
 
         // console.log('DISTANCE MAP', originX, originY);
@@ -471,9 +480,7 @@ export class Blueprint {
             interior.forEach((v, x, y) => {
                 if (
                     !v ||
-                    site
-                        .cellInfo(x, y)
-                        .hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE)
+                    site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
                 )
                     return;
                 GW.utils.eachNeighbor(
@@ -484,15 +491,19 @@ export class Blueprint {
                         if (interior[i][j]) return; // is part of machine
                         if (site.isWall(i, j)) return; // is already a wall (of some sort)
                         if (
-                            site
-                                .cellInfo(i, j)
-                                .hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE)
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_GATE_SITE
+                            )
                         )
                             return; // is a door site
                         if (
-                            site
-                                .cellInfo(i, j)
-                                .hasCellFlag(GW.map.flags.Cell.IS_IN_MACHINE)
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_IN_MACHINE
+                            )
                         )
                             return; // is part of a machine
                         if (!site.blocksPathing(i, j)) return; // is not a blocker for the player (water?)
@@ -514,9 +525,7 @@ export class Blueprint {
             interior.forEach((v, x, y) => {
                 if (
                     !v ||
-                    site
-                        .cellInfo(x, y)
-                        .hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE)
+                    site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
                 )
                     return;
                 site.setCellFlag(x, y, GW.map.flags.Cell.IMPREGNABLE);
@@ -527,9 +536,11 @@ export class Blueprint {
                         if (!interior.hasXY(i, j)) return;
                         if (interior[i][j]) return;
                         if (
-                            site
-                                .cellInfo(i, j)
-                                .hasCellFlag(GW.map.flags.Cell.IS_GATE_SITE)
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_GATE_SITE
+                            )
                         )
                             return;
                         site.setCellFlag(i, j, GW.map.flags.Cell.IMPREGNABLE);
@@ -563,11 +574,7 @@ export class Blueprint {
                 //     site.setTile(x, y, SITE.FLOOR); // clean out the doors...
                 //     return;
                 // }
-                if (
-                    site
-                        .cellInfo(x, y)
-                        .hasCellFlag(GW.map.flags.Cell.IS_IN_MACHINE)
-                )
+                if (site.hasCellFlag(x, y, GW.map.flags.Cell.IS_IN_MACHINE))
                     return;
                 if (!site.blocksPathing(x, y)) return;
 
@@ -595,9 +602,11 @@ export class Blueprint {
                         if (interior[i][j]) return; // already part of machine
                         if (
                             !site.isWall(i, j) ||
-                            site
-                                .cellInfo(i, j)
-                                .hasCellFlag(GW.map.flags.Cell.IS_IN_MACHINE)
+                            site.hasCellFlag(
+                                i,
+                                j,
+                                GW.map.flags.Cell.IS_IN_MACHINE
+                            )
                         ) {
                             ++nbcount; // tile is not a wall or is in a machine
                         }
@@ -629,7 +638,7 @@ export class Blueprint {
             builder.distanceMap,
             builder.originX,
             builder.originY,
-            this.size[1]
+            this.size.hi
         );
         let qualifyingTileCount = 0;
         const distances = new Array(100).fill(0);
@@ -705,12 +714,12 @@ export class Blueprint {
         builder.interior.forEach((v, x, y) => {
             if (!v) return;
             if (
-                !builder.site
-                    .cellInfo(x, y)
-                    .hasCellFlag(
-                        GW.map.flags.Cell.IS_WIRED |
-                            GW.map.flags.Cell.IS_CIRCUIT_BREAKER
-                    )
+                !builder.site.hasCellFlag(
+                    x,
+                    y,
+                    GW.map.flags.Cell.IS_WIRED |
+                        GW.map.flags.Cell.IS_CIRCUIT_BREAKER
+                )
             ) {
                 builder.site.setMachine(x, y, 0);
             }

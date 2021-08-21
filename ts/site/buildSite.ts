@@ -3,113 +3,170 @@ import * as DigSite from './digSite';
 
 const Flags = GW.map.flags.Cell;
 
-export interface BuildSite extends DigSite.DigSite, GW.map.MapType {
-    getChokeCount: (x: number, y: number) => number;
-    setChokeCount: (x: number, y: number, count: number) => void;
+export interface BuildSite extends DigSite.DigSite {
+    getChokeCount(x: number, y: number): number;
+    setChokeCount(x: number, y: number, count: number): void;
 
     isOccupied: GW.utils.XYMatchFunc;
     hasItem: GW.utils.XYMatchFunc;
     hasActor: GW.utils.XYMatchFunc;
 
+    hasCellFlag(x: number, y: number, flag: number): boolean;
+    setCellFlag(x: number, y: number, flag: number): void;
+    clearCellFlag(x: number, y: number, flag: number): void;
+
     analyze(): void;
+    fireEffect(effect: GW.effect.EffectInfo, x: number, y: number): boolean;
 
-    backup: () => any;
-    restore: (backup: any) => void;
+    backup(): any;
+    restore(backup: any): void;
 
-    nextMachineId: () => number;
-    getMachine: (x: number, y: number) => number;
-    setMachine: (x: number, y: number, id: number, isRoom?: boolean) => void;
+    nextMachineId(): number;
+    getMachine(x: number, y: number): number;
+    setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
 }
 
-export class MapSite extends GW.map.Map implements BuildSite {
+export class MapSite implements BuildSite {
+    public map: GW.map.Map;
     public machineId: GW.grid.NumGrid;
     public machineCount = 0;
 
-    constructor(width: number, height: number) {
-        super(width, height);
-        this.machineId = new GW.grid.NumGrid(width, height);
+    constructor(map: GW.map.Map) {
+        this.map = map;
+        this.machineId = new GW.grid.NumGrid(map.width, map.height);
     }
 
-    hasItem(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasItem();
+    get width(): number {
+        return this.map.width;
     }
-    isPassable(x: number, y: number): boolean {
-        return !this.cellInfo(x, y).blocksMove();
+    get height(): number {
+        return this.map.height;
     }
-    blocksMove(x: number, y: number): boolean {
-        return this.cellInfo(x, y).blocksMove();
+
+    hasXY(x: number, y: number): boolean {
+        return this.map.hasXY(x, y);
     }
-    isWall(x: number, y: number): boolean {
-        return this.cellInfo(x, y).isWall();
+    isBoundaryXY(x: number, y: number): boolean {
+        return this.map.isBoundaryXY(x, y);
     }
-    isStairs(x: number, y: number): boolean {
-        return this.cellInfo(x, y).isStairs();
+
+    hasCellFlag(x: number, y: number, flag: number): boolean {
+        return this.map.cellInfo(x, y).hasCellFlag(flag);
     }
+    setCellFlag(x: number, y: number, flag: number): void {
+        this.map.cell(x, y).setCellFlag(flag);
+    }
+    clearCellFlag(x: number, y: number, flag: number): void {
+        this.map.cell(x, y).clearCellFlag(flag);
+    }
+
     hasTile(
         x: number,
         y: number,
         tile: string | number | GW.tile.Tile
     ): boolean {
-        return this.cellInfo(x, y).hasTile(tile);
+        return this.map.cellInfo(x, y).hasTile(tile);
     }
 
-    free() {}
+    setTile(
+        x: number,
+        y: number,
+        tile: string | number | GW.tile.Tile,
+        opts?: Partial<GW.map.SetOptions>
+    ): boolean {
+        return this.map.setTile(x, y, tile, opts);
+    }
 
-    isSet(x: number, y: number): boolean {
-        return this.hasXY(x, y) && !this.cell(x, y).isEmpty();
+    getTileIndex(x: number, y: number): number {
+        if (!this.hasXY(x, y)) return 0;
+        const cell = this.map.cell(x, y);
+        const tile = cell.highestPriorityTile();
+        return tile.index;
     }
-    isDiggable(x: number, y: number): boolean {
-        if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
-        if (cell.isEmpty()) return true;
-        if (cell.isWall()) return true;
-        return false;
+
+    clear() {
+        this.map.cells.forEach((c) => c.clear());
     }
-    isNothing(x: number, y: number): boolean {
-        return this.hasXY(x, y) && this.cell(x, y).isEmpty();
+
+    hasItem(x: number, y: number): boolean {
+        return this.map.cellInfo(x, y).hasItem();
     }
-    isFloor(x: number, y: number): boolean {
-        return this.isPassable(x, y);
+    hasActor(x: number, y: number): boolean {
+        return this.map.hasActor(x, y);
     }
-    isBridge(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_BRIDGE);
+
+    blocksMove(x: number, y: number): boolean {
+        return this.map.cellInfo(x, y).blocksMove();
     }
-    isDoor(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_IS_DOOR);
-    }
-    isSecretDoor(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasObjectFlag(
-            GW.gameObject.flags.GameObject.L_SECRETLY_PASSABLE
-        );
+    blocksVision(x: number, y: number): boolean {
+        return this.map.cellInfo(x, y).blocksVision();
     }
     blocksDiagonal(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasObjectFlag(
-            GW.gameObject.flags.GameObject.L_BLOCKS_DIAGONAL
-        );
+        return this.map
+            .cellInfo(x, y)
+            .hasObjectFlag(GW.gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x: number, y: number): boolean {
-        const info = this.cellInfo(x, y);
+        const info = this.map.cellInfo(x, y);
         return (
             info.hasObjectFlag(GW.gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
             info.hasTileFlag(GW.tile.flags.Tile.T_PATHING_BLOCKER)
         );
     }
     blocksItems(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasObjectFlag(
-            GW.gameObject.flags.GameObject.L_BLOCKS_ITEMS
-        );
+        return this.map
+            .cellInfo(x, y)
+            .hasObjectFlag(GW.gameObject.flags.GameObject.L_BLOCKS_ITEMS);
     }
     blocksEffects(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasObjectFlag(
-            GW.gameObject.flags.GameObject.L_BLOCKS_EFFECTS
-        );
+        return this.map
+            .cellInfo(x, y)
+            .hasObjectFlag(GW.gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
+    }
+
+    isWall(x: number, y: number): boolean {
+        return this.map.cellInfo(x, y).isWall();
+    }
+    isStairs(x: number, y: number): boolean {
+        return this.map.cellInfo(x, y).isStairs();
+    }
+    isSet(x: number, y: number): boolean {
+        return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
+    }
+    isDiggable(x: number, y: number): boolean {
+        if (!this.hasXY(x, y)) return false;
+        const cell = this.map.cell(x, y);
+        if (cell.isEmpty()) return true;
+        if (cell.isWall()) return true;
+        return false;
+    }
+    isNothing(x: number, y: number): boolean {
+        return this.hasXY(x, y) && this.map.cell(x, y).isEmpty();
+    }
+    isFloor(x: number, y: number): boolean {
+        return this.isPassable(x, y);
+    }
+    isBridge(x: number, y: number): boolean {
+        return this.map.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_BRIDGE);
+    }
+    isDoor(x: number, y: number): boolean {
+        return this.map
+            .cellInfo(x, y)
+            .hasTileFlag(GW.tile.flags.Tile.T_IS_DOOR);
+    }
+    isSecretDoor(x: number, y: number): boolean {
+        return this.map
+            .cellInfo(x, y)
+            .hasObjectFlag(GW.gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
     }
     isDeep(x: number, y: number): boolean {
-        return this.cellInfo(x, y).hasTileFlag(GW.tile.flags.Tile.T_DEEP_WATER);
+        return this.map
+            .cellInfo(x, y)
+            .hasTileFlag(GW.tile.flags.Tile.T_DEEP_WATER);
     }
     isShallow(x: number, y: number): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
+        const cell = this.map.cell(x, y);
         return (
             !!cell.depthTile(GW.gameObject.flags.Depth.LIQUID) &&
             !cell.hasTileFlag(GW.tile.flags.Tile.T_IS_DEEP_LIQUID)
@@ -117,50 +174,47 @@ export class MapSite extends GW.map.Map implements BuildSite {
     }
     isAnyLiquid(x: number, y: number): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
+        const cell = this.map.cell(x, y);
         return (
             cell.hasDepthTile(GW.gameObject.flags.Depth.LIQUID) ||
             cell.hasTileFlag(GW.tile.flags.Tile.T_IS_DEEP_LIQUID)
         );
     }
-    getTileIndex(x: number, y: number): number {
-        if (!this.hasXY(x, y)) return 0;
-        const cell = this.cell(x, y);
-        const tile = cell.highestPriorityTile();
-        return tile.index;
-    }
-    tileBlocksMove(tile: number): boolean {
-        return GW.tile.get(tile).blocksMove();
-    }
-
-    backup(): MapSite {
-        const backup = new MapSite(this.width, this.height);
-        backup.copy(this);
-        backup.machineId.copy(this.machineId);
-        backup.machineCount = this.machineCount;
-        return backup;
-    }
-
-    restore(backup: MapSite) {
-        this.copy(backup);
-        this.machineId.copy(backup.machineId);
-        this.machineCount = backup.machineCount;
-    }
-
-    getChokeCount(x: number, y: number): number {
-        return this.cell(x, y).chokeCount;
-    }
-
-    setChokeCount(x: number, y: number, count: number) {
-        this.cell(x, y).chokeCount = count;
-    }
-
     isOccupied(x: number, y: number) {
         return this.hasItem(x, y) || this.hasActor(x, y);
     }
 
+    isPassable(x: number, y: number): boolean {
+        return !this.map.cellInfo(x, y).blocksMove();
+    }
+
+    tileBlocksMove(tile: number): boolean {
+        return GW.tile.get(tile).blocksMove();
+    }
+
+    backup(): GW.map.Map {
+        return this.map.clone();
+    }
+
+    restore(backup: GW.map.Map) {
+        this.map = backup;
+    }
+
+    free() {}
+
+    getChokeCount(x: number, y: number): number {
+        return this.map.cell(x, y).chokeCount;
+    }
+
+    setChokeCount(x: number, y: number, count: number) {
+        this.map.cell(x, y).chokeCount = count;
+    }
+
     analyze() {
-        GW.map.analyze(this);
+        GW.map.analyze(this.map);
+    }
+    fireEffect(effect: GW.effect.EffectInfo, x: number, y: number): boolean {
+        return GW.effect.fireSync(effect, this.map, x, y);
     }
 
     nextMachineId(): number {
@@ -172,9 +226,9 @@ export class MapSite extends GW.map.Map implements BuildSite {
     setMachine(x: number, y: number, id: number, isRoom = true) {
         this.machineId[x][y] = id;
         if (id == 0) {
-            this.clearCellFlag(x, y, Flags.IS_IN_MACHINE);
+            this.map.clearCellFlag(x, y, Flags.IS_IN_MACHINE);
         } else {
-            this.setCellFlag(
+            this.map.setCellFlag(
                 x,
                 y,
                 isRoom ? Flags.IS_IN_ROOM_MACHINE : Flags.IS_IN_AREA_MACHINE

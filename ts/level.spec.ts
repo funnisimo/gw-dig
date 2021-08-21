@@ -8,14 +8,14 @@ describe('Level', () => {
         Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
         Dig.room.install('ROOM', new Dig.room.Rectangular());
 
-        const level = new Dig.Level(40, 40, {
+        const level = new Dig.Level({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 50 },
             halls: { chance: 50 },
             loops: { minDistance: 20, maxLength: 5 },
             lakes: {
-                count: 1,
+                count: 5,
                 wreathSize: 1,
                 wreathChance: 100,
                 width: 10,
@@ -27,7 +27,7 @@ describe('Level', () => {
             },
             stairs: { up: [20, 38], down: true },
         });
-        level.create((x, y, v) => {
+        level.create(40, 40, (x, y, v) => {
             grid[x][y] = v;
         });
 

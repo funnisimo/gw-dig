@@ -4,17 +4,20 @@ import * as SITE from './site';
 export interface LoopOptions {
     minDistance: number;
     maxLength: number;
+    doorChance: number;
 }
 
 export interface LoopConfig {
     minDistance: number;
     maxLength: number;
+    doorChance: number;
 }
 
 export class LoopDigger {
     public options: LoopConfig = {
         minDistance: 100,
         maxLength: 1,
+        doorChance: 50,
     };
 
     constructor(options: Partial<LoopOptions> = {}) {
@@ -158,7 +161,12 @@ export class LoopDigger {
                                 endY += dir[1];
                             }
                             // TODO - Door is optional
-                            site.setTile(x, y, SITE.DOOR); // then turn the tile into a doorway.
+                            const tile = GW.random.chance(
+                                this.options.doorChance
+                            )
+                                ? SITE.DOOR
+                                : SITE.FLOOR;
+                            site.setTile(x, y, tile); // then turn the tile into a doorway.
                             ++count;
                             break;
                         }

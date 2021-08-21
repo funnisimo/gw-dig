@@ -1,6 +1,6 @@
 import * as GW from 'gw-utils';
 import * as SITE from '../site';
-import * as BLUE from '../blueprint';
+import * as BLUE from '.';
 import { StepFlags } from './buildStep';
 
 export interface BuildData {
@@ -19,6 +19,7 @@ export interface BuildData {
 }
 
 export class Builder {
+    public site: SITE.MapSite;
     public spawnedItems: GW.item.Item[] = [];
     public spawnedHordes: GW.actor.Actor[] = [];
     public interior: GW.grid.NumGrid;
@@ -31,11 +32,12 @@ export class Builder {
     public distance75: number = -1;
     public machineNumber = 0;
 
-    constructor(public site: SITE.BuildSite, public depth: number) {
-        this.interior = GW.grid.alloc(site.width, site.height);
-        this.occupied = GW.grid.alloc(site.width, site.height);
-        this.viewMap = GW.grid.alloc(site.width, site.height);
-        this.distanceMap = GW.grid.alloc(site.width, site.height);
+    constructor(public map: GW.map.Map, public depth: number) {
+        this.site = new SITE.MapSite(map);
+        this.interior = GW.grid.alloc(map.width, map.height);
+        this.occupied = GW.grid.alloc(map.width, map.height);
+        this.viewMap = GW.grid.alloc(map.width, map.height);
+        this.distanceMap = GW.grid.alloc(map.width, map.height);
     }
 
     free() {
