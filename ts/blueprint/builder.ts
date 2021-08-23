@@ -1,53 +1,54 @@
-import * as GW from 'gw-utils';
-import * as SITE from '../site';
-import * as BLUE from '.';
-import { StepFlags } from './buildStep';
+import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
 
-export interface BuildData {
-    site: SITE.BuildSite;
-    spawnedItems: any[];
-    spawnedHordes: any[];
-    interior: GW.grid.NumGrid;
-    occupied: GW.grid.NumGrid;
-    viewMap: GW.grid.NumGrid;
-    distanceMap: GW.grid.NumGrid;
-    originX: number;
-    originY: number;
-    distance25: number;
-    distance75: number;
-    machineNumber: number;
-}
+import * as SITE from '../site';
+import * as BLUE from './blueprint';
+
+// export interface BuildData {
+//     site: SITE.BuildSite;
+//     spawnedItems: any[];
+//     spawnedHordes: any[];
+//     interior: GWU.grid.NumGrid;
+//     occupied: GWU.grid.NumGrid;
+//     viewMap: GWU.grid.NumGrid;
+//     distanceMap: GWU.grid.NumGrid;
+//     originX: number;
+//     originY: number;
+//     distance25: number;
+//     distance75: number;
+//     machineNumber: number;
+// }
 
 export class Builder {
     public site: SITE.MapSite;
-    public spawnedItems: GW.item.Item[] = [];
-    public spawnedHordes: GW.actor.Actor[] = [];
-    public interior: GW.grid.NumGrid;
-    public occupied: GW.grid.NumGrid;
-    public viewMap: GW.grid.NumGrid;
-    public distanceMap: GW.grid.NumGrid;
+    public spawnedItems: GWM.item.Item[] = [];
+    public spawnedHordes: GWM.actor.Actor[] = [];
+    public interior: GWU.grid.NumGrid;
+    public occupied: GWU.grid.NumGrid;
+    public viewMap: GWU.grid.NumGrid;
+    public distanceMap: GWU.grid.NumGrid;
     public originX: number = -1;
     public originY: number = -1;
     public distance25: number = -1;
     public distance75: number = -1;
     public machineNumber = 0;
 
-    constructor(public map: GW.map.Map, public depth: number) {
+    constructor(public map: GWM.map.Map, public depth: number) {
         this.site = new SITE.MapSite(map);
-        this.interior = GW.grid.alloc(map.width, map.height);
-        this.occupied = GW.grid.alloc(map.width, map.height);
-        this.viewMap = GW.grid.alloc(map.width, map.height);
-        this.distanceMap = GW.grid.alloc(map.width, map.height);
+        this.interior = GWU.grid.alloc(map.width, map.height);
+        this.occupied = GWU.grid.alloc(map.width, map.height);
+        this.viewMap = GWU.grid.alloc(map.width, map.height);
+        this.distanceMap = GWU.grid.alloc(map.width, map.height);
     }
 
     free() {
-        GW.grid.free(this.interior);
-        GW.grid.free(this.occupied);
-        GW.grid.free(this.viewMap);
-        GW.grid.free(this.distanceMap);
+        GWU.grid.free(this.interior);
+        GWU.grid.free(this.occupied);
+        GWU.grid.free(this.viewMap);
+        GWU.grid.free(this.distanceMap);
     }
 
-    buildRandom(requiredMachineFlags = BLUE.Flags.BP_ROOM) {
+    buildRandom(requiredMachineFlags = BLUE.Flags.BP_ROOM, x = -1, y = -1) {
         let tries = 10;
         while (tries--) {
             const blueprint = BLUE.random(requiredMachineFlags, this.depth);
@@ -55,27 +56,34 @@ export class Builder {
                 continue;
             }
 
-            if (this.buildBlueprint(blueprint)) {
+            if (this.build(blueprint, x, y)) {
                 return true;
             }
         }
 
         console.log(
             'Failed to find blueprint matching flags: ' +
-                GW.flag.toString(BLUE.Flags, requiredMachineFlags)
+                GWU.flag.toString(BLUE.Flags, requiredMachineFlags)
         );
         return false;
     }
 
-    buildBlueprint(blueprint: BLUE.Blueprint) {
+    build(blueprint: BLUE.Blueprint, x = -1, y = -1) {
         let tries = 10;
+
+        this.site.analyze();
+
+        if (x >= 0 && y >= 0) {
+            return this._build(blueprint, x, y);
+        }
+
         while (tries--) {
             const loc = blueprint.pickLocation(this.site);
             if (!loc) {
                 continue;
             }
 
-            if (this.build(blueprint, loc[0], loc[1])) {
+            if (this._build(blueprint, loc[0], loc[1])) {
                 return true;
             }
         }
@@ -87,7 +95,7 @@ export class Builder {
     //////////////////////////////////////////
     // Returns true if the machine got built; false if it was aborted.
     // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-    build(blueprint: BLUE.Blueprint, originX: number, originY: number) {
+    _build(blueprint: BLUE.Blueprint, originX: number, originY: number) {
         this.interior.fill(0);
         this.occupied.fill(0);
         this.viewMap.fill(0);
@@ -128,8 +136,8 @@ export class Builder {
             const count = component.build(this, blueprint);
 
             if (
-                count < component.count.lo &&
-                !(component.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
+                count == 0 ||
+                (count < component.count.lo && !component.repeatUntilNoProgress)
             ) {
                 // failure! abort!
                 console.log(

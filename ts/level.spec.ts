@@ -1,9 +1,9 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as Dig from './index';
 
 describe('Level', () => {
     test('basic', () => {
-        const grid = new GW.grid.NumGrid(40, 40);
+        const grid = new GWU.grid.NumGrid(40, 40);
 
         Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
         Dig.room.install('ROOM', new Dig.room.Rectangular());

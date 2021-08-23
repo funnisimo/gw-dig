@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
 export interface BridgeOpts {
@@ -24,8 +24,8 @@ export class Bridges {
         const maxLength = this.options.maxLength;
         const minDistance = this.options.minDistance;
 
-        const pathGrid = GW.grid.alloc(site.width, site.height);
-        const costGrid = GW.grid.alloc(site.width, site.height);
+        const pathGrid = GWU.grid.alloc(site.width, site.height);
+        const costGrid = GWU.grid.alloc(site.width, site.height);
 
         const dirCoords: [number, number][] = [
             [1, 0],
@@ -33,10 +33,10 @@ export class Bridges {
         ];
 
         costGrid.update((_v, x, y) =>
-            site.isPassable(x, y) ? 1 : GW.path.OBSTRUCTION
+            site.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION
         );
 
-        const seq = GW.random.sequence(site.width * site.height);
+        const seq = GWU.random.sequence(site.width * site.height);
 
         for (i = 0; i < seq.length; i++) {
             x = Math.floor(seq[i] / site.height);
@@ -76,7 +76,7 @@ export class Bridges {
                         site.isPassable(newX, newY) &&
                         j < maxLength
                     ) {
-                        GW.path.calculateDistances(
+                        GWU.path.calculateDistances(
                             pathGrid,
                             newX,
                             newY,
@@ -88,7 +88,7 @@ export class Bridges {
                         // dijkstraScan(pathGrid, costGrid, false);
                         if (
                             pathGrid[x][y] > minDistance &&
-                            pathGrid[x][y] < GW.path.NO_PATH
+                            pathGrid[x][y] < GWU.path.NO_PATH
                         ) {
                             // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
 
@@ -126,8 +126,8 @@ export class Bridges {
                 }
             }
         }
-        GW.grid.free(pathGrid);
-        GW.grid.free(costGrid);
+        GWU.grid.free(pathGrid);
+        GWU.grid.free(costGrid);
         return count;
     }
 

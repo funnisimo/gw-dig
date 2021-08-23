@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as LEVEL from './level';
 
 import * as TYPES from './types';
@@ -17,7 +17,7 @@ export interface DungeonOptions {
     width: number;
     height: number;
 
-    startLoc?: GW.utils.Loc;
+    startLoc?: GWU.utils.Loc;
     startTile?: number;
     stairDistance?: number;
 
@@ -39,7 +39,7 @@ export interface DungeonOptions {
     boundary: boolean;
 }
 
-export type LocPair = [GW.utils.Loc, GW.utils.Loc];
+export type LocPair = [GWU.utils.Loc, GWU.utils.Loc];
 
 export class Dungeon {
     public config: DungeonOptions = {
@@ -59,10 +59,10 @@ export class Dungeon {
     public stairLocs: LocPair[] = [];
 
     constructor(options: Partial<DungeonOptions> = {}) {
-        GW.utils.setOptions(this.config, options);
+        GWU.utils.setOptions(this.config, options);
 
         if (this.config.seed) {
-            GW.random.seed(this.config.seed);
+            GWU.random.seed(this.config.seed);
         }
 
         this.initSeeds();
@@ -75,12 +75,12 @@ export class Dungeon {
 
     initSeeds() {
         for (let i = 0; i < this.config.levels; ++i) {
-            this.seeds[i] = GW.random.number(2 ** 32);
+            this.seeds[i] = GWU.random.number(2 ** 32);
         }
     }
 
     initStairLocs() {
-        let startLoc: GW.utils.Loc = this.config.startLoc || [
+        let startLoc: GWU.utils.Loc = this.config.startLoc || [
             Math.floor(this.config.width / 2),
             this.config.height - 2,
         ];
@@ -90,12 +90,12 @@ export class Dungeon {
             Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
 
         for (let i = 0; i < this.config.levels; ++i) {
-            const endLoc = GW.random.matchingLoc(
+            const endLoc = GWU.random.matchingLoc(
                 this.config.width,
                 this.config.height,
                 (x, y) => {
                     return (
-                        GW.utils.distanceBetween(
+                        GWU.utils.distanceBetween(
                             startLoc[0],
                             startLoc[1],
                             x,
@@ -116,7 +116,7 @@ export class Dungeon {
     getLevel(id: number, cb: TYPES.DigFn) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
-        GW.random.seed(this.seeds[id]);
+        GWU.random.seed(this.seeds[id]);
 
         // Generate the level
         const [startLoc, endLoc] = this.stairLocs[id];
@@ -171,8 +171,8 @@ export class Dungeon {
         const result = level.create(this.config.width, this.config.height, cb);
 
         if (
-            !GW.utils.equalsXY(level.endLoc, opts.endLoc) ||
-            !GW.utils.equalsXY(level.startLoc, opts.startLoc)
+            !GWU.utils.equalsXY(level.endLoc, opts.endLoc) ||
+            !GWU.utils.equalsXY(level.startLoc, opts.startLoc)
         ) {
             this.stairLocs[id] = [level.startLoc, level.endLoc];
         }

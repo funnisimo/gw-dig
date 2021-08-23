@@ -1,6 +1,6 @@
 import 'jest-extended';
 import * as UTILS from '../test/utils';
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as HALL from './hall';
 import * as SITE from './site';
 import { Room } from './types';
@@ -8,7 +8,7 @@ import { Room } from './types';
 describe('Hall', () => {
     beforeEach(() => {
         // UTILS.mockRandom();
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
     });
 
     afterEach(() => {
@@ -54,28 +54,28 @@ describe('Hall', () => {
 
     // describe('pickLengthRange', () => {
     //     test('length', () => {
-    //         let l: GW.range.Range;
+    //         let l: GWU.range.Range;
 
-    //         l = HALL.pickLengthRange(GW.utils.UP, { length: 7 });
+    //         l = HALL.pickLengthRange(GWU.utils.UP, { length: 7 });
     //         expect(l.value()).toEqual(7);
 
-    //         l = HALL.pickLengthRange(GW.utils.UP, { length: '7-10' });
+    //         l = HALL.pickLengthRange(GWU.utils.UP, { length: '7-10' });
     //         expect(l.lo).toEqual(7);
     //         expect(l.hi).toEqual(10);
 
-    //         l = HALL.pickLengthRange(GW.utils.UP, {
+    //         l = HALL.pickLengthRange(GWU.utils.UP, {
     //             length: ['7-10', '5-9'],
     //         });
     //         expect(l.lo).toEqual(5);
     //         expect(l.hi).toEqual(9);
 
-    //         l = HALL.pickLengthRange(GW.utils.RIGHT, {
+    //         l = HALL.pickLengthRange(GWU.utils.RIGHT, {
     //             length: [[7, 10], '5-9'],
     //         });
     //         expect(l.lo).toEqual(7);
     //         expect(l.hi).toEqual(10);
 
-    //         l = HALL.pickLengthRange(GW.utils.LEFT, {
+    //         l = HALL.pickLengthRange(GWU.utils.LEFT, {
     //             length: [[5, 9], '7-10'],
     //         });
     //         expect(l.lo).toEqual(5);
@@ -83,13 +83,13 @@ describe('Hall', () => {
     //     });
 
     //     test('default', () => {
-    //         let l: GW.range.Range;
+    //         let l: GWU.range.Range;
 
-    //         l = HALL.pickLengthRange(GW.utils.UP, {});
+    //         l = HALL.pickLengthRange(GWU.utils.UP, {});
     //         expect(l.lo).toEqual(2);
     //         expect(l.hi).toEqual(9);
 
-    //         l = HALL.pickLengthRange(GW.utils.RIGHT, {});
+    //         l = HALL.pickLengthRange(GWU.utils.RIGHT, {});
     //         expect(l.lo).toEqual(9);
     //         expect(l.hi).toEqual(15);
     //     });
@@ -145,7 +145,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - down', () => {
-            room.doors[GW.utils.DOWN] = [25, 30];
+            room.doors[GWU.utils.DOWN] = [25, 30];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -161,7 +161,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - up', () => {
-            room.doors[GW.utils.UP] = [25, 19];
+            room.doors[GWU.utils.UP] = [25, 19];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -177,7 +177,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - left', () => {
-            room.doors[GW.utils.LEFT] = [19, 25];
+            room.doors[GWU.utils.LEFT] = [19, 25];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -198,7 +198,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - right', () => {
-            room.doors[GW.utils.RIGHT] = [30, 25];
+            room.doors[GWU.utils.RIGHT] = [30, 25];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -214,7 +214,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - down, width:2', () => {
-            room.doors[GW.utils.DOWN] = [25, 30];
+            room.doors[GWU.utils.DOWN] = [25, 30];
             const digger = new HALL.HallDigger({ width: 2 });
             const hall = digger.create(site, room.doors);
 
@@ -230,7 +230,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - up, width:2', () => {
-            room.doors[GW.utils.UP] = [25, 19];
+            room.doors[GWU.utils.UP] = [25, 19];
             const digger = new HALL.HallDigger({ width: 2 });
             const hall = digger.create(site, room.doors);
 
@@ -246,7 +246,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - left, width:2', () => {
-            room.doors[GW.utils.LEFT] = [19, 25];
+            room.doors[GWU.utils.LEFT] = [19, 25];
             const digger = new HALL.HallDigger({ width: 2 });
             const hall = digger.create(site, room.doors);
 
@@ -269,7 +269,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - right, width:3', () => {
-            room.doors[GW.utils.RIGHT] = [30, 25];
+            room.doors[GWU.utils.RIGHT] = [30, 25];
             const digger = new HALL.HallDigger({ width: 3, tile: 10 });
             const hall = digger.create(site, room.doors);
 
@@ -308,7 +308,7 @@ describe('Hall', () => {
         });
 
         test('can set tile', () => {
-            room.doors[GW.utils.DOWN] = [25, 30];
+            room.doors[GWU.utils.DOWN] = [25, 30];
             const digger = new HALL.HallDigger({ tile: 10 });
             const hall = digger.create(site, room.doors);
 

@@ -1,9 +1,11 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
+
 import * as SITE from '../site';
 import * as STEP from './buildStep';
-import { BuildData } from './builder';
+import { Builder } from './builder';
 
-const Fl = GW.flag.fl;
+const Fl = GWU.flag.fl;
 
 export enum Flags {
     BP_ROOM = Fl(10), // spawns in a dead-end room that is dominated by a chokepoint of the given size (as opposed to a random place of the given size)
@@ -30,16 +32,16 @@ export enum Flags {
 
 export interface Options {
     tags: string | string[];
-    frequency: GW.frequency.FrequencyConfig;
+    frequency: GWU.frequency.FrequencyConfig;
     size: string | number[];
-    flags: GW.flag.FlagBase;
+    flags: GWU.flag.FlagBase;
     steps: Partial<STEP.StepOptions>[];
 }
 
 export class Blueprint {
     public tags: string[] = [];
-    public frequency: GW.frequency.FrequencyFn;
-    public size: GW.range.Range;
+    public frequency: GWU.frequency.FrequencyFn;
+    public size: GWU.range.Range;
     public flags: number = 0;
     public steps: STEP.BuildStep[] = [];
     public id: string = 'n/a';
@@ -51,7 +53,7 @@ export class Blueprint {
             }
             this.tags = opts.tags;
         }
-        this.frequency = GW.frequency.make(opts.frequency || 100);
+        this.frequency = GWU.frequency.make(opts.frequency || 100);
 
         if (opts.size) {
             if (typeof opts.size === 'string') {
@@ -61,11 +63,11 @@ export class Blueprint {
                     .map((v) => Number.parseInt(v));
                 if (parts.length !== 2)
                     throw new Error('Blueprint size must be of format: #-#');
-                this.size = GW.range.make([parts[0], parts[1]]);
+                this.size = GWU.range.make([parts[0], parts[1]]);
             } else if (Array.isArray(opts.size)) {
                 if (opts.size.length !== 2)
                     throw new Error('Blueprint size must be [min, max]');
-                this.size = GW.range.make([opts.size[0], opts.size[1]]);
+                this.size = GWU.range.make([opts.size[0], opts.size[1]]);
             } else {
                 throw new Error('size must be string or array.');
             }
@@ -73,10 +75,10 @@ export class Blueprint {
             if (this.size.lo > this.size.hi)
                 throw new Error('Blueprint size must be small to large.');
         } else {
-            this.size = GW.range.make([0, 999999]);
+            this.size = GWU.range.make([0, 999999]);
         }
         if (opts.flags) {
-            this.flags = GW.flag.from(Flags, opts.flags);
+            this.flags = GWU.flag.from(Flags, opts.flags);
         }
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new STEP.BuildStep(cfg));
@@ -158,8 +160,7 @@ export class Blueprint {
             // If it's a room machine, count up the gates of appropriate
             // choke size and remember where they are. The origin of the room will be the gate location.
 
-            site.analyze(); // Make sure the chokeMap is up to date.
-            const randSite = GW.random.matchingLoc(
+            const randSite = GWU.random.matchingLoc(
                 site.width,
                 site.height,
                 (x, y) => {
@@ -167,7 +168,7 @@ export class Blueprint {
                         site.hasCellFlag(
                             x,
                             y,
-                            GW.map.flags.Cell.IS_GATE_SITE
+                            GWM.map.flags.Cell.IS_GATE_SITE
                         ) && this.size.contains(site.getChokeCount(x, y))
                     );
                 }
@@ -189,7 +190,7 @@ export class Blueprint {
         }
 
         // Pick a random origin location.
-        const pos = GW.random.matchingLoc(site.width, site.height, (x, y) =>
+        const pos = GWU.random.matchingLoc(site.width, site.height, (x, y) =>
             site.isPassable(x, y)
         );
         if (!pos || pos[0] < 0 || pos[1] < 0) return false;
@@ -197,7 +198,7 @@ export class Blueprint {
     }
 
     // Assume site has been analyzed (aka GateSites and ChokeCounts set)
-    computeInterior(builder: BuildData) {
+    computeInterior(builder: Builder) {
         let failsafe = this.isRoom ? 10 : 20;
         let tryAgain;
         const interior = builder.interior;
@@ -244,7 +245,7 @@ export class Blueprint {
                 // the chosen size, and then make sure the resulting space qualifies.
                 // If not, try again. If we've tried too many times already, abort.
 
-                let distanceMap = GW.grid.alloc(
+                let distanceMap = GWU.grid.alloc(
                     interior.width,
                     interior.height
                 );
@@ -257,7 +258,7 @@ export class Blueprint {
                     this.size.hi
                 );
 
-                const seq = GW.random.sequence(site.width * site.height);
+                const seq = GWU.random.sequence(site.width * site.height);
                 let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
                 let totalFreq = this.size.value(); // Keeps track of the goal size.
 
@@ -283,7 +284,7 @@ export class Blueprint {
                                 site.hasCellFlag(
                                     i,
                                     j,
-                                    GW.map.flags.Cell.IS_IN_MACHINE
+                                    GWM.map.flags.Cell.IS_IN_MACHINE
                                 )
                             ) {
                                 // Abort if we've entered another machine or engulfed another machine's item or monster.
@@ -314,7 +315,7 @@ export class Blueprint {
                 // If locationFailsafe runs out, tryAgain will still be true, and we'll try a different machine.
                 // If we're not choosing the blueprint, then don't bother with the locationFailsafe; just use the higher-level failsafe.
 
-                GW.grid.free(distanceMap);
+                GWU.grid.free(distanceMap);
             }
 
             // Now loop if necessary.
@@ -329,7 +330,7 @@ export class Blueprint {
     // Returns true if everything went well, and false if we ran into a machine component
     // that was already there, as we don't want to build a machine around it.
     addTileToInteriorAndIterate(
-        builder: BuildData,
+        builder: Builder,
         startX: number,
         startY: number
     ): boolean {
@@ -341,8 +342,8 @@ export class Blueprint {
         const startChokeCount = site.getChokeCount(startX, startY);
 
         for (let dir = 0; dir < 4 && goodSoFar; dir++) {
-            const newX = startX + GW.utils.DIRS[dir][0];
-            const newY = startY + GW.utils.DIRS[dir][1];
+            const newX = startX + GWU.utils.DIRS[dir][0];
+            const newY = startY + GWU.utils.DIRS[dir][1];
             if (!site.hasXY(newX, newY)) continue;
             if (interior[newX][newY]) continue; // already done
 
@@ -351,12 +352,12 @@ export class Blueprint {
                 (site.hasCellFlag(
                     newX,
                     newY,
-                    GW.map.flags.Cell.IS_IN_MACHINE
+                    GWM.map.flags.Cell.IS_IN_MACHINE
                 ) &&
                     !site.hasCellFlag(
                         newX,
                         newY,
-                        GW.map.flags.Cell.IS_GATE_SITE
+                        GWM.map.flags.Cell.IS_GATE_SITE
                     ))
             ) {
                 // Abort if there's an item in the room.
@@ -367,7 +368,7 @@ export class Blueprint {
             }
             if (
                 site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-                !site.hasCellFlag(newX, newY, GW.map.flags.Cell.IS_IN_MACHINE)
+                !site.hasCellFlag(newX, newY, GWM.map.flags.Cell.IS_IN_MACHINE)
             ) {
                 goodSoFar = this.addTileToInteriorAndIterate(
                     builder,
@@ -379,7 +380,7 @@ export class Blueprint {
         return goodSoFar;
     }
 
-    computeInteriorForVestibuleMachine(builder: BuildData) {
+    computeInteriorForVestibuleMachine(builder: Builder) {
         let success = true;
 
         const interior = builder.interior;
@@ -390,7 +391,7 @@ export class Blueprint {
         let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
         const totalFreq = this.size.value(); // Keeps track of the goal size.
 
-        const distMap = GW.grid.alloc(site.width, site.height);
+        const distMap = GWU.grid.alloc(site.width, site.height);
         SITE.computeDistanceMap(
             site,
             distMap,
@@ -402,7 +403,11 @@ export class Blueprint {
         // console.log('DISTANCE MAP', originX, originY);
         // RUT.Grid.dump(distMap);
 
-        const cells = GW.random.sequence(site.width * site.height);
+        const doorChokeCount = site.getChokeCount(
+            builder.originX,
+            builder.originY
+        );
+        const cells = GWU.random.sequence(site.width * site.height);
 
         for (let k = 0; k < 1000 && qualifyingTileCount < totalFreq; k++) {
             for (
@@ -420,6 +425,8 @@ export class Blueprint {
                     success = false;
                     qualifyingTileCount = totalFreq;
                 }
+                if (site.getChokeCount(x, y) <= doorChokeCount) continue;
+
                 interior[x][y] = 1;
                 qualifyingTileCount += 1;
             }
@@ -434,11 +441,11 @@ export class Blueprint {
         ) {
             success = false;
         }
-        GW.grid.free(distMap);
+        GWU.grid.free(distMap);
         return success;
     }
 
-    prepareInteriorWithMachineFlags(builder: BuildData) {
+    prepareInteriorWithMachineFlags(builder: Builder) {
         const interior = builder.interior;
         const site = builder.site;
 
@@ -480,10 +487,10 @@ export class Blueprint {
             interior.forEach((v, x, y) => {
                 if (
                     !v ||
-                    site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
+                    site.hasCellFlag(x, y, GWM.map.flags.Cell.IS_GATE_SITE)
                 )
                     return;
-                GW.utils.eachNeighbor(
+                GWU.utils.eachNeighbor(
                     x,
                     y,
                     (i, j) => {
@@ -494,7 +501,7 @@ export class Blueprint {
                             site.hasCellFlag(
                                 i,
                                 j,
-                                GW.map.flags.Cell.IS_GATE_SITE
+                                GWM.map.flags.Cell.IS_GATE_SITE
                             )
                         )
                             return; // is a door site
@@ -502,7 +509,7 @@ export class Blueprint {
                             site.hasCellFlag(
                                 i,
                                 j,
-                                GW.map.flags.Cell.IS_IN_MACHINE
+                                GWM.map.flags.Cell.IS_IN_MACHINE
                             )
                         )
                             return; // is part of a machine
@@ -525,11 +532,11 @@ export class Blueprint {
             interior.forEach((v, x, y) => {
                 if (
                     !v ||
-                    site.hasCellFlag(x, y, GW.map.flags.Cell.IS_GATE_SITE)
+                    site.hasCellFlag(x, y, GWM.map.flags.Cell.IS_GATE_SITE)
                 )
                     return;
-                site.setCellFlag(x, y, GW.map.flags.Cell.IMPREGNABLE);
-                GW.utils.eachNeighbor(
+                site.setCellFlag(x, y, GWM.map.flags.Cell.IMPREGNABLE);
+                GWU.utils.eachNeighbor(
                     x,
                     y,
                     (i, j) => {
@@ -539,11 +546,11 @@ export class Blueprint {
                             site.hasCellFlag(
                                 i,
                                 j,
-                                GW.map.flags.Cell.IS_GATE_SITE
+                                GWM.map.flags.Cell.IS_GATE_SITE
                             )
                         )
                             return;
-                        site.setCellFlag(i, j, GW.map.flags.Cell.IMPREGNABLE);
+                        site.setCellFlag(i, j, GWM.map.flags.Cell.IMPREGNABLE);
                     },
                     false
                 );
@@ -562,7 +569,7 @@ export class Blueprint {
         });
     }
 
-    expandMachineInterior(builder: BuildData, minimumInteriorNeighbors = 1) {
+    expandMachineInterior(builder: Builder, minimumInteriorNeighbors = 1) {
         let madeChange;
         const interior = builder.interior;
         const site = builder.site;
@@ -574,12 +581,12 @@ export class Blueprint {
                 //     site.setTile(x, y, SITE.FLOOR); // clean out the doors...
                 //     return;
                 // }
-                if (site.hasCellFlag(x, y, GW.map.flags.Cell.IS_IN_MACHINE))
+                if (site.hasCellFlag(x, y, GWM.map.flags.Cell.IS_IN_MACHINE))
                     return;
                 if (!site.blocksPathing(x, y)) return;
 
                 let nbcount = 0;
-                GW.utils.eachNeighbor(
+                GWU.utils.eachNeighbor(
                     x,
                     y,
                     (i, j) => {
@@ -594,7 +601,7 @@ export class Blueprint {
                 if (nbcount < minimumInteriorNeighbors) return;
 
                 nbcount = 0;
-                GW.utils.eachNeighbor(
+                GWU.utils.eachNeighbor(
                     x,
                     y,
                     (i, j) => {
@@ -605,7 +612,7 @@ export class Blueprint {
                             site.hasCellFlag(
                                 i,
                                 j,
-                                GW.map.flags.Cell.IS_IN_MACHINE
+                                GWM.map.flags.Cell.IS_IN_MACHINE
                             )
                         ) {
                             ++nbcount; // tile is not a wall or is in a machine
@@ -622,7 +629,7 @@ export class Blueprint {
                 if (site.blocksPathing(x, y)) {
                     site.setTile(x, y, SITE.FLOOR);
                 }
-                GW.utils.eachNeighbor(x, y, (i, j) => {
+                GWU.utils.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j)) return;
                     if (site.isSet(i, j)) return;
                     site.setTile(i, j, SITE.WALL);
@@ -631,7 +638,7 @@ export class Blueprint {
         } while (madeChange);
     }
 
-    calcDistances(builder: BuildData) {
+    calcDistances(builder: Builder) {
         builder.distanceMap.fill(0);
         SITE.computeDistanceMap(
             builder.site,
@@ -693,7 +700,7 @@ export class Blueprint {
                 }
             }
             if (totalFreq > 0) {
-                let randIndex = GW.random.range(1, totalFreq);
+                let randIndex = GWU.random.range(1, totalFreq);
                 for (let i = 0; i < keepFeature.length; i++) {
                     if (this.steps[i].flags & alternativeFlags[j]) {
                         if (randIndex == 1) {
@@ -710,15 +717,15 @@ export class Blueprint {
         return this.steps.filter((_f, i) => keepFeature[i]);
     }
 
-    clearInteriorFlag(builder: BuildData) {
+    clearInteriorFlag(builder: Builder) {
         builder.interior.forEach((v, x, y) => {
             if (!v) return;
             if (
                 !builder.site.hasCellFlag(
                     x,
                     y,
-                    GW.map.flags.Cell.IS_WIRED |
-                        GW.map.flags.Cell.IS_CIRCUIT_BREAKER
+                    GWM.map.flags.Cell.IS_WIRED |
+                        GWM.map.flags.Cell.IS_CIRCUIT_BREAKER
                 )
             ) {
                 builder.site.setMachine(x, y, 0);
@@ -881,5 +888,5 @@ export function random(requiredFlags: number, depth: number): Blueprint {
     const matches = Object.values(blueprints).filter((b) =>
         b.qualifies(requiredFlags, depth)
     );
-    return GW.random.item(matches);
+    return GWU.random.item(matches);
 }

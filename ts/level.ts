@@ -1,4 +1,5 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
 
 import * as TYPES from './types';
 import * as SITE from './site';
@@ -30,8 +31,8 @@ export interface LevelOptions {
 
     rooms: Partial<RoomOptions>;
 
-    startLoc?: GW.utils.Loc;
-    endLoc?: GW.utils.Loc;
+    startLoc?: GWU.utils.Loc;
+    endLoc?: GWU.utils.Loc;
 
     seed?: number;
     boundary?: boolean;
@@ -50,14 +51,14 @@ export class Level {
     public stairs: Partial<STAIRS.StairOpts> | null = {};
     public boundary: boolean = true;
 
-    public startLoc: GW.utils.Loc = [-1, -1];
-    public endLoc: GW.utils.Loc = [-1, -1];
+    public startLoc: GWU.utils.Loc = [-1, -1];
+    public endLoc: GWU.utils.Loc = [-1, -1];
 
     public seq!: number[];
 
     constructor(options: Partial<LevelOptions> = {}) {
         this.seed = options.seed || 0;
-        GW.utils.setOptions(this.rooms, options.rooms);
+        GWU.utils.setOptions(this.rooms, options.rooms);
 
         // Doors
         if (options.doors === false) {
@@ -65,7 +66,7 @@ export class Level {
         } else if (options.doors === true) {
             options.doors = { chance: 100 };
         }
-        GW.utils.setOptions(this.doors, options.doors);
+        GWU.utils.setOptions(this.doors, options.doors);
 
         // Halls
         if (options.halls === false) {
@@ -73,7 +74,7 @@ export class Level {
         } else if (options.halls === true) {
             options.halls = {};
         }
-        GW.utils.setOptions(this.halls, options.halls);
+        GWU.utils.setOptions(this.halls, options.halls);
 
         // Loops
         if (options.loops === false) {
@@ -83,7 +84,7 @@ export class Level {
             options.loops = options.loops || {};
             options.loops.doorChance =
                 options.loops.doorChance ?? options.doors?.chance;
-            GW.utils.setOptions(this.loops, options.loops);
+            GWU.utils.setOptions(this.loops, options.loops);
         }
 
         // Lakes
@@ -91,7 +92,7 @@ export class Level {
             this.lakes = null;
         } else {
             if (options.lakes === true) options.lakes = {};
-            GW.utils.setOptions(this.lakes, options.lakes);
+            GWU.utils.setOptions(this.lakes, options.lakes);
         }
 
         // Bridges
@@ -99,7 +100,7 @@ export class Level {
             this.bridges = null;
         } else {
             if (options.bridges === true) options.bridges = {};
-            GW.utils.setOptions(this.bridges, options.bridges);
+            GWU.utils.setOptions(this.bridges, options.bridges);
         }
 
         // Stairs
@@ -107,7 +108,7 @@ export class Level {
             this.stairs = null;
         } else {
             if (options.stairs === true) options.stairs = {};
-            GW.utils.setOptions(this.stairs, options.stairs);
+            GWU.utils.setOptions(this.stairs, options.stairs);
         }
 
         this.startLoc = options.startLoc || [-1, -1];
@@ -119,10 +120,10 @@ export class Level {
     }
 
     create(width: number, height: number, cb: TYPES.DigFn): boolean;
-    create(map: GW.map.Map): boolean;
+    create(map: GWM.map.Map): boolean;
     create(...args: any[]): boolean {
-        if (args.length == 1 && args[0] instanceof GW.map.Map) {
-            const map = args[0] as GW.map.Map;
+        if (args.length == 1 && args[0] instanceof GWM.map.Map) {
+            const map = args[0] as GWM.map.Map;
             this.site = new SITE.MapSite(map);
         }
         if (args.length > 1) {
@@ -138,7 +139,7 @@ export class Level {
             const height = args[1] as number;
             const cb = args[2] as TYPES.DigFn;
 
-            GW.utils.forRect(width, height, (x, y) => {
+            GWU.utils.forRect(width, height, (x, y) => {
                 const t = this.site.getTileIndex(x, y);
                 if (t) cb(x, y, t);
             });
@@ -183,11 +184,11 @@ export class Level {
 
     start(site: SITE.DigSite) {
         if (this.seed) {
-            GW.random.seed(this.seed);
+            GWU.random.seed(this.seed);
         }
 
         site.clear();
-        this.seq = GW.random.sequence(site.width * site.height);
+        this.seq = GWU.random.sequence(site.width * site.height);
     }
 
     getDigger(
@@ -266,7 +267,7 @@ export class Level {
 
             if (!site.isNothing(x, y)) continue;
             const dir = SITE.directionOfDoorSite(site, x, y);
-            if (dir != GW.utils.NO_DIRECTION) {
+            if (dir != GWU.utils.NO_DIRECTION) {
                 const oppDir = (dir + 2) % 4;
                 const door = doorSites[oppDir];
                 if (!door) continue;
@@ -297,11 +298,11 @@ export class Level {
         site: SITE.DigSite,
         roomSite: SITE.DigSite,
         room: TYPES.Room,
-        attachLoc: GW.utils.Loc
+        attachLoc: GWU.utils.Loc
     ): boolean {
         const [x, y] = attachLoc;
         const doorSites = room.hall ? room.hall.doors : room.doors;
-        const dirs = GW.random.sequence(4);
+        const dirs = GWU.random.sequence(4);
 
         // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
 
@@ -323,8 +324,8 @@ export class Level {
                 // const newDoors = doorSites.map((site) => {
                 //     const x0 = site[0] + offX;
                 //     const y0 = site[1] + offY;
-                //     if (x0 == x && y0 == y) return [-1, -1] as GW.utils.Loc;
-                //     return [x0, y0] as GW.utils.Loc;
+                //     if (x0 == x && y0 == y) return [-1, -1] as GWU.utils.Loc;
+                //     return [x0, y0] as GWU.utils.Loc;
                 // });
                 return true;
             }
@@ -377,7 +378,7 @@ export class Level {
         const opts = this.doors;
         let isDoor = false;
 
-        if (opts.chance && GW.random.chance(opts.chance)) {
+        if (opts.chance && GWU.random.chance(opts.chance)) {
             isDoor = true;
         }
 
@@ -389,7 +390,7 @@ export class Level {
             return;
         }
 
-        if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+        if (dir === GWU.utils.UP || dir === GWU.utils.DOWN) {
             let didSomething = true;
             let k = 1;
             while (didSomething) {
@@ -475,7 +476,7 @@ export class Level {
                             site.blocksDiagonal(i + k, j + 1) &&
                             !site.blocksMove(i + (1 - k), j + 1)
                         ) {
-                            if (GW.random.chance(50)) {
+                            if (GWU.random.chance(50)) {
                                 x1 = i + (1 - k);
                                 y1 = j;
                             } else {
@@ -492,7 +493,7 @@ export class Level {
     }
 
     _finishDoors(site: SITE.DigSite) {
-        GW.utils.forRect(site.width, site.height, (x, y) => {
+        GWU.utils.forRect(site.width, site.height, (x, y) => {
             if (site.isBoundaryXY(x, y)) return;
 
             // todo - isDoorway...
@@ -522,7 +523,7 @@ export class Level {
 
     _finishWalls(site: SITE.DigSite) {
         const boundaryTile = this.boundary ? SITE.IMPREGNABLE : SITE.WALL;
-        GW.utils.forRect(site.width, site.height, (x, y) => {
+        GWU.utils.forRect(site.width, site.height, (x, y) => {
             if (site.isNothing(x, y)) {
                 if (site.isBoundaryXY(x, y)) {
                     site.setTile(x, y, boundaryTile);

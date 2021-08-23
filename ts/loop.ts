@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
 export interface LoopOptions {
@@ -34,8 +34,8 @@ export class LoopDigger {
         );
         const maxLength = this.options.maxLength;
 
-        const pathGrid = GW.grid.alloc(site.width, site.height);
-        const costGrid = GW.grid.alloc(site.width, site.height);
+        const pathGrid = GWU.grid.alloc(site.width, site.height);
+        const costGrid = GWU.grid.alloc(site.width, site.height);
 
         const dirCoords: [number, number][] = [
             [1, 0],
@@ -69,7 +69,7 @@ export class LoopDigger {
         }
 
         let count = 0;
-        const seq = GW.random.sequence(site.width * site.height);
+        const seq = GWU.random.sequence(site.width * site.height);
 
         for (i = 0; i < seq.length; i++) {
             x = Math.floor(seq[i] / site.height);
@@ -125,7 +125,7 @@ export class LoopDigger {
                     }
 
                     if (j < maxLength) {
-                        GW.path.calculateDistances(
+                        GWU.path.calculateDistances(
                             pathGrid,
                             startX,
                             startY,
@@ -161,7 +161,7 @@ export class LoopDigger {
                                 endY += dir[1];
                             }
                             // TODO - Door is optional
-                            const tile = GW.random.chance(
+                            const tile = GWU.random.chance(
                                 this.options.doorChance
                             )
                                 ? SITE.DOOR
@@ -174,8 +174,8 @@ export class LoopDigger {
                 }
             }
         }
-        GW.grid.free(pathGrid);
-        GW.grid.free(costGrid);
+        GWU.grid.free(pathGrid);
+        GWU.grid.free(costGrid);
 
         return count;
     }

@@ -17,26 +17,26 @@ export default [
             {
                 file: 'dist/gw-dig.min.js',
                 format: 'umd',
-                name: 'GWDig',
+                name: 'GWD',
                 // freeze: false,
                 // extend: true,
                 sourcemap: true,
                 globals: {
-                    // 'gw-map': 'GW',
-                    'gw-utils': 'GW',
+                    'gw-map': 'GWM',
+                    'gw-utils': 'GWU',
                 },
                 plugins: [terser()],
             },
             {
                 file: 'dist/gw-dig.js',
                 format: 'umd',
-                name: 'GWDig',
+                name: 'GWD',
                 // freeze: false,
                 // extend: true,
                 sourcemap: false,
                 globals: {
-                    // 'gw-map': 'GW',
-                    'gw-utils': 'GW',
+                    'gw-map': 'GWM',
+                    'gw-utils': 'GWU',
                 },
             },
             // {
@@ -53,8 +53,8 @@ export default [
                 format: 'es',
                 freeze: false,
                 globals: {
-                    // 'gw-map': 'GW',
-                    'gw-utils': 'GW',
+                    'gw-map': 'GWM',
+                    'gw-utils': 'GWU',
                 },
             },
         ],

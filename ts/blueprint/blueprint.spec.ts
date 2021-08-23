@@ -1,4 +1,5 @@
-import * as GW from 'gw-utils';
+import * as GWM from 'gw-map';
+
 import * as BLUE from './index';
 import * as DIG from '../index';
 
@@ -60,8 +61,8 @@ describe('Blueprint', () => {
         // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
         //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BF_TREAT_AS_BLOCKING | BF_BUILD_IN_WALLS | BF_IMPREGNABLE)]]],
 
-        GW.tile.install('CARPET', { ch: '#', fg: 0xb36 });
-        GW.tile.install('DOOR_SECRET', {
+        GWM.tile.install('CARPET', { ch: '#', fg: 0xb36 });
+        GWM.tile.install('DOOR_SECRET', {
             extends: 'WALL',
             flags: 'L_SECRETLY_PASSABLE',
             effects: {
@@ -86,17 +87,17 @@ describe('Blueprint', () => {
         expect(a.steps).toHaveLength(2);
 
         // Create Dig Site
-        const map = GW.map.make(50, 50);
+        const map = GWM.map.make(50, 50);
         const level = new DIG.Level({ seed: 12345 });
         level.create(map);
 
-        GW.map.analyze(map);
+        GWM.map.analyze(map);
 
         // dumpSite(site);
 
         // Create a build site
         const builder = new BLUE.Builder(map, 1);
-        expect(builder.buildBlueprint(a)).toBeTruthy();
+        expect(builder.build(a)).toBeTruthy();
 
         // dumpSite(site);
 
@@ -114,9 +115,9 @@ describe('Blueprint', () => {
         // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
         //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BF_TREAT_AS_BLOCKING | BF_BUILD_IN_WALLS | BF_IMPREGNABLE)]]],
 
-        GW.tile.install('CARPET', { ch: '#', fg: 0xb36 });
-        GW.tile.install('ALTAR', { ch: 'T', fg: 0xf63 });
-        GW.tile.install('STATUE', { ch: '&', fg: 0x663 });
+        GWM.tile.install('CARPET', { ch: '#', fg: 0xb36 });
+        GWM.tile.install('ALTAR', { ch: 'T', fg: 0xf63 });
+        GWM.tile.install('STATUE', { ch: '&', fg: 0x663 });
 
         BLUE.install('MIXED_ITEM_LIBRARY', {
             frequency: '1-12: 30',
@@ -176,9 +177,9 @@ describe('Blueprint', () => {
     });
 
     test('carpet', () => {
-        const map = GW.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34, { visible: true });
 
-        GW.tile.install('CARPET', { extends: 'FLOOR', ch: '%' });
+        GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%' });
         DIG.room.install('ENTRANCE', new DIG.room.BrogueEntrance());
         DIG.room.install(
             'ROOM',
@@ -202,18 +203,18 @@ describe('Blueprint', () => {
             steps: [{ tile: 'CARPET', flags: 'BF_EVERYWHERE' }],
         });
 
-        expect(builder.buildBlueprint(blue)).toBeTruthy();
+        expect(builder.build(blue)).toBeTruthy();
 
         expect(
-            map.cells.count((c, x, y) => {
+            map.cells.count((c, _x, _y) => {
                 if (!c.hasTile('CARPET')) {
                     return false;
                 }
-                console.log('carpet - ', x, y);
+                // console.log('carpet - ', x, y);
                 return true;
             })
         ).toBeGreaterThan(9);
 
-        map.dump();
+        // map.dump();
     });
 });

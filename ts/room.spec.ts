@@ -1,6 +1,6 @@
 import 'jest-extended';
 // import * as UTILS from '../test/utils';
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as Dig from './index';
 import * as Site from './site';
 
@@ -9,7 +9,7 @@ describe('dig', () => {
 
     beforeEach(() => {
         // UTILS.mockRandom();
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
         site = new Site.GridSite(50, 30);
     });
 
@@ -109,7 +109,7 @@ describe('dig', () => {
     });
 
     test('rectangular', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
         const room = Dig.room.rectangular(
             { width: site.width - 2, height: site.height - 2 },
@@ -128,7 +128,7 @@ describe('dig', () => {
     });
 
     test('rectangular - rangebase', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
         const room = Dig.room.rectangular(
             { width: '4-6', height: '4-6' },
@@ -141,7 +141,7 @@ describe('dig', () => {
     });
 
     test('rectangular - tile', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
         const room = Dig.room.rectangular(
             { width: site.width - 2, height: site.height - 2, tile: 10 },
@@ -160,7 +160,7 @@ describe('dig', () => {
     });
 
     test('circular', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
         const room = Dig.room.circular({}, site);
 
@@ -175,7 +175,7 @@ describe('dig', () => {
     });
 
     test('circular - tile', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
         const room = Dig.room.circular({ tile: 10 }, site);
 
@@ -191,7 +191,7 @@ describe('dig', () => {
     });
 
     test('brogueDonut', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
 
         const room = Dig.room.brogueDonut({ holeChance: 100, radius: 7 }, site);
 
@@ -203,7 +203,7 @@ describe('dig', () => {
     });
 
     test('brogueDonut - tile', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
 
         const room = Dig.room.brogueDonut(
             { holeChance: 100, radius: 7, tile: 10 },
@@ -220,7 +220,7 @@ describe('dig', () => {
     });
 
     test('chunkyRoom', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
 
         const room = Dig.room.chunkyRoom({}, site);
 
@@ -231,7 +231,7 @@ describe('dig', () => {
     });
 
     test('chunkyRoom - tile', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
 
         const room = Dig.room.chunkyRoom({ tile: 10 }, site);
 
@@ -243,7 +243,7 @@ describe('dig', () => {
     });
 
     test('cavern', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.cavern({ width: 10, height: 10 }, site);
@@ -255,7 +255,7 @@ describe('dig', () => {
     });
 
     test('cavern - tile', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.cavern({ width: 10, height: 10, tile: 10 }, site);
@@ -268,7 +268,7 @@ describe('dig', () => {
     });
 
     test('entrance', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.brogueEntrance({}, site);
@@ -284,7 +284,7 @@ describe('dig', () => {
     });
 
     test('entrance - tile', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.brogueEntrance({ tile: 10 }, site);
@@ -301,7 +301,7 @@ describe('dig', () => {
     });
 
     test('cross', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.cross({}, site);
@@ -317,7 +317,7 @@ describe('dig', () => {
     });
 
     test('cross - tile', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.cross({ tile: 10 }, site);
@@ -334,7 +334,7 @@ describe('dig', () => {
     });
 
     test('symmetricalCross', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.symmetricalCross({}, site);
@@ -350,7 +350,7 @@ describe('dig', () => {
     });
 
     test('symmetricalCross - tile', () => {
-        GW.random.seed(123456);
+        GWU.random.seed(123456);
         expect(site.tiles.count(1)).toEqual(0);
 
         const room = Dig.room.symmetricalCross({ tile: 10 }, site);

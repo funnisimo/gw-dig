@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
 export interface LakeOpts {
@@ -49,14 +49,14 @@ export class Lakes {
         tries = this.options.tries || 20;
         maxCount = this.options.count || 1;
         canDisrupt = this.options.canDisrupt || false;
-        const hasWreath = GW.random.chance(this.options.wreathChance)
+        const hasWreath = GWU.random.chance(this.options.wreathChance)
             ? true
             : false;
         const wreathTile = this.options.wreathTile || SITE.SHALLOW;
         const wreathSize = this.options.wreathSize || 1; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
         const tile = this.options.tile || SITE.DEEP;
 
-        const lakeGrid = GW.grid.alloc(site.width, site.height, 0);
+        const lakeGrid = GWU.grid.alloc(site.width, site.height, 0);
 
         let attempts = 0;
         while (attempts < maxCount && count < maxCount) {
@@ -73,7 +73,7 @@ export class Lakes {
                         maxCount
                 ) + lakeMinSize;
 
-            const blob = new GW.blob.Blob({
+            const blob = new GWU.blob.Blob({
                 rounds: 5,
                 minWidth: 4,
                 minHeight: 4,
@@ -96,11 +96,11 @@ export class Lakes {
             for (k = 0; k < tries && !success; k++) {
                 // placement attempts
                 // propose a position for the top-left of the lakeGrid in the dungeon
-                x = GW.random.range(
+                x = GWU.random.range(
                     1 - bounds.x,
                     lakeGrid.width - bounds.width - bounds.x - 2
                 );
-                y = GW.random.range(
+                y = GWU.random.range(
                     1 - bounds.y,
                     lakeGrid.height - bounds.height - bounds.y - 2
                 );
@@ -121,7 +121,7 @@ export class Lakes {
                                 site.setTile(sx, sy, tile);
 
                                 if (hasWreath) {
-                                    GW.utils.forCircle(
+                                    GWU.utils.forCircle(
                                         sx,
                                         sy,
                                         wreathSize,
@@ -149,21 +149,21 @@ export class Lakes {
                 ++attempts;
             }
         }
-        GW.grid.free(lakeGrid);
+        GWU.grid.free(lakeGrid);
         return count;
     }
 
     isDisruptedBy(
         site: SITE.DigSite,
-        lakeGrid: GW.grid.NumGrid,
+        lakeGrid: GWU.grid.NumGrid,
         lakeToMapX = 0,
         lakeToMapY = 0
     ) {
-        const walkableGrid = GW.grid.alloc(site.width, site.height);
+        const walkableGrid = GWU.grid.alloc(site.width, site.height);
         let disrupts = false;
 
         // Get all walkable locations after lake added
-        GW.utils.forRect(site.width, site.height, (i, j) => {
+        GWU.utils.forRect(site.width, site.height, (i, j) => {
             const lakeX = i + lakeToMapX;
             const lakeY = j + lakeToMapY;
             if (lakeGrid.get(lakeX, lakeY)) {
@@ -192,7 +192,7 @@ export class Lakes {
         // console.log('WALKABLE GRID');
         // walkableGrid.dump();
 
-        GW.grid.free(walkableGrid);
+        GWU.grid.free(walkableGrid);
         return disrupts;
     }
 }

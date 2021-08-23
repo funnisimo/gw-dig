@@ -1,19 +1,21 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
+
 import * as SITE from '../site';
-import { BuildData } from './builder';
-import { Blueprint, Flags } from '.';
+import { Builder } from './builder';
+import { Blueprint, Flags } from './blueprint';
 
 export interface StepOptions {
     tile: string | number;
-    flags: GW.flag.FlagBase;
+    flags: GWU.flag.FlagBase;
     pad: number;
-    count: GW.range.RangeBase;
+    count: GWU.range.RangeBase;
     item: any;
     horde: any;
-    effect: Partial<GW.effect.EffectConfig>;
+    effect: Partial<GWM.effect.EffectConfig>;
 }
 
-const Fl = GW.flag.fl;
+const Fl = GWU.flag.fl;
 
 export enum StepFlags {
     // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
@@ -61,46 +63,40 @@ export enum StepFlags {
 }
 
 export class BuildStep {
-    public tile: number = 0;
+    public tile: string | number = -1;
     public flags: number = 0;
     public pad: number = 0;
-    public count: GW.range.Range;
+    public count: GWU.range.Range;
     public item: any | null = null;
     public horde: any | null = null;
-    public effect: GW.effect.EffectInfo | null = null;
+    public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
     public next: null;
     public id = 'n/a';
 
     constructor(cfg: Partial<StepOptions> = {}) {
-        if (cfg.tile) {
-            if (typeof cfg.tile === 'string') {
-                const t = GW.tile.tiles[cfg.tile];
-                if (!t) {
-                    throw new Error('Failed to find tile: ' + cfg.tile);
-                }
-                this.tile = t.index;
-            } else {
-                this.tile = cfg.tile;
-            }
-        }
+        this.tile = cfg.tile ?? -1;
         if (cfg.flags) {
-            this.flags = GW.flag.from(StepFlags, cfg.flags);
+            this.flags = GWU.flag.from(StepFlags, cfg.flags);
         }
         if (cfg.pad) {
             this.pad = cfg.pad;
         }
-        this.count = GW.range.make(cfg.count || 1);
+        this.count = GWU.range.make(cfg.count || 1);
         this.item = cfg.item || null;
         this.horde = cfg.horde || null;
 
         if (cfg.effect) {
-            this.effect = GW.effect.make(cfg.effect);
+            this.effect = GWM.effect.make(cfg.effect);
         }
     }
 
+    get repeatUntilNoProgress(): boolean {
+        return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
+    }
+
     cellIsCandidate(
-        builder: BuildData,
+        builder: Builder,
         blueprint: Blueprint,
         x: number,
         y: number,
@@ -113,7 +109,7 @@ export class BuildStep {
         // if its origin is in a hallway and the feature that must be built there does not permit as much.
         if (
             this.flags & StepFlags.BF_NOT_IN_HALLWAY &&
-            GW.utils.arcCount(
+            GWU.utils.arcCount(
                 x,
                 y,
                 (i, j) => site.hasXY(i, j) && site.isPassable(i, j)
@@ -161,7 +157,7 @@ export class BuildStep {
         let distance = 10000;
         if (site.isWall(x, y)) {
             // Distance is calculated for walls too.
-            GW.utils.eachNeighbor(
+            GWU.utils.eachNeighbor(
                 x,
                 y,
                 (i, j) => {
@@ -197,7 +193,7 @@ export class BuildStep {
             ) {
                 let ok = false;
                 // ...and this location is a wall that's not already machined...
-                GW.utils.eachNeighbor(x, y, (newX, newY) => {
+                GWU.utils.eachNeighbor(x, y, (newX, newY) => {
                     if (
                         site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
                         ((builder.interior[newX][newY] &&
@@ -225,9 +221,9 @@ export class BuildStep {
                 site.hasCellFlag(
                     x,
                     y,
-                    GW.map.flags.Cell.IS_CHOKEPOINT |
-                        GW.map.flags.Cell.IS_IN_LOOP |
-                        GW.map.flags.Cell.IS_IN_MACHINE
+                    GWM.map.flags.Cell.IS_CHOKEPOINT |
+                        GWM.map.flags.Cell.IS_IN_LOOP |
+                        GWM.map.flags.Cell.IS_IN_MACHINE
                 )
             ) {
                 return false;
@@ -241,10 +237,10 @@ export class BuildStep {
     }
 
     makePersonalSpace(
-        builder: BuildData,
+        builder: Builder,
         x: number,
         y: number,
-        candidates: GW.grid.NumGrid
+        candidates: GWU.grid.NumGrid
     ) {
         const personalSpace = this.pad;
         let count = 0;
@@ -279,7 +275,7 @@ export class BuildStep {
         return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
     }
 
-    distanceBound(builder: BuildData): [number, number] {
+    distanceBound(builder: Builder): [number, number] {
         const distanceBound: [number, number] = [0, 10000];
         if (this.flags & StepFlags.BF_NEAR_ORIGIN) {
             distanceBound[1] = builder.distance25;
@@ -290,7 +286,7 @@ export class BuildStep {
         return distanceBound;
     }
 
-    updateViewMap(builder: BuildData): void {
+    updateViewMap(builder: Builder): void {
         if (
             this.flags &
             (StepFlags.BF_IN_VIEW_OF_ORIGIN |
@@ -298,7 +294,7 @@ export class BuildStep {
         ) {
             const site = builder.site;
             if (this.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
-                const fov = new GW.fov.FOV({
+                const fov = new GWU.fov.FOV({
                     isBlocked: (x, y) => {
                         return site.blocksPathing(x, y);
                     },
@@ -310,7 +306,7 @@ export class BuildStep {
                     builder.viewMap[x][y] = 1;
                 });
             } else {
-                const fov = new GW.fov.FOV({
+                const fov = new GWU.fov.FOV({
                     // TileFlags.T_OBSTRUCTS_PASSABILITY |
                     //     TileFlags.T_OBSTRUCTS_VISION,
                     isBlocked: (x, y) => {
@@ -331,8 +327,8 @@ export class BuildStep {
     }
 
     markCandidates(
-        candidates: GW.grid.NumGrid,
-        builder: BuildData,
+        candidates: GWU.grid.NumGrid,
+        builder: Builder,
         blueprint: Blueprint,
         distanceBound: [number, number]
     ): number {
@@ -348,13 +344,13 @@ export class BuildStep {
         return count;
     }
 
-    build(builder: BuildData, blueprint: Blueprint) {
-        let instanceCount = 0;
-        let instance = 0;
+    build(builder: Builder, blueprint: Blueprint) {
+        let wantCount = 0;
+        let builtCount = 0;
 
         const site = builder.site;
 
-        const candidates = GW.grid.alloc(site.width, site.height);
+        const candidates = GWU.grid.alloc(site.width, site.height);
 
         // Figure out the distance bounds.
         const distanceBound = this.distanceBound(builder);
@@ -372,7 +368,7 @@ export class BuildStep {
             );
 
             if (!this.generateEverywhere) {
-                instanceCount = this.count.value();
+                wantCount = this.count.value();
             }
 
             if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
@@ -388,8 +384,8 @@ export class BuildStep {
                 y = 0;
 
             for (
-                instance = 0;
-                (this.generateEverywhere || instance < instanceCount) &&
+                builtCount = 0;
+                (this.generateEverywhere || builtCount < wantCount) &&
                 qualifyingTileCount > 0;
 
             ) {
@@ -401,7 +397,7 @@ export class BuildStep {
                 } else {
                     // Pick our candidate location randomly, and also strike it from
                     // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = GW.random.matchingLoc(
+                    [x, y] = GWU.random.matchingLoc(
                         candidates.width,
                         candidates.height,
                         (x, y) => candidates[x][y] > 0
@@ -411,39 +407,31 @@ export class BuildStep {
                 candidates[x][y] = 0;
                 qualifyingTileCount--;
 
-                let DFSucceeded = true;
-                let terrainSucceeded = true;
+                let success = true;
 
                 // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
                 if (this.effect) {
-                    DFSucceeded = site.fireEffect(this.effect, x, y);
+                    success = site.fireEffect(this.effect, x, y);
                 }
 
                 // Now try to place the terrain tile, if any.
-                if (DFSucceeded && this.tile) {
-                    let tile: number = GW.tile.get(this.tile).index;
-
-                    if (!tile) {
-                        terrainSucceeded = false;
-                        console.error('placing invalid tile', this.tile, x, y);
-                    } else if (
+                if (success && this.tile !== -1) {
+                    const tile = GWM.tile.get(this.tile);
+                    if (
                         !(this.flags & StepFlags.BF_PERMIT_BLOCKING) &&
-                        (site.tileBlocksMove(tile) ||
+                        (tile.blocksMove() ||
                             this.flags & StepFlags.BF_TREAT_AS_BLOCKING)
                     ) {
                         // Yes, check for blocking.
-                        const blockingMap = GW.grid.alloc(
+                        const blockingMap = GWU.grid.alloc(
                             site.width,
                             site.height
                         );
                         blockingMap[x][y] = 1;
-                        terrainSucceeded = !SITE.siteDisruptedBy(
-                            site,
-                            blockingMap
-                        );
-                        GW.grid.free(blockingMap);
+                        success = !SITE.siteDisruptedBy(site, blockingMap);
+                        GWU.grid.free(blockingMap);
                     }
-                    if (terrainSucceeded) {
+                    if (success) {
                         site.setTile(x, y, tile);
                     }
                 }
@@ -451,18 +439,18 @@ export class BuildStep {
                 // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
                 // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
 
-                if (DFSucceeded && terrainSucceeded) {
+                if (success) {
                     qualifyingTileCount -= this.makePersonalSpace(
                         builder,
                         x,
                         y,
                         candidates
                     );
-                    instance++; // we've placed an instance
+                    builtCount++; // we've placed an instance
                     //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
                 }
 
-                if (DFSucceeded && terrainSucceeded) {
+                if (success) {
                     // Proceed only if the terrain stuff for this instance succeeded.
 
                     // Mark the feature location as part of the machine, in case it is not already inside of it.
@@ -477,48 +465,86 @@ export class BuildStep {
 
                     // Mark the feature location as impregnable if requested.
                     if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                        site.setCellFlag(x, y, GW.map.flags.Cell.IMPREGNABLE);
+                        site.setCellFlag(x, y, GWM.map.flags.Cell.IMPREGNABLE);
                     }
-
-                    // let success = RUT.Component.generateAdoptItem(
-                    //     component,
-                    //     blueprint,
-                    //     map,
-                    //     xy.x,
-                    //     xy.y,
-                    //     context
-                    // );
-                    // if (!success) {
-                    //     GW.grid.free(candidates);
-                    //     return false;
-                    // }
-
-                    // // Generate a horde as necessary.
-                    // success = RUT.Component.generateMonsters(
-                    //     component,
-                    //     blueprint,
-                    //     map,
-                    //     xy.x,
-                    //     xy.y,
-                    //     context
-                    // );
-                    // if (!success) {
-                    //     GW.grid.free(candidates);
-                    //     return false;
-                    // }
                 }
 
                 // Finished with this instance!
             }
         } while (
             this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS &&
-            instance <= this.count.lo
+            builtCount <= this.count.lo
         );
+
+        let success = true;
+
+        // let success = RUT.Component.generateAdoptItem(
+        //     component,
+        //     blueprint,
+        //     map,
+        //     xy.x,
+        //     xy.y,
+        //     context
+        // );
+        // if (!success) {
+        //     GWU.grid.free(candidates);
+        //     return false;
+        // }
+
+        // // Generate a horde as necessary.
+        // success = RUT.Component.generateMonsters(
+        //     component,
+        //     blueprint,
+        //     map,
+        //     xy.x,
+        //     xy.y,
+        //     context
+        // );
+        // if (!success) {
+        //     GWU.grid.free(candidates);
+        //     return false;
+        // }
+        if (
+            this.flags &
+            (StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE |
+                StepFlags.BF_BUILD_VESTIBULE)
+        ) {
+            // Put this item up for adoption, or generate a door guard machine.
+            // Try to create a sub-machine that qualifies.
+            // If we fail 10 times, abort the entire machine (including any sub-machines already built).
+            // Also, if we build a sub-machine, and it succeeds, but this (its parent machine) fails,
+            // we pass the monsters and items that it spawned back to the parent,
+            // so that if the parent fails, they can all be freed.
+
+            // First make sure our adopted item, if any, is not on the floor or in the pack already.
+            // Otherwise, a previous attempt to place it may have put it on the floor in a different
+            // machine, only to have that machine fail and be deleted, leaving the item remaining on
+            // the floor where placed.
+            if (this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+                // success = await buildAMachine(-1, -1, -1, BP_ADOPT_ITEM, theItem, spawnedItemsSub, spawnedMonstersSub);
+                throw new Error('OUTSOURCE_ITEM_TO_MACHINE - Not ready yet.');
+            } else if (this.flags & StepFlags.BF_BUILD_VESTIBULE) {
+                success = builder.buildRandom(
+                    Flags.BP_VESTIBULE,
+                    builder.originX,
+                    builder.originY
+                );
+            }
+
+            if (!success) {
+                console.log(
+                    `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
+                );
+                // failure! abort!
+                return 0;
+            }
+            // theItem = NULL;
+        }
 
         //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
         //DEBUG logBuffer(candidates);
 
-        GW.grid.free(candidates);
-        return instance;
+        GWU.grid.free(candidates);
+        return builtCount;
     }
 }

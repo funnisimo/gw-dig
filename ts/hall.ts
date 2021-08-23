@@ -1,13 +1,13 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as SITE from './site';
 import * as TYPES from './types';
 
-const DIRS = GW.utils.DIRS;
+const DIRS = GWU.utils.DIRS;
 
 export function isDoorLoc(
     site: SITE.DigSite,
-    loc: GW.utils.Loc,
-    dir: GW.utils.Loc
+    loc: GWU.utils.Loc,
+    dir: GWU.utils.Loc
 ) {
     if (!site.hasXY(loc[0], loc[1])) return false;
     // TODO - boundary?
@@ -22,7 +22,7 @@ export function isDoorLoc(
 }
 
 export function pickWidth(opts: any = {}): number {
-    return GW.utils.clamp(_pickWidth(opts), 1, 3);
+    return GWU.utils.clamp(_pickWidth(opts), 1, 3);
 }
 
 function _pickWidth(opts: any): number {
@@ -34,20 +34,20 @@ function _pickWidth(opts: any): number {
     if (typeof width === 'number') return width;
     else if (Array.isArray(width)) {
         // @ts-ignore
-        width = GW.random.weighted(width) + 1;
+        width = GWU.random.weighted(width) + 1;
     } else if (typeof width === 'string') {
-        width = GW.range.make(width).value();
+        width = GWU.range.make(width).value();
     } else {
-        width = Number.parseInt(GW.random.weighted(width) as string);
+        width = Number.parseInt(GWU.random.weighted(width) as string);
     }
     return width;
 }
 
 export function pickLength(
     dir: number,
-    lengths: [GW.range.Range, GW.range.Range]
+    lengths: [GWU.range.Range, GWU.range.Range]
 ): number {
-    if (dir == GW.utils.UP || dir == GW.utils.DOWN) {
+    if (dir == GWU.utils.UP || dir == GWU.utils.DOWN) {
         return lengths[1].value();
     } else {
         return lengths[0].value();
@@ -56,13 +56,13 @@ export function pickLength(
 
 export function pickHallDirection(
     site: SITE.DigSite,
-    doors: GW.utils.Loc[],
-    lengths: [GW.range.Range, GW.range.Range]
+    doors: GWU.utils.Loc[],
+    lengths: [GWU.range.Range, GWU.range.Range]
 ): number {
     // Pick a direction.
-    let dir: number = GW.utils.NO_DIRECTION;
-    if (dir == GW.utils.NO_DIRECTION) {
-        const dirs = GW.random.sequence(4);
+    let dir: number = GWU.utils.NO_DIRECTION;
+    if (dir == GWU.utils.NO_DIRECTION) {
+        const dirs = GWU.random.sequence(4);
         for (let i = 0; i < 4; i++) {
             dir = dirs[i];
             const length = lengths[(i + 1) % 2].hi; // biggest measurement
@@ -74,7 +74,7 @@ export function pickHallDirection(
                     break; // That's our direction!
                 }
             }
-            dir = GW.utils.NO_DIRECTION;
+            dir = GWU.utils.NO_DIRECTION;
         }
     }
     return dir;
@@ -88,8 +88,8 @@ export function pickHallExits(
     obliqueChance: number
 ) {
     let newX: number, newY: number;
-    const allowObliqueHallwayExit = GW.random.chance(obliqueChance);
-    const hallDoors: GW.utils.Loc[] = [
+    const allowObliqueHallwayExit = GWU.random.chance(obliqueChance);
+    const hallDoors: GWU.utils.Loc[] = [
         // [-1, -1],
         // [-1, -1],
         // [-1, -1],
@@ -114,7 +114,7 @@ export function pickHallExits(
 
 // export function digWide(
 //     opts: TYPES.HallConfig,
-//     grid: GW.grid.NumGrid,
+//     grid: GWU.grid.NumGrid,
 //     room: TYPES.Room
 // ): TYPES.Hall | TYPES.HallConfig | null {
 //     opts = opts || {};
@@ -126,19 +126,19 @@ export function pickHallExits(
 //     }
 
 //     const dir = pickHallDirection(grid, room, opts);
-//     if (dir === GW.utils.NO_DIRECTION) return null;
+//     if (dir === GWU.utils.NO_DIRECTION) return null;
 
 //     const length = pickLength(dir, opts.lengths);
 //     const width = pickWidth(opts) || 2;
 
 //     const door = room.doors[dir];
 //     const tile = opts.tile || SITE.FLOOR;
-//     const hallDoors: GW.utils.Loc[] = [];
+//     const hallDoors: GWU.utils.Loc[] = [];
 
 //     let x0: number, y0: number;
 //     let hall;
-//     if (dir === GW.utils.UP) {
-//         x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
+//     if (dir === GWU.utils.UP) {
+//         x0 = GWU.utils.clamp(door[0], room.x, room.x + room.width - width);
 //         y0 = door[1] - length + 1;
 
 //         for (let x = x0; x < x0 + width; ++x) {
@@ -149,8 +149,8 @@ export function pickHallExits(
 
 //         hallDoors[dir] = [x0, y0 - 1];
 //         hall = new TYPES.Hall([x0, door[1]], dir, length, 2);
-//     } else if (dir === GW.utils.DOWN) {
-//         x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
+//     } else if (dir === GWU.utils.DOWN) {
+//         x0 = GWU.utils.clamp(door[0], room.x, room.x + room.width - width);
 //         y0 = door[1] + length - 1;
 
 //         for (let x = x0; x < x0 + width; ++x) {
@@ -161,9 +161,9 @@ export function pickHallExits(
 
 //         hallDoors[dir] = [x0, y0 + 1];
 //         hall = new TYPES.Hall([x0, door[1]], dir, length, 2);
-//     } else if (dir === GW.utils.LEFT) {
+//     } else if (dir === GWU.utils.LEFT) {
 //         x0 = door[0] - length + 1;
-//         y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
+//         y0 = GWU.utils.clamp(door[1], room.y, room.y + room.height - width);
 
 //         for (let x = x0; x < x0 + length; ++x) {
 //             for (let y = y0; y < y0 + width; ++y) {
@@ -174,9 +174,9 @@ export function pickHallExits(
 //         hallDoors[dir] = [x0 - 1, y0];
 //         hall = new TYPES.Hall([door[0], y0], dir, length, 2);
 //     } else {
-//         //if (dir === GW.utils.RIGHT) {
+//         //if (dir === GWU.utils.RIGHT) {
 //         x0 = door[0] + length - 1;
-//         y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
+//         y0 = GWU.utils.clamp(door[1], room.y, room.y + room.height - width);
 
 //         for (let x = x0; x > x0 - length; --x) {
 //             for (let y = y0; y < y0 + width; ++y) {
@@ -195,7 +195,7 @@ export function pickHallExits(
 
 // export function dig(
 //     opts: TYPES.HallConfig,
-//     grid: GW.grid.NumGrid,
+//     grid: GWU.grid.NumGrid,
 //     room: TYPES.Room
 // ): TYPES.Hall | TYPES.HallConfig | null {
 //     opts = opts || {};
@@ -205,7 +205,7 @@ export function pickHallExits(
 //     }
 
 //     const dir = pickHallDirection(grid, room, opts);
-//     if (dir === GW.utils.NO_DIRECTION) return null;
+//     if (dir === GWU.utils.NO_DIRECTION) return null;
 
 //     const length = pickLength(dir, opts.length);
 
@@ -239,8 +239,8 @@ export interface HallOptions {
 }
 
 export interface HallConfig {
-    width: GW.range.Range;
-    length: [GW.range.Range, GW.range.Range];
+    width: GWU.range.Range;
+    length: [GWU.range.Range, GWU.range.Range];
     tile: number;
     obliqueChance: number;
     chance: number;
@@ -248,8 +248,8 @@ export interface HallConfig {
 
 export class HallDigger {
     public config: HallConfig = {
-        width: GW.range.make(1),
-        length: [GW.range.make('2-15'), GW.range.make('2-9')],
+        width: GWU.range.make(1),
+        length: [GWU.range.make('2-15'), GWU.range.make('2-9')],
         tile: SITE.FLOOR,
         obliqueChance: 15,
         chance: 100,
@@ -261,11 +261,11 @@ export class HallDigger {
 
     _setOptions(options: Partial<HallOptions> = {}) {
         if (options.width) {
-            this.config.width = GW.range.make(options.width);
+            this.config.width = GWU.range.make(options.width);
         }
         if (options.length) {
             if (typeof options.length === 'number') {
-                const l = GW.range.make(options.length);
+                const l = GWU.range.make(options.length);
                 this.config.length = [l, l];
             }
         }
@@ -277,13 +277,13 @@ export class HallDigger {
         }
     }
 
-    create(site: SITE.DigSite, doors: GW.utils.Loc[] = []): TYPES.Hall | null {
+    create(site: SITE.DigSite, doors: GWU.utils.Loc[] = []): TYPES.Hall | null {
         doors = doors || SITE.chooseRandomDoorSites(site);
 
-        if (!GW.random.chance(this.config.chance)) return null;
+        if (!GWU.random.chance(this.config.chance)) return null;
 
         const dir = pickHallDirection(site, doors, this.config.length);
-        if (dir === GW.utils.NO_DIRECTION) return null;
+        if (dir === GWU.utils.NO_DIRECTION) return null;
         if (!doors[dir]) return null;
 
         const width = this.config.width.value();
@@ -299,8 +299,8 @@ export class HallDigger {
 
     _digLine(
         site: SITE.DigSite,
-        door: GW.utils.Loc,
-        dir: GW.utils.Loc,
+        door: GWU.utils.Loc,
+        dir: GWU.utils.Loc,
         length: number
     ) {
         let x = door[0];
@@ -319,7 +319,7 @@ export class HallDigger {
         return [x, y];
     }
 
-    dig(site: SITE.DigSite, dir: number, door: GW.utils.Loc, length: number) {
+    dig(site: SITE.DigSite, dir: number, door: GWU.utils.Loc, length: number) {
         const DIR = DIRS[dir];
         const [x, y] = this._digLine(site, door, DIR, length);
         const hall = new TYPES.Hall(door, dir, length);
@@ -330,14 +330,14 @@ export class HallDigger {
     digWide(
         site: SITE.DigSite,
         dir: number,
-        door: GW.utils.Loc,
+        door: GWU.utils.Loc,
         length: number,
         width: number
     ) {
-        const DIR = GW.utils.DIRS[dir];
+        const DIR = GWU.utils.DIRS[dir];
 
-        const lower: GW.utils.Loc = [door[0] - DIR[1], door[1] - DIR[0]];
-        const higher: GW.utils.Loc = [door[0] + DIR[1], door[1] + DIR[0]];
+        const lower: GWU.utils.Loc = [door[0] - DIR[1], door[1] - DIR[0]];
+        const higher: GWU.utils.Loc = [door[0] + DIR[1], door[1] + DIR[0]];
 
         this._digLine(site, door, DIR, length);
         let actual = 1;
@@ -372,7 +372,7 @@ export class HallDigger {
 export function dig(
     config: Partial<HallOptions>,
     site: SITE.DigSite,
-    doors: GW.utils.Loc[]
+    doors: GWU.utils.Loc[]
 ) {
     const digger = new HallDigger(config);
     return digger.create(site, doors);

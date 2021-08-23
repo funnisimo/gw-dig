@@ -1,4 +1,6 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
+
 import * as BUILDER from './builder';
 import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
@@ -12,9 +14,9 @@ describe('buildStep', () => {
         });
 
         expect(step.flags & STEP.StepFlags.BF_EVERYWHERE).toBeTruthy();
-        expect(step.tile).toBeGreaterThan(0);
+        expect(step.tile).toEqual('FLOOR');
         expect(step.pad).toEqual(0);
-        expect(step.count).toBeInstanceOf(GW.range.Range);
+        expect(step.count).toBeInstanceOf(GWU.range.Range);
         expect(step.count.lo).toEqual(1);
         expect(step.count.hi).toEqual(1);
         expect(step.item).toBeNull();
@@ -23,15 +25,15 @@ describe('buildStep', () => {
     });
 
     test('build tile', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
-        GW.tile.install('TEST', {
+        GWM.tile.install('TEST', {
             name: 'test',
             ch: 'A',
             flags: 'L_BLOCKS_MOVE',
         });
 
-        const map = GW.map.make(80, 34);
+        const map = GWM.map.make(80, 34);
         const builder = new BUILDER.Builder(map, 1);
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -43,7 +45,7 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        expect(builder.buildBlueprint(blue)).toBeTruthy();
+        expect(builder.build(blue)).toBeTruthy();
 
         // site.map.dump();
 
@@ -51,21 +53,21 @@ describe('buildStep', () => {
     });
 
     test('build spawn', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
-        GW.tile.install('A', {
+        GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
         });
 
-        GW.tile.install('B', {
+        GWM.tile.install('B', {
             name: 'B',
             ch: 'B',
             priority: 60,
             flags: 'L_BLOCKS_MOVE',
         });
 
-        const map = GW.map.make(80, 34);
+        const map = GWM.map.make(80, 34);
         const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
@@ -78,7 +80,7 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        expect(builder.buildBlueprint(blue)).toBeTruthy();
+        expect(builder.build(blue)).toBeTruthy();
 
         // site.dump();
 
@@ -87,14 +89,14 @@ describe('buildStep', () => {
     });
 
     test('tile everywhere', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
-        GW.tile.install('A', {
+        GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
         });
 
-        const map = GW.map.make(80, 34);
+        const map = GWM.map.make(80, 34);
         const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
@@ -109,7 +111,7 @@ describe('buildStep', () => {
 
         // site.dump();
 
-        expect(builder.buildBlueprint(blue)).toBeTruthy();
+        expect(builder.build(blue)).toBeTruthy();
 
         // site.dump();
 
@@ -117,14 +119,14 @@ describe('buildStep', () => {
     });
 
     test('tile near origin', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
-        GW.tile.install('A', {
+        GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
         });
 
-        const map = GW.map.make(80, 34);
+        const map = GWM.map.make(80, 34);
         const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
@@ -137,7 +139,7 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        expect(builder.buildBlueprint(blue)).toBeTruthy();
+        expect(builder.build(blue)).toBeTruthy();
 
         // site.dump();
 
@@ -149,20 +151,25 @@ describe('buildStep', () => {
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GW.utils.distanceBetween(x, y, builder.originX, builder.originY)
+                GWU.utils.distanceBetween(
+                    x,
+                    y,
+                    builder.originX,
+                    builder.originY
+                )
             ).toBeLessThan(4);
         });
     });
 
     test('tile far from origin', () => {
-        GW.random.seed(12345);
+        GWU.random.seed(12345);
 
-        GW.tile.install('A', {
+        GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
         });
 
-        const map = GW.map.make(80, 34);
+        const map = GWM.map.make(80, 34);
         const builder = new BUILDER.Builder(map, 1);
 
         const blue = new BLUE.Blueprint({
@@ -175,7 +182,7 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        expect(builder.buildBlueprint(blue)).toBeTruthy();
+        expect(builder.build(blue)).toBeTruthy();
 
         // site.dump();
 
@@ -187,7 +194,12 @@ describe('buildStep', () => {
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GW.utils.distanceBetween(x, y, builder.originX, builder.originY)
+                GWU.utils.distanceBetween(
+                    x,
+                    y,
+                    builder.originX,
+                    builder.originY
+                )
             ).toBeGreaterThan(3);
         });
     });

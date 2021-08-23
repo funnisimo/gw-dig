@@ -1,5 +1,5 @@
 import 'jest-extended';
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as BRIDGE from './bridge';
 import * as SITE from './site';
 
@@ -16,7 +16,7 @@ describe('Bridge', () => {
 
     test('candidate test', () => {
         site.tiles.fill(SITE.FLOOR);
-        GW.utils.forRect(1, 9, 18, 3, (x, y) => site.setTile(x, y, SITE.DEEP));
+        GWU.utils.forRect(1, 9, 18, 3, (x, y) => site.setTile(x, y, SITE.DEEP));
 
         const bridge = new BRIDGE.Bridges();
         expect(bridge.isBridgeCandidate(site, 10, 9, [1, 0])).toBeFalsy();
@@ -25,7 +25,7 @@ describe('Bridge', () => {
 
     test('create', () => {
         site.tiles.fill(SITE.FLOOR);
-        GW.utils.forRect(2, 9, 16, 3, (x, y) => site.setTile(x, y, SITE.DEEP));
+        GWU.utils.forRect(2, 9, 16, 3, (x, y) => site.setTile(x, y, SITE.DEEP));
 
         expect(site.tiles.count(SITE.BRIDGE)).toEqual(0);
 

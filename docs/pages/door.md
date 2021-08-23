@@ -3,17 +3,17 @@
 The most basic build for a map is just to add a door to the room. This recipe adds a carpet to the floor of the room and puts a door on the entrance.
 
 ```js
-const canvas = GW.canvas.make({ font: 'monospace', width: 80, height: 34 });
-const map = GW.map.make(80, 34, { visible: true });
+const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
+const map = GWM.map.make(80, 34, { visible: true });
 
-GW.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
-GWDig.room.install('ENTRANCE', new GWDig.room.BrogueEntrance());
-GWDig.room.install(
+GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
+GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
+GWD.room.install(
     'ROOM',
-    new GWDig.room.Rectangular({ width: '4-10', height: '4-10' })
+    new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
 );
 
-const level = new GWDig.Level({
+const level = new GWD.Level({
     seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
@@ -22,9 +22,9 @@ const level = new GWDig.Level({
 });
 level.create(map);
 
-const builder = new GWDig.blueprint.Builder(map, 1);
+const builder = new GWD.blueprint.Builder(map, 1);
 
-const blue = new GWDig.blueprint.Blueprint({
+const blue = new GWD.blueprint.Blueprint({
     flags: 'BP_ROOM',
     size: '10-100',
     steps: [
@@ -33,8 +33,54 @@ const blue = new GWDig.blueprint.Blueprint({
     ],
 });
 
-SHOW(builder.buildBlueprint(blue));
+builder.build(blue, 20, 11);
 
+map.drawInto(canvas);
+SHOW(canvas.node);
+canvas.render();
+```
+
+### Door via Vestibule
+
+Another way to protect a room is to use a vestibule machine. This builds another machine on the outside of the room that protects the room. Here we do a simple door vestibule, but as we will see later, vestibules can get more complicated.
+
+```js
+const map = GWM.map.make(80, 34, { visible: true });
+GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
+GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
+GWD.room.install(
+    'ROOM',
+    new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
+);
+
+const level = new GWD.Level({
+    seed: 12345,
+    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+});
+level.create(map);
+
+const builder = new GWD.blueprint.Builder(map, 1);
+
+GWD.blueprint.install('VESTIBULE', {
+    flags: 'BP_VESTIBULE',
+    steps: [{ tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' }],
+});
+
+const blue = GWD.blueprint.install('ROOM', {
+    flags: 'BP_ROOM',
+    size: '10-100',
+    steps: [
+        { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
+        { flags: 'BF_BUILD_VESTIBULE' },
+    ],
+});
+
+builder.build(blue, 20, 11);
+
+const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 map.drawInto(canvas);
 SHOW(canvas.node);
 canvas.render();

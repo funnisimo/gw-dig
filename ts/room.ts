@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as TYPES from './types';
 import * as SITE from './site';
 
@@ -35,7 +35,7 @@ export function checkConfig(
             have = have || expect;
         }
 
-        const range = GW.range.make(have); // throws if invalid
+        const range = GWU.range.make(have); // throws if invalid
         config[key] = range;
     });
 
@@ -44,7 +44,7 @@ export function checkConfig(
 
 export abstract class RoomDigger {
     public options: TYPES.RoomConfig = {};
-    public doors: GW.utils.Loc[] = [];
+    public doors: GWU.utils.Loc[] = [];
 
     constructor(config: TYPES.RoomConfig, expected: TYPES.RoomConfig = {}) {
         this._setOptions(config, expected);
@@ -86,9 +86,9 @@ export class ChoiceRoom extends RoomDigger {
     _setOptions(config: TYPES.RoomConfig, expected: TYPES.RoomConfig = {}) {
         const choices = config.choices || expected.choices;
         if (Array.isArray(choices)) {
-            this.randomRoom = GW.random.item.bind(GW.random, choices);
+            this.randomRoom = GWU.random.item.bind(GWU.random, choices);
         } else if (typeof choices == 'object') {
-            this.randomRoom = GW.random.weighted.bind(GW.random, choices);
+            this.randomRoom = GWU.random.weighted.bind(GWU.random, choices);
         } else {
             throw new Error(
                 'Expected choices to be either array of room ids or weighted map - ex: { ROOM_ID: weight }'
@@ -100,7 +100,7 @@ export class ChoiceRoom extends RoomDigger {
         let id = this.randomRoom() as string;
         const room = rooms[id];
         if (!room) {
-            GW.utils.ERROR('Missing room digger choice: ' + id);
+            GWU.utils.ERROR('Missing room digger choice: ' + id);
         }
 
         // debug('Chose room: ', id);
@@ -127,14 +127,14 @@ export class Cavern extends RoomDigger {
         const height = this.options.height.value();
         const tile = this.options.tile || SITE.FLOOR;
 
-        const blobGrid = GW.grid.alloc(site.width, site.height, 0);
+        const blobGrid = GWU.grid.alloc(site.width, site.height, 0);
 
         const minWidth = Math.floor(0.5 * width); // 6
         const maxWidth = width;
         const minHeight = Math.floor(0.5 * height); // 4
         const maxHeight = height;
 
-        const blob = new GW.blob.Blob({
+        const blob = new GWU.blob.Blob({
             rounds: 5,
             minWidth: minWidth,
             minHeight: minHeight,
@@ -161,7 +161,7 @@ export class Cavern extends RoomDigger {
         blobGrid.forEach((v, x, y) => {
             if (v) site.setTile(x + dx, y + dy, tile);
         });
-        GW.grid.free(blobGrid);
+        GWU.grid.free(blobGrid);
 
         return new TYPES.Room(destX, destY, bounds.width, bounds.height);
     }
@@ -198,10 +198,10 @@ export class BrogueEntrance extends RoomDigger {
         const roomX2 = Math.floor(site.width / 2 - roomWidth2 / 2 - 1);
         const roomY2 = site.height - roomHeight2 - 2;
 
-        GW.utils.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) =>
+        GWU.utils.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) =>
             site.setTile(x, y, tile)
         );
-        GW.utils.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) =>
+        GWU.utils.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) =>
             site.setTile(x, y, tile)
         );
         const room = new TYPES.Room(
@@ -211,7 +211,7 @@ export class BrogueEntrance extends RoomDigger {
             Math.max(roomHeight, roomHeight2)
         );
 
-        room.doors[GW.utils.DOWN] = [
+        room.doors[GWU.utils.DOWN] = [
             Math.floor(site.width / 2),
             site.height - 2,
         ];
@@ -238,27 +238,28 @@ export class Cross extends RoomDigger {
         const roomWidth = width;
         const roomWidth2 = Math.max(
             3,
-            Math.floor((width * GW.random.range(25, 75)) / 100)
+            Math.floor((width * GWU.random.range(25, 75)) / 100)
         ); // [4,20]
         const roomHeight = Math.max(
             3,
-            Math.floor((height * GW.random.range(25, 75)) / 100)
+            Math.floor((height * GWU.random.range(25, 75)) / 100)
         ); // [2,5]
         const roomHeight2 = height;
 
         const roomX = Math.floor((site.width - roomWidth) / 2);
         const roomX2 =
-            roomX + GW.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
+            roomX +
+            GWU.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
 
         const roomY2 = Math.floor((site.height - roomHeight2) / 2);
         const roomY =
             roomY2 +
-            GW.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
+            GWU.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
 
-        GW.utils.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) =>
+        GWU.utils.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) =>
             site.setTile(x, y, tile)
         );
-        GW.utils.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) =>
+        GWU.utils.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) =>
             site.setTile(x, y, tile)
         );
         return new TYPES.Room(
@@ -288,14 +289,14 @@ export class SymmetricalCross extends RoomDigger {
 
         let minorWidth = Math.max(
             3,
-            Math.floor((width * GW.random.range(25, 50)) / 100)
+            Math.floor((width * GWU.random.range(25, 50)) / 100)
         ); // [2,4]
         // if (height % 2 == 0 && minorWidth > 2) {
         //     minorWidth -= 1;
         // }
         let minorHeight = Math.max(
             3,
-            Math.floor((height * GW.random.range(25, 50)) / 100)
+            Math.floor((height * GWU.random.range(25, 50)) / 100)
         ); // [2,3]?
         // if (width % 2 == 0 && minorHeight > 2) {
         //     minorHeight -= 1;
@@ -303,12 +304,12 @@ export class SymmetricalCross extends RoomDigger {
 
         const x = Math.floor((site.width - width) / 2);
         const y = Math.floor((site.height - minorHeight) / 2);
-        GW.utils.forRect(x, y, width, minorHeight, (x, y) =>
+        GWU.utils.forRect(x, y, width, minorHeight, (x, y) =>
             site.setTile(x, y, tile)
         );
         const x2 = Math.floor((site.width - minorWidth) / 2);
         const y2 = Math.floor((site.height - height) / 2);
-        GW.utils.forRect(x2, y2, minorWidth, height, (x, y) =>
+        GWU.utils.forRect(x2, y2, minorWidth, height, (x, y) =>
             site.setTile(x, y, tile)
         );
         return new TYPES.Room(
@@ -341,7 +342,7 @@ export class Rectangular extends RoomDigger {
 
         const x = Math.floor((site.width - width) / 2);
         const y = Math.floor((site.height - height) / 2);
-        GW.utils.forRect(x, y, width, height, (x, y) =>
+        GWU.utils.forRect(x, y, width, height, (x, y) =>
             site.setTile(x, y, tile)
         );
         return new TYPES.Room(x, y, width, height);
@@ -368,7 +369,7 @@ export class Circular extends RoomDigger {
         const x = Math.floor(site.width / 2);
         const y = Math.floor(site.height / 2);
         if (radius > 1) {
-            GW.utils.forCircle(x, y, radius, (x, y) =>
+            GWU.utils.forCircle(x, y, radius, (x, y) =>
                 site.setTile(x, y, tile)
             );
         }
@@ -406,16 +407,16 @@ export class BrogueDonut extends RoomDigger {
 
         const x = Math.floor(site.width / 2);
         const y = Math.floor(site.height / 2);
-        GW.utils.forCircle(x, y, radius, (x, y) => site.setTile(x, y, tile));
+        GWU.utils.forCircle(x, y, radius, (x, y) => site.setTile(x, y, tile));
 
         if (
             radius > ringMinWidth + holeMinSize &&
-            GW.random.chance(this.options.holeChance.value())
+            GWU.random.chance(this.options.holeChance.value())
         ) {
-            GW.utils.forCircle(
+            GWU.utils.forCircle(
                 x,
                 y,
-                GW.random.range(holeMinSize, radius - holeMinSize),
+                GWU.random.range(holeMinSize, radius - holeMinSize),
                 (x, y) => site.setTile(x, y, 0)
             );
         }
@@ -462,15 +463,15 @@ export class ChunkyRoom extends RoomDigger {
         let top = Math.floor(site.height / 2);
         let bottom = top;
 
-        GW.utils.forCircle(left, top, 2, (x, y) => site.setTile(x, y, tile));
+        GWU.utils.forCircle(left, top, 2, (x, y) => site.setTile(x, y, tile));
         left -= 2;
         right += 2;
         top -= 2;
         bottom += 2;
 
         for (i = 0; i < chunkCount; ) {
-            x = GW.random.range(minX, maxX);
-            y = GW.random.range(minY, maxY);
+            x = GWU.random.range(minX, maxX);
+            y = GWU.random.range(minY, maxY);
             if (site.isSet(x, y)) {
                 if (x - 2 < minX) continue;
                 if (x + 2 > maxX) continue;
@@ -482,7 +483,9 @@ export class ChunkyRoom extends RoomDigger {
                 top = Math.min(y - 2, top);
                 bottom = Math.max(y + 2, bottom);
 
-                GW.utils.forCircle(x, y, 2, (x, y) => site.setTile(x, y, tile));
+                GWU.utils.forCircle(x, y, 2, (x, y) =>
+                    site.setTile(x, y, tile)
+                );
                 i++;
             }
         }

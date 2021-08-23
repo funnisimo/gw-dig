@@ -34,7 +34,7 @@ class Example {
         this._time = $('<div></div>').addClass('time');
 
         this._timers = [];
-        this._loop = new GW.io.Loop();
+        this._loop = new GWU.io.Loop();
 
         this._useCode(node.textContent);
     }

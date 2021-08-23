@@ -1,21 +1,22 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
 
-export const NOTHING = GW.tile.get('NULL').index;
-export const FLOOR = GW.tile.get('FLOOR').index;
+export const NOTHING = GWM.tile.get('NULL').index;
+export const FLOOR = GWM.tile.get('FLOOR').index;
 
-export const DOOR = GW.tile.get('DOOR').index;
-export const SECRET_DOOR = GW.tile.get('DOOR_SECRET')?.index ?? -1;
+export const DOOR = GWM.tile.get('DOOR').index;
+export const SECRET_DOOR = GWM.tile.get('DOOR_SECRET')?.index ?? -1;
 
-export const WALL = GW.tile.get('WALL').index;
+export const WALL = GWM.tile.get('WALL').index;
 
-export const DEEP = GW.tile.get('LAKE').index;
-export const SHALLOW = GW.tile.get('SHALLOW').index;
-export const BRIDGE = GW.tile.get('BRIDGE').index;
+export const DEEP = GWM.tile.get('LAKE').index;
+export const SHALLOW = GWM.tile.get('SHALLOW').index;
+export const BRIDGE = GWM.tile.get('BRIDGE').index;
 
-export const UP_STAIRS = GW.tile.get('UP_STAIRS').index;
-export const DOWN_STAIRS = GW.tile.get('DOWN_STAIRS').index;
+export const UP_STAIRS = GWM.tile.get('UP_STAIRS').index;
+export const DOWN_STAIRS = GWM.tile.get('DOWN_STAIRS').index;
 
-export const IMPREGNABLE = GW.tile.get('IMPREGNABLE').index;
+export const IMPREGNABLE = GWM.tile.get('IMPREGNABLE').index;
 
 export const TILEMAP = {
     [NOTHING]: 'NULL',
@@ -38,59 +39,61 @@ export interface DigSite {
     free(): void;
     clear(): void;
 
-    hasXY: GW.utils.XYMatchFunc;
-    isBoundaryXY: GW.utils.XYMatchFunc;
+    hasXY: GWU.utils.XYMatchFunc;
+    isBoundaryXY: GWU.utils.XYMatchFunc;
 
-    isSet: GW.utils.XYMatchFunc;
-    isDiggable: GW.utils.XYMatchFunc;
-    isNothing: GW.utils.XYMatchFunc;
+    isSet: GWU.utils.XYMatchFunc;
+    isDiggable: GWU.utils.XYMatchFunc;
+    isNothing: GWU.utils.XYMatchFunc;
 
-    isPassable: GW.utils.XYMatchFunc;
-    isFloor: GW.utils.XYMatchFunc;
-    isBridge: GW.utils.XYMatchFunc;
-    isDoor: GW.utils.XYMatchFunc;
-    isSecretDoor: GW.utils.XYMatchFunc;
+    isPassable: GWU.utils.XYMatchFunc;
+    isFloor: GWU.utils.XYMatchFunc;
+    isBridge: GWU.utils.XYMatchFunc;
+    isDoor: GWU.utils.XYMatchFunc;
+    isSecretDoor: GWU.utils.XYMatchFunc;
 
-    blocksMove: GW.utils.XYMatchFunc;
-    blocksDiagonal: GW.utils.XYMatchFunc;
-    blocksPathing: GW.utils.XYMatchFunc;
-    blocksVision: GW.utils.XYMatchFunc;
-    blocksItems: GW.utils.XYMatchFunc;
-    blocksEffects: GW.utils.XYMatchFunc;
+    blocksMove: GWU.utils.XYMatchFunc;
+    blocksDiagonal: GWU.utils.XYMatchFunc;
+    blocksPathing: GWU.utils.XYMatchFunc;
+    blocksVision: GWU.utils.XYMatchFunc;
+    blocksItems: GWU.utils.XYMatchFunc;
+    blocksEffects: GWU.utils.XYMatchFunc;
 
-    isWall: GW.utils.XYMatchFunc;
-    isStairs: GW.utils.XYMatchFunc;
+    isWall: GWU.utils.XYMatchFunc;
+    isStairs: GWU.utils.XYMatchFunc;
 
-    isDeep: GW.utils.XYMatchFunc;
-    isShallow: GW.utils.XYMatchFunc;
-    isAnyLiquid: GW.utils.XYMatchFunc;
+    isDeep: GWU.utils.XYMatchFunc;
+    isShallow: GWU.utils.XYMatchFunc;
+    isAnyLiquid: GWU.utils.XYMatchFunc;
 
     setTile(
         x: number,
         y: number,
-        tile: string | number | GW.tile.Tile,
-        opts?: GW.map.SetTileOptions
+        tile: string | number | GWM.tile.Tile,
+        opts?: GWM.map.SetTileOptions
     ): boolean;
 
     hasTile(
         x: number,
         y: number,
-        tile: string | number | GW.tile.Tile
+        tile: string | number | GWM.tile.Tile
     ): boolean;
     getTileIndex(x: number, y: number): number;
 
-    tileBlocksMove(tile: number): boolean;
+    getMachine(x: number, y: number): number;
+
+    // tileBlocksMove(tile: number): boolean;
 }
 
 export class GridSite implements DigSite {
-    public tiles: GW.grid.NumGrid;
+    public tiles: GWU.grid.NumGrid;
 
     constructor(width: number, height: number) {
-        this.tiles = GW.grid.alloc(width, height);
+        this.tiles = GWU.grid.alloc(width, height);
     }
 
     free() {
-        GW.grid.free(this.tiles);
+        GWU.grid.free(this.tiles);
     }
     clear() {
         this.tiles.fill(0);
@@ -207,12 +210,12 @@ export class GridSite implements DigSite {
     getTileIndex(x: number, y: number): number {
         return this.tiles.get(x, y) || 0;
     }
-    setTile(x: number, y: number, tile: number | string | GW.tile.Tile) {
-        if (tile instanceof GW.tile.Tile) {
+    setTile(x: number, y: number, tile: number | string | GWM.tile.Tile) {
+        if (tile instanceof GWM.tile.Tile) {
             tile = tile.index;
         }
         if (typeof tile === 'string') {
-            const obj = GW.tile.tiles[tile];
+            const obj = GWM.tile.tiles[tile];
             if (!obj) throw new Error('Failed to find tie: ' + tile);
             tile = obj.index;
         }
@@ -224,25 +227,29 @@ export class GridSite implements DigSite {
     hasTile(
         x: number,
         y: number,
-        tile: number | string | GW.tile.Tile
+        tile: number | string | GWM.tile.Tile
     ): boolean {
-        if (tile instanceof GW.tile.Tile) {
+        if (tile instanceof GWM.tile.Tile) {
             tile = tile.index;
         }
         if (typeof tile === 'string') {
-            const obj = GW.tile.tiles[tile];
+            const obj = GWM.tile.tiles[tile];
             if (!obj) throw new Error('Failed to find tie: ' + tile);
             tile = obj.index;
         }
         return this.tiles.hasXY(x, y) && this.tiles[x][y] == tile;
     }
 
-    tileBlocksMove(tile: number): boolean {
-        return (
-            tile === WALL ||
-            tile === DEEP ||
-            tile === IMPREGNABLE ||
-            tile === NOTHING
-        );
+    getMachine(_x: number, _y: number): number {
+        return 0;
     }
+
+    // tileBlocksMove(tile: number): boolean {
+    //     return (
+    //         tile === WALL ||
+    //         tile === DEEP ||
+    //         tile === IMPREGNABLE ||
+    //         tile === NOTHING
+    //     );
+    // }
 }
