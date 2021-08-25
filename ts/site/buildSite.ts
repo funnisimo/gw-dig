@@ -186,7 +186,8 @@ export class MapSite implements BuildSite {
     }
 
     isPassable(x: number, y: number): boolean {
-        return !this.map.cellInfo(x, y).blocksMove();
+        const info = this.map.cellInfo(x, y);
+        return !(info.blocksMove() || info.blocksPathing());
     }
 
     // tileBlocksMove(tile: number): boolean {

@@ -71,7 +71,7 @@ const wallLever = GWM.tile.install('WALL_LEVER', {
 
 GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
 GWD.room.install(
-    'GWD.room',
+    'ROOM',
     new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
 );
 
@@ -205,7 +205,7 @@ GWM.effect.install('HOLE_WITH_PLATE', {
 
 GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
 GWD.room.install(
-    'GWD.room',
+    'ROOM',
     new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
 );
 

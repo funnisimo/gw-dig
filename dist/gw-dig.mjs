@@ -291,7 +291,8 @@ class MapSite {
         return this.hasItem(x, y) || this.hasActor(x, y);
     }
     isPassable(x, y) {
-        return !this.map.cellInfo(x, y).blocksMove();
+        const info = this.map.cellInfo(x, y);
+        return !(info.blocksMove() || info.blocksPathing());
     }
     // tileBlocksMove(tile: number): boolean {
     //     return GWM.tile.get(tile).blocksMove();
@@ -3350,80 +3351,80 @@ class BuildStep {
         // Figure out the distance bounds.
         const distanceBound = this.distanceBound(builder);
         this.updateViewMap(builder);
-        do {
-            // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
-            // Make a master map of candidate locations for this feature.
-            let qualifyingTileCount = this.markCandidates(candidates, builder, blueprint, distanceBound);
-            if (!this.generateEverywhere) {
-                wantCount = this.count.value();
-            }
-            if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
-                console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
-                return 0; // ?? Failed ??
-            }
-            let x = 0, y = 0;
-            for (builtCount = 0; (this.generateEverywhere || builtCount < wantCount) &&
-                qualifyingTileCount > 0;) {
-                // Find a location for the feature.
-                if (this.buildAtOrigin) {
-                    // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-                    x = builder.originX;
-                    y = builder.originY;
-                }
-                else {
-                    // Pick our candidate location randomly, and also strike it from
-                    // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = GWU.random.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
-                }
-                // Don't waste time trying the same place again whether or not this attempt succeeds.
-                candidates[x][y] = 0;
-                qualifyingTileCount--;
-                let success = true;
-                // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-                if (this.effect) {
-                    success = site.fireEffect(this.effect, x, y);
-                }
-                // Now try to place the terrain tile, if any.
-                if (success && this.tile !== -1) {
-                    const tile = GWM.tile.get(this.tile);
-                    if (!(this.flags & StepFlags.BF_PERMIT_BLOCKING) &&
-                        (tile.blocksMove() ||
-                            this.flags & StepFlags.BF_TREAT_AS_BLOCKING)) {
-                        // Yes, check for blocking.
-                        const blockingMap = GWU.grid.alloc(site.width, site.height);
-                        blockingMap[x][y] = 1;
-                        success = !siteDisruptedBy(site, blockingMap, {
-                            machine: site.machineCount,
-                        });
-                        GWU.grid.free(blockingMap);
-                    }
-                    if (success) {
-                        site.setTile(x, y, tile);
-                    }
-                }
-                // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
-                if (success) {
-                    qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
-                    builtCount++; // we've placed an instance
-                    //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
-                }
-                if (success) {
-                    // Proceed only if the terrain stuff for this instance succeeded.
-                    // Mark the feature location as part of the machine, in case it is not already inside of it.
-                    if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
-                        site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
-                    }
-                    // Mark the feature location as impregnable if requested.
-                    if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                        site.setCellFlag(x, y, GWM.map.flags.Cell.IMPREGNABLE);
-                    }
-                }
-                // Finished with this instance!
-            }
-        } while (this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS &&
-            builtCount <= this.count.lo);
+        // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+        // Make a master map of candidate locations for this feature.
+        let qualifyingTileCount = this.markCandidates(candidates, builder, blueprint, distanceBound);
+        if (!this.generateEverywhere) {
+            wantCount = this.count.value();
+        }
+        if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
+            console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
+            return 0; // ?? Failed ??
+        }
+        let x = 0, y = 0;
         let success = true;
+        do {
+            success = true;
+            // Find a location for the feature.
+            if (this.buildAtOrigin) {
+                // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+                x = builder.originX;
+                y = builder.originY;
+            }
+            else {
+                // Pick our candidate location randomly, and also strike it from
+                // the candidates map so that subsequent instances of this same feature can't choose it.
+                [x, y] = GWU.random.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+            }
+            // Don't waste time trying the same place again whether or not this attempt succeeds.
+            candidates[x][y] = 0;
+            qualifyingTileCount--;
+            // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+            if (this.effect) {
+                success = site.fireEffect(this.effect, x, y);
+            }
+            // Now try to place the terrain tile, if any.
+            if (success && this.tile !== -1) {
+                const tile = GWM.tile.get(this.tile);
+                if (!(this.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+                    (tile.blocksMove() ||
+                        this.flags & StepFlags.BF_TREAT_AS_BLOCKING)) {
+                    // Yes, check for blocking.
+                    const blockingMap = GWU.grid.alloc(site.width, site.height);
+                    blockingMap[x][y] = 1;
+                    success = !siteDisruptedBy(site, blockingMap, {
+                        machine: site.machineCount,
+                    });
+                    GWU.grid.free(blockingMap);
+                }
+                if (success) {
+                    site.setTile(x, y, tile);
+                }
+            }
+            // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+            // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
+            if (success) {
+                qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
+                builtCount++; // we've placed an instance
+                //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
+            }
+            if (success) {
+                // Proceed only if the terrain stuff for this instance succeeded.
+                // Mark the feature location as part of the machine, in case it is not already inside of it.
+                if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
+                    site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+                }
+                // Mark the feature location as impregnable if requested.
+                if (this.flags & StepFlags.BF_IMPREGNABLE) {
+                    site.setCellFlag(x, y, GWM.map.flags.Cell.IMPREGNABLE);
+                }
+            }
+            // Finished with this instance!
+        } while (qualifyingTileCount > 0 &&
+            (this.generateEverywhere ||
+                builtCount < wantCount ||
+                this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS));
+        success = builtCount > 0;
         // let success = RUT.Component.generateAdoptItem(
         //     component,
         //     blueprint,

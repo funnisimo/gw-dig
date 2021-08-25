@@ -82,7 +82,7 @@ describe('buildStep', () => {
 
         expect(builder.build(blue)).toBeTruthy();
 
-        // site.dump();
+        // map.dump();
 
         expect(map.count((c) => c.hasTile('A'))).toBeGreaterThan(1);
         expect(map.count((c) => c.hasTile('B'))).toEqual(1);
@@ -109,11 +109,11 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        // site.dump();
+        // map.dump();
 
         expect(builder.build(blue)).toBeTruthy();
 
-        // site.dump();
+        // map.dump();
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(12);
     });
@@ -141,7 +141,7 @@ describe('buildStep', () => {
 
         expect(builder.build(blue)).toBeTruthy();
 
-        // site.dump();
+        // map.dump();
 
         expect(builder.originX).toEqual(5);
         expect(builder.originY).toEqual(27);
@@ -184,7 +184,7 @@ describe('buildStep', () => {
 
         expect(builder.build(blue)).toBeTruthy();
 
-        // site.dump();
+        // map.dump();
 
         expect(builder.originX).toEqual(5);
         expect(builder.originY).toEqual(27);
