@@ -21,7 +21,7 @@
             });
         }
         n['default'] = e;
-        return Object.freeze(n);
+        return n;
     }
 
     var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
@@ -669,19 +669,25 @@
     function fillCostGrid(source, costGrid) {
         costGrid.update((_v, x, y) => source.isPassable(x, y) ? 1 : GWU__namespace.path.OBSTRUCTION);
     }
-    function siteDisruptedBy(site, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
+    function siteDisruptedBy(site, blockingGrid, options = {}) {
+        var _a, _b, _c;
+        (_a = options.offsetX) !== null && _a !== void 0 ? _a : (options.offsetX = 0);
+        (_b = options.offsetY) !== null && _b !== void 0 ? _b : (options.offsetY = 0);
+        (_c = options.machine) !== null && _c !== void 0 ? _c : (options.machine = 0);
         const walkableGrid = GWU__namespace.grid.alloc(site.width, site.height);
         let disrupts = false;
         // Get all walkable locations after lake added
         GWU__namespace.utils.forRect(site.width, site.height, (i, j) => {
-            const lakeX = i + blockingToMapX;
-            const lakeY = j + blockingToMapY;
+            const lakeX = i + options.offsetX;
+            const lakeY = j + options.offsetY;
             if (blockingGrid.get(lakeX, lakeY)) {
                 if (site.isStairs(i, j)) {
                     disrupts = true;
                 }
             }
-            else if (site.isPassable(i, j) && site.getMachine(i, j) == 0) {
+            else if (site.isPassable(i, j) &&
+                (site.getMachine(i, j) == 0 ||
+                    site.getMachine(i, j) == options.machine)) {
                 walkableGrid[i][j] = 1;
             }
         });
@@ -752,7 +758,7 @@
         GWU__namespace.grid.free(costGrid);
     }
 
-    var index$1 = /*#__PURE__*/Object.freeze({
+    var index$1 = {
         __proto__: null,
         NOTHING: NOTHING,
         FLOOR: FLOOR,
@@ -775,7 +781,7 @@
         siteDisruptedBy: siteDisruptedBy,
         siteDisruptedSize: siteDisruptedSize,
         computeDistanceMap: computeDistanceMap
-    });
+    };
 
     class Hall {
         constructor(loc, dir, length, width = 1) {
@@ -1215,7 +1221,7 @@
     }
     install$2('DEFAULT', new Rectangular());
 
-    var room = /*#__PURE__*/Object.freeze({
+    var room = {
         __proto__: null,
         checkConfig: checkConfig,
         RoomDigger: RoomDigger,
@@ -1239,7 +1245,7 @@
         ChunkyRoom: ChunkyRoom,
         chunkyRoom: chunkyRoom,
         install: install$2
-    });
+    };
 
     const DIRS = GWU__namespace.utils.DIRS;
     function isDoorLoc(site, loc, dir) {
@@ -1440,7 +1446,7 @@
     }
     install$1('DEFAULT', new HallDigger({ chance: 15 }));
 
-    var hall = /*#__PURE__*/Object.freeze({
+    var hall = {
         __proto__: null,
         isDoorLoc: isDoorLoc,
         pickWidth: pickWidth,
@@ -1451,7 +1457,7 @@
         dig: dig,
         halls: halls,
         install: install$1
-    });
+    };
 
     class Lakes {
         constructor(options = {}) {
@@ -1588,10 +1594,10 @@
         }
     }
 
-    var lake = /*#__PURE__*/Object.freeze({
+    var lake = {
         __proto__: null,
         Lakes: Lakes
-    });
+    };
 
     class Bridges {
         constructor(options = {}) {
@@ -1697,10 +1703,10 @@
         }
     }
 
-    var bridge = /*#__PURE__*/Object.freeze({
+    var bridge = {
         __proto__: null,
         Bridges: Bridges
-    });
+    };
 
     class Stairs {
         constructor(options = {}) {
@@ -1860,10 +1866,10 @@
         }
     }
 
-    var stairs = /*#__PURE__*/Object.freeze({
+    var stairs = {
         __proto__: null,
         Stairs: Stairs
-    });
+    };
 
     class LoopDigger {
         constructor(options = {}) {
@@ -2009,11 +2015,11 @@
         return digger.create(site);
     }
 
-    var loop = /*#__PURE__*/Object.freeze({
+    var loop = {
         __proto__: null,
         LoopDigger: LoopDigger,
         digLoops: digLoops
-    });
+    };
 
     class Level {
         constructor(options = {}) {
@@ -2565,23 +2571,7 @@
             }
             this.frequency = GWU__namespace.frequency.make(opts.frequency || 100);
             if (opts.size) {
-                if (typeof opts.size === 'string') {
-                    const parts = opts.size
-                        .split(/-/)
-                        .map((v) => v.trim())
-                        .map((v) => Number.parseInt(v));
-                    if (parts.length !== 2)
-                        throw new Error('Blueprint size must be of format: #-#');
-                    this.size = GWU__namespace.range.make([parts[0], parts[1]]);
-                }
-                else if (Array.isArray(opts.size)) {
-                    if (opts.size.length !== 2)
-                        throw new Error('Blueprint size must be [min, max]');
-                    this.size = GWU__namespace.range.make([opts.size[0], opts.size[1]]);
-                }
-                else {
-                    throw new Error('size must be string or array.');
-                }
+                this.size = GWU__namespace.range.make(opts.size);
                 if (this.size.lo > this.size.hi)
                     throw new Error('Blueprint size must be small to large.');
             }
@@ -2750,7 +2740,9 @@
                         console.log('too small');
                     }
                     else if (this.treatAsBlocking &&
-                        siteDisruptedBy(site, interior)) {
+                        siteDisruptedBy(site, interior, {
+                            machine: site.machineCount,
+                        })) {
                         console.log('disconnected');
                         tryAgain = true;
                     }
@@ -2802,19 +2794,46 @@
         }
         computeInteriorForVestibuleMachine(builder) {
             let success = true;
-            const interior = builder.interior;
             const site = builder.site;
+            const interior = builder.interior;
             interior.fill(0);
-            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-            const totalFreq = this.size.value(); // Keeps track of the goal size.
-            const distMap = GWU__namespace.grid.alloc(site.width, site.height);
-            computeDistanceMap(site, distMap, builder.originX, builder.originY, this.size.hi);
             // console.log('DISTANCE MAP', originX, originY);
             // RUT.Grid.dump(distMap);
             const doorChokeCount = site.getChokeCount(builder.originX, builder.originY);
+            const vestibuleLoc = [-1, -1];
+            let vestibuleChokeCount = doorChokeCount;
+            GWU__namespace.utils.eachNeighbor(builder.originX, builder.originY, (x, y) => {
+                const count = site.getChokeCount(x, y);
+                if (count == doorChokeCount)
+                    return;
+                if (count > 10000)
+                    return;
+                if (count < 0)
+                    return;
+                vestibuleLoc[0] = x;
+                vestibuleLoc[1] = y;
+                vestibuleChokeCount = count;
+            }, true);
+            const roomSize = vestibuleChokeCount - doorChokeCount;
+            if (this.size.contains(roomSize)) {
+                // The room entirely fits within the vestibule desired size
+                const count = interior.floodFill(vestibuleLoc[0], vestibuleLoc[1], (_v, i, j) => {
+                    if (site.isOccupied(i, j)) {
+                        success = false;
+                    }
+                    return site.getChokeCount(i, j) === vestibuleChokeCount;
+                }, 1);
+                if (success && this.size.contains(count))
+                    return true;
+            }
+            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+            const wantSize = this.size.value(); // Keeps track of the goal size.
+            const distMap = GWU__namespace.grid.alloc(site.width, site.height);
+            computeDistanceMap(site, distMap, builder.originX, builder.originY, this.size.hi);
             const cells = GWU__namespace.random.sequence(site.width * site.height);
-            for (let k = 0; k < 1000 && qualifyingTileCount < totalFreq; k++) {
-                for (let i = 0; i < cells.length && qualifyingTileCount < totalFreq; ++i) {
+            success = true;
+            for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
+                for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
                     const x = Math.floor(cells[i] / site.height);
                     const y = cells[i] % site.height;
                     const dist = distMap[x][y];
@@ -2822,7 +2841,7 @@
                         continue;
                     if (site.isOccupied(x, y)) {
                         success = false;
-                        qualifyingTileCount = totalFreq;
+                        qualifyingTileCount = wantSize;
                     }
                     if (site.getChokeCount(x, y) <= doorChokeCount)
                         continue;
@@ -2831,7 +2850,8 @@
                 }
             }
             // Now make sure the interior map satisfies the machine's qualifications.
-            if (this.treatAsBlocking && siteDisruptedBy(site, interior)) {
+            if (this.treatAsBlocking &&
+                siteDisruptedBy(site, interior, { machine: site.machineCount })) {
                 success = false;
             }
             else if (this.requireBlocking &&
@@ -3130,7 +3150,9 @@
         StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
         StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
         StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl(24)] = "BF_IMPREGNABLE";
+        // TODO - BF_ALLOW_IN_HALLWAY instead?
         StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl(27)] = "BF_NOT_IN_HALLWAY";
+        // TODO - BF_ALLOW_BOUNDARY instead
         StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
         StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl(29)] = "BF_SKELETON_KEY";
         StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl(30)] = "BF_KEY_DISPOSABLE";
@@ -3157,7 +3179,7 @@
             this.item = cfg.item || null;
             this.horde = cfg.horde || null;
             if (cfg.effect) {
-                this.effect = GWM__namespace.effect.make(cfg.effect);
+                this.effect = GWM__namespace.effect.from(cfg.effect);
             }
         }
         get repeatUntilNoProgress() {
@@ -3396,7 +3418,9 @@
                             // Yes, check for blocking.
                             const blockingMap = GWU__namespace.grid.alloc(site.width, site.height);
                             blockingMap[x][y] = 1;
-                            success = !siteDisruptedBy(site, blockingMap);
+                            success = !siteDisruptedBy(site, blockingMap, {
+                                machine: site.machineCount,
+                            });
                             GWU__namespace.grid.free(blockingMap);
                         }
                         if (success) {
@@ -3613,7 +3637,7 @@
         }
     }
 
-    var index = /*#__PURE__*/Object.freeze({
+    var index = {
         __proto__: null,
         get StepFlags () { return StepFlags; },
         BuildStep: BuildStep,
@@ -3623,7 +3647,7 @@
         blueprints: blueprints,
         install: install,
         random: random
-    });
+    };
 
     exports.Dungeon = Dungeon;
     exports.Hall = Hall;

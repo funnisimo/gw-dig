@@ -24,7 +24,7 @@ const builder = new GWD.blueprint.Builder(map, 1);
 
 GWD.blueprint.install('VESTIBULE', {
     flags: 'BP_VESTIBULE',
-    size: [10, 10],
+    size: '5-10',
     steps: [
         { tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' },
         { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
@@ -90,7 +90,7 @@ const builder = new GWD.blueprint.Builder(map, 1);
 
 GWD.blueprint.install('VESTIBULE', {
     flags: 'BP_VESTIBULE',
-    size: [1, 1],
+    size: 1,
     steps: [
         {
             tile: 'PORTCULLIS_CLOSED',
@@ -116,4 +116,158 @@ const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 map.drawInto(canvas);
 SHOW(canvas.node);
 canvas.render();
+```
+
+### Throwing Tutorial
+
+Brogue has a (now removed?) throwing tutorial that has a pressure plate in the middle of a hole. When you throw something on the pressure plate, it opens the door. Lets replicate that.
+
+```js
+const open = GWM.tile.install('PORTCULLIS_OPEN', {
+    extends: 'FLOOR',
+    priority: '+1',
+    effects: {
+        machine: {
+            tile: 'PORTCULLIS_CLOSED',
+            message: 'The portcullis slams down from the ceiling.',
+            flags: 'E_EVACUATE_CREATURES',
+        },
+    },
+});
+
+const closed = GWM.tile.install('PORTCULLIS_CLOSED', {
+    extends: 'WALL',
+    priority: '+1',
+    fg: 0x0f0,
+    bg: GWM.tile.tiles.FLOOR.sprite.bg,
+    flags:
+        '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
+    effects: {
+        machine: {
+            tile: 'PORTCULLIS_OPEN',
+            message: 'The portcullis rises into the ceiling.',
+            flags: 'E_SUPERPRIORITY',
+        },
+    },
+});
+
+const plate = GWM.tile.install('PRESSURE_PLATE', {
+    extends: 'FLOOR',
+    priority: '+10',
+    ch: '^',
+    fg: 0x00f,
+    flags: 'T_IS_TRAP, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
+    effects: {
+        enter: {
+            activateMachine: true,
+            message: 'the pressure plate clicks.',
+            tile: 'PRESSURE_PLATE_DEPRESSED',
+        },
+    },
+});
+
+const depressed = GWM.tile.install('PRESSURE_PLATE_DEPRESSED', {
+    extends: 'FLOOR',
+    priority: '+10',
+    ch: 'v',
+    fg: 0x00f,
+    effects: {
+        exit: { tile: 'PRESSURE_PLATE' },
+    },
+});
+
+const chasm = GWM.tile.install('CHASM', {
+    extends: 'FLOOR',
+    priority: '+2',
+    ch: ' ',
+    flavor: 'a chasm',
+    flags: 'T_AUTO_DESCENT',
+});
+
+const edge = GWM.tile.install('CHASM_EDGE', {
+    extends: 'FLOOR',
+    priority: '+1',
+    ch: ':',
+    fg: 0x777,
+    flavor: 'a chasm edge',
+});
+
+GWM.effect.install('CHASM_EDGE', { tile: 'CHASM_EDGE,100' });
+GWM.effect.install('CHASM_MEDIUM', {
+    tile: 'CHASM,150,50',
+    flags: 'E_NEXT_EVERYWHERE',
+    next: 'CHASM_EDGE',
+});
+GWM.effect.install('HOLE_WITH_PLATE', {
+    tile: 'PRESSURE_PLATE',
+    next: 'CHASM_MEDIUM',
+});
+
+GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
+GWD.room.install(
+    'GWD.room',
+    new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
+);
+
+GWD.blueprint.install('VESTIBULE', {
+    flags: 'BP_VESTIBULE',
+    size: '40-200',
+    steps: [
+        {
+            effect: 'CHASM_MEDIUM',
+            tile: 'PRESSURE_PLATE',
+            flags: 'BF_TREAT_AS_BLOCKING, BF_FAR_FROM_ORIGIN',
+        },
+        {
+            tile: 'PORTCULLIS_CLOSED',
+            flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+        },
+    ],
+});
+
+const blue = GWD.blueprint.install('ROOM', {
+    flags: 'BP_ROOM',
+    size: '10-100',
+    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+});
+
+const map = GWM.map.make(80, 34, { visible: true });
+
+const level = new GWD.Level({
+    seed: 12345,
+    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+});
+level.create(map);
+
+const builder = new GWD.blueprint.Builder(map, 1);
+builder.build(blue, 20, 11);
+
+const canvas = GWU.canvas.make({
+    font: 'monospace',
+    width: 80,
+    height: 34,
+    loop: LOOP,
+});
+map.drawInto(canvas);
+SHOW(canvas.node);
+canvas.render();
+
+LOOP.run(
+    {
+        click: async (e) => {
+            await map.fire('enter', e.x, e.y);
+        },
+        tick: async (e) => {
+            await map.tick();
+        },
+        draw() {
+            map.drawInto(canvas);
+            canvas.render();
+        },
+    },
+    500
+);
 ```

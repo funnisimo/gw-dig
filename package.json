@@ -9,7 +9,7 @@
     "scripts": {
         "compile": "tsc --build tsconfig.json",
         "bundle": "rollup -c",
-        "copy": "cp dist/gw-dig.js docs/js && cp node_modules/gw-utils/dist/gw-utils.min.* docs/js && cp node_modules/gw-map/dist/gw-map.min.* docs/js",
+        "copy": "cp dist/gw-dig.js* docs/js && cp node_modules/gw-utils/dist/gw-utils.js* docs/js && cp node_modules/gw-map/dist/gw-map.js* docs/js",
         "build": "npm run compile && npm run bundle && npm run copy && npm run version",
         "serve": "cd docs && http-server -p 8080",
         "test": "jest --detectOpenHandles",

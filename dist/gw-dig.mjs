@@ -643,19 +643,25 @@ function copySite(dest, source, offsetX = 0, offsetY = 0) {
 function fillCostGrid(source, costGrid) {
     costGrid.update((_v, x, y) => source.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION);
 }
-function siteDisruptedBy(site, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
+function siteDisruptedBy(site, blockingGrid, options = {}) {
+    var _a, _b, _c;
+    (_a = options.offsetX) !== null && _a !== void 0 ? _a : (options.offsetX = 0);
+    (_b = options.offsetY) !== null && _b !== void 0 ? _b : (options.offsetY = 0);
+    (_c = options.machine) !== null && _c !== void 0 ? _c : (options.machine = 0);
     const walkableGrid = GWU.grid.alloc(site.width, site.height);
     let disrupts = false;
     // Get all walkable locations after lake added
     GWU.utils.forRect(site.width, site.height, (i, j) => {
-        const lakeX = i + blockingToMapX;
-        const lakeY = j + blockingToMapY;
+        const lakeX = i + options.offsetX;
+        const lakeY = j + options.offsetY;
         if (blockingGrid.get(lakeX, lakeY)) {
             if (site.isStairs(i, j)) {
                 disrupts = true;
             }
         }
-        else if (site.isPassable(i, j) && site.getMachine(i, j) == 0) {
+        else if (site.isPassable(i, j) &&
+            (site.getMachine(i, j) == 0 ||
+                site.getMachine(i, j) == options.machine)) {
             walkableGrid[i][j] = 1;
         }
     });
@@ -2539,23 +2545,7 @@ class Blueprint {
         }
         this.frequency = GWU.frequency.make(opts.frequency || 100);
         if (opts.size) {
-            if (typeof opts.size === 'string') {
-                const parts = opts.size
-                    .split(/-/)
-                    .map((v) => v.trim())
-                    .map((v) => Number.parseInt(v));
-                if (parts.length !== 2)
-                    throw new Error('Blueprint size must be of format: #-#');
-                this.size = GWU.range.make([parts[0], parts[1]]);
-            }
-            else if (Array.isArray(opts.size)) {
-                if (opts.size.length !== 2)
-                    throw new Error('Blueprint size must be [min, max]');
-                this.size = GWU.range.make([opts.size[0], opts.size[1]]);
-            }
-            else {
-                throw new Error('size must be string or array.');
-            }
+            this.size = GWU.range.make(opts.size);
             if (this.size.lo > this.size.hi)
                 throw new Error('Blueprint size must be small to large.');
         }
@@ -2724,7 +2714,9 @@ class Blueprint {
                     console.log('too small');
                 }
                 else if (this.treatAsBlocking &&
-                    siteDisruptedBy(site, interior)) {
+                    siteDisruptedBy(site, interior, {
+                        machine: site.machineCount,
+                    })) {
                     console.log('disconnected');
                     tryAgain = true;
                 }
@@ -2776,19 +2768,46 @@ class Blueprint {
     }
     computeInteriorForVestibuleMachine(builder) {
         let success = true;
-        const interior = builder.interior;
         const site = builder.site;
+        const interior = builder.interior;
         interior.fill(0);
-        let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-        const totalFreq = this.size.value(); // Keeps track of the goal size.
-        const distMap = GWU.grid.alloc(site.width, site.height);
-        computeDistanceMap(site, distMap, builder.originX, builder.originY, this.size.hi);
         // console.log('DISTANCE MAP', originX, originY);
         // RUT.Grid.dump(distMap);
         const doorChokeCount = site.getChokeCount(builder.originX, builder.originY);
+        const vestibuleLoc = [-1, -1];
+        let vestibuleChokeCount = doorChokeCount;
+        GWU.utils.eachNeighbor(builder.originX, builder.originY, (x, y) => {
+            const count = site.getChokeCount(x, y);
+            if (count == doorChokeCount)
+                return;
+            if (count > 10000)
+                return;
+            if (count < 0)
+                return;
+            vestibuleLoc[0] = x;
+            vestibuleLoc[1] = y;
+            vestibuleChokeCount = count;
+        }, true);
+        const roomSize = vestibuleChokeCount - doorChokeCount;
+        if (this.size.contains(roomSize)) {
+            // The room entirely fits within the vestibule desired size
+            const count = interior.floodFill(vestibuleLoc[0], vestibuleLoc[1], (_v, i, j) => {
+                if (site.isOccupied(i, j)) {
+                    success = false;
+                }
+                return site.getChokeCount(i, j) === vestibuleChokeCount;
+            }, 1);
+            if (success && this.size.contains(count))
+                return true;
+        }
+        let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+        const wantSize = this.size.value(); // Keeps track of the goal size.
+        const distMap = GWU.grid.alloc(site.width, site.height);
+        computeDistanceMap(site, distMap, builder.originX, builder.originY, this.size.hi);
         const cells = GWU.random.sequence(site.width * site.height);
-        for (let k = 0; k < 1000 && qualifyingTileCount < totalFreq; k++) {
-            for (let i = 0; i < cells.length && qualifyingTileCount < totalFreq; ++i) {
+        success = true;
+        for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
+            for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
                 const x = Math.floor(cells[i] / site.height);
                 const y = cells[i] % site.height;
                 const dist = distMap[x][y];
@@ -2796,7 +2815,7 @@ class Blueprint {
                     continue;
                 if (site.isOccupied(x, y)) {
                     success = false;
-                    qualifyingTileCount = totalFreq;
+                    qualifyingTileCount = wantSize;
                 }
                 if (site.getChokeCount(x, y) <= doorChokeCount)
                     continue;
@@ -2805,7 +2824,8 @@ class Blueprint {
             }
         }
         // Now make sure the interior map satisfies the machine's qualifications.
-        if (this.treatAsBlocking && siteDisruptedBy(site, interior)) {
+        if (this.treatAsBlocking &&
+            siteDisruptedBy(site, interior, { machine: site.machineCount })) {
             success = false;
         }
         else if (this.requireBlocking &&
@@ -3104,7 +3124,9 @@ var StepFlags;
     StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
     StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
     StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl(24)] = "BF_IMPREGNABLE";
+    // TODO - BF_ALLOW_IN_HALLWAY instead?
     StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl(27)] = "BF_NOT_IN_HALLWAY";
+    // TODO - BF_ALLOW_BOUNDARY instead
     StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
     StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl(29)] = "BF_SKELETON_KEY";
     StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl(30)] = "BF_KEY_DISPOSABLE";
@@ -3131,7 +3153,7 @@ class BuildStep {
         this.item = cfg.item || null;
         this.horde = cfg.horde || null;
         if (cfg.effect) {
-            this.effect = GWM.effect.make(cfg.effect);
+            this.effect = GWM.effect.from(cfg.effect);
         }
     }
     get repeatUntilNoProgress() {
@@ -3370,7 +3392,9 @@ class BuildStep {
                         // Yes, check for blocking.
                         const blockingMap = GWU.grid.alloc(site.width, site.height);
                         blockingMap[x][y] = 1;
-                        success = !siteDisruptedBy(site, blockingMap);
+                        success = !siteDisruptedBy(site, blockingMap, {
+                            machine: site.machineCount,
+                        });
                         GWU.grid.free(blockingMap);
                     }
                     if (success) {

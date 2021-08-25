@@ -149,7 +149,12 @@ declare function directionOfDoorSite(site: DigSite, x: number, y: number): numbe
 declare function chooseRandomDoorSites(site: DigSite): GWU.utils.Loc[];
 declare function copySite(dest: DigSite, source: DigSite, offsetX?: number, offsetY?: number): void;
 declare function fillCostGrid(source: DigSite, costGrid: GWU.grid.NumGrid): void;
-declare function siteDisruptedBy(site: DigSite, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
+interface DisruptOptions {
+    offsetX: number;
+    offsetY: number;
+    machine: number;
+}
+declare function siteDisruptedBy(site: DigSite, blockingGrid: GWU.grid.NumGrid, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedSize(site: DigSite, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
 declare function computeDistanceMap(site: DigSite, distanceMap: GWU.grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
 
@@ -175,6 +180,7 @@ declare const index_d$1_directionOfDoorSite: typeof directionOfDoorSite;
 declare const index_d$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const index_d$1_copySite: typeof copySite;
 declare const index_d$1_fillCostGrid: typeof fillCostGrid;
+type index_d$1_DisruptOptions = DisruptOptions;
 declare const index_d$1_siteDisruptedBy: typeof siteDisruptedBy;
 declare const index_d$1_siteDisruptedSize: typeof siteDisruptedSize;
 declare const index_d$1_computeDistanceMap: typeof computeDistanceMap;
@@ -200,6 +206,7 @@ declare namespace index_d$1 {
     index_d$1_chooseRandomDoorSites as chooseRandomDoorSites,
     index_d$1_copySite as copySite,
     index_d$1_fillCostGrid as fillCostGrid,
+    index_d$1_DisruptOptions as DisruptOptions,
     index_d$1_siteDisruptedBy as siteDisruptedBy,
     index_d$1_siteDisruptedSize as siteDisruptedSize,
     index_d$1_computeDistanceMap as computeDistanceMap,

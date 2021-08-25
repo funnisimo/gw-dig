@@ -56,22 +56,7 @@ export class Blueprint {
         this.frequency = GWU.frequency.make(opts.frequency || 100);
 
         if (opts.size) {
-            if (typeof opts.size === 'string') {
-                const parts = opts.size
-                    .split(/-/)
-                    .map((v) => v.trim())
-                    .map((v) => Number.parseInt(v));
-                if (parts.length !== 2)
-                    throw new Error('Blueprint size must be of format: #-#');
-                this.size = GWU.range.make([parts[0], parts[1]]);
-            } else if (Array.isArray(opts.size)) {
-                if (opts.size.length !== 2)
-                    throw new Error('Blueprint size must be [min, max]');
-                this.size = GWU.range.make([opts.size[0], opts.size[1]]);
-            } else {
-                throw new Error('size must be string or array.');
-            }
-
+            this.size = GWU.range.make(opts.size);
             if (this.size.lo > this.size.hi)
                 throw new Error('Blueprint size must be small to large.');
         } else {
@@ -301,7 +286,9 @@ export class Blueprint {
                     console.log('too small');
                 } else if (
                     this.treatAsBlocking &&
-                    SITE.siteDisruptedBy(site, interior)
+                    SITE.siteDisruptedBy(site, interior, {
+                        machine: site.machineCount,
+                    })
                 ) {
                     console.log('disconnected');
                     tryAgain = true;
@@ -383,13 +370,54 @@ export class Blueprint {
     computeInteriorForVestibuleMachine(builder: Builder) {
         let success = true;
 
-        const interior = builder.interior;
         const site = builder.site;
-
+        const interior = builder.interior;
         interior.fill(0);
 
+        // console.log('DISTANCE MAP', originX, originY);
+        // RUT.Grid.dump(distMap);
+
+        const doorChokeCount = site.getChokeCount(
+            builder.originX,
+            builder.originY
+        );
+
+        const vestibuleLoc = [-1, -1];
+        let vestibuleChokeCount = doorChokeCount;
+        GWU.utils.eachNeighbor(
+            builder.originX,
+            builder.originY,
+            (x, y) => {
+                const count = site.getChokeCount(x, y);
+                if (count == doorChokeCount) return;
+                if (count > 10000) return;
+                if (count < 0) return;
+                vestibuleLoc[0] = x;
+                vestibuleLoc[1] = y;
+                vestibuleChokeCount = count;
+            },
+            true
+        );
+
+        const roomSize = vestibuleChokeCount - doorChokeCount;
+        if (this.size.contains(roomSize)) {
+            // The room entirely fits within the vestibule desired size
+            const count = interior.floodFill(
+                vestibuleLoc[0],
+                vestibuleLoc[1],
+                (_v, i, j) => {
+                    if (site.isOccupied(i, j)) {
+                        success = false;
+                    }
+                    return site.getChokeCount(i, j) === vestibuleChokeCount;
+                },
+                1
+            );
+            if (success && this.size.contains(count)) return true;
+        }
+
         let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-        const totalFreq = this.size.value(); // Keeps track of the goal size.
+        const wantSize = this.size.value(); // Keeps track of the goal size.
 
         const distMap = GWU.grid.alloc(site.width, site.height);
         SITE.computeDistanceMap(
@@ -400,19 +428,12 @@ export class Blueprint {
             this.size.hi
         );
 
-        // console.log('DISTANCE MAP', originX, originY);
-        // RUT.Grid.dump(distMap);
-
-        const doorChokeCount = site.getChokeCount(
-            builder.originX,
-            builder.originY
-        );
         const cells = GWU.random.sequence(site.width * site.height);
-
-        for (let k = 0; k < 1000 && qualifyingTileCount < totalFreq; k++) {
+        success = true;
+        for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
             for (
                 let i = 0;
-                i < cells.length && qualifyingTileCount < totalFreq;
+                i < cells.length && qualifyingTileCount < wantSize;
                 ++i
             ) {
                 const x = Math.floor(cells[i] / site.height);
@@ -423,7 +444,7 @@ export class Blueprint {
                 if (dist != k) continue;
                 if (site.isOccupied(x, y)) {
                     success = false;
-                    qualifyingTileCount = totalFreq;
+                    qualifyingTileCount = wantSize;
                 }
                 if (site.getChokeCount(x, y) <= doorChokeCount) continue;
 
@@ -433,7 +454,10 @@ export class Blueprint {
         }
 
         // Now make sure the interior map satisfies the machine's qualifications.
-        if (this.treatAsBlocking && SITE.siteDisruptedBy(site, interior)) {
+        if (
+            this.treatAsBlocking &&
+            SITE.siteDisruptedBy(site, interior, { machine: site.machineCount })
+        ) {
             success = false;
         } else if (
             this.requireBlocking &&

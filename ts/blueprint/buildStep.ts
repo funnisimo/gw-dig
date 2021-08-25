@@ -55,7 +55,11 @@ export enum StepFlags {
     BF_BUILD_ANYWHERE_ON_LEVEL = Fl(22), // build anywhere on the level that is not inside the machine
     BF_REPEAT_UNTIL_NO_PROGRESS = Fl(23), // keep trying to build this feature set until no changes are made
     BF_IMPREGNABLE = Fl(24), // this feature's location will be immune to tunneling
+
+    // TODO - BF_ALLOW_IN_HALLWAY instead?
     BF_NOT_IN_HALLWAY = Fl(27), // the feature location must have a passableArcCount of <= 1
+
+    // TODO - BF_ALLOW_BOUNDARY instead
     BF_NOT_ON_LEVEL_PERIMETER = Fl(28), // don't build it in the outermost walls of the level
 
     BF_SKELETON_KEY = Fl(29), // if a key is generated or adopted by this feature, it will open all locks in this machine.
@@ -87,7 +91,7 @@ export class BuildStep {
         this.horde = cfg.horde || null;
 
         if (cfg.effect) {
-            this.effect = GWM.effect.make(cfg.effect);
+            this.effect = GWM.effect.from(cfg.effect);
         }
     }
 
@@ -428,7 +432,9 @@ export class BuildStep {
                             site.height
                         );
                         blockingMap[x][y] = 1;
-                        success = !SITE.siteDisruptedBy(site, blockingMap);
+                        success = !SITE.siteDisruptedBy(site, blockingMap, {
+                            machine: site.machineCount,
+                        });
                         GWU.grid.free(blockingMap);
                     }
                     if (success) {

@@ -369,24 +369,37 @@ export function fillCostGrid(source: SITE.DigSite, costGrid: GWU.grid.NumGrid) {
     );
 }
 
+export interface DisruptOptions {
+    offsetX: number; // blockingGridOffsetX
+    offsetY: number; // blockingGridOffsetY
+    machine: number;
+}
+
 export function siteDisruptedBy(
     site: SITE.DigSite,
     blockingGrid: GWU.grid.NumGrid,
-    blockingToMapX = 0,
-    blockingToMapY = 0
+    options: Partial<DisruptOptions> = {}
 ) {
+    options.offsetX ??= 0;
+    options.offsetY ??= 0;
+    options.machine ??= 0;
+
     const walkableGrid = GWU.grid.alloc(site.width, site.height);
     let disrupts = false;
 
     // Get all walkable locations after lake added
     GWU.utils.forRect(site.width, site.height, (i, j) => {
-        const lakeX = i + blockingToMapX;
-        const lakeY = j + blockingToMapY;
+        const lakeX = i + options.offsetX!;
+        const lakeY = j + options.offsetY!;
         if (blockingGrid.get(lakeX, lakeY)) {
             if (site.isStairs(i, j)) {
                 disrupts = true;
             }
-        } else if (site.isPassable(i, j) && site.getMachine(i, j) == 0) {
+        } else if (
+            site.isPassable(i, j) &&
+            (site.getMachine(i, j) == 0 ||
+                site.getMachine(i, j) == options.machine)
+        ) {
             walkableGrid[i][j] = 1;
         }
     });

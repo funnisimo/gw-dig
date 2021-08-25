@@ -18,7 +18,7 @@ export default [
                 file: 'dist/gw-dig.min.js',
                 format: 'umd',
                 name: 'GWD',
-                // freeze: false,
+                freeze: false,
                 // extend: true,
                 sourcemap: true,
                 globals: {
@@ -31,7 +31,7 @@ export default [
                 file: 'dist/gw-dig.js',
                 format: 'umd',
                 name: 'GWD',
-                // freeze: false,
+                freeze: false,
                 // extend: true,
                 sourcemap: false,
                 globals: {
@@ -39,15 +39,6 @@ export default [
                     'gw-utils': 'GWU',
                 },
             },
-            // {
-            //   file: 'dist/gw-dig.cjs',
-            //   format: 'cjs',
-            //   freeze: false,
-            //   globals: {
-            //     'gw-map': 'GW',
-            //     'gw-utils': 'GW'
-            //   }
-            // },
             {
                 file: 'dist/gw-dig.mjs',
                 format: 'es',
