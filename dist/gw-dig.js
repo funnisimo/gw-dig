@@ -179,7 +179,7 @@
         }
     }
 
-    const Flags$1 = GWM__namespace.map.flags.Cell;
+    const Flags$1 = GWM__namespace.flags.Cell;
     class MapSite {
         constructor(map) {
             this.machineCount = 0;
@@ -237,22 +237,22 @@
         blocksDiagonal(x, y) {
             return this.map
                 .cellInfo(x, y)
-                .hasObjectFlag(GWM__namespace.gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
+                .hasObjectFlag(GWM__namespace.flags.Entity.L_BLOCKS_DIAGONAL);
         }
         blocksPathing(x, y) {
             const info = this.map.cellInfo(x, y);
-            return (info.hasObjectFlag(GWM__namespace.gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
+            return (info.hasObjectFlag(GWM__namespace.flags.Entity.L_BLOCKS_MOVE) ||
                 info.hasTileFlag(GWM__namespace.tile.flags.Tile.T_PATHING_BLOCKER));
         }
         blocksItems(x, y) {
             return this.map
                 .cellInfo(x, y)
-                .hasObjectFlag(GWM__namespace.gameObject.flags.GameObject.L_BLOCKS_ITEMS);
+                .hasObjectFlag(GWM__namespace.flags.Entity.L_BLOCKS_ITEMS);
         }
         blocksEffects(x, y) {
             return this.map
                 .cellInfo(x, y)
-                .hasObjectFlag(GWM__namespace.gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
+                .hasObjectFlag(GWM__namespace.flags.Entity.L_BLOCKS_EFFECTS);
         }
         isWall(x, y) {
             return this.map.cellInfo(x, y).isWall();
@@ -292,7 +292,7 @@
         isSecretDoor(x, y) {
             return this.map
                 .cellInfo(x, y)
-                .hasObjectFlag(GWM__namespace.gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
+                .hasObjectFlag(GWM__namespace.flags.Entity.L_SECRETLY_PASSABLE);
         }
         isDeep(x, y) {
             return this.map
@@ -303,14 +303,14 @@
             if (!this.hasXY(x, y))
                 return false;
             const cell = this.map.cell(x, y);
-            return (!!cell.depthTile(GWM__namespace.gameObject.flags.Depth.LIQUID) &&
+            return (!!cell.depthTile(GWM__namespace.flags.Depth.LIQUID) &&
                 !cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
         }
         isAnyLiquid(x, y) {
             if (!this.hasXY(x, y))
                 return false;
             const cell = this.map.cell(x, y);
-            return (cell.hasDepthTile(GWM__namespace.gameObject.flags.Depth.LIQUID) ||
+            return (cell.hasDepthTile(GWM__namespace.flags.Depth.LIQUID) ||
                 cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
         }
         isOccupied(x, y) {
@@ -2657,7 +2657,8 @@
                 // If it's a room machine, count up the gates of appropriate
                 // choke size and remember where they are. The origin of the room will be the gate location.
                 const randSite = GWU__namespace.random.matchingLoc(site.width, site.height, (x, y) => {
-                    return (site.hasCellFlag(x, y, GWM__namespace.map.flags.Cell.IS_GATE_SITE) && this.size.contains(site.getChokeCount(x, y)));
+                    return (site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_GATE_SITE) &&
+                        this.size.contains(site.getChokeCount(x, y)));
                 });
                 if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
                     // If no suitable sites, abort.
@@ -2727,7 +2728,7 @@
                                 interior[i][j] = 1;
                                 qualifyingTileCount++;
                                 if (site.isOccupied(i, j) ||
-                                    site.hasCellFlag(i, j, GWM__namespace.map.flags.Cell.IS_IN_MACHINE)) {
+                                    site.hasCellFlag(i, j, GWM__namespace.flags.Cell.IS_IN_MACHINE)) {
                                     // Abort if we've entered another machine or engulfed another machine's item or monster.
                                     tryAgain = true;
                                     qualifyingTileCount = totalFreq; // This is a hack to drop out of these three for-loops.
@@ -2778,8 +2779,8 @@
                 if (interior[newX][newY])
                     continue; // already done
                 if (site.isOccupied(newX, newY) ||
-                    (site.hasCellFlag(newX, newY, GWM__namespace.map.flags.Cell.IS_IN_MACHINE) &&
-                        !site.hasCellFlag(newX, newY, GWM__namespace.map.flags.Cell.IS_GATE_SITE))) {
+                    (site.hasCellFlag(newX, newY, GWM__namespace.flags.Cell.IS_IN_MACHINE) &&
+                        !site.hasCellFlag(newX, newY, GWM__namespace.flags.Cell.IS_GATE_SITE))) {
                     // Abort if there's an item in the room.
                     // Items haven't been populated yet, so the only way this could happen is if another machine
                     // previously placed an item here.
@@ -2787,7 +2788,7 @@
                     return false;
                 }
                 if (site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-                    !site.hasCellFlag(newX, newY, GWM__namespace.map.flags.Cell.IS_IN_MACHINE)) {
+                    !site.hasCellFlag(newX, newY, GWM__namespace.flags.Cell.IS_IN_MACHINE)) {
                     goodSoFar = this.addTileToInteriorAndIterate(builder, newX, newY);
                 }
             }
@@ -2900,8 +2901,7 @@
             // Surround with walls if requested.
             if (this.surroundWithWalls) {
                 interior.forEach((v, x, y) => {
-                    if (!v ||
-                        site.hasCellFlag(x, y, GWM__namespace.map.flags.Cell.IS_GATE_SITE))
+                    if (!v || site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_GATE_SITE))
                         return;
                     GWU__namespace.utils.eachNeighbor(x, y, (i, j) => {
                         if (!interior.hasXY(i, j))
@@ -2910,9 +2910,9 @@
                             return; // is part of machine
                         if (site.isWall(i, j))
                             return; // is already a wall (of some sort)
-                        if (site.hasCellFlag(i, j, GWM__namespace.map.flags.Cell.IS_GATE_SITE))
+                        if (site.hasCellFlag(i, j, GWM__namespace.flags.Cell.IS_GATE_SITE))
                             return; // is a door site
-                        if (site.hasCellFlag(i, j, GWM__namespace.map.flags.Cell.IS_IN_MACHINE))
+                        if (site.hasCellFlag(i, j, GWM__namespace.flags.Cell.IS_IN_MACHINE))
                             return; // is part of a machine
                         if (!site.blocksPathing(i, j))
                             return; // is not a blocker for the player (water?)
@@ -2928,18 +2928,17 @@
             // Reinforce surrounding tiles and interior tiles if requested to prevent tunneling in or through.
             if (this.makeImpregnable) {
                 interior.forEach((v, x, y) => {
-                    if (!v ||
-                        site.hasCellFlag(x, y, GWM__namespace.map.flags.Cell.IS_GATE_SITE))
+                    if (!v || site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_GATE_SITE))
                         return;
-                    site.setCellFlag(x, y, GWM__namespace.map.flags.Cell.IMPREGNABLE);
+                    site.setCellFlag(x, y, GWM__namespace.flags.Cell.IMPREGNABLE);
                     GWU__namespace.utils.eachNeighbor(x, y, (i, j) => {
                         if (!interior.hasXY(i, j))
                             return;
                         if (interior[i][j])
                             return;
-                        if (site.hasCellFlag(i, j, GWM__namespace.map.flags.Cell.IS_GATE_SITE))
+                        if (site.hasCellFlag(i, j, GWM__namespace.flags.Cell.IS_GATE_SITE))
                             return;
-                        site.setCellFlag(i, j, GWM__namespace.map.flags.Cell.IMPREGNABLE);
+                        site.setCellFlag(i, j, GWM__namespace.flags.Cell.IMPREGNABLE);
                     }, false);
                 });
             }
@@ -2966,7 +2965,7 @@
                     //     site.setTile(x, y, SITE.FLOOR); // clean out the doors...
                     //     return;
                     // }
-                    if (site.hasCellFlag(x, y, GWM__namespace.map.flags.Cell.IS_IN_MACHINE))
+                    if (site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_IN_MACHINE))
                         return;
                     if (!site.blocksPathing(x, y))
                         return;
@@ -2987,7 +2986,7 @@
                         if (interior[i][j])
                             return; // already part of machine
                         if (!site.isWall(i, j) ||
-                            site.hasCellFlag(i, j, GWM__namespace.map.flags.Cell.IS_IN_MACHINE)) {
+                            site.hasCellFlag(i, j, GWM__namespace.flags.Cell.IS_IN_MACHINE)) {
                             ++nbcount; // tile is not a wall or is in a machine
                         }
                     }, false);
@@ -3081,8 +3080,7 @@
             builder.interior.forEach((v, x, y) => {
                 if (!v)
                     return;
-                if (!builder.site.hasCellFlag(x, y, GWM__namespace.map.flags.Cell.IS_WIRED |
-                    GWM__namespace.map.flags.Cell.IS_CIRCUIT_BREAKER)) {
+                if (!builder.site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_WIRED | GWM__namespace.flags.Cell.IS_CIRCUIT_BREAKER)) {
                     builder.site.setMachine(x, y, 0);
                 }
             });
@@ -3272,9 +3270,9 @@
             }
             else if (this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
                 if ((this.item && site.blocksItems(x, y)) ||
-                    site.hasCellFlag(x, y, GWM__namespace.map.flags.Cell.IS_CHOKEPOINT |
-                        GWM__namespace.map.flags.Cell.IS_IN_LOOP |
-                        GWM__namespace.map.flags.Cell.IS_IN_MACHINE)) {
+                    site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_CHOKEPOINT |
+                        GWM__namespace.flags.Cell.IS_IN_LOOP |
+                        GWM__namespace.flags.Cell.IS_IN_MACHINE)) {
                     return false;
                 }
                 else {
@@ -3442,7 +3440,7 @@
                     }
                     // Mark the feature location as impregnable if requested.
                     if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                        site.setCellFlag(x, y, GWM__namespace.map.flags.Cell.IMPREGNABLE);
+                        site.setCellFlag(x, y, GWM__namespace.flags.Cell.IMPREGNABLE);
                     }
                 }
                 // Finished with this instance!

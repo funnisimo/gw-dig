@@ -225,9 +225,9 @@ export class BuildStep {
                 site.hasCellFlag(
                     x,
                     y,
-                    GWM.map.flags.Cell.IS_CHOKEPOINT |
-                        GWM.map.flags.Cell.IS_IN_LOOP |
-                        GWM.map.flags.Cell.IS_IN_MACHINE
+                    GWM.flags.Cell.IS_CHOKEPOINT |
+                        GWM.flags.Cell.IS_IN_LOOP |
+                        GWM.flags.Cell.IS_IN_MACHINE
                 )
             ) {
                 return false;
@@ -463,7 +463,7 @@ export class BuildStep {
 
                 // Mark the feature location as impregnable if requested.
                 if (this.flags & StepFlags.BF_IMPREGNABLE) {
-                    site.setCellFlag(x, y, GWM.map.flags.Cell.IMPREGNABLE);
+                    site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
                 }
             }
 

@@ -3,7 +3,7 @@ import * as GWM from 'gw-map';
 
 import * as DigSite from './digSite';
 
-const Flags = GWM.map.flags.Cell;
+const Flags = GWM.flags.Cell;
 
 export interface BuildSite extends DigSite.DigSite {
     getChokeCount(x: number, y: number): number;
@@ -103,24 +103,24 @@ export class MapSite implements BuildSite {
     blocksDiagonal(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.gameObject.flags.GameObject.L_BLOCKS_DIAGONAL);
+            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x: number, y: number): boolean {
         const info = this.map.cellInfo(x, y);
         return (
-            info.hasObjectFlag(GWM.gameObject.flags.GameObject.L_BLOCKS_MOVE) ||
+            info.hasObjectFlag(GWM.flags.Entity.L_BLOCKS_MOVE) ||
             info.hasTileFlag(GWM.tile.flags.Tile.T_PATHING_BLOCKER)
         );
     }
     blocksItems(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.gameObject.flags.GameObject.L_BLOCKS_ITEMS);
+            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_ITEMS);
     }
     blocksEffects(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.gameObject.flags.GameObject.L_BLOCKS_EFFECTS);
+            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_EFFECTS);
     }
 
     isWall(x: number, y: number): boolean {
@@ -158,7 +158,7 @@ export class MapSite implements BuildSite {
     isSecretDoor(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.gameObject.flags.GameObject.L_SECRETLY_PASSABLE);
+            .hasObjectFlag(GWM.flags.Entity.L_SECRETLY_PASSABLE);
     }
     isDeep(x: number, y: number): boolean {
         return this.map
@@ -169,7 +169,7 @@ export class MapSite implements BuildSite {
         if (!this.hasXY(x, y)) return false;
         const cell = this.map.cell(x, y);
         return (
-            !!cell.depthTile(GWM.gameObject.flags.Depth.LIQUID) &&
+            !!cell.depthTile(GWM.flags.Depth.LIQUID) &&
             !cell.hasTileFlag(GWM.tile.flags.Tile.T_IS_DEEP_LIQUID)
         );
     }
@@ -177,7 +177,7 @@ export class MapSite implements BuildSite {
         if (!this.hasXY(x, y)) return false;
         const cell = this.map.cell(x, y);
         return (
-            cell.hasDepthTile(GWM.gameObject.flags.Depth.LIQUID) ||
+            cell.hasDepthTile(GWM.flags.Depth.LIQUID) ||
             cell.hasTileFlag(GWM.tile.flags.Tile.T_IS_DEEP_LIQUID)
         );
     }

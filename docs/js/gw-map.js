@@ -26,46 +26,6 @@
 
     var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
 
-    const Fl$4 = GWU__namespace.flag.fl;
-    var GameObject$1;
-    (function (GameObject) {
-        // L_DYNAMIC = Fl(0), // for movable things like actors or items
-        GameObject[GameObject["L_SUPERPRIORITY"] = Fl$4(1)] = "L_SUPERPRIORITY";
-        GameObject[GameObject["L_SECRETLY_PASSABLE"] = Fl$4(2)] = "L_SECRETLY_PASSABLE";
-        GameObject[GameObject["L_BLOCKS_MOVE"] = Fl$4(3)] = "L_BLOCKS_MOVE";
-        GameObject[GameObject["L_BLOCKS_VISION"] = Fl$4(4)] = "L_BLOCKS_VISION";
-        GameObject[GameObject["L_BLOCKS_SURFACE"] = Fl$4(6)] = "L_BLOCKS_SURFACE";
-        GameObject[GameObject["L_BLOCKS_LIQUID"] = Fl$4(8)] = "L_BLOCKS_LIQUID";
-        GameObject[GameObject["L_BLOCKS_GAS"] = Fl$4(7)] = "L_BLOCKS_GAS";
-        GameObject[GameObject["L_BLOCKS_ITEMS"] = Fl$4(5)] = "L_BLOCKS_ITEMS";
-        GameObject[GameObject["L_BLOCKS_ACTORS"] = Fl$4(11)] = "L_BLOCKS_ACTORS";
-        GameObject[GameObject["L_BLOCKS_EFFECTS"] = Fl$4(9)] = "L_BLOCKS_EFFECTS";
-        GameObject[GameObject["L_BLOCKS_DIAGONAL"] = Fl$4(10)] = "L_BLOCKS_DIAGONAL";
-        GameObject[GameObject["L_INTERRUPT_WHEN_SEEN"] = Fl$4(12)] = "L_INTERRUPT_WHEN_SEEN";
-        GameObject[GameObject["L_LIST_IN_SIDEBAR"] = Fl$4(13)] = "L_LIST_IN_SIDEBAR";
-        GameObject[GameObject["L_VISUALLY_DISTINCT"] = Fl$4(14)] = "L_VISUALLY_DISTINCT";
-        GameObject[GameObject["L_BRIGHT_MEMORY"] = Fl$4(15)] = "L_BRIGHT_MEMORY";
-        GameObject[GameObject["L_INVERT_WHEN_HIGHLIGHTED"] = Fl$4(16)] = "L_INVERT_WHEN_HIGHLIGHTED";
-        GameObject[GameObject["L_BLOCKED_BY_STAIRS"] = GameObject.L_BLOCKS_ITEMS |
-            GameObject.L_BLOCKS_SURFACE |
-            GameObject.L_BLOCKS_GAS |
-            GameObject.L_BLOCKS_LIQUID |
-            GameObject.L_BLOCKS_EFFECTS |
-            GameObject.L_BLOCKS_ACTORS] = "L_BLOCKED_BY_STAIRS";
-        GameObject[GameObject["L_BLOCKS_SCENT"] = GameObject.L_BLOCKS_MOVE | GameObject.L_BLOCKS_VISION] = "L_BLOCKS_SCENT";
-        GameObject[GameObject["L_DIVIDES_LEVEL"] = GameObject.L_BLOCKS_MOVE] = "L_DIVIDES_LEVEL";
-        GameObject[GameObject["L_WAYPOINT_BLOCKER"] = GameObject.L_BLOCKS_MOVE] = "L_WAYPOINT_BLOCKER";
-        GameObject[GameObject["L_WALL_FLAGS"] = GameObject.L_BLOCKS_MOVE |
-            GameObject.L_BLOCKS_VISION |
-            GameObject.L_BLOCKS_LIQUID |
-            GameObject.L_BLOCKS_GAS |
-            GameObject.L_BLOCKS_EFFECTS |
-            GameObject.L_BLOCKS_DIAGONAL] = "L_WALL_FLAGS";
-        GameObject[GameObject["L_BLOCKS_EVERYTHING"] = GameObject.L_WALL_FLAGS |
-            GameObject.L_BLOCKS_ITEMS |
-            GameObject.L_BLOCKS_ACTORS |
-            GameObject.L_BLOCKS_SURFACE] = "L_BLOCKS_EVERYTHING";
-    })(GameObject$1 || (GameObject$1 = {}));
     var Depth$1;
     (function (Depth) {
         Depth[Depth["ALL_LAYERS"] = -1] = "ALL_LAYERS";
@@ -79,157 +39,79 @@
         Depth[Depth["UI"] = 7] = "UI";
     })(Depth$1 || (Depth$1 = {}));
 
-    var flags$3 = {
-        __proto__: null,
-        get GameObject () { return GameObject$1; },
-        get Depth () { return Depth$1; }
-    };
+    const Fl$6 = GWU__namespace.flag.fl;
+    var Entity$1;
+    (function (Entity) {
+        // L_DYNAMIC = Fl(0), // for movable things like actors or items
+        Entity[Entity["L_SUPERPRIORITY"] = Fl$6(1)] = "L_SUPERPRIORITY";
+        Entity[Entity["L_SECRETLY_PASSABLE"] = Fl$6(2)] = "L_SECRETLY_PASSABLE";
+        Entity[Entity["L_BLOCKS_MOVE"] = Fl$6(3)] = "L_BLOCKS_MOVE";
+        Entity[Entity["L_BLOCKS_VISION"] = Fl$6(4)] = "L_BLOCKS_VISION";
+        Entity[Entity["L_BLOCKS_SURFACE"] = Fl$6(6)] = "L_BLOCKS_SURFACE";
+        Entity[Entity["L_BLOCKS_LIQUID"] = Fl$6(8)] = "L_BLOCKS_LIQUID";
+        Entity[Entity["L_BLOCKS_GAS"] = Fl$6(7)] = "L_BLOCKS_GAS";
+        Entity[Entity["L_BLOCKS_ITEMS"] = Fl$6(5)] = "L_BLOCKS_ITEMS";
+        Entity[Entity["L_BLOCKS_ACTORS"] = Fl$6(11)] = "L_BLOCKS_ACTORS";
+        Entity[Entity["L_BLOCKS_EFFECTS"] = Fl$6(9)] = "L_BLOCKS_EFFECTS";
+        Entity[Entity["L_BLOCKS_DIAGONAL"] = Fl$6(10)] = "L_BLOCKS_DIAGONAL";
+        Entity[Entity["L_INTERRUPT_WHEN_SEEN"] = Fl$6(12)] = "L_INTERRUPT_WHEN_SEEN";
+        Entity[Entity["L_LIST_IN_SIDEBAR"] = Fl$6(13)] = "L_LIST_IN_SIDEBAR";
+        Entity[Entity["L_VISUALLY_DISTINCT"] = Fl$6(14)] = "L_VISUALLY_DISTINCT";
+        Entity[Entity["L_BRIGHT_MEMORY"] = Fl$6(15)] = "L_BRIGHT_MEMORY";
+        Entity[Entity["L_INVERT_WHEN_HIGHLIGHTED"] = Fl$6(16)] = "L_INVERT_WHEN_HIGHLIGHTED";
+        Entity[Entity["L_BLOCKED_BY_STAIRS"] = Entity.L_BLOCKS_ITEMS |
+            Entity.L_BLOCKS_SURFACE |
+            Entity.L_BLOCKS_GAS |
+            Entity.L_BLOCKS_LIQUID |
+            Entity.L_BLOCKS_EFFECTS |
+            Entity.L_BLOCKS_ACTORS] = "L_BLOCKED_BY_STAIRS";
+        Entity[Entity["L_BLOCKS_SCENT"] = Entity.L_BLOCKS_MOVE | Entity.L_BLOCKS_VISION] = "L_BLOCKS_SCENT";
+        Entity[Entity["L_DIVIDES_LEVEL"] = Entity.L_BLOCKS_MOVE] = "L_DIVIDES_LEVEL";
+        Entity[Entity["L_WAYPOINT_BLOCKER"] = Entity.L_BLOCKS_MOVE] = "L_WAYPOINT_BLOCKER";
+        Entity[Entity["L_WALL_FLAGS"] = Entity.L_BLOCKS_MOVE |
+            Entity.L_BLOCKS_VISION |
+            Entity.L_BLOCKS_LIQUID |
+            Entity.L_BLOCKS_GAS |
+            Entity.L_BLOCKS_EFFECTS |
+            Entity.L_BLOCKS_DIAGONAL] = "L_WALL_FLAGS";
+        Entity[Entity["L_BLOCKS_EVERYTHING"] = Entity.L_WALL_FLAGS |
+            Entity.L_BLOCKS_ITEMS |
+            Entity.L_BLOCKS_ACTORS |
+            Entity.L_BLOCKS_SURFACE] = "L_BLOCKS_EVERYTHING";
+    })(Entity$1 || (Entity$1 = {}));
 
-    class GameObject {
-        constructor() {
-            this.sprite = new GWU__namespace.sprite.Sprite();
-            this.depth = 1; // default - TODO - enum/const
-            this.light = null;
-            this.flags = { object: 0 };
-            this.next = null;
-            this.x = -1;
-            this.y = -1;
-        }
-        hasObjectFlag(flag) {
-            return !!(this.flags.object & flag);
-        }
-        hasAllObjectFlags(flags) {
-            return (this.flags.object & flags) === flags;
-        }
-        blocksMove() {
-            return this.hasObjectFlag(GameObject$1.L_BLOCKS_MOVE);
-        }
-        blocksVision() {
-            return this.hasObjectFlag(GameObject$1.L_BLOCKS_VISION);
-        }
-        blocksPathing() {
-            return this.hasObjectFlag(GameObject$1.L_BLOCKS_MOVE);
-        }
-        blocksEffects() {
-            return this.hasObjectFlag(GameObject$1.L_BLOCKS_EFFECTS);
-        }
-        itemFlags() {
-            return 0;
-        }
-        actorFlags() {
-            return 0;
-        }
-    }
-
-    var index$5 = {
-        __proto__: null,
-        flags: flags$3,
-        GameObject: GameObject
-    };
-
-    const Fl$3 = GWU__namespace.flag.fl;
+    const Fl$5 = GWU__namespace.flag.fl;
     var Actor$1;
     (function (Actor) {
-        Actor[Actor["IS_PLAYER"] = Fl$3(0)] = "IS_PLAYER";
+        Actor[Actor["IS_PLAYER"] = Fl$5(0)] = "IS_PLAYER";
     })(Actor$1 || (Actor$1 = {}));
 
-    var flags$2 = {
-        __proto__: null,
-        get Actor () { return Actor$1; },
-        get GameObject () { return GameObject$1; },
-        get Depth () { return Depth$1; }
-    };
-
-    class Actor extends GameObject {
-        constructor() {
-            super();
-            this.next = null;
-            // @ts-ignore
-            this.flags = this.flags || {};
-            this.flags.actor = 0;
-            this.depth = Depth$1.ACTOR;
-        }
-        hasActorFlag(flag) {
-            return !!(this.flags.actor & flag);
-        }
-        hasAllActorFlags(flags) {
-            return (this.flags.actor & flags) === flags;
-        }
-        actorFlags() {
-            return this.flags.actor;
-        }
-        isPlayer() {
-            return this.hasActorFlag(Actor$1.IS_PLAYER);
-        }
-        isVisible() {
-            return true;
-        }
-        forbidsCell(_cell) {
-            return false;
-        }
-    }
-
-    var index$4 = {
-        __proto__: null,
-        flags: flags$2,
-        Actor: Actor
-    };
-
-    class Item extends GameObject {
-        constructor() {
-            super();
-            this.quantity = 1;
-            this.next = null;
-            // @ts-ignore
-            this.flags = this.flags || {};
-            this.flags.item = 0;
-            this.depth = Depth$1.ITEM;
-        }
-        itemFlags() {
-            return this.flags.item;
-        }
-        hasItemFlag(flag) {
-            return !!(this.flags.item & flag);
-        }
-        hasAllItemFlags(flags) {
-            return (this.flags.item & flags) === flags;
-        }
-        forbidsCell(_cell) {
-            return false;
-        }
-    }
-
-    var index$3 = {
-        __proto__: null,
-        Item: Item
-    };
-
-    const Fl$2 = GWU__namespace.flag.fl;
+    const Fl$4 = GWU__namespace.flag.fl;
     ///////////////////////////////////////////////////////
     // TILE
     var Tile$1;
     (function (Tile) {
-        Tile[Tile["T_BRIDGE"] = Fl$2(0)] = "T_BRIDGE";
-        Tile[Tile["T_AUTO_DESCENT"] = Fl$2(1)] = "T_AUTO_DESCENT";
-        Tile[Tile["T_LAVA"] = Fl$2(2)] = "T_LAVA";
-        Tile[Tile["T_DEEP_WATER"] = Fl$2(3)] = "T_DEEP_WATER";
-        Tile[Tile["T_IS_FLAMMABLE"] = Fl$2(5)] = "T_IS_FLAMMABLE";
-        Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl$2(6)] = "T_SPONTANEOUSLY_IGNITES";
-        Tile[Tile["T_IS_FIRE"] = Fl$2(7)] = "T_IS_FIRE";
-        Tile[Tile["T_EXTINGUISHES_FIRE"] = Fl$2(8)] = "T_EXTINGUISHES_FIRE";
-        Tile[Tile["T_IS_SECRET"] = Fl$2(9)] = "T_IS_SECRET";
-        Tile[Tile["T_IS_TRAP"] = Fl$2(10)] = "T_IS_TRAP";
-        Tile[Tile["T_SACRED"] = Fl$2(11)] = "T_SACRED";
-        Tile[Tile["T_UP_STAIRS"] = Fl$2(12)] = "T_UP_STAIRS";
-        Tile[Tile["T_DOWN_STAIRS"] = Fl$2(13)] = "T_DOWN_STAIRS";
-        Tile[Tile["T_PORTAL"] = Fl$2(14)] = "T_PORTAL";
-        Tile[Tile["T_IS_DOOR"] = Fl$2(15)] = "T_IS_DOOR";
-        Tile[Tile["T_ALLOWS_SUBMERGING"] = Fl$2(16)] = "T_ALLOWS_SUBMERGING";
-        Tile[Tile["T_ENTANGLES"] = Fl$2(17)] = "T_ENTANGLES";
-        Tile[Tile["T_REFLECTS"] = Fl$2(18)] = "T_REFLECTS";
-        Tile[Tile["T_STAND_IN_TILE"] = Fl$2(19)] = "T_STAND_IN_TILE";
-        Tile[Tile["T_CONNECTS_LEVEL"] = Fl$2(20)] = "T_CONNECTS_LEVEL";
-        Tile[Tile["T_BLOCKS_OTHER_LAYERS"] = Fl$2(21)] = "T_BLOCKS_OTHER_LAYERS";
+        Tile[Tile["T_BRIDGE"] = Fl$4(0)] = "T_BRIDGE";
+        Tile[Tile["T_AUTO_DESCENT"] = Fl$4(1)] = "T_AUTO_DESCENT";
+        Tile[Tile["T_LAVA"] = Fl$4(2)] = "T_LAVA";
+        Tile[Tile["T_DEEP_WATER"] = Fl$4(3)] = "T_DEEP_WATER";
+        Tile[Tile["T_IS_FLAMMABLE"] = Fl$4(5)] = "T_IS_FLAMMABLE";
+        Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl$4(6)] = "T_SPONTANEOUSLY_IGNITES";
+        Tile[Tile["T_IS_FIRE"] = Fl$4(7)] = "T_IS_FIRE";
+        Tile[Tile["T_EXTINGUISHES_FIRE"] = Fl$4(8)] = "T_EXTINGUISHES_FIRE";
+        Tile[Tile["T_IS_SECRET"] = Fl$4(9)] = "T_IS_SECRET";
+        Tile[Tile["T_IS_TRAP"] = Fl$4(10)] = "T_IS_TRAP";
+        Tile[Tile["T_SACRED"] = Fl$4(11)] = "T_SACRED";
+        Tile[Tile["T_UP_STAIRS"] = Fl$4(12)] = "T_UP_STAIRS";
+        Tile[Tile["T_DOWN_STAIRS"] = Fl$4(13)] = "T_DOWN_STAIRS";
+        Tile[Tile["T_PORTAL"] = Fl$4(14)] = "T_PORTAL";
+        Tile[Tile["T_IS_DOOR"] = Fl$4(15)] = "T_IS_DOOR";
+        Tile[Tile["T_ALLOWS_SUBMERGING"] = Fl$4(16)] = "T_ALLOWS_SUBMERGING";
+        Tile[Tile["T_ENTANGLES"] = Fl$4(17)] = "T_ENTANGLES";
+        Tile[Tile["T_REFLECTS"] = Fl$4(18)] = "T_REFLECTS";
+        Tile[Tile["T_STAND_IN_TILE"] = Fl$4(19)] = "T_STAND_IN_TILE";
+        Tile[Tile["T_CONNECTS_LEVEL"] = Fl$4(20)] = "T_CONNECTS_LEVEL";
+        Tile[Tile["T_BLOCKS_OTHER_LAYERS"] = Fl$4(21)] = "T_BLOCKS_OTHER_LAYERS";
         Tile[Tile["T_HAS_STAIRS"] = Tile.T_UP_STAIRS | Tile.T_DOWN_STAIRS | Tile.T_PORTAL] = "T_HAS_STAIRS";
         Tile[Tile["T_OBSTRUCTS_SCENT"] = Tile.T_AUTO_DESCENT |
             Tile.T_LAVA |
@@ -267,6 +149,8 @@
         //   T_CAUSES_NAUSEA,
         Tile[Tile["T_IS_DEEP_LIQUID"] = Tile.T_LAVA | Tile.T_AUTO_DESCENT | Tile.T_DEEP_WATER] = "T_IS_DEEP_LIQUID";
     })(Tile$1 || (Tile$1 = {}));
+
+    const Fl$3 = GWU__namespace.flag.fl;
     ///////////////////////////////////////////////////////
     // TILE MECH
     var TileMech;
@@ -285,11 +169,11 @@
         // T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
         // T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
         // T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
-        TileMech[TileMech["TM_IS_WIRED"] = Fl$2(9)] = "TM_IS_WIRED";
-        TileMech[TileMech["TM_IS_CIRCUIT_BREAKER"] = Fl$2(10)] = "TM_IS_CIRCUIT_BREAKER";
-        TileMech[TileMech["TM_VANISHES_UPON_PROMOTION"] = Fl$2(15)] = "TM_VANISHES_UPON_PROMOTION";
-        TileMech[TileMech["TM_EXPLOSIVE_PROMOTE"] = Fl$2(21)] = "TM_EXPLOSIVE_PROMOTE";
-        TileMech[TileMech["TM_SWAP_ENCHANTS_ACTIVATION"] = Fl$2(25)] = "TM_SWAP_ENCHANTS_ACTIVATION";
+        TileMech[TileMech["TM_IS_WIRED"] = Fl$3(9)] = "TM_IS_WIRED";
+        TileMech[TileMech["TM_IS_CIRCUIT_BREAKER"] = Fl$3(10)] = "TM_IS_CIRCUIT_BREAKER";
+        TileMech[TileMech["TM_VANISHES_UPON_PROMOTION"] = Fl$3(15)] = "TM_VANISHES_UPON_PROMOTION";
+        TileMech[TileMech["TM_EXPLOSIVE_PROMOTE"] = Fl$3(21)] = "TM_EXPLOSIVE_PROMOTE";
+        TileMech[TileMech["TM_SWAP_ENCHANTS_ACTIVATION"] = Fl$3(25)] = "TM_SWAP_ENCHANTS_ACTIVATION";
         // TM_PROMOTES = TM_PROMOTES_WITH_KEY |
         //   TM_PROMOTES_WITHOUT_KEY |
         //   TM_PROMOTES_ON_STEP |
@@ -299,39 +183,279 @@
         //   TM_PROMOTES_ON_PLAYER_ENTRY,
     })(TileMech || (TileMech = {}));
 
+    const Fl$2 = GWU__namespace.flag.fl;
+    ///////////////////////////////////////////////////////
+    // CELL
+    var Cell$1;
+    (function (Cell) {
+        Cell[Cell["SEARCHED_FROM_HERE"] = Fl$2(0)] = "SEARCHED_FROM_HERE";
+        Cell[Cell["PRESSURE_PLATE_DEPRESSED"] = Fl$2(1)] = "PRESSURE_PLATE_DEPRESSED";
+        Cell[Cell["KNOWN_TO_BE_TRAP_FREE"] = Fl$2(2)] = "KNOWN_TO_BE_TRAP_FREE";
+        Cell[Cell["CAUGHT_FIRE_THIS_TURN"] = Fl$2(3)] = "CAUGHT_FIRE_THIS_TURN";
+        Cell[Cell["EVENT_FIRED_THIS_TURN"] = Fl$2(4)] = "EVENT_FIRED_THIS_TURN";
+        Cell[Cell["EVENT_PROTECTED"] = Fl$2(5)] = "EVENT_PROTECTED";
+        Cell[Cell["IS_IN_LOOP"] = Fl$2(6)] = "IS_IN_LOOP";
+        Cell[Cell["IS_CHOKEPOINT"] = Fl$2(7)] = "IS_CHOKEPOINT";
+        Cell[Cell["IS_GATE_SITE"] = Fl$2(8)] = "IS_GATE_SITE";
+        Cell[Cell["IS_IN_ROOM_MACHINE"] = Fl$2(9)] = "IS_IN_ROOM_MACHINE";
+        Cell[Cell["IS_IN_AREA_MACHINE"] = Fl$2(10)] = "IS_IN_AREA_MACHINE";
+        Cell[Cell["IS_POWERED"] = Fl$2(11)] = "IS_POWERED";
+        Cell[Cell["IMPREGNABLE"] = Fl$2(12)] = "IMPREGNABLE";
+        // DARKENED = Fl(13), // magical blindness?
+        Cell[Cell["NEEDS_REDRAW"] = Fl$2(14)] = "NEEDS_REDRAW";
+        Cell[Cell["CELL_CHANGED"] = Fl$2(15)] = "CELL_CHANGED";
+        // These are to help memory
+        Cell[Cell["HAS_SURFACE"] = Fl$2(16)] = "HAS_SURFACE";
+        Cell[Cell["HAS_LIQUID"] = Fl$2(17)] = "HAS_LIQUID";
+        Cell[Cell["HAS_GAS"] = Fl$2(18)] = "HAS_GAS";
+        Cell[Cell["HAS_PLAYER"] = Fl$2(19)] = "HAS_PLAYER";
+        Cell[Cell["HAS_ACTOR"] = Fl$2(20)] = "HAS_ACTOR";
+        Cell[Cell["HAS_DORMANT_MONSTER"] = Fl$2(21)] = "HAS_DORMANT_MONSTER";
+        Cell[Cell["HAS_ITEM"] = Fl$2(22)] = "HAS_ITEM";
+        Cell[Cell["IS_IN_PATH"] = Fl$2(23)] = "IS_IN_PATH";
+        Cell[Cell["IS_CURSOR"] = Fl$2(24)] = "IS_CURSOR";
+        Cell[Cell["STABLE_MEMORY"] = Fl$2(25)] = "STABLE_MEMORY";
+        Cell[Cell["IS_WIRED"] = Fl$2(26)] = "IS_WIRED";
+        Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl$2(27)] = "IS_CIRCUIT_BREAKER";
+        Cell[Cell["COLORS_DANCE"] = Fl$2(30)] = "COLORS_DANCE";
+        Cell[Cell["IS_IN_MACHINE"] = Cell.IS_IN_ROOM_MACHINE | Cell.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
+        Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.HAS_ITEM |
+            Cell.HAS_DORMANT_MONSTER |
+            Cell.STABLE_MEMORY |
+            Cell.SEARCHED_FROM_HERE |
+            Cell.PRESSURE_PLATE_DEPRESSED |
+            Cell.KNOWN_TO_BE_TRAP_FREE |
+            Cell.IS_IN_LOOP |
+            Cell.IS_CHOKEPOINT |
+            Cell.IS_GATE_SITE |
+            Cell.IS_IN_MACHINE |
+            Cell.IMPREGNABLE] = "PERMANENT_CELL_FLAGS";
+        Cell[Cell["HAS_ANY_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_ACTOR] = "HAS_ANY_ACTOR";
+        Cell[Cell["HAS_ANY_OBJECT"] = Cell.HAS_ITEM | Cell.HAS_ANY_ACTOR] = "HAS_ANY_OBJECT";
+        Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
+    })(Cell$1 || (Cell$1 = {}));
+
     const Fl$1 = GWU__namespace.flag.fl;
+    ///////////////////////////////////////////////////////
+    // MAP
+    var Map$1;
+    (function (Map) {
+        Map[Map["MAP_CHANGED"] = Fl$1(0)] = "MAP_CHANGED";
+        Map[Map["MAP_ALWAYS_LIT"] = Fl$1(3)] = "MAP_ALWAYS_LIT";
+        Map[Map["MAP_SAW_WELCOME"] = Fl$1(4)] = "MAP_SAW_WELCOME";
+        Map[Map["MAP_NO_LIQUID"] = Fl$1(5)] = "MAP_NO_LIQUID";
+        Map[Map["MAP_NO_GAS"] = Fl$1(6)] = "MAP_NO_GAS";
+        Map[Map["MAP_CALC_FOV"] = Fl$1(7)] = "MAP_CALC_FOV";
+        Map[Map["MAP_FOV_CHANGED"] = Fl$1(8)] = "MAP_FOV_CHANGED";
+        Map[Map["MAP_DANCES"] = Fl$1(9)] = "MAP_DANCES";
+        Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
+    })(Map$1 || (Map$1 = {}));
+
+    var index$6 = {
+        __proto__: null,
+        get Depth () { return Depth$1; },
+        get Entity () { return Entity$1; },
+        get Actor () { return Actor$1; },
+        get Tile () { return Tile$1; },
+        get TileMech () { return TileMech; },
+        get Cell () { return Cell$1; },
+        get Map () { return Map$1; }
+    };
+
+    class Entity {
+        constructor() {
+            this.sprite = new GWU__namespace.sprite.Sprite();
+            this.depth = 1; // default - TODO - enum/const
+            this.light = null;
+            this.flags = { entity: 0 };
+            this.next = null;
+            this.x = -1;
+            this.y = -1;
+        }
+        hasObjectFlag(flag) {
+            return !!(this.flags.entity & flag);
+        }
+        hasAllObjectFlags(flags) {
+            return (this.flags.entity & flags) === flags;
+        }
+        blocksMove() {
+            return this.hasObjectFlag(Entity$1.L_BLOCKS_MOVE);
+        }
+        blocksVision() {
+            return this.hasObjectFlag(Entity$1.L_BLOCKS_VISION);
+        }
+        blocksPathing() {
+            return this.hasObjectFlag(Entity$1.L_BLOCKS_MOVE);
+        }
+        blocksEffects() {
+            return this.hasObjectFlag(Entity$1.L_BLOCKS_EFFECTS);
+        }
+    }
+
+    var index$5 = {
+        __proto__: null,
+        Entity: Entity
+    };
+
+    class Actor extends Entity {
+        constructor() {
+            super();
+            this.next = null;
+            // @ts-ignore
+            this.flags = this.flags || {};
+            this.flags.actor = 0;
+            this.depth = Depth$1.ACTOR;
+        }
+        hasActorFlag(flag) {
+            return !!(this.flags.actor & flag);
+        }
+        hasAllActorFlags(flags) {
+            return (this.flags.actor & flags) === flags;
+        }
+        actorFlags() {
+            return this.flags.actor;
+        }
+        isPlayer() {
+            return this.hasActorFlag(Actor$1.IS_PLAYER);
+        }
+        isVisible() {
+            return true;
+        }
+        forbidsCell(_cell) {
+            return false;
+        }
+        getName() {
+            return '';
+        }
+        getDescription() {
+            return '';
+        }
+        getFlavor() {
+            return '';
+        }
+    }
+
+    var index$4 = {
+        __proto__: null,
+        Actor: Actor
+    };
+
+    class ItemKind {
+    }
+    const kinds = {};
+    function install$2(_id, _kind) {
+        return new ItemKind();
+    }
+    function get$1(id) {
+        if (id instanceof ItemKind)
+            return id;
+        return kinds[id];
+    }
+    function makeKind(_info) {
+        return new ItemKind();
+    }
+
+    class Item extends Entity {
+        constructor(kind) {
+            super();
+            this.quantity = 1;
+            this.next = null;
+            // @ts-ignore
+            this.flags = this.flags || {};
+            this.flags.item = 0;
+            this.depth = Depth$1.ITEM;
+            this.kind = kind;
+        }
+        itemFlags() {
+            return this.flags.item;
+        }
+        hasItemFlag(flag) {
+            return !!(this.flags.item & flag);
+        }
+        hasAllItemFlags(flags) {
+            return (this.flags.item & flags) === flags;
+        }
+        forbidsCell(_cell) {
+            return false;
+        }
+        getName() {
+            return '';
+        }
+        getDescription() {
+            return '';
+        }
+        getFlavor() {
+            return '';
+        }
+    }
+    function make$3(id) {
+        const kind = get$1(id);
+        if (!kind)
+            throw new Error('Failed to find item kind - ' + id);
+        return new Item(kind);
+    }
+    function from$2(info) {
+        let kind;
+        if (typeof info === 'string') {
+            // @ts-ignore
+            kind = get$1(info);
+            if (!kind)
+                throw new Error('Failed to find item kind - ' + info);
+        }
+        else if (info instanceof ItemKind) {
+            kind = info;
+        }
+        else {
+            kind = makeKind();
+        }
+        return new Item(kind);
+    }
+
+    var index$3 = {
+        __proto__: null,
+        ItemKind: ItemKind,
+        kinds: kinds,
+        install: install$2,
+        get: get$1,
+        makeKind: makeKind,
+        Item: Item,
+        make: make$3,
+        from: from$2
+    };
+
+    const Fl = GWU__namespace.flag.fl;
     ///////////////////////////////////////////////////////
     // TILE EVENT
     var Effect;
     (function (Effect) {
         // E_ALWAYS_FIRE = Fl(10), // Fire even if the cell is marked as having fired this turn
-        Effect[Effect["E_NEXT_ALWAYS"] = Fl$1(0)] = "E_NEXT_ALWAYS";
-        Effect[Effect["E_NEXT_EVERYWHERE"] = Fl$1(1)] = "E_NEXT_EVERYWHERE";
-        Effect[Effect["E_FIRED"] = Fl$1(2)] = "E_FIRED";
-        Effect[Effect["E_NO_MARK_FIRED"] = Fl$1(3)] = "E_NO_MARK_FIRED";
+        Effect[Effect["E_NEXT_ALWAYS"] = Fl(0)] = "E_NEXT_ALWAYS";
+        Effect[Effect["E_NEXT_EVERYWHERE"] = Fl(1)] = "E_NEXT_EVERYWHERE";
+        Effect[Effect["E_FIRED"] = Fl(2)] = "E_FIRED";
+        Effect[Effect["E_NO_MARK_FIRED"] = Fl(3)] = "E_NO_MARK_FIRED";
         // MUST_REPLACE_LAYER
         // NEEDS_EMPTY_LAYER
-        Effect[Effect["E_PROTECTED"] = Fl$1(4)] = "E_PROTECTED";
+        Effect[Effect["E_PROTECTED"] = Fl(4)] = "E_PROTECTED";
         // E_NO_REDRAW_CELL = Fl(),
-        Effect[Effect["E_TREAT_AS_BLOCKING"] = Fl$1(5)] = "E_TREAT_AS_BLOCKING";
-        Effect[Effect["E_PERMIT_BLOCKING"] = Fl$1(6)] = "E_PERMIT_BLOCKING";
-        Effect[Effect["E_ABORT_IF_BLOCKS_MAP"] = Fl$1(7)] = "E_ABORT_IF_BLOCKS_MAP";
-        Effect[Effect["E_BLOCKED_BY_ITEMS"] = Fl$1(8)] = "E_BLOCKED_BY_ITEMS";
-        Effect[Effect["E_BLOCKED_BY_ACTORS"] = Fl$1(9)] = "E_BLOCKED_BY_ACTORS";
-        Effect[Effect["E_BLOCKED_BY_OTHER_LAYERS"] = Fl$1(10)] = "E_BLOCKED_BY_OTHER_LAYERS";
-        Effect[Effect["E_SUPERPRIORITY"] = Fl$1(11)] = "E_SUPERPRIORITY";
-        Effect[Effect["E_SPREAD_CIRCLE"] = Fl$1(13)] = "E_SPREAD_CIRCLE";
-        Effect[Effect["E_SPREAD_LINE"] = Fl$1(14)] = "E_SPREAD_LINE";
-        Effect[Effect["E_EVACUATE_CREATURES"] = Fl$1(15)] = "E_EVACUATE_CREATURES";
-        Effect[Effect["E_EVACUATE_ITEMS"] = Fl$1(16)] = "E_EVACUATE_ITEMS";
-        Effect[Effect["E_BUILD_IN_WALLS"] = Fl$1(17)] = "E_BUILD_IN_WALLS";
-        Effect[Effect["E_MUST_TOUCH_WALLS"] = Fl$1(18)] = "E_MUST_TOUCH_WALLS";
-        Effect[Effect["E_NO_TOUCH_WALLS"] = Fl$1(19)] = "E_NO_TOUCH_WALLS";
-        Effect[Effect["E_CLEAR_GROUND"] = Fl$1(21)] = "E_CLEAR_GROUND";
-        Effect[Effect["E_CLEAR_SURFACE"] = Fl$1(22)] = "E_CLEAR_SURFACE";
-        Effect[Effect["E_CLEAR_LIQUID"] = Fl$1(23)] = "E_CLEAR_LIQUID";
-        Effect[Effect["E_CLEAR_GAS"] = Fl$1(24)] = "E_CLEAR_GAS";
-        Effect[Effect["E_CLEAR_TILE"] = Fl$1(25)] = "E_CLEAR_TILE";
+        Effect[Effect["E_TREAT_AS_BLOCKING"] = Fl(5)] = "E_TREAT_AS_BLOCKING";
+        Effect[Effect["E_PERMIT_BLOCKING"] = Fl(6)] = "E_PERMIT_BLOCKING";
+        Effect[Effect["E_ABORT_IF_BLOCKS_MAP"] = Fl(7)] = "E_ABORT_IF_BLOCKS_MAP";
+        Effect[Effect["E_BLOCKED_BY_ITEMS"] = Fl(8)] = "E_BLOCKED_BY_ITEMS";
+        Effect[Effect["E_BLOCKED_BY_ACTORS"] = Fl(9)] = "E_BLOCKED_BY_ACTORS";
+        Effect[Effect["E_BLOCKED_BY_OTHER_LAYERS"] = Fl(10)] = "E_BLOCKED_BY_OTHER_LAYERS";
+        Effect[Effect["E_SUPERPRIORITY"] = Fl(11)] = "E_SUPERPRIORITY";
+        Effect[Effect["E_SPREAD_CIRCLE"] = Fl(13)] = "E_SPREAD_CIRCLE";
+        Effect[Effect["E_SPREAD_LINE"] = Fl(14)] = "E_SPREAD_LINE";
+        Effect[Effect["E_EVACUATE_CREATURES"] = Fl(15)] = "E_EVACUATE_CREATURES";
+        Effect[Effect["E_EVACUATE_ITEMS"] = Fl(16)] = "E_EVACUATE_ITEMS";
+        Effect[Effect["E_BUILD_IN_WALLS"] = Fl(17)] = "E_BUILD_IN_WALLS";
+        Effect[Effect["E_MUST_TOUCH_WALLS"] = Fl(18)] = "E_MUST_TOUCH_WALLS";
+        Effect[Effect["E_NO_TOUCH_WALLS"] = Fl(19)] = "E_NO_TOUCH_WALLS";
+        Effect[Effect["E_CLEAR_GROUND"] = Fl(21)] = "E_CLEAR_GROUND";
+        Effect[Effect["E_CLEAR_SURFACE"] = Fl(22)] = "E_CLEAR_SURFACE";
+        Effect[Effect["E_CLEAR_LIQUID"] = Fl(23)] = "E_CLEAR_LIQUID";
+        Effect[Effect["E_CLEAR_GAS"] = Fl(24)] = "E_CLEAR_GAS";
+        Effect[Effect["E_CLEAR_TILE"] = Fl(25)] = "E_CLEAR_TILE";
         Effect[Effect["E_CLEAR_CELL"] = Effect.E_CLEAR_GROUND |
             Effect.E_CLEAR_SURFACE |
             Effect.E_CLEAR_LIQUID |
@@ -339,9 +463,9 @@
         Effect[Effect["E_ONLY_IF_EMPTY"] = Effect.E_BLOCKED_BY_ITEMS | Effect.E_BLOCKED_BY_ACTORS] = "E_ONLY_IF_EMPTY";
         // E_NULLIFY_CELL = E_NULL_SURFACE | E_NULL_LIQUID | E_NULL_GAS,
         // These should be effect types
-        Effect[Effect["E_ACTIVATE_DORMANT_MONSTER"] = Fl$1(27)] = "E_ACTIVATE_DORMANT_MONSTER";
-        Effect[Effect["E_AGGRAVATES_MONSTERS"] = Fl$1(28)] = "E_AGGRAVATES_MONSTERS";
-        Effect[Effect["E_RESURRECT_ALLY"] = Fl$1(29)] = "E_RESURRECT_ALLY";
+        Effect[Effect["E_ACTIVATE_DORMANT_MONSTER"] = Fl(27)] = "E_ACTIVATE_DORMANT_MONSTER";
+        Effect[Effect["E_AGGRAVATES_MONSTERS"] = Fl(28)] = "E_AGGRAVATES_MONSTERS";
+        Effect[Effect["E_RESURRECT_ALLY"] = Fl(29)] = "E_RESURRECT_ALLY";
     })(Effect || (Effect = {}));
 
     function make$2(opts) {
@@ -664,7 +788,7 @@
             this.description = config.description || this.name;
             this.flavor = config.flavor || this.name;
             this.article = (_d = config.article) !== null && _d !== void 0 ? _d : null;
-            this.flags = config.flags || { object: 0, tile: 0, tileMech: 0 };
+            this.flags = config.flags || { entity: 0, tile: 0, tileMech: 0 };
             if (config.effects) {
                 Object.assign(this.effects, config.effects);
             }
@@ -673,7 +797,7 @@
             }
         }
         hasObjectFlag(flag) {
-            return !!(this.flags.object & flag);
+            return !!(this.flags.entity & flag);
         }
         hasTileFlag(flag) {
             return !!(this.flags.tile & flag);
@@ -682,7 +806,7 @@
             return !!(this.flags.tileMech & flag);
         }
         hasAllObjectFlags(flag) {
-            return (this.flags.object & flag) === flag;
+            return (this.flags.entity & flag) === flag;
         }
         hasAllTileFlags(flag) {
             return (this.flags.tile & flag) === flag;
@@ -691,16 +815,16 @@
             return (this.flags.tileMech & flag) === flag;
         }
         blocksVision() {
-            return !!(this.flags.object & GameObject$1.L_BLOCKS_VISION);
+            return !!(this.flags.entity & Entity$1.L_BLOCKS_VISION);
         }
         blocksMove() {
-            return !!(this.flags.object & GameObject$1.L_BLOCKS_MOVE);
+            return !!(this.flags.entity & Entity$1.L_BLOCKS_MOVE);
         }
         blocksPathing() {
             return (this.blocksMove() || this.hasTileFlag(Tile$1.T_PATHING_BLOCKER));
         }
         blocksEffects() {
-            return !!(this.flags.object & GameObject$1.L_BLOCKS_EFFECTS);
+            return !!(this.flags.entity & Entity$1.L_BLOCKS_EFFECTS);
         }
         hasEffect(name) {
             return name in this.effects;
@@ -798,7 +922,7 @@
             });
         }
         const flags = {
-            object: GWU__namespace.flag.from(GameObject$1, base.flags.object, options.flags),
+            entity: GWU__namespace.flag.from(Entity$1, base.flags.entity, options.flags),
             tile: GWU__namespace.flag.from(Tile$1, base.flags.tile, options.flags),
             tileMech: GWU__namespace.flag.from(TileMech, base.flags.tileMech, options.flags),
         };
@@ -995,11 +1119,11 @@
         groundTile: 'LAKE',
     });
 
-    const flags$1 = { Tile: Tile$1, TileMech };
+    const flags = { Tile: Tile$1, TileMech };
 
     var index$1 = {
         __proto__: null,
-        flags: flags$1,
+        flags: flags,
         Tile: Tile,
         make: make$1,
         tiles: tiles,
@@ -1009,87 +1133,27 @@
         installAll: installAll
     };
 
-    const Fl = GWU__namespace.flag.fl;
-    ///////////////////////////////////////////////////////
-    // CELL
-    var Cell$1;
-    (function (Cell) {
-        Cell[Cell["SEARCHED_FROM_HERE"] = Fl(0)] = "SEARCHED_FROM_HERE";
-        Cell[Cell["PRESSURE_PLATE_DEPRESSED"] = Fl(1)] = "PRESSURE_PLATE_DEPRESSED";
-        Cell[Cell["KNOWN_TO_BE_TRAP_FREE"] = Fl(2)] = "KNOWN_TO_BE_TRAP_FREE";
-        Cell[Cell["CAUGHT_FIRE_THIS_TURN"] = Fl(3)] = "CAUGHT_FIRE_THIS_TURN";
-        Cell[Cell["EVENT_FIRED_THIS_TURN"] = Fl(4)] = "EVENT_FIRED_THIS_TURN";
-        Cell[Cell["EVENT_PROTECTED"] = Fl(5)] = "EVENT_PROTECTED";
-        Cell[Cell["IS_IN_LOOP"] = Fl(6)] = "IS_IN_LOOP";
-        Cell[Cell["IS_CHOKEPOINT"] = Fl(7)] = "IS_CHOKEPOINT";
-        Cell[Cell["IS_GATE_SITE"] = Fl(8)] = "IS_GATE_SITE";
-        Cell[Cell["IS_IN_ROOM_MACHINE"] = Fl(9)] = "IS_IN_ROOM_MACHINE";
-        Cell[Cell["IS_IN_AREA_MACHINE"] = Fl(10)] = "IS_IN_AREA_MACHINE";
-        Cell[Cell["IS_POWERED"] = Fl(11)] = "IS_POWERED";
-        Cell[Cell["IMPREGNABLE"] = Fl(12)] = "IMPREGNABLE";
-        // DARKENED = Fl(13), // magical blindness?
-        Cell[Cell["NEEDS_REDRAW"] = Fl(14)] = "NEEDS_REDRAW";
-        Cell[Cell["CELL_CHANGED"] = Fl(15)] = "CELL_CHANGED";
-        // These are to help memory
-        Cell[Cell["HAS_SURFACE"] = Fl(16)] = "HAS_SURFACE";
-        Cell[Cell["HAS_LIQUID"] = Fl(17)] = "HAS_LIQUID";
-        Cell[Cell["HAS_GAS"] = Fl(18)] = "HAS_GAS";
-        Cell[Cell["HAS_PLAYER"] = Fl(19)] = "HAS_PLAYER";
-        Cell[Cell["HAS_ACTOR"] = Fl(20)] = "HAS_ACTOR";
-        Cell[Cell["HAS_DORMANT_MONSTER"] = Fl(21)] = "HAS_DORMANT_MONSTER";
-        Cell[Cell["HAS_ITEM"] = Fl(22)] = "HAS_ITEM";
-        Cell[Cell["IS_IN_PATH"] = Fl(23)] = "IS_IN_PATH";
-        Cell[Cell["IS_CURSOR"] = Fl(24)] = "IS_CURSOR";
-        Cell[Cell["STABLE_MEMORY"] = Fl(25)] = "STABLE_MEMORY";
-        Cell[Cell["IS_WIRED"] = Fl(26)] = "IS_WIRED";
-        Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl(27)] = "IS_CIRCUIT_BREAKER";
-        Cell[Cell["COLORS_DANCE"] = Fl(30)] = "COLORS_DANCE";
-        Cell[Cell["IS_IN_MACHINE"] = Cell.IS_IN_ROOM_MACHINE | Cell.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
-        Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.HAS_ITEM |
-            Cell.HAS_DORMANT_MONSTER |
-            Cell.STABLE_MEMORY |
-            Cell.SEARCHED_FROM_HERE |
-            Cell.PRESSURE_PLATE_DEPRESSED |
-            Cell.KNOWN_TO_BE_TRAP_FREE |
-            Cell.IS_IN_LOOP |
-            Cell.IS_CHOKEPOINT |
-            Cell.IS_GATE_SITE |
-            Cell.IS_IN_MACHINE |
-            Cell.IMPREGNABLE] = "PERMANENT_CELL_FLAGS";
-        Cell[Cell["HAS_ANY_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_ACTOR] = "HAS_ANY_ACTOR";
-        Cell[Cell["HAS_ANY_OBJECT"] = Cell.HAS_ITEM | Cell.HAS_ANY_ACTOR] = "HAS_ANY_OBJECT";
-        Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
-    })(Cell$1 || (Cell$1 = {}));
-    ///////////////////////////////////////////////////////
-    // MAP
-    var Map$1;
-    (function (Map) {
-        Map[Map["MAP_CHANGED"] = Fl(0)] = "MAP_CHANGED";
-        Map[Map["MAP_ALWAYS_LIT"] = Fl(3)] = "MAP_ALWAYS_LIT";
-        Map[Map["MAP_SAW_WELCOME"] = Fl(4)] = "MAP_SAW_WELCOME";
-        Map[Map["MAP_NO_LIQUID"] = Fl(5)] = "MAP_NO_LIQUID";
-        Map[Map["MAP_NO_GAS"] = Fl(6)] = "MAP_NO_GAS";
-        Map[Map["MAP_CALC_FOV"] = Fl(7)] = "MAP_CALC_FOV";
-        Map[Map["MAP_FOV_CHANGED"] = Fl(8)] = "MAP_FOV_CHANGED";
-        Map[Map["MAP_DANCES"] = Fl(9)] = "MAP_DANCES";
-        Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
-    })(Map$1 || (Map$1 = {}));
-
     class CellObjects {
         constructor(cell) {
             this.cell = cell;
         }
-        forEach(cb) {
+        eachItem(cb) {
             let object = this.cell._item;
             while (object) {
                 cb(object);
                 object = object.next;
             }
-            object = this.cell._actor;
+        }
+        eachActor(cb) {
+            let object = this.cell._actor;
             while (object) {
                 cb(object);
                 object = object.next;
             }
+        }
+        forEach(cb) {
+            this.eachItem(cb);
+            this.eachActor(cb);
         }
         some(cb) {
             let object = this.cell._item;
@@ -1163,8 +1227,8 @@
             this.flags.cell &= ~flag;
         }
         hasObjectFlag(flag) {
-            return (this.tiles.some((t) => t && t.flags.object & flag) ||
-                this._objects.some((o) => !!(o.flags.object & flag)));
+            return (this.tiles.some((t) => t && t.flags.entity & flag) ||
+                this._objects.some((o) => !!(o.flags.entity & flag)));
         }
         hasAllObjectFlags(flags) {
             return (this.objectFlags() & flags) == flags;
@@ -1185,8 +1249,8 @@
             return this.flags.cell;
         }
         objectFlags() {
-            return (this.tiles.reduce((out, t) => out | (t ? t.flags.object : 0), 0) |
-                this._objects.reduce((out, o) => out | o.flags.object, 0));
+            return (this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
+                this._objects.reduce((out, o) => out | o.flags.entity, 0));
         }
         tileFlags() {
             return this.tiles.reduce((out, t) => out | (t ? t.flags.tile : 0), 0);
@@ -1195,10 +1259,18 @@
             return this.tiles.reduce((out, t) => out | (t ? t.flags.tileMech : 0), 0);
         }
         itemFlags() {
-            return this._objects.reduce((out, o) => out | o.itemFlags(), 0);
+            let flags = 0;
+            this._objects.eachItem((i) => {
+                flags |= i.flags.item;
+            });
+            return flags;
         }
         actorFlags() {
-            return this._objects.reduce((out, o) => out | o.actorFlags(), 0);
+            let flags = 0;
+            this._objects.eachActor((a) => {
+                flags |= a.flags.actor;
+            });
+            return flags;
         }
         get needsRedraw() {
             return !!(this.flags.cell & Cell$1.NEEDS_REDRAW);
@@ -1249,7 +1321,7 @@
             this.tiles.forEach((t) => t && cb(t));
         }
         tileWithObjectFlag(flag) {
-            return this.tiles.find((t) => t && t.flags.object & flag) || null;
+            return this.tiles.find((t) => t && t.flags.entity & flag) || null;
         }
         tileWithFlag(flag) {
             return this.tiles.find((t) => t && t.flags.tile & flag) || null;
@@ -1275,7 +1347,7 @@
         }
         blocksLayer(depth) {
             return this.tiles.some((t) => t &&
-                !!(t.flags.tile & flags$1.Tile.T_BLOCKS_OTHER_LAYERS) &&
+                !!(t.flags.tile & flags.Tile.T_BLOCKS_OTHER_LAYERS) &&
                 t.depth != depth);
         }
         // Tests
@@ -1288,7 +1360,7 @@
             return !this.blocksMove();
         }
         isWall() {
-            return this.hasAllObjectFlags(GameObject$1.L_WALL_FLAGS);
+            return this.hasAllObjectFlags(Entity$1.L_WALL_FLAGS);
         }
         isStairs() {
             return this.hasTileFlag(Tile$1.T_HAS_STAIRS);
@@ -1821,7 +1893,7 @@
     }
 
     const Depth = Depth$1;
-    const ObjectFlags$1 = GameObject$1;
+    const ObjectFlags = Entity$1;
     const TileFlags = Tile$1;
     const TileMechFlags = TileMech;
     const CellFlags = Cell$1;
@@ -1887,7 +1959,7 @@
                 if (cell.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
                     GWU__namespace.utils.eachNeighbor(x, y, (x0, y0) => {
                         const n = this.map.cell(x0, y0);
-                        if (n.hasObjectFlag(ObjectFlags$1.L_BLOCKS_GAS) ||
+                        if (n.hasObjectFlag(ObjectFlags.L_BLOCKS_GAS) ||
                             n.hasTileFlag(TileFlags.T_IS_FIRE) ||
                             n.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
                             ++explosiveNeighborCount;
@@ -1919,7 +1991,6 @@
         }
     }
 
-    const ObjectFlags = GameObject$1;
     class GasLayer extends TileLayer {
         constructor(map, name = 'gas') {
             super(map, name);
@@ -1993,7 +2064,7 @@
             const cell = this.map.cell(x, y);
             let startingTile = cell.depthTile(this.depth);
             let highestTile = startingTile;
-            if (cell.hasObjectFlag(ObjectFlags.L_BLOCKS_GAS)) {
+            if (cell.hasObjectFlag(Entity$1.L_BLOCKS_GAS)) {
                 this.volume[x][y] = 0;
                 if (startingVolume[x][y]) {
                     this.clear(x, y);
@@ -2003,7 +2074,7 @@
             for (let i = Math.max(0, x - 1); i < Math.min(x + 2, startingVolume.width); ++i) {
                 for (let j = Math.max(0, y - 1); j < Math.min(y + 2, startingVolume.height); ++j) {
                     const v = startingVolume[i][j];
-                    if (!cell.hasObjectFlag(ObjectFlags.L_BLOCKS_GAS)) {
+                    if (!cell.hasObjectFlag(Entity$1.L_BLOCKS_GAS)) {
                         ++count;
                         if (v > highestVolume) {
                             highestVolume = v;
@@ -2281,7 +2352,7 @@
                         promoteChance = 0;
                         GWU__namespace.utils.eachNeighbor(x, y, (i, j) => {
                             const n = this.cell(i, j);
-                            if (!n.hasObjectFlag(GameObject$1.L_BLOCKS_EFFECTS) &&
+                            if (!n.hasObjectFlag(Entity$1.L_BLOCKS_EFFECTS) &&
                                 n.depthTile(tile.depth) !=
                                     cell.depthTile(tile.depth) &&
                                 !n.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN)) {
@@ -2339,7 +2410,7 @@
                         promoteChance = 0;
                         GWU__namespace.utils.eachNeighbor(x, y, (i, j) => {
                             const n = this.cell(i, j);
-                            if (!n.hasObjectFlag(GameObject$1.L_BLOCKS_EFFECTS) &&
+                            if (!n.hasObjectFlag(Entity$1.L_BLOCKS_EFFECTS) &&
                                 n.depthTile(tile.depth) !=
                                     cell.depthTile(tile.depth) &&
                                 !n.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN)) {
@@ -2443,7 +2514,7 @@
             else {
                 dest.blackOut();
             }
-            if (cell.hasObjectFlag(GameObject$1.L_VISUALLY_DISTINCT)) {
+            if (cell.hasObjectFlag(Entity$1.L_VISUALLY_DISTINCT)) {
                 GWU__namespace.color.separate(dest.fg, dest.bg);
             }
         }
@@ -2597,12 +2668,12 @@
             for (let j = 0; j < map.height; j++) {
                 const cell = map.cell(i, j);
                 if ((cell.blocksPathing() || cell.blocksMove()) &&
-                    !cell.hasObjectFlag(GameObject$1.L_SECRETLY_PASSABLE)) {
-                    // cell.flags &= ~CellFlags.IS_IN_LOOP;
+                    !cell.hasObjectFlag(Entity$1.L_SECRETLY_PASSABLE)) {
+                    // cell.flags &= ~Flags.Cell.IS_IN_LOOP;
                     passMap[i][j] = 0;
                 }
                 else {
-                    // cell.flags |= CellFlags.IS_IN_LOOP;
+                    // cell.flags |= Flags.Cell.IS_IN_LOOP;
                     passMap[i][j] = 1;
                 }
             }
@@ -2650,7 +2721,7 @@
                 for (let j = 0; j < map.height; j++) {
                     map.cell(i, j).chokeCount = 30000;
                     // Not sure why this was done in Brogue
-                    // if (map.cell(i, j).flags.cell & CellFlags.IS_IN_ROOM_MACHINE) {
+                    // if (map.cell(i, j).flags.cell & Flags.Cell.IS_IN_ROOM_MACHINE) {
                     //     passMap[i][j] = 0;
                     // }
                 }
@@ -2685,7 +2756,8 @@
                                                 cellCount <
                                                     map.cell(i2, j2).chokeCount) {
                                                 map.cell(i2, j2).chokeCount = cellCount;
-                                                map.cell(i2, j2).flags.cell &= ~Cell$1.IS_GATE_SITE;
+                                                map.cell(i2, j2).flags.cell &= ~Cell$1
+                                                    .IS_GATE_SITE;
                                             }
                                         }
                                     }
@@ -2733,7 +2805,7 @@
     }
     function resetLoopiness(cell, _x, _y, _map) {
         if ((cell.blocksPathing() || cell.blocksMove()) &&
-            !cell.hasObjectFlag(GameObject$1.L_SECRETLY_PASSABLE)) {
+            !cell.hasObjectFlag(Entity$1.L_SECRETLY_PASSABLE)) {
             cell.flags.cell &= ~Cell$1.IS_IN_LOOP;
             // passMap[i][j] = false;
         }
@@ -3350,8 +3422,7 @@
                 layers = config.reduce((out, v) => {
                     if (typeof v === 'number')
                         return out | v;
-                    const depth = Depth$1[v] ||
-                        0;
+                    const depth = Depth$1[v] || 0;
                     return out | depth;
                 }, 0);
             }
@@ -3375,11 +3446,8 @@
     }
     installHandler('clear', new ClearTileEffect());
 
-    const flags = { Cell: Cell$1, Map: Map$1, GameObject: GameObject$1, Depth: Depth$1, Tile: Tile$1 };
-
     var index = {
         __proto__: null,
-        flags: flags,
         Cell: Cell,
         Map: Map,
         make: make,
@@ -3409,7 +3477,8 @@
 
     exports.actor = index$4;
     exports.effect = index$2;
-    exports.gameObject = index$5;
+    exports.entity = index$5;
+    exports.flags = index$6;
     exports.item = index$3;
     exports.map = index;
     exports.tile = index$1;
