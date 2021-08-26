@@ -60,13 +60,22 @@ export class Blueprint {
             if (this.size.lo > this.size.hi)
                 throw new Error('Blueprint size must be small to large.');
         } else {
-            this.size = GWU.range.make([0, 999999]);
+            this.size = GWU.range.make([1, 1]); // Anything bigger makes weird things happen
         }
         if (opts.flags) {
             this.flags = GWU.flag.from(Flags, opts.flags);
         }
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new STEP.BuildStep(cfg));
+        }
+        if (this.flags & Flags.BP_ADOPT_ITEM) {
+            if (
+                !this.steps.some((s) => s.flags & STEP.StepFlags.BF_ADOPT_ITEM)
+            ) {
+                throw new Error(
+                    'Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.'
+                );
+            }
         }
     }
 
@@ -552,8 +561,13 @@ export class Blueprint {
         const machineNumber = builder.machineNumber;
         interior.forEach((v, x, y) => {
             if (!v) return;
-            site.setMachine(x, y, machineNumber, this.isRoom);
+
+            if (!(this.flags & Flags.BP_NO_INTERIOR_FLAG)) {
+                site.setMachine(x, y, machineNumber, this.isRoom);
+            }
+
             // secret doors mess up machines
+            // TODO - is this still true?
             if (site.isSecretDoor(x, y)) {
                 site.setTile(x, y, SITE.DOOR);
             }
@@ -705,35 +719,23 @@ export class Blueprint {
     }
 
     clearInteriorFlag(builder: Builder) {
-        builder.interior.forEach((v, x, y) => {
-            if (!v) return;
-            if (
-                !builder.site.hasCellFlag(
-                    x,
-                    y,
-                    GWM.flags.Cell.IS_WIRED | GWM.flags.Cell.IS_CIRCUIT_BREAKER
-                )
-            ) {
-                builder.site.setMachine(x, y, 0);
-            }
-        });
+        const site = builder.site;
 
-        // for (i = 0; i < map.width; i++) {
-        //     for (j = 0; j < map.height; j++) {
-        //         const cell = RUT.Map.getCell(map, i, j);
-        //         if (
-        //             cell.machineNumber == map.machineNumber &&
-        //             !RUT.Cell.hasMechFlag(
-        //                 cell,
-        //                 MechFlags.TM_IS_WIRED |
-        //                     MechFlags.TM_IS_CIRCUIT_BREAKER
-        //             )
-        //         ) {
-        //             cell.flags &= ~CellFlags.IS_IN_MACHINE;
-        //             cell.machineNumber = 0;
-        //         }
-        //     }
-        // }
+        for (let i = 0; i < site.width; i++) {
+            for (let j = 0; j < site.height; j++) {
+                if (
+                    site.getMachine(i, j) == builder.machineNumber &&
+                    !site.hasCellFlag(
+                        i,
+                        j,
+                        GWM.flags.Cell.IS_WIRED |
+                            GWM.flags.Cell.IS_CIRCUIT_BREAKER
+                    )
+                ) {
+                    site.setMachine(i, j, 0);
+                }
+            }
+        }
     }
 
     // async function redesignInterior( interior, originX, originY, theDungeonProfileIndex) {

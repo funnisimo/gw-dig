@@ -89,6 +89,8 @@ interface BuildSite extends DigSite {
     hasCellFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
+    makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
+    addItem(x: number, y: number, item: GWM.item.Item): boolean;
     analyze(): void;
     fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
     backup(): any;
@@ -112,6 +114,8 @@ declare class MapSite implements BuildSite {
     getTileIndex(x: number, y: number): number;
     clear(): void;
     hasItem(x: number, y: number): boolean;
+    makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
+    addItem(x: number, y: number, item: GWM.item.Item): boolean;
     hasActor(x: number, y: number): boolean;
     blocksMove(x: number, y: number): boolean;
     blocksVision(x: number, y: number): boolean;
@@ -696,11 +700,12 @@ declare class Builder {
     distance25: number;
     distance75: number;
     machineNumber: number;
+    adoptedItem: GWM.item.Item | null;
     constructor(map: GWM.map.Map, depth: number);
     free(): void;
-    buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number): boolean;
-    build(blueprint: Blueprint, x?: number, y?: number): boolean;
-    _build(blueprint: Blueprint, originX: number, originY: number): boolean;
+    buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): boolean;
+    build(blueprint: Blueprint, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): boolean;
+    _build(blueprint: Blueprint, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): boolean;
 }
 
 interface StepOptions {
@@ -708,7 +713,7 @@ interface StepOptions {
     flags: GWU.flag.FlagBase;
     pad: number;
     count: GWU.range.RangeBase;
-    item: any;
+    item: string | Partial<GWM.item.MatchOptions>;
     horde: any;
     effect: Partial<GWM.effect.EffectConfig>;
 }
@@ -747,7 +752,7 @@ declare class BuildStep {
     flags: number;
     pad: number;
     count: GWU.range.Range;
-    item: any | null;
+    item: string | Partial<GWM.item.MatchOptions> | null;
     horde: any | null;
     effect: GWM.effect.EffectInfo | null;
     chance: number;
@@ -762,7 +767,7 @@ declare class BuildStep {
     distanceBound(builder: Builder): [number, number];
     updateViewMap(builder: Builder): void;
     markCandidates(candidates: GWU.grid.NumGrid, builder: Builder, blueprint: Blueprint, distanceBound: [number, number]): number;
-    build(builder: Builder, blueprint: Blueprint): number;
+    build(builder: Builder, blueprint: Blueprint): boolean;
 }
 
 type index_d_StepOptions = StepOptions;

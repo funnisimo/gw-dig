@@ -10,7 +10,7 @@ export interface StepOptions {
     flags: GWU.flag.FlagBase;
     pad: number;
     count: GWU.range.RangeBase;
-    item: any;
+    item: string | Partial<GWM.item.MatchOptions>;
     horde: any;
     effect: Partial<GWM.effect.EffectConfig>;
 }
@@ -18,39 +18,32 @@ export interface StepOptions {
 const Fl = GWU.flag.fl;
 
 export enum StepFlags {
-    // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
-    // BF_GENERATE_HORDE			= Fl(5),	// generate a monster horde that has all of the horde flags
-    // BF_NO_THROWING_WEAPONS	    = Fl(4),	// the generated item cannot be a throwing weapon
-    // BF_REQUIRE_GOOD_RUNIC		= Fl(18),	// generated item must be uncursed runic
-
     BF_OUTSOURCE_ITEM_TO_MACHINE = Fl(1), // item must be adopted by another machine
     BF_BUILD_VESTIBULE = Fl(2), // call this at the origin of a door room to create a new door guard machine there
     BF_ADOPT_ITEM = Fl(3), // this feature will take the adopted item (be it from another machine or a previous feature)
-    BF_BUILD_AT_ORIGIN = Fl(6), // generate this feature at the room entrance
+    BF_BUILD_AT_ORIGIN = Fl(4), // generate this feature at the room entrance
 
-    // unused                   = Fl(7),	//
-    BF_PERMIT_BLOCKING = Fl(8), // permit the feature to block the map's passability (e.g. to add a locked door)
-    BF_TREAT_AS_BLOCKING = Fl(9), // treat this terrain as though it blocks, for purposes of deciding whether it can be placed there
+    BF_PERMIT_BLOCKING = Fl(5), // permit the feature to block the map's passability (e.g. to add a locked door)
+    BF_TREAT_AS_BLOCKING = Fl(6), // treat this terrain as though it blocks, for purposes of deciding whether it can be placed there
 
-    BF_NEAR_ORIGIN = Fl(10), // feature must spawn in the rough quarter of tiles closest to the origin
-    BF_FAR_FROM_ORIGIN = Fl(11), // feature must spawn in the rough quarter of tiles farthest from the origin
-    BF_IN_VIEW_OF_ORIGIN = Fl(25), // this feature must be in view of the origin
-    BF_IN_PASSABLE_VIEW_OF_ORIGIN = Fl(26), // this feature must be in view of the origin, where "view" is blocked by pathing blockers
+    BF_NEAR_ORIGIN = Fl(7), // feature must spawn in the rough quarter of tiles closest to the origin
+    BF_FAR_FROM_ORIGIN = Fl(8), // feature must spawn in the rough quarter of tiles farthest from the origin
+    BF_IN_VIEW_OF_ORIGIN = Fl(9), // this feature must be in view of the origin
+    BF_IN_PASSABLE_VIEW_OF_ORIGIN = Fl(10), // this feature must be in view of the origin, where "view" is blocked by pathing blockers
 
-    BF_MONSTER_TAKE_ITEM = Fl(12), // the item associated with this feature (including if adopted) will be in possession of the horde leader that's generated
-    BF_MONSTER_SLEEPING = Fl(13), // the monsters should be asleep when generated
-    BF_MONSTER_FLEEING = Fl(14), // the monsters should be permanently fleeing when generated
-    BF_MONSTERS_DORMANT = Fl(19), // monsters are dormant, and appear when a dungeon feature with DFF_ACTIVATE_DORMANT_MONSTER spawns on their tile
+    BF_MONSTER_TAKE_ITEM = Fl(11), // the item associated with this feature (including if adopted) will be in possession of the horde leader that's generated
+    BF_MONSTER_SLEEPING = Fl(12), // the monsters should be asleep when generated
+    BF_MONSTER_FLEEING = Fl(13), // the monsters should be permanently fleeing when generated
+    BF_MONSTERS_DORMANT = Fl(14), // monsters are dormant, and appear when a dungeon feature with DFF_ACTIVATE_DORMANT_MONSTER spawns on their tile
 
-    BF_ITEM_IS_KEY = Fl(0),
-    BF_ITEM_IDENTIFIED = Fl(5),
-    BF_ITEM_PLAYER_AVOIDS = Fl(4),
+    BF_ITEM_IS_KEY = Fl(15),
+    BF_ITEM_IDENTIFIED = Fl(16),
+    BF_ITEM_PLAYER_AVOIDS = Fl(17),
 
-    BF_EVERYWHERE = Fl(15), // generate the feature on every tile of the machine (e.g. carpeting)
-    BF_ALTERNATIVE = Fl(16), // build only one feature that has this flag per machine; the rest are skipped
-    BF_ALTERNATIVE_2 = Fl(17), // same as BF_ALTERNATIVE, but provides for a second set of alternatives of which only one will be chosen
+    BF_EVERYWHERE = Fl(18), // generate the feature on every tile of the machine (e.g. carpeting)
+    BF_ALTERNATIVE = Fl(19), // build only one feature that has this flag per machine; the rest are skipped
+    BF_ALTERNATIVE_2 = Fl(20), // same as BF_ALTERNATIVE, but provides for a second set of alternatives of which only one will be chosen
 
-    // unused                       = Fl(20),	//
     BF_BUILD_IN_WALLS = Fl(21), // build in an impassable tile that is adjacent to the interior
     BF_BUILD_ANYWHERE_ON_LEVEL = Fl(22), // build anywhere on the level that is not inside the machine
     BF_REPEAT_UNTIL_NO_PROGRESS = Fl(23), // keep trying to build this feature set until no changes are made
@@ -71,7 +64,7 @@ export class BuildStep {
     public flags: number = 0;
     public pad: number = 0;
     public count: GWU.range.Range;
-    public item: any | null = null;
+    public item: string | Partial<GWM.item.MatchOptions> | null = null;
     public horde: any | null = null;
     public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
@@ -92,6 +85,12 @@ export class BuildStep {
 
         if (cfg.effect) {
             this.effect = GWM.effect.from(cfg.effect);
+        }
+
+        if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
+            throw new Error(
+                'Cannot have blueprint step with item and BF_ADOPT_ITEM.'
+            );
         }
     }
 
@@ -348,7 +347,7 @@ export class BuildStep {
         return count;
     }
 
-    build(builder: Builder, blueprint: Blueprint) {
+    build(builder: Builder, blueprint: Blueprint): boolean {
         let wantCount = 0;
         let builtCount = 0;
 
@@ -380,7 +379,7 @@ export class BuildStep {
                 qualifyingTileCount,
                 this.count.lo
             );
-            return 0; // ?? Failed ??
+            return false;
         }
 
         let x = 0,
@@ -435,8 +434,6 @@ export class BuildStep {
             }
 
             // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-            // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
-
             if (success) {
                 qualifyingTileCount -= this.makePersonalSpace(
                     builder,
@@ -446,6 +443,46 @@ export class BuildStep {
                 );
                 builtCount++; // we've placed an instance
                 //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
+            }
+
+            // Generate an actor, if necessary
+
+            // Generate an item, if necessary
+            if (success && this.item) {
+                const item = site.makeRandomItem(this.item);
+                if (!item) {
+                    success = false;
+                }
+
+                if (this.flags & StepFlags.BF_ITEM_IS_KEY) {
+                    item.key = GWM.entity.makeKeyInfo(
+                        x,
+                        y,
+                        !!(this.flags & StepFlags.BF_KEY_DISPOSABLE)
+                    );
+                }
+
+                if (this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+                    success = builder.buildRandom(
+                        Flags.BP_ADOPT_ITEM,
+                        -1,
+                        -1,
+                        item
+                    );
+                } else {
+                    success = site.addItem(x, y, item);
+                }
+            } else if (success && this.flags & StepFlags.BF_ADOPT_ITEM) {
+                // adopt item if necessary
+                if (!builder.adoptedItem) {
+                    throw new Error(
+                        'Failed to build blueprint because there is no adopted item.'
+                    );
+                }
+                success = site.addItem(x, y, builder.adoptedItem);
+                if (success) {
+                    builder.adoptedItem = null;
+                }
             }
 
             if (success) {
@@ -477,73 +514,29 @@ export class BuildStep {
 
         success = builtCount > 0;
 
-        // let success = RUT.Component.generateAdoptItem(
-        //     component,
-        //     blueprint,
-        //     map,
-        //     xy.x,
-        //     xy.y,
-        //     context
-        // );
-        // if (!success) {
-        //     GWU.grid.free(candidates);
-        //     return false;
-        // }
-
-        // // Generate a horde as necessary.
-        // success = RUT.Component.generateMonsters(
-        //     component,
-        //     blueprint,
-        //     map,
-        //     xy.x,
-        //     xy.y,
-        //     context
-        // );
-        // if (!success) {
-        //     GWU.grid.free(candidates);
-        //     return false;
-        // }
-        if (
-            this.flags &
-            (StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE |
-                StepFlags.BF_BUILD_VESTIBULE)
-        ) {
-            // Put this item up for adoption, or generate a door guard machine.
+        if (this.flags & StepFlags.BF_BUILD_VESTIBULE) {
+            // Generate a door guard machine.
             // Try to create a sub-machine that qualifies.
-            // If we fail 10 times, abort the entire machine (including any sub-machines already built).
-            // Also, if we build a sub-machine, and it succeeds, but this (its parent machine) fails,
-            // we pass the monsters and items that it spawned back to the parent,
-            // so that if the parent fails, they can all be freed.
 
-            // First make sure our adopted item, if any, is not on the floor or in the pack already.
-            // Otherwise, a previous attempt to place it may have put it on the floor in a different
-            // machine, only to have that machine fail and be deleted, leaving the item remaining on
-            // the floor where placed.
-            if (this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
-                // success = await buildAMachine(-1, -1, -1, BP_ADOPT_ITEM, theItem, spawnedItemsSub, spawnedMonstersSub);
-                throw new Error('OUTSOURCE_ITEM_TO_MACHINE - Not ready yet.');
-            } else if (this.flags & StepFlags.BF_BUILD_VESTIBULE) {
-                success = builder.buildRandom(
-                    Flags.BP_VESTIBULE,
-                    builder.originX,
-                    builder.originY
-                );
-            }
+            success = builder.buildRandom(
+                Flags.BP_VESTIBULE,
+                builder.originX,
+                builder.originY
+            );
 
             if (!success) {
                 console.log(
                     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
                 );
                 // failure! abort!
-                return 0;
+                return false;
             }
-            // theItem = NULL;
         }
 
         //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
         //DEBUG logBuffer(candidates);
 
         GWU.grid.free(candidates);
-        return builtCount;
+        return success;
     }
 }

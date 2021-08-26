@@ -32,6 +32,7 @@ export class Builder {
     public distance25: number = -1;
     public distance75: number = -1;
     public machineNumber = 0;
+    public adoptedItem: GWM.item.Item | null = null;
 
     constructor(public map: GWM.map.Map, public depth: number) {
         this.site = new SITE.MapSite(map);
@@ -48,7 +49,12 @@ export class Builder {
         GWU.grid.free(this.distanceMap);
     }
 
-    buildRandom(requiredMachineFlags = BLUE.Flags.BP_ROOM, x = -1, y = -1) {
+    buildRandom(
+        requiredMachineFlags = BLUE.Flags.BP_ROOM,
+        x = -1,
+        y = -1,
+        adoptedItem: GWM.item.Item | null = null
+    ) {
         let tries = 10;
         while (tries--) {
             const blueprint = BLUE.random(requiredMachineFlags, this.depth);
@@ -56,7 +62,7 @@ export class Builder {
                 continue;
             }
 
-            if (this.build(blueprint, x, y)) {
+            if (this.build(blueprint, x, y, adoptedItem)) {
                 return true;
             }
         }
@@ -68,13 +74,18 @@ export class Builder {
         return false;
     }
 
-    build(blueprint: BLUE.Blueprint, x = -1, y = -1) {
+    build(
+        blueprint: BLUE.Blueprint,
+        x = -1,
+        y = -1,
+        adoptedItem: GWM.item.Item | null = null
+    ) {
         let tries = 10;
 
         this.site.analyze();
 
         if (x >= 0 && y >= 0) {
-            return this._build(blueprint, x, y);
+            return this._build(blueprint, x, y, adoptedItem);
         }
 
         while (tries--) {
@@ -83,7 +94,8 @@ export class Builder {
                 continue;
             }
 
-            if (this._build(blueprint, loc[0], loc[1])) {
+            if (this._build(blueprint, loc[0], loc[1], adoptedItem)) {
+                this.adoptedItem = null;
                 return true;
             }
         }
@@ -95,7 +107,12 @@ export class Builder {
     //////////////////////////////////////////
     // Returns true if the machine got built; false if it was aborted.
     // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-    _build(blueprint: BLUE.Blueprint, originX: number, originY: number) {
+    _build(
+        blueprint: BLUE.Blueprint,
+        originX: number,
+        originY: number,
+        adoptedItem: GWM.item.Item | null = null
+    ) {
         this.interior.fill(0);
         this.occupied.fill(0);
         this.viewMap.fill(0);
@@ -103,8 +120,10 @@ export class Builder {
 
         this.originX = originX;
         this.originY = originY;
+        this.adoptedItem = adoptedItem;
 
         if (!blueprint.computeInterior(this)) {
+            this.adoptedItem = null;
             return false;
         }
 
@@ -124,28 +143,22 @@ export class Builder {
 
         const components = blueprint.pickComponents();
 
-        // Keep track of all monsters and items that we spawn -- if we abort, we have to go back and delete them all.
-        // let itemCount = 0, monsterCount = 0;
-
         // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
 
         // Now tick through the features and build them.
         for (let index = 0; index < components.length; index++) {
             const component = components[index];
             // console.log('BUILD COMPONENT', component);
-            const count = component.build(this, blueprint);
 
-            if (
-                count == 0 ||
-                (count < component.count.lo && !component.repeatUntilNoProgress)
-            ) {
+            if (!component.build(this, blueprint)) {
                 // failure! abort!
                 console.log(
-                    'Failed to place blueprint because of feature; needed more instances.'
+                    'Failed to place blueprint because of step failure.'
                 );
                 // Restore the map to how it was before we touched it.
                 this.site.restore(levelBackup);
                 // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
+                this.adoptedItem = null;
                 return false;
             }
         }
@@ -164,6 +177,7 @@ export class Builder {
         // }
 
         // console.log('Built a machine from blueprint:', originX, originY);
+        this.adoptedItem = null;
         return true;
     }
 }

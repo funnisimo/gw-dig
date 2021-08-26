@@ -199,6 +199,12 @@ class MapSite {
     hasItem(x, y) {
         return this.map.cellInfo(x, y).hasItem();
     }
+    makeRandomItem(tags) {
+        return GWM.item.makeRandom(tags);
+    }
+    addItem(x, y, item) {
+        return this.map.forceItem(x, y, item);
+    }
     hasActor(x, y) {
         return this.map.hasActor(x, y);
     }
@@ -211,22 +217,22 @@ class MapSite {
     blocksDiagonal(x, y) {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_DIAGONAL);
+            .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x, y) {
         const info = this.map.cellInfo(x, y);
-        return (info.hasObjectFlag(GWM.flags.Entity.L_BLOCKS_MOVE) ||
+        return (info.hasEntityFlag(GWM.flags.Entity.L_BLOCKS_MOVE) ||
             info.hasTileFlag(GWM.tile.flags.Tile.T_PATHING_BLOCKER));
     }
     blocksItems(x, y) {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_ITEMS);
+            .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_ITEMS);
     }
     blocksEffects(x, y) {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_EFFECTS);
+            .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_EFFECTS);
     }
     isWall(x, y) {
         return this.map.cellInfo(x, y).isWall();
@@ -266,7 +272,7 @@ class MapSite {
     isSecretDoor(x, y) {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_SECRETLY_PASSABLE);
+            .hasEntityFlag(GWM.flags.Entity.L_SECRETLY_PASSABLE);
     }
     isDeep(x, y) {
         return this.map
@@ -2551,13 +2557,18 @@ class Blueprint {
                 throw new Error('Blueprint size must be small to large.');
         }
         else {
-            this.size = GWU.range.make([0, 999999]);
+            this.size = GWU.range.make([1, 1]); // Anything bigger makes weird things happen
         }
         if (opts.flags) {
             this.flags = GWU.flag.from(Flags, opts.flags);
         }
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
+        }
+        if (this.flags & Flags.BP_ADOPT_ITEM) {
+            if (!this.steps.some((s) => s.flags & StepFlags.BF_ADOPT_ITEM)) {
+                throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.');
+            }
         }
     }
     getChance(level, tags) {
@@ -2921,8 +2932,11 @@ class Blueprint {
         interior.forEach((v, x, y) => {
             if (!v)
                 return;
-            site.setMachine(x, y, machineNumber, this.isRoom);
+            if (!(this.flags & Flags.BP_NO_INTERIOR_FLAG)) {
+                site.setMachine(x, y, machineNumber, this.isRoom);
+            }
             // secret doors mess up machines
+            // TODO - is this still true?
             if (site.isSecretDoor(x, y)) {
                 site.setTile(x, y, DOOR);
             }
@@ -3051,29 +3065,16 @@ class Blueprint {
         return this.steps.filter((_f, i) => keepFeature[i]);
     }
     clearInteriorFlag(builder) {
-        builder.interior.forEach((v, x, y) => {
-            if (!v)
-                return;
-            if (!builder.site.hasCellFlag(x, y, GWM.flags.Cell.IS_WIRED | GWM.flags.Cell.IS_CIRCUIT_BREAKER)) {
-                builder.site.setMachine(x, y, 0);
+        const site = builder.site;
+        for (let i = 0; i < site.width; i++) {
+            for (let j = 0; j < site.height; j++) {
+                if (site.getMachine(i, j) == builder.machineNumber &&
+                    !site.hasCellFlag(i, j, GWM.flags.Cell.IS_WIRED |
+                        GWM.flags.Cell.IS_CIRCUIT_BREAKER)) {
+                    site.setMachine(i, j, 0);
+                }
             }
-        });
-        // for (i = 0; i < map.width; i++) {
-        //     for (j = 0; j < map.height; j++) {
-        //         const cell = RUT.Map.getCell(map, i, j);
-        //         if (
-        //             cell.machineNumber == map.machineNumber &&
-        //             !RUT.Cell.hasMechFlag(
-        //                 cell,
-        //                 MechFlags.TM_IS_WIRED |
-        //                     MechFlags.TM_IS_CIRCUIT_BREAKER
-        //             )
-        //         ) {
-        //             cell.flags &= ~CellFlags.IS_IN_MACHINE;
-        //             cell.machineNumber = 0;
-        //         }
-        //     }
-        // }
+        }
     }
 }
 const blueprints = {};
@@ -3093,32 +3094,26 @@ function random(requiredFlags, depth) {
 const Fl = GWU.flag.fl;
 var StepFlags;
 (function (StepFlags) {
-    // BF_GENERATE_ITEM				= Fl(0),	// feature entails generating an item (overridden if the machine is adopting an item)
-    // BF_GENERATE_HORDE			= Fl(5),	// generate a monster horde that has all of the horde flags
-    // BF_NO_THROWING_WEAPONS	    = Fl(4),	// the generated item cannot be a throwing weapon
-    // BF_REQUIRE_GOOD_RUNIC		= Fl(18),	// generated item must be uncursed runic
     StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
     StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl(2)] = "BF_BUILD_VESTIBULE";
     StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl(3)] = "BF_ADOPT_ITEM";
-    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl(6)] = "BF_BUILD_AT_ORIGIN";
-    // unused                   = Fl(7),	//
-    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl(8)] = "BF_PERMIT_BLOCKING";
-    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl(9)] = "BF_TREAT_AS_BLOCKING";
-    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl(10)] = "BF_NEAR_ORIGIN";
-    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl(11)] = "BF_FAR_FROM_ORIGIN";
-    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl(25)] = "BF_IN_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl(26)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl(12)] = "BF_MONSTER_TAKE_ITEM";
-    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl(13)] = "BF_MONSTER_SLEEPING";
-    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl(14)] = "BF_MONSTER_FLEEING";
-    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl(19)] = "BF_MONSTERS_DORMANT";
-    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl(0)] = "BF_ITEM_IS_KEY";
-    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl(5)] = "BF_ITEM_IDENTIFIED";
-    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl(4)] = "BF_ITEM_PLAYER_AVOIDS";
-    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl(15)] = "BF_EVERYWHERE";
-    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl(16)] = "BF_ALTERNATIVE";
-    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl(17)] = "BF_ALTERNATIVE_2";
-    // unused                       = Fl(20),	//
+    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl(4)] = "BF_BUILD_AT_ORIGIN";
+    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl(5)] = "BF_PERMIT_BLOCKING";
+    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl(6)] = "BF_TREAT_AS_BLOCKING";
+    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl(7)] = "BF_NEAR_ORIGIN";
+    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl(8)] = "BF_FAR_FROM_ORIGIN";
+    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl(9)] = "BF_IN_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl(10)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl(11)] = "BF_MONSTER_TAKE_ITEM";
+    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl(12)] = "BF_MONSTER_SLEEPING";
+    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl(13)] = "BF_MONSTER_FLEEING";
+    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl(14)] = "BF_MONSTERS_DORMANT";
+    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl(15)] = "BF_ITEM_IS_KEY";
+    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl(16)] = "BF_ITEM_IDENTIFIED";
+    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl(17)] = "BF_ITEM_PLAYER_AVOIDS";
+    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl(18)] = "BF_EVERYWHERE";
+    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl(19)] = "BF_ALTERNATIVE";
+    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl(20)] = "BF_ALTERNATIVE_2";
     StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl(21)] = "BF_BUILD_IN_WALLS";
     StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
     StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
@@ -3153,6 +3148,9 @@ class BuildStep {
         this.horde = cfg.horde || null;
         if (cfg.effect) {
             this.effect = GWM.effect.from(cfg.effect);
+        }
+        if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
+            throw new Error('Cannot have blueprint step with item and BF_ADOPT_ITEM.');
         }
     }
     get repeatUntilNoProgress() {
@@ -3357,7 +3355,7 @@ class BuildStep {
         }
         if (!qualifyingTileCount || qualifyingTileCount < this.count.lo) {
             console.warn('Only %s qualifying tiles - want at least %s.', qualifyingTileCount, this.count.lo);
-            return 0; // ?? Failed ??
+            return false;
         }
         let x = 0, y = 0;
         let success = true;
@@ -3400,11 +3398,37 @@ class BuildStep {
                 }
             }
             // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-            // Personal space of 0 means nothing gets cleared, 1 means that only the tile itself gets cleared, and 2 means the 3x3 grid centered on it.
             if (success) {
                 qualifyingTileCount -= this.makePersonalSpace(builder, x, y, candidates);
                 builtCount++; // we've placed an instance
                 //DEBUG printf("\nPlaced instance #%i of feature %i at (%i, %i).", instance, feat, featX, featY);
+            }
+            // Generate an actor, if necessary
+            // Generate an item, if necessary
+            if (success && this.item) {
+                const item = site.makeRandomItem(this.item);
+                if (!item) {
+                    success = false;
+                }
+                if (this.flags & StepFlags.BF_ITEM_IS_KEY) {
+                    item.key = GWM.entity.makeKeyInfo(x, y, !!(this.flags & StepFlags.BF_KEY_DISPOSABLE));
+                }
+                if (this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+                    success = builder.buildRandom(Flags.BP_ADOPT_ITEM, -1, -1, item);
+                }
+                else {
+                    success = site.addItem(x, y, item);
+                }
+            }
+            else if (success && this.flags & StepFlags.BF_ADOPT_ITEM) {
+                // adopt item if necessary
+                if (!builder.adoptedItem) {
+                    throw new Error('Failed to build blueprint because there is no adopted item.');
+                }
+                success = site.addItem(x, y, builder.adoptedItem);
+                if (success) {
+                    builder.adoptedItem = null;
+                }
             }
             if (success) {
                 // Proceed only if the terrain stuff for this instance succeeded.
@@ -3423,62 +3447,20 @@ class BuildStep {
                 builtCount < wantCount ||
                 this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS));
         success = builtCount > 0;
-        // let success = RUT.Component.generateAdoptItem(
-        //     component,
-        //     blueprint,
-        //     map,
-        //     xy.x,
-        //     xy.y,
-        //     context
-        // );
-        // if (!success) {
-        //     GWU.grid.free(candidates);
-        //     return false;
-        // }
-        // // Generate a horde as necessary.
-        // success = RUT.Component.generateMonsters(
-        //     component,
-        //     blueprint,
-        //     map,
-        //     xy.x,
-        //     xy.y,
-        //     context
-        // );
-        // if (!success) {
-        //     GWU.grid.free(candidates);
-        //     return false;
-        // }
-        if (this.flags &
-            (StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE |
-                StepFlags.BF_BUILD_VESTIBULE)) {
-            // Put this item up for adoption, or generate a door guard machine.
+        if (this.flags & StepFlags.BF_BUILD_VESTIBULE) {
+            // Generate a door guard machine.
             // Try to create a sub-machine that qualifies.
-            // If we fail 10 times, abort the entire machine (including any sub-machines already built).
-            // Also, if we build a sub-machine, and it succeeds, but this (its parent machine) fails,
-            // we pass the monsters and items that it spawned back to the parent,
-            // so that if the parent fails, they can all be freed.
-            // First make sure our adopted item, if any, is not on the floor or in the pack already.
-            // Otherwise, a previous attempt to place it may have put it on the floor in a different
-            // machine, only to have that machine fail and be deleted, leaving the item remaining on
-            // the floor where placed.
-            if (this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
-                // success = await buildAMachine(-1, -1, -1, BP_ADOPT_ITEM, theItem, spawnedItemsSub, spawnedMonstersSub);
-                throw new Error('OUTSOURCE_ITEM_TO_MACHINE - Not ready yet.');
-            }
-            else if (this.flags & StepFlags.BF_BUILD_VESTIBULE) {
-                success = builder.buildRandom(Flags.BP_VESTIBULE, builder.originX, builder.originY);
-            }
+            success = builder.buildRandom(Flags.BP_VESTIBULE, builder.originX, builder.originY);
             if (!success) {
                 console.log(`Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`);
                 // failure! abort!
-                return 0;
+                return false;
             }
-            // theItem = NULL;
         }
         //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
         //DEBUG logBuffer(candidates);
         GWU.grid.free(candidates);
-        return builtCount;
+        return success;
     }
 }
 
@@ -3507,6 +3489,7 @@ class Builder {
         this.distance25 = -1;
         this.distance75 = -1;
         this.machineNumber = 0;
+        this.adoptedItem = null;
         this.site = new MapSite(map);
         this.interior = GWU.grid.alloc(map.width, map.height);
         this.occupied = GWU.grid.alloc(map.width, map.height);
@@ -3519,14 +3502,14 @@ class Builder {
         GWU.grid.free(this.viewMap);
         GWU.grid.free(this.distanceMap);
     }
-    buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1) {
+    buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
         let tries = 10;
         while (tries--) {
             const blueprint = random(requiredMachineFlags, this.depth);
             if (!blueprint) {
                 continue;
             }
-            if (this.build(blueprint, x, y)) {
+            if (this.build(blueprint, x, y, adoptedItem)) {
                 return true;
             }
         }
@@ -3534,18 +3517,19 @@ class Builder {
             GWU.flag.toString(Flags, requiredMachineFlags));
         return false;
     }
-    build(blueprint, x = -1, y = -1) {
+    build(blueprint, x = -1, y = -1, adoptedItem = null) {
         let tries = 10;
         this.site.analyze();
         if (x >= 0 && y >= 0) {
-            return this._build(blueprint, x, y);
+            return this._build(blueprint, x, y, adoptedItem);
         }
         while (tries--) {
             const loc = blueprint.pickLocation(this.site);
             if (!loc) {
                 continue;
             }
-            if (this._build(blueprint, loc[0], loc[1])) {
+            if (this._build(blueprint, loc[0], loc[1], adoptedItem)) {
+                this.adoptedItem = null;
                 return true;
             }
         }
@@ -3555,14 +3539,16 @@ class Builder {
     //////////////////////////////////////////
     // Returns true if the machine got built; false if it was aborted.
     // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-    _build(blueprint, originX, originY) {
+    _build(blueprint, originX, originY, adoptedItem = null) {
         this.interior.fill(0);
         this.occupied.fill(0);
         this.viewMap.fill(0);
         this.distanceMap.fill(0);
         this.originX = originX;
         this.originY = originY;
+        this.adoptedItem = adoptedItem;
         if (!blueprint.computeInterior(this)) {
+            this.adoptedItem = null;
             return false;
         }
         // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
@@ -3576,21 +3562,18 @@ class Builder {
         // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
         // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
         const components = blueprint.pickComponents();
-        // Keep track of all monsters and items that we spawn -- if we abort, we have to go back and delete them all.
-        // let itemCount = 0, monsterCount = 0;
         // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
         // Now tick through the features and build them.
         for (let index = 0; index < components.length; index++) {
             const component = components[index];
             // console.log('BUILD COMPONENT', component);
-            const count = component.build(this, blueprint);
-            if (count == 0 ||
-                (count < component.count.lo && !component.repeatUntilNoProgress)) {
+            if (!component.build(this, blueprint)) {
                 // failure! abort!
-                console.log('Failed to place blueprint because of feature; needed more instances.');
+                console.log('Failed to place blueprint because of step failure.');
                 // Restore the map to how it was before we touched it.
                 this.site.restore(levelBackup);
                 // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
+                this.adoptedItem = null;
                 return false;
             }
         }
@@ -3606,6 +3589,7 @@ class Builder {
         // 	torchBearer->carriedItem = torch;
         // }
         // console.log('Built a machine from blueprint:', originX, originY);
+        this.adoptedItem = null;
         return true;
     }
 }

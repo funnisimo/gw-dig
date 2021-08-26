@@ -5674,8 +5674,16 @@ void main() {
             return new Sprite(this.ch, this.fg, this.bg, this.opacity);
         }
         toString() {
-            // prettier-ignore
-            return `{ ch: ${this.ch}, fg: ${this.fg.toString(true)}, bg: ${this.bg.toString(true)}, opacity: ${this.opacity} }`;
+            const parts = [];
+            if (this.ch)
+                parts.push('ch: ' + this.ch);
+            if (!this.fg.isNull())
+                parts.push('fg: ' + this.fg.toString(true));
+            if (!this.bg.isNull())
+                parts.push('bg: ' + this.bg.toString(true));
+            if (this.opacity !== 100)
+                parts.push('opacity: ' + this.opacity);
+            return '{ ' + parts.join(', ') + ' }';
         }
     }
     const sprites = {};

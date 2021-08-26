@@ -17,6 +17,11 @@ export interface BuildSite extends DigSite.DigSite {
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
 
+    makeRandomItem(
+        tags: string | Partial<GWM.item.MatchOptions>
+    ): GWM.item.Item;
+    addItem(x: number, y: number, item: GWM.item.Item): boolean;
+
     analyze(): void;
     fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
 
@@ -90,6 +95,15 @@ export class MapSite implements BuildSite {
     hasItem(x: number, y: number): boolean {
         return this.map.cellInfo(x, y).hasItem();
     }
+    makeRandomItem(
+        tags: string | Partial<GWM.item.MatchOptions>
+    ): GWM.item.Item {
+        return GWM.item.makeRandom(tags);
+    }
+    addItem(x: number, y: number, item: GWM.item.Item): boolean {
+        return this.map.forceItem(x, y, item);
+    }
+
     hasActor(x: number, y: number): boolean {
         return this.map.hasActor(x, y);
     }
@@ -103,24 +117,24 @@ export class MapSite implements BuildSite {
     blocksDiagonal(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_DIAGONAL);
+            .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x: number, y: number): boolean {
         const info = this.map.cellInfo(x, y);
         return (
-            info.hasObjectFlag(GWM.flags.Entity.L_BLOCKS_MOVE) ||
+            info.hasEntityFlag(GWM.flags.Entity.L_BLOCKS_MOVE) ||
             info.hasTileFlag(GWM.tile.flags.Tile.T_PATHING_BLOCKER)
         );
     }
     blocksItems(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_ITEMS);
+            .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_ITEMS);
     }
     blocksEffects(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_BLOCKS_EFFECTS);
+            .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_EFFECTS);
     }
 
     isWall(x: number, y: number): boolean {
@@ -158,7 +172,7 @@ export class MapSite implements BuildSite {
     isSecretDoor(x: number, y: number): boolean {
         return this.map
             .cellInfo(x, y)
-            .hasObjectFlag(GWM.flags.Entity.L_SECRETLY_PASSABLE);
+            .hasEntityFlag(GWM.flags.Entity.L_SECRETLY_PASSABLE);
     }
     isDeep(x: number, y: number): boolean {
         return this.map
