@@ -10,7 +10,7 @@ GWM.tile.install('LOCKED_DOOR', {
     bg: 'red',
     effects: {
         enter: null,
-        key: { tile: 'FLOOR' },
+        key: { tile: 'DOOR' },
     },
 });
 
@@ -28,7 +28,6 @@ GWD.room.install(
 );
 
 const level = new GWD.Level({
-    seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
@@ -68,7 +67,7 @@ const blue = GWD.blueprint.install('ROOM', {
 const map = GWM.map.make(80, 34, { visible: true });
 level.create(map);
 const builder = new GWD.blueprint.Builder(map, 1);
-builder.build(blue, 20, 11);
+builder.build(blue);
 
 const canvas = GWU.canvas.make({
     font: 'monospace',

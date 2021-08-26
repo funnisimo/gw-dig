@@ -479,7 +479,16 @@ export class BuildStep {
                         'Failed to build blueprint because there is no adopted item.'
                     );
                 }
-                success = site.addItem(x, y, builder.adoptedItem);
+
+                if (this.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
+                    // Yes, check for blocking.
+                    const blockingMap = GWU.grid.alloc(site.width, site.height);
+                    blockingMap[x][y] = 1;
+                    success = !SITE.siteDisruptedBy(site, blockingMap);
+                    GWU.grid.free(blockingMap);
+                }
+
+                success = success && site.addItem(x, y, builder.adoptedItem);
                 if (success) {
                     builder.adoptedItem = null;
                 }
