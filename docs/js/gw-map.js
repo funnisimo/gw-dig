@@ -1394,7 +1394,7 @@
             const cell = this.map.cell(x, y);
             if (actor.forbidsCell(cell))
                 return false;
-            if (!GWU__namespace.utils.addToChain(cell, 'actor', obj))
+            if (!GWU__namespace.list.push(cell, 'actor', obj))
                 return false;
             if (obj.isPlayer()) {
                 cell.setCellFlag(Cell$1.HAS_PLAYER);
@@ -1410,7 +1410,7 @@
             if (actor.isDestroyed)
                 return false;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.utils.addToChain(cell, 'actor', actor))
+            if (!GWU__namespace.list.push(cell, 'actor', actor))
                 return false;
             if (actor.isPlayer()) {
                 cell.setCellFlag(Cell$1.HAS_PLAYER);
@@ -1423,7 +1423,7 @@
             const x = obj.x;
             const y = obj.y;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.utils.removeFromChain(cell, 'actor', obj))
+            if (!GWU__namespace.list.remove(cell, 'actor', obj))
                 return false;
             if (obj.isPlayer()) {
                 cell.clearCellFlag(Cell$1.HAS_PLAYER);
@@ -1459,7 +1459,7 @@
                     return true; // ??? didSomething?
                 }
             }
-            if (!GWU__namespace.utils.addToChain(cell, 'item', obj))
+            if (!GWU__namespace.list.push(cell, 'item', obj))
                 return false;
             obj.x = x;
             obj.y = y;
@@ -1468,7 +1468,7 @@
         }
         forceItem(x, y, obj, _opts) {
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.utils.addToChain(cell, 'item', obj))
+            if (!GWU__namespace.list.push(cell, 'item', obj))
                 return false;
             obj.x = x;
             obj.y = y;
@@ -1479,7 +1479,7 @@
             const x = obj.x;
             const y = obj.y;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.utils.removeFromChain(cell, 'item', obj))
+            if (!GWU__namespace.list.remove(cell, 'item', obj))
                 return false;
             if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
                 await cell.activate('key', this.map, x, y);
@@ -2407,7 +2407,7 @@
         }
         eachItem(cb) {
             this.cells.forEach((cell) => {
-                GWU__namespace.utils.eachChain(cell.item, cb);
+                GWU__namespace.list.forEach(cell.item, cb);
             });
         }
         async addItem(x, y, item) {
@@ -2451,7 +2451,7 @@
         }
         eachActor(cb) {
             this.cells.forEach((cell) => {
-                GWU__namespace.utils.eachChain(cell.actor, cb);
+                GWU__namespace.list.forEach(cell.actor, cb);
             });
         }
         async addActor(x, y, actor) {
@@ -3605,7 +3605,7 @@
                 const cell = map.cell(i, j);
                 if (!cell.hasActor())
                     continue;
-                GWU__namespace.utils.eachChain(cell.actor, (obj) => {
+                GWU__namespace.list.forEach(cell.actor, (obj) => {
                     if (!(obj instanceof Actor))
                         return;
                     const monst = obj;
@@ -3635,7 +3635,7 @@
             const cell = map.cell(i, j);
             if (!cell.hasItem())
                 return;
-            GWU__namespace.utils.eachChain(cell.item, (obj) => {
+            GWU__namespace.list.forEach(cell.item, (obj) => {
                 if (!(obj instanceof Item))
                     return;
                 const item = obj;

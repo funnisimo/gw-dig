@@ -287,149 +287,6 @@
     const random = new Random();
     const cosmetic = new Random();
 
-    // CHAIN
-    function chainLength(root) {
-        let count = 0;
-        while (root) {
-            count += 1;
-            root = root.next;
-        }
-        return count;
-    }
-    function chainIncludes(chain, entry) {
-        while (chain && chain !== entry) {
-            chain = chain.next;
-        }
-        return chain === entry;
-    }
-    function eachChain(item, fn) {
-        let index = 0;
-        while (item) {
-            const next = item.next;
-            fn(item, index++);
-            item = next;
-        }
-        return index; // really count
-    }
-    function addToChain(obj, name, entry) {
-        entry.next = obj[name] || null;
-        obj[name] = entry;
-        return true;
-    }
-    function removeFromChain(obj, name, entry) {
-        const root = obj[name];
-        if (root === entry) {
-            obj[name] = entry.next || null;
-            entry.next = null;
-            return true;
-        }
-        else if (!root) {
-            return false;
-        }
-        else {
-            let prev = root;
-            let current = prev.next;
-            while (current && current !== entry) {
-                prev = current;
-                current = prev.next;
-            }
-            if (current === entry) {
-                prev.next = current.next || null;
-                entry.next = null;
-                return true;
-            }
-        }
-        return false;
-    }
-    function findInChain(root, cb) {
-        while (root && !cb(root)) {
-            root = root.next;
-        }
-        return root;
-    }
-    class Chain {
-        constructor(sort, onchange) {
-            this.data = null;
-            this.sort = sort || (() => -1);
-            this.onchange = onchange || (() => { });
-        }
-        copy(other) {
-            this.data = other.data;
-            this.sort = other.sort;
-            this.onchange = other.onchange;
-        }
-        get length() {
-            let count = 0;
-            this.forEach(() => ++count);
-            return count;
-        }
-        add(obj) {
-            if (!this.data || this.sort(this.data, obj) < 0) {
-                obj.next = this.data;
-                this.data = obj;
-                return true;
-            }
-            let prev = this.data;
-            let current = this.data.next;
-            while (current && this.sort(current, obj) < 0) {
-                prev = current;
-                current = current.next;
-            }
-            obj.next = current;
-            prev.next = obj;
-            this.onchange();
-            return true;
-        }
-        has(obj) {
-            return this.find((o) => o === obj) !== null;
-        }
-        remove(obj) {
-            if (!removeFromChain(this, 'data', obj)) {
-                return false;
-            }
-            this.onchange();
-            return true;
-        }
-        find(cb) {
-            return findInChain(this.data, cb);
-        }
-        forEach(cb) {
-            return eachChain(this.data, cb);
-        }
-        reduce(cb, out) {
-            let current = this.data;
-            if (!current)
-                return out;
-            if (out === undefined) {
-                out = current;
-                current = current.next;
-            }
-            while (current) {
-                cb(out, current);
-                current = current.next;
-            }
-            return out;
-        }
-        some(cb) {
-            let current = this.data;
-            while (current) {
-                if (cb(current))
-                    return true;
-                current = current.next;
-            }
-            return false;
-        }
-        every(cb) {
-            let current = this.data;
-            while (current) {
-                if (!cb(current))
-                    return false;
-                current = current.next;
-            }
-            return true;
-        }
-    }
-
     /**
      * GW.utils
      * @module utils
@@ -1124,14 +981,132 @@
         forRect: forRect,
         forBorder: forBorder,
         arcCount: arcCount,
-        asyncForEach: asyncForEach,
-        chainLength: chainLength,
-        chainIncludes: chainIncludes,
-        eachChain: eachChain,
-        addToChain: addToChain,
-        removeFromChain: removeFromChain,
-        findInChain: findInChain,
-        Chain: Chain
+        asyncForEach: asyncForEach
+    };
+
+    // CHAIN
+    function length$1(root) {
+        let count = 0;
+        while (root) {
+            count += 1;
+            root = root.next;
+        }
+        return count;
+    }
+    function includes(root, entry) {
+        while (root && root !== entry) {
+            root = root.next;
+        }
+        return root === entry;
+    }
+    function forEach(root, fn) {
+        let index = 0;
+        while (root) {
+            const next = root.next;
+            fn(root, index++);
+            root = next;
+        }
+        return index; // really count
+    }
+    function push(obj, name, entry) {
+        entry.next = obj[name] || null;
+        obj[name] = entry;
+        return true;
+    }
+    function remove(obj, name, entry) {
+        const root = obj[name];
+        if (root === entry) {
+            obj[name] = entry.next || null;
+            entry.next = null;
+            return true;
+        }
+        else if (!root) {
+            return false;
+        }
+        else {
+            let prev = root;
+            let current = prev.next;
+            while (current && current !== entry) {
+                prev = current;
+                current = prev.next;
+            }
+            if (current === entry) {
+                prev.next = current.next || null;
+                entry.next = null;
+                return true;
+            }
+        }
+        return false;
+    }
+    function find(root, cb) {
+        while (root && !cb(root)) {
+            root = root.next;
+        }
+        return root;
+    }
+    function insert(obj, name, entry, sort) {
+        let root = obj[name];
+        sort = sort || (() => -1); // always insert first
+        if (!root || sort(root, entry) < 0) {
+            obj.next = root;
+            obj[name] = entry;
+            return true;
+        }
+        let prev = root;
+        let current = root.next;
+        while (current && sort(current, entry) < 0) {
+            prev = current;
+            current = current.next;
+        }
+        entry.next = current;
+        prev.next = entry;
+        return true;
+    }
+    function reduce(root, cb, out) {
+        let current = root;
+        if (!current)
+            return out;
+        if (out === undefined) {
+            out = current;
+            current = current.next;
+        }
+        while (current) {
+            cb(out, current);
+            current = current.next;
+        }
+        return out;
+    }
+    function some(root, cb) {
+        let current = root;
+        while (current) {
+            if (cb(current))
+                return true;
+            current = current.next;
+        }
+        return false;
+    }
+    function every(root, cb) {
+        let current = root;
+        while (current) {
+            if (!cb(current))
+                return false;
+            current = current.next;
+        }
+        return true;
+    }
+
+    var list = {
+        __proto__: null,
+        length: length$1,
+        includes: includes,
+        forEach: forEach,
+        push: push,
+        remove: remove,
+        find: find,
+        insert: insert,
+        reduce: reduce,
+        some: some,
+        every: every
     };
 
     class Range {
@@ -2994,7 +2969,7 @@
             throw new TypeError('The listener must be a function');
         }
         const listener = new Listener(fn, context || null, once);
-        addToChain(EVENTS, event, listener);
+        push(EVENTS, event, listener);
         return listener;
     }
     /**
@@ -3037,9 +3012,9 @@
         if (!fn)
             return false;
         let success = false;
-        eachChain(EVENTS[event], (obj) => {
+        forEach(EVENTS[event], (obj) => {
             if (obj.matches(fn, context, once)) {
-                removeFromChain(EVENTS, event, obj);
+                remove(EVENTS, event, obj);
                 success = true;
             }
         });
@@ -3099,7 +3074,7 @@
         while (listener) {
             let next = listener.next;
             if (listener.once)
-                removeFromChain(EVENTS, event, listener);
+                remove(EVENTS, event, listener);
             await listener.fn.apply(listener.context, args);
             listener = next;
         }
@@ -6344,7 +6319,7 @@ void main() {
             }
         }
         eachStaticLight(fn) {
-            eachChain(this.staticLights, (info) => fn(info.x, info.y, info.light));
+            forEach(this.staticLights, (info) => fn(info.x, info.y, info.light));
             this.site.eachGlowLight((x, y, light) => {
                 fn(x, y, light);
             });
@@ -6515,6 +6490,7 @@ void main() {
     exports.grid = grid;
     exports.io = io;
     exports.light = index;
+    exports.list = list;
     exports.loop = loop;
     exports.message = message;
     exports.path = path;
