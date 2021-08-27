@@ -4,6 +4,418 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GWU = {}));
 }(this, (function (exports) { 'use strict';
 
+    // DIRS are organized clockwise
+    // - first 4 are arrow directions
+    //   >> rotate 90 degrees clockwise ==>> newIndex = (oldIndex + 1) % 4
+    //   >> opposite direction ==>> oppIndex = (index + 2) % 4
+    // - last 4 are diagonals
+    //   >> rotate 90 degrees clockwise ==>> newIndex = 4 + (oldIndex + 1) % 4;
+    //   >> opposite diagonal ==>> newIndex = 4 + (index + 2) % 4;
+    const DIRS$2 = [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+        [-1, -1],
+    ];
+    const NO_DIRECTION = -1;
+    const UP = 0;
+    const RIGHT = 1;
+    const DOWN = 2;
+    const LEFT = 3;
+    const RIGHT_UP = 4;
+    const RIGHT_DOWN = 5;
+    const LEFT_DOWN = 6;
+    const LEFT_UP = 7;
+    // CLOCK DIRS are organized clockwise, starting at UP
+    // >> opposite = (index + 4) % 8
+    // >> 90 degrees rotate right = (index + 2) % 8
+    // >> 90 degrees rotate left = (8 + index - 2) % 8
+    const CLOCK_DIRS = [
+        [0, 1],
+        [1, 1],
+        [1, 0],
+        [1, -1],
+        [0, -1],
+        [-1, -1],
+        [-1, 0],
+        [-1, 1],
+    ];
+    function x(src) {
+        // @ts-ignore
+        return src.x || src[0] || 0;
+    }
+    function y(src) {
+        // @ts-ignore
+        return src.y || src[1] || 0;
+    }
+    class Bounds {
+        constructor(x, y, w, h) {
+            this.x = x;
+            this.y = y;
+            this.width = w;
+            this.height = h;
+        }
+        get left() {
+            return this.x;
+        }
+        get right() {
+            return this.x + this.width - 1;
+        }
+        get top() {
+            return this.y;
+        }
+        get bottom() {
+            return this.y + this.height - 1;
+        }
+        contains(...args) {
+            let i = args[0];
+            let j = args[1];
+            if (typeof i !== 'number') {
+                j = y(i);
+                i = x(i);
+            }
+            return (this.x <= i &&
+                this.y <= j &&
+                this.x + this.width > i &&
+                this.y + this.height > j);
+        }
+    }
+    function copyXY(dest, src) {
+        dest.x = x(src);
+        dest.y = y(src);
+    }
+    function addXY(dest, src) {
+        dest.x += x(src);
+        dest.y += y(src);
+    }
+    function equalsXY(dest, src) {
+        if (!dest && !src)
+            return true;
+        if (!dest || !src)
+            return false;
+        return x(dest) == x(src) && y(dest) == y(src);
+    }
+    function lerpXY(a, b, pct) {
+        if (pct > 1) {
+            pct = pct / 100;
+        }
+        pct = clamp(pct, 0, 1);
+        const dx = x(b) - x(a);
+        const dy = y(b) - y(a);
+        const x2 = x(a) + Math.floor(dx * pct);
+        const y2 = y(a) + Math.floor(dy * pct);
+        return [x2, y2];
+    }
+    function eachNeighbor(x, y, fn, only4dirs = false) {
+        const max = only4dirs ? 4 : 8;
+        for (let i = 0; i < max; ++i) {
+            const dir = DIRS$2[i];
+            const x1 = x + dir[0];
+            const y1 = y + dir[1];
+            fn(x1, y1);
+        }
+    }
+    async function eachNeighborAsync(x, y, fn, only4dirs = false) {
+        const max = only4dirs ? 4 : 8;
+        for (let i = 0; i < max; ++i) {
+            const dir = DIRS$2[i];
+            const x1 = x + dir[0];
+            const y1 = y + dir[1];
+            await fn(x1, y1);
+        }
+    }
+    function matchingNeighbor(x, y, matchFn, only4dirs = false) {
+        const maxIndex = only4dirs ? 4 : 8;
+        for (let d = 0; d < maxIndex; ++d) {
+            const dir = DIRS$2[d];
+            const i = x + dir[0];
+            const j = y + dir[1];
+            if (matchFn(i, j))
+                return [i, j];
+        }
+        return [-1, -1];
+    }
+    function distanceBetween(x1, y1, x2, y2) {
+        const x = Math.abs(x1 - x2);
+        const y = Math.abs(y1 - y2);
+        const min = Math.min(x, y);
+        return x + y - 0.6 * min;
+    }
+    function distanceFromTo(a, b) {
+        return distanceBetween(x(a), y(a), x(b), y(b));
+    }
+    function calcRadius(x, y) {
+        return distanceBetween(0, 0, x, y);
+    }
+    function dirBetween(x, y, toX, toY) {
+        let diffX = toX - x;
+        let diffY = toY - y;
+        if (diffX && diffY) {
+            const absX = Math.abs(diffX);
+            const absY = Math.abs(diffY);
+            if (absX >= 2 * absY) {
+                diffY = 0;
+            }
+            else if (absY >= 2 * absX) {
+                diffX = 0;
+            }
+        }
+        return [Math.sign(diffX), Math.sign(diffY)];
+    }
+    function dirFromTo(a, b) {
+        return dirBetween(x(a), y(a), x(b), y(b));
+    }
+    function dirIndex(dir) {
+        const x0 = x(dir);
+        const y0 = y(dir);
+        return DIRS$2.findIndex((a) => a[0] == x0 && a[1] == y0);
+    }
+    function isOppositeDir(a, b) {
+        if (a[0] + b[0] != 0)
+            return false;
+        if (a[1] + b[1] != 0)
+            return false;
+        return true;
+    }
+    function isSameDir(a, b) {
+        return a[0] == b[0] && a[1] == b[1];
+    }
+    function dirSpread(dir) {
+        const result = [dir];
+        if (dir[0] == 0) {
+            result.push([1, dir[1]]);
+            result.push([-1, dir[1]]);
+        }
+        else if (dir[1] == 0) {
+            result.push([dir[0], 1]);
+            result.push([dir[0], -1]);
+        }
+        else {
+            result.push([dir[0], 0]);
+            result.push([0, dir[1]]);
+        }
+        return result;
+    }
+    function stepFromTo(a, b, fn) {
+        const x0 = x(a);
+        const y0 = y(a);
+        const diff = [x(b) - x0, y(b) - y0];
+        const steps = Math.abs(diff[0]) + Math.abs(diff[1]);
+        const c = [0, 0];
+        const last = [99999, 99999];
+        for (let step = 0; step <= steps; ++step) {
+            c[0] = x0 + Math.floor((diff[0] * step) / steps);
+            c[1] = y0 + Math.floor((diff[1] * step) / steps);
+            if (c[0] != last[0] || c[1] != last[1]) {
+                fn(c[0], c[1]);
+            }
+            last[0] = c[0];
+            last[1] = c[1];
+        }
+    }
+    // LINES
+    const FP_BASE = 16;
+    const FP_FACTOR = 1 << 16;
+    function forLine(fromX, fromY, toX, toY, stepFn) {
+        let targetVector = [], error = [], currentVector = [], previousVector = [], quadrantTransform = [];
+        let largerTargetComponent, i;
+        let currentLoc = [-1, -1], previousLoc = [-1, -1];
+        if (fromX == toX && fromY == toY) {
+            return;
+        }
+        const originLoc = [fromX, fromY];
+        const targetLoc = [toX, toY];
+        // Neither vector is negative. We keep track of negatives with quadrantTransform.
+        for (i = 0; i <= 1; i++) {
+            targetVector[i] = (targetLoc[i] - originLoc[i]) << FP_BASE; // FIXME: should use parens?
+            if (targetVector[i] < 0) {
+                targetVector[i] *= -1;
+                quadrantTransform[i] = -1;
+            }
+            else {
+                quadrantTransform[i] = 1;
+            }
+            currentVector[i] = previousVector[i] = error[i] = 0;
+            currentLoc[i] = originLoc[i];
+        }
+        // normalize target vector such that one dimension equals 1 and the other is in [0, 1].
+        largerTargetComponent = Math.max(targetVector[0], targetVector[1]);
+        // targetVector[0] = Math.floor( (targetVector[0] << FP_BASE) / largerTargetComponent);
+        // targetVector[1] = Math.floor( (targetVector[1] << FP_BASE) / largerTargetComponent);
+        targetVector[0] = Math.floor((targetVector[0] * FP_FACTOR) / largerTargetComponent);
+        targetVector[1] = Math.floor((targetVector[1] * FP_FACTOR) / largerTargetComponent);
+        do {
+            for (i = 0; i <= 1; i++) {
+                previousLoc[i] = currentLoc[i];
+                currentVector[i] += targetVector[i] >> FP_BASE;
+                error[i] += targetVector[i] == FP_FACTOR ? 0 : targetVector[i];
+                if (error[i] >= Math.floor(FP_FACTOR / 2)) {
+                    currentVector[i]++;
+                    error[i] -= FP_FACTOR;
+                }
+                currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
+            }
+            if (stepFn(...currentLoc)) {
+                break;
+            }
+        } while (true);
+    }
+    // ADAPTED FROM BROGUE 1.7.5
+    // Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
+    // that extends all the way to the edge of the map based on an originLoc (which is not included
+    // in the list of coordinates) and a targetLoc.
+    // Returns the number of entries in the list, and includes (-1, -1) as an additional
+    // terminus indicator after the end of the list.
+    function getLine(fromX, fromY, toX, toY) {
+        const line = [];
+        forLine(fromX, fromY, toX, toY, (x, y) => {
+            line.push([x, y]);
+            return x == toX && y == toY;
+        });
+        return line;
+    }
+    // ADAPTED FROM BROGUE 1.7.5
+    // Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
+    // that extends all the way to the edge of the map based on an originLoc (which is not included
+    // in the list of coordinates) and a targetLoc.
+    // Returns the number of entries in the list, and includes (-1, -1) as an additional
+    // terminus indicator after the end of the list.
+    function getLineThru(fromX, fromY, toX, toY, width, height) {
+        const line = [];
+        forLine(fromX, fromY, toX, toY, (x, y) => {
+            if (x < 0 || y < 0 || x >= width || y >= height)
+                return true;
+            line.push([x, y]);
+            return false;
+        });
+        return line;
+    }
+    // CIRCLE
+    function forCircle(x, y, radius, fn) {
+        let i, j;
+        for (i = x - radius - 1; i < x + radius + 1; i++) {
+            for (j = y - radius - 1; j < y + radius + 1; j++) {
+                if ((i - x) * (i - x) + (j - y) * (j - y) <
+                    radius * radius + radius) {
+                    // + radius softens the circle
+                    fn(i, j);
+                }
+            }
+        }
+    }
+    function forRect(...args) {
+        let left = 0;
+        let top = 0;
+        if (arguments.length > 3) {
+            left = args.shift();
+            top = args.shift();
+        }
+        const right = left + args[0];
+        const bottom = top + args[1];
+        const fn = args[2];
+        for (let i = left; i < right; ++i) {
+            for (let j = top; j < bottom; ++j) {
+                fn(i, j);
+            }
+        }
+    }
+    function forBorder(...args) {
+        let left = 0;
+        let top = 0;
+        if (arguments.length > 3) {
+            left = args.shift();
+            top = args.shift();
+        }
+        const right = left + args[0] - 1;
+        const bottom = top + args[1] - 1;
+        const fn = args[2];
+        for (let x = left; x <= right; ++x) {
+            fn(x, top);
+            fn(x, bottom);
+        }
+        for (let y = top; y <= bottom; ++y) {
+            fn(left, y);
+            fn(right, y);
+        }
+    }
+    // ARC COUNT
+    // Rotates around the cell, counting up the number of distinct strings of neighbors with the same test result in a single revolution.
+    //		Zero means there are no impassable tiles adjacent.
+    //		One means it is adjacent to a wall.
+    //		Two means it is in a hallway or something similar.
+    //		Three means it is the center of a T-intersection or something similar.
+    //		Four means it is in the intersection of two hallways.
+    //		Five or more means there is a bug.
+    function arcCount(x, y, testFn) {
+        let oldX, oldY, newX, newY;
+        // brogueAssert(grid.hasXY(x, y));
+        let arcCount = 0;
+        let matchCount = 0;
+        for (let dir = 0; dir < CLOCK_DIRS.length; dir++) {
+            oldX = x + CLOCK_DIRS[(dir + 7) % 8][0];
+            oldY = y + CLOCK_DIRS[(dir + 7) % 8][1];
+            newX = x + CLOCK_DIRS[dir][0];
+            newY = y + CLOCK_DIRS[dir][1];
+            // Counts every transition from passable to impassable or vice-versa on the way around the cell:
+            const newOk = testFn(newX, newY);
+            const oldOk = testFn(oldX, oldY);
+            if (newOk)
+                ++matchCount;
+            if (newOk != oldOk) {
+                arcCount++;
+            }
+        }
+        if (arcCount == 0 && matchCount)
+            return 1;
+        return Math.floor(arcCount / 2); // Since we added one when we entered a wall and another when we left.
+    }
+
+    var xy = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        DIRS: DIRS$2,
+        NO_DIRECTION: NO_DIRECTION,
+        UP: UP,
+        RIGHT: RIGHT,
+        DOWN: DOWN,
+        LEFT: LEFT,
+        RIGHT_UP: RIGHT_UP,
+        RIGHT_DOWN: RIGHT_DOWN,
+        LEFT_DOWN: LEFT_DOWN,
+        LEFT_UP: LEFT_UP,
+        CLOCK_DIRS: CLOCK_DIRS,
+        x: x,
+        y: y,
+        Bounds: Bounds,
+        copyXY: copyXY,
+        addXY: addXY,
+        equalsXY: equalsXY,
+        lerpXY: lerpXY,
+        eachNeighbor: eachNeighbor,
+        eachNeighborAsync: eachNeighborAsync,
+        matchingNeighbor: matchingNeighbor,
+        distanceBetween: distanceBetween,
+        distanceFromTo: distanceFromTo,
+        calcRadius: calcRadius,
+        dirBetween: dirBetween,
+        dirFromTo: dirFromTo,
+        dirIndex: dirIndex,
+        isOppositeDir: isOppositeDir,
+        isSameDir: isSameDir,
+        dirSpread: dirSpread,
+        stepFromTo: stepFromTo,
+        forLine: forLine,
+        getLine: getLine,
+        getLineThru: getLineThru,
+        forCircle: forCircle,
+        forRect: forRect,
+        forBorder: forBorder,
+        arcCount: arcCount
+    });
+
     /**
      * The code in this function is extracted from ROT.JS.
      * Source: https://github.com/ondras/rot.js/blob/v2.2.0/src/rng.ts
@@ -291,46 +703,6 @@
      * GW.utils
      * @module utils
      */
-    // DIRS are organized clockwise
-    // - first 4 are arrow directions
-    //   >> rotate 90 degrees clockwise ==>> newIndex = (oldIndex + 1) % 4
-    //   >> opposite direction ==>> oppIndex = (index + 2) % 4
-    // - last 4 are diagonals
-    //   >> rotate 90 degrees clockwise ==>> newIndex = 4 + (oldIndex + 1) % 4;
-    //   >> opposite diagonal ==>> newIndex = 4 + (index + 2) % 4;
-    const DIRS$2 = [
-        [0, -1],
-        [1, 0],
-        [0, 1],
-        [-1, 0],
-        [1, -1],
-        [1, 1],
-        [-1, 1],
-        [-1, -1],
-    ];
-    const NO_DIRECTION = -1;
-    const UP = 0;
-    const RIGHT = 1;
-    const DOWN = 2;
-    const LEFT = 3;
-    const RIGHT_UP = 4;
-    const RIGHT_DOWN = 5;
-    const LEFT_DOWN = 6;
-    const LEFT_UP = 7;
-    // CLOCK DIRS are organized clockwise, starting at UP
-    // >> opposite = (index + 4) % 8
-    // >> 90 degrees rotate right = (index + 2) % 8
-    // >> 90 degrees rotate left = (8 + index - 2) % 8
-    const CLOCK_DIRS = [
-        [0, 1],
-        [1, 1],
-        [1, 0],
-        [1, -1],
-        [0, -1],
-        [-1, -1],
-        [-1, 0],
-        [-1, 1],
-    ];
     function NOOP() { }
     function TRUE() {
         return true;
@@ -367,184 +739,174 @@
             return max;
         return v;
     }
-    function x(src) {
-        // @ts-ignore
-        return src.x || src[0] || 0;
+    function ERROR(message) {
+        throw new Error(message);
     }
-    function y(src) {
-        // @ts-ignore
-        return src.y || src[1] || 0;
+    function WARN(...args) {
+        console.warn(...args);
     }
-    class Bounds {
-        constructor(x, y, w, h) {
-            this.x = x;
-            this.y = y;
-            this.width = w;
-            this.height = h;
-        }
-        get left() {
-            return this.x;
-        }
-        get right() {
-            return this.x + this.width - 1;
-        }
-        get top() {
-            return this.y;
-        }
-        get bottom() {
-            return this.y + this.height - 1;
-        }
-        contains(...args) {
-            let x = args[0];
-            let y = args[1];
-            if (typeof x !== 'number') {
-                y = y(x);
-                x = x(x);
-            }
-            return (this.x <= x &&
-                this.y <= y &&
-                this.x + this.width > x &&
-                this.y + this.height > y);
+    function first(...args) {
+        return args.find((v) => v !== undefined);
+    }
+    function arraysIntersect(a, b) {
+        return a.some((av) => b.includes(av));
+    }
+    function sum(arr) {
+        return arr.reduce((a, b) => a + b);
+    }
+    // ALGOS
+    async function asyncForEach(iterable, fn) {
+        for (let t of iterable) {
+            await fn(t);
         }
     }
-    function copyXY(dest, src) {
-        dest.x = x(src);
-        dest.y = y(src);
-    }
-    function addXY(dest, src) {
-        dest.x += x(src);
-        dest.y += y(src);
-    }
-    function equalsXY(dest, src) {
-        if (!dest && !src)
-            return true;
-        if (!dest || !src)
-            return false;
-        return x(dest) == x(src) && y(dest) == y(src);
-    }
-    function lerpXY(a, b, pct) {
-        if (pct > 1) {
-            pct = pct / 100;
+
+    var index$6 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Random: Random,
+        Alea: Alea,
+        NOOP: NOOP,
+        TRUE: TRUE,
+        FALSE: FALSE,
+        ONE: ONE,
+        ZERO: ZERO,
+        IDENTITY: IDENTITY,
+        IS_ZERO: IS_ZERO,
+        IS_NONZERO: IS_NONZERO,
+        clamp: clamp,
+        ERROR: ERROR,
+        WARN: WARN,
+        first: first,
+        arraysIntersect: arraysIntersect,
+        sum: sum,
+        asyncForEach: asyncForEach
+    });
+
+    // CHAIN
+    function length$1(root) {
+        let count = 0;
+        while (root) {
+            count += 1;
+            root = root.next;
         }
-        pct = clamp(pct, 0, 1);
-        const dx = x(b) - x(a);
-        const dy = y(b) - y(a);
-        const x2 = x(a) + Math.floor(dx * pct);
-        const y2 = y(a) + Math.floor(dy * pct);
-        return [x2, y2];
+        return count;
     }
-    function eachNeighbor(x, y, fn, only4dirs = false) {
-        const max = only4dirs ? 4 : 8;
-        for (let i = 0; i < max; ++i) {
-            const dir = DIRS$2[i];
-            const x1 = x + dir[0];
-            const y1 = y + dir[1];
-            fn(x1, y1);
+    function includes(root, entry) {
+        while (root && root !== entry) {
+            root = root.next;
         }
+        return root === entry;
     }
-    async function eachNeighborAsync(x, y, fn, only4dirs = false) {
-        const max = only4dirs ? 4 : 8;
-        for (let i = 0; i < max; ++i) {
-            const dir = DIRS$2[i];
-            const x1 = x + dir[0];
-            const y1 = y + dir[1];
-            await fn(x1, y1);
+    function forEach(root, fn) {
+        let index = 0;
+        while (root) {
+            const next = root.next;
+            fn(root, index++);
+            root = next;
         }
+        return index; // really count
     }
-    function matchingNeighbor(x, y, matchFn, only4dirs = false) {
-        const maxIndex = only4dirs ? 4 : 8;
-        for (let d = 0; d < maxIndex; ++d) {
-            const dir = DIRS$2[d];
-            const i = x + dir[0];
-            const j = y + dir[1];
-            if (matchFn(i, j))
-                return [i, j];
-        }
-        return [-1, -1];
-    }
-    function distanceBetween(x1, y1, x2, y2) {
-        const x = Math.abs(x1 - x2);
-        const y = Math.abs(y1 - y2);
-        const min = Math.min(x, y);
-        return x + y - 0.6 * min;
-    }
-    function distanceFromTo(a, b) {
-        return distanceBetween(x(a), y(a), x(b), y(b));
-    }
-    function calcRadius(x, y) {
-        return distanceBetween(0, 0, x, y);
-    }
-    function dirBetween(x, y, toX, toY) {
-        let diffX = toX - x;
-        let diffY = toY - y;
-        if (diffX && diffY) {
-            const absX = Math.abs(diffX);
-            const absY = Math.abs(diffY);
-            if (absX >= 2 * absY) {
-                diffY = 0;
-            }
-            else if (absY >= 2 * absX) {
-                diffX = 0;
-            }
-        }
-        return [Math.sign(diffX), Math.sign(diffY)];
-    }
-    function dirFromTo(a, b) {
-        return dirBetween(x(a), y(a), x(b), y(b));
-    }
-    function dirIndex(dir) {
-        const x0 = x(dir);
-        const y0 = y(dir);
-        return DIRS$2.findIndex((a) => a[0] == x0 && a[1] == y0);
-    }
-    function isOppositeDir(a, b) {
-        if (a[0] + b[0] != 0)
-            return false;
-        if (a[1] + b[1] != 0)
-            return false;
+    function push(obj, name, entry) {
+        entry.next = obj[name] || null;
+        obj[name] = entry;
         return true;
     }
-    function isSameDir(a, b) {
-        return a[0] == b[0] && a[1] == b[1];
-    }
-    function dirSpread(dir) {
-        const result = [dir];
-        if (dir[0] == 0) {
-            result.push([1, dir[1]]);
-            result.push([-1, dir[1]]);
+    function remove(obj, name, entry) {
+        const root = obj[name];
+        if (root === entry) {
+            obj[name] = entry.next || null;
+            entry.next = null;
+            return true;
         }
-        else if (dir[1] == 0) {
-            result.push([dir[0], 1]);
-            result.push([dir[0], -1]);
+        else if (!root) {
+            return false;
         }
         else {
-            result.push([dir[0], 0]);
-            result.push([0, dir[1]]);
-        }
-        return result;
-    }
-    function stepFromTo(a, b, fn) {
-        const x0 = x(a);
-        const y0 = y(a);
-        const diff = [x(b) - x0, y(b) - y0];
-        const steps = Math.abs(diff[0]) + Math.abs(diff[1]);
-        const c = [0, 0];
-        const last = [99999, 99999];
-        for (let step = 0; step <= steps; ++step) {
-            c[0] = x0 + Math.floor((diff[0] * step) / steps);
-            c[1] = y0 + Math.floor((diff[1] * step) / steps);
-            if (c[0] != last[0] || c[1] != last[1]) {
-                fn(c[0], c[1]);
+            let prev = root;
+            let current = prev.next;
+            while (current && current !== entry) {
+                prev = current;
+                current = prev.next;
             }
-            last[0] = c[0];
-            last[1] = c[1];
+            if (current === entry) {
+                prev.next = current.next || null;
+                entry.next = null;
+                return true;
+            }
         }
+        return false;
     }
-    // Draws the smooth gradient that appears on a button when you hover over or depress it.
-    // Returns the percentage by which the current tile should be averaged toward a hilite color.
-    function smoothHiliteGradient(currentXValue, maxXValue) {
-        return Math.floor(100 * Math.sin((Math.PI * currentXValue) / maxXValue));
+    function find(root, cb) {
+        while (root && !cb(root)) {
+            root = root.next;
+        }
+        return root;
     }
+    function insert(obj, name, entry, sort) {
+        let root = obj[name];
+        sort = sort || (() => -1); // always insert first
+        if (!root || sort(root, entry) < 0) {
+            obj.next = root;
+            obj[name] = entry;
+            return true;
+        }
+        let prev = root;
+        let current = root.next;
+        while (current && sort(current, entry) < 0) {
+            prev = current;
+            current = current.next;
+        }
+        entry.next = current;
+        prev.next = entry;
+        return true;
+    }
+    function reduce(root, cb, out) {
+        let current = root;
+        if (!current)
+            return out;
+        if (out === undefined) {
+            out = current;
+            current = current.next;
+        }
+        while (current) {
+            out = cb(out, current);
+            current = current.next;
+        }
+        return out;
+    }
+    function some(root, cb) {
+        let current = root;
+        while (current) {
+            if (cb(current))
+                return true;
+            current = current.next;
+        }
+        return false;
+    }
+    function every(root, cb) {
+        let current = root;
+        while (current) {
+            if (!cb(current))
+                return false;
+            current = current.next;
+        }
+        return true;
+    }
+
+    var list = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        length: length$1,
+        includes: includes,
+        forEach: forEach,
+        push: push,
+        remove: remove,
+        find: find,
+        insert: insert,
+        reduce: reduce,
+        some: some,
+        every: every
+    });
+
     // export function extend(obj, name, fn) {
     //   const base = obj[name] || NOOP;
     //   const newFn = fn.bind(obj, base.bind(obj));
@@ -718,15 +1080,6 @@
     function clearObject(obj) {
         Object.keys(obj).forEach((key) => (obj[key] = undefined));
     }
-    function ERROR(message) {
-        throw new Error(message);
-    }
-    function WARN(...args) {
-        console.warn(...args);
-    }
-    function first(...args) {
-        return args.find((v) => v !== undefined);
-    }
     function getOpt(obj, member, _default) {
         const v = obj[member];
         if (v === undefined)
@@ -744,220 +1097,9 @@
         }
         return undefined;
     }
-    function arraysIntersect(a, b) {
-        return a.some((av) => b.includes(av));
-    }
-    function sum(arr) {
-        return arr.reduce((a, b) => a + b);
-    }
-    // LINES
-    const FP_BASE = 16;
-    const FP_FACTOR = 1 << 16;
-    function forLine(fromX, fromY, toX, toY, stepFn) {
-        let targetVector = [], error = [], currentVector = [], previousVector = [], quadrantTransform = [];
-        let largerTargetComponent, i;
-        let currentLoc = [-1, -1], previousLoc = [-1, -1];
-        if (fromX == toX && fromY == toY) {
-            return;
-        }
-        const originLoc = [fromX, fromY];
-        const targetLoc = [toX, toY];
-        // Neither vector is negative. We keep track of negatives with quadrantTransform.
-        for (i = 0; i <= 1; i++) {
-            targetVector[i] = (targetLoc[i] - originLoc[i]) << FP_BASE; // FIXME: should use parens?
-            if (targetVector[i] < 0) {
-                targetVector[i] *= -1;
-                quadrantTransform[i] = -1;
-            }
-            else {
-                quadrantTransform[i] = 1;
-            }
-            currentVector[i] = previousVector[i] = error[i] = 0;
-            currentLoc[i] = originLoc[i];
-        }
-        // normalize target vector such that one dimension equals 1 and the other is in [0, 1].
-        largerTargetComponent = Math.max(targetVector[0], targetVector[1]);
-        // targetVector[0] = Math.floor( (targetVector[0] << FP_BASE) / largerTargetComponent);
-        // targetVector[1] = Math.floor( (targetVector[1] << FP_BASE) / largerTargetComponent);
-        targetVector[0] = Math.floor((targetVector[0] * FP_FACTOR) / largerTargetComponent);
-        targetVector[1] = Math.floor((targetVector[1] * FP_FACTOR) / largerTargetComponent);
-        do {
-            for (i = 0; i <= 1; i++) {
-                previousLoc[i] = currentLoc[i];
-                currentVector[i] += targetVector[i] >> FP_BASE;
-                error[i] += targetVector[i] == FP_FACTOR ? 0 : targetVector[i];
-                if (error[i] >= Math.floor(FP_FACTOR / 2)) {
-                    currentVector[i]++;
-                    error[i] -= FP_FACTOR;
-                }
-                currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
-            }
-            if (stepFn(...currentLoc)) {
-                break;
-            }
-        } while (true);
-    }
-    // ADAPTED FROM BROGUE 1.7.5
-    // Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
-    // that extends all the way to the edge of the map based on an originLoc (which is not included
-    // in the list of coordinates) and a targetLoc.
-    // Returns the number of entries in the list, and includes (-1, -1) as an additional
-    // terminus indicator after the end of the list.
-    function getLine(fromX, fromY, toX, toY) {
-        const line = [];
-        forLine(fromX, fromY, toX, toY, (x, y) => {
-            line.push([x, y]);
-            return x == toX && y == toY;
-        });
-        return line;
-    }
-    // ADAPTED FROM BROGUE 1.7.5
-    // Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
-    // that extends all the way to the edge of the map based on an originLoc (which is not included
-    // in the list of coordinates) and a targetLoc.
-    // Returns the number of entries in the list, and includes (-1, -1) as an additional
-    // terminus indicator after the end of the list.
-    function getLineThru(fromX, fromY, toX, toY, width, height) {
-        const line = [];
-        forLine(fromX, fromY, toX, toY, (x, y) => {
-            if (x < 0 || y < 0 || x >= width || y >= height)
-                return true;
-            line.push([x, y]);
-            return false;
-        });
-        return line;
-    }
-    // CIRCLE
-    function forCircle(x, y, radius, fn) {
-        let i, j;
-        for (i = x - radius - 1; i < x + radius + 1; i++) {
-            for (j = y - radius - 1; j < y + radius + 1; j++) {
-                if ((i - x) * (i - x) + (j - y) * (j - y) <
-                    radius * radius + radius) {
-                    // + radius softens the circle
-                    fn(i, j);
-                }
-            }
-        }
-    }
-    function forRect(...args) {
-        let left = 0;
-        let top = 0;
-        if (arguments.length > 3) {
-            left = args.shift();
-            top = args.shift();
-        }
-        const right = left + args[0];
-        const bottom = top + args[1];
-        const fn = args[2];
-        for (let i = left; i < right; ++i) {
-            for (let j = top; j < bottom; ++j) {
-                fn(i, j);
-            }
-        }
-    }
-    function forBorder(...args) {
-        let left = 0;
-        let top = 0;
-        if (arguments.length > 3) {
-            left = args.shift();
-            top = args.shift();
-        }
-        const right = left + args[0] - 1;
-        const bottom = top + args[1] - 1;
-        const fn = args[2];
-        for (let x = left; x <= right; ++x) {
-            fn(x, top);
-            fn(x, bottom);
-        }
-        for (let y = top; y <= bottom; ++y) {
-            fn(left, y);
-            fn(right, y);
-        }
-    }
-    // ARC COUNT
-    // Rotates around the cell, counting up the number of distinct strings of neighbors with the same test result in a single revolution.
-    //		Zero means there are no impassable tiles adjacent.
-    //		One means it is adjacent to a wall.
-    //		Two means it is in a hallway or something similar.
-    //		Three means it is the center of a T-intersection or something similar.
-    //		Four means it is in the intersection of two hallways.
-    //		Five or more means there is a bug.
-    function arcCount(x, y, testFn) {
-        let oldX, oldY, newX, newY;
-        // brogueAssert(grid.hasXY(x, y));
-        let arcCount = 0;
-        let matchCount = 0;
-        for (let dir = 0; dir < CLOCK_DIRS.length; dir++) {
-            oldX = x + CLOCK_DIRS[(dir + 7) % 8][0];
-            oldY = y + CLOCK_DIRS[(dir + 7) % 8][1];
-            newX = x + CLOCK_DIRS[dir][0];
-            newY = y + CLOCK_DIRS[dir][1];
-            // Counts every transition from passable to impassable or vice-versa on the way around the cell:
-            const newOk = testFn(newX, newY);
-            const oldOk = testFn(oldX, oldY);
-            if (newOk)
-                ++matchCount;
-            if (newOk != oldOk) {
-                arcCount++;
-            }
-        }
-        if (arcCount == 0 && matchCount)
-            return 1;
-        return Math.floor(arcCount / 2); // Since we added one when we entered a wall and another when we left.
-    }
-    // ALGOS
-    async function asyncForEach(iterable, fn) {
-        for (let t of iterable) {
-            await fn(t);
-        }
-    }
 
-    var index$6 = {
+    var object = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        Random: Random,
-        Alea: Alea,
-        DIRS: DIRS$2,
-        NO_DIRECTION: NO_DIRECTION,
-        UP: UP,
-        RIGHT: RIGHT,
-        DOWN: DOWN,
-        LEFT: LEFT,
-        RIGHT_UP: RIGHT_UP,
-        RIGHT_DOWN: RIGHT_DOWN,
-        LEFT_DOWN: LEFT_DOWN,
-        LEFT_UP: LEFT_UP,
-        CLOCK_DIRS: CLOCK_DIRS,
-        NOOP: NOOP,
-        TRUE: TRUE,
-        FALSE: FALSE,
-        ONE: ONE,
-        ZERO: ZERO,
-        IDENTITY: IDENTITY,
-        IS_ZERO: IS_ZERO,
-        IS_NONZERO: IS_NONZERO,
-        clamp: clamp,
-        x: x,
-        y: y,
-        Bounds: Bounds,
-        copyXY: copyXY,
-        addXY: addXY,
-        equalsXY: equalsXY,
-        lerpXY: lerpXY,
-        eachNeighbor: eachNeighbor,
-        eachNeighborAsync: eachNeighborAsync,
-        matchingNeighbor: matchingNeighbor,
-        distanceBetween: distanceBetween,
-        distanceFromTo: distanceFromTo,
-        calcRadius: calcRadius,
-        dirBetween: dirBetween,
-        dirFromTo: dirFromTo,
-        dirIndex: dirIndex,
-        isOppositeDir: isOppositeDir,
-        isSameDir: isSameDir,
-        dirSpread: dirSpread,
-        stepFromTo: stepFromTo,
-        smoothHiliteGradient: smoothHiliteGradient,
         copyObject: copyObject,
         assignObject: assignObject,
         assignOmitting: assignOmitting,
@@ -967,147 +1109,9 @@
         kindDefaults: kindDefaults,
         pick: pick,
         clearObject: clearObject,
-        ERROR: ERROR,
-        WARN: WARN,
-        first: first,
         getOpt: getOpt,
-        firstOpt: firstOpt,
-        arraysIntersect: arraysIntersect,
-        sum: sum,
-        forLine: forLine,
-        getLine: getLine,
-        getLineThru: getLineThru,
-        forCircle: forCircle,
-        forRect: forRect,
-        forBorder: forBorder,
-        arcCount: arcCount,
-        asyncForEach: asyncForEach
-    };
-
-    // CHAIN
-    function length$1(root) {
-        let count = 0;
-        while (root) {
-            count += 1;
-            root = root.next;
-        }
-        return count;
-    }
-    function includes(root, entry) {
-        while (root && root !== entry) {
-            root = root.next;
-        }
-        return root === entry;
-    }
-    function forEach(root, fn) {
-        let index = 0;
-        while (root) {
-            const next = root.next;
-            fn(root, index++);
-            root = next;
-        }
-        return index; // really count
-    }
-    function push(obj, name, entry) {
-        entry.next = obj[name] || null;
-        obj[name] = entry;
-        return true;
-    }
-    function remove(obj, name, entry) {
-        const root = obj[name];
-        if (root === entry) {
-            obj[name] = entry.next || null;
-            entry.next = null;
-            return true;
-        }
-        else if (!root) {
-            return false;
-        }
-        else {
-            let prev = root;
-            let current = prev.next;
-            while (current && current !== entry) {
-                prev = current;
-                current = prev.next;
-            }
-            if (current === entry) {
-                prev.next = current.next || null;
-                entry.next = null;
-                return true;
-            }
-        }
-        return false;
-    }
-    function find(root, cb) {
-        while (root && !cb(root)) {
-            root = root.next;
-        }
-        return root;
-    }
-    function insert(obj, name, entry, sort) {
-        let root = obj[name];
-        sort = sort || (() => -1); // always insert first
-        if (!root || sort(root, entry) < 0) {
-            obj.next = root;
-            obj[name] = entry;
-            return true;
-        }
-        let prev = root;
-        let current = root.next;
-        while (current && sort(current, entry) < 0) {
-            prev = current;
-            current = current.next;
-        }
-        entry.next = current;
-        prev.next = entry;
-        return true;
-    }
-    function reduce(root, cb, out) {
-        let current = root;
-        if (!current)
-            return out;
-        if (out === undefined) {
-            out = current;
-            current = current.next;
-        }
-        while (current) {
-            cb(out, current);
-            current = current.next;
-        }
-        return out;
-    }
-    function some(root, cb) {
-        let current = root;
-        while (current) {
-            if (cb(current))
-                return true;
-            current = current.next;
-        }
-        return false;
-    }
-    function every(root, cb) {
-        let current = root;
-        while (current) {
-            if (!cb(current))
-                return false;
-            current = current.next;
-        }
-        return true;
-    }
-
-    var list = {
-        __proto__: null,
-        length: length$1,
-        includes: includes,
-        forEach: forEach,
-        push: push,
-        remove: remove,
-        find: find,
-        insert: insert,
-        reduce: reduce,
-        some: some,
-        every: every
-    };
+        firstOpt: firstOpt
+    });
 
     class Range {
         constructor(lower, upper = 0, clumps = 1, rng) {
@@ -1203,13 +1207,13 @@
         return () => range.value();
     }
 
-    var range = {
+    var range = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Range: Range,
         make: make$8,
         from: from$4,
         asFn: asFn
-    };
+    });
 
     ///////////////////////////////////
     // FLAG
@@ -1289,12 +1293,12 @@
         return result;
     }
 
-    var flag = {
+    var flag = /*#__PURE__*/Object.freeze({
         __proto__: null,
         fl: fl,
         toString: toString,
         from: from$3
-    };
+    });
 
     const DIRS$1 = DIRS$2;
     function makeArray(l, fn) {
@@ -1859,7 +1863,7 @@
         onto.update((_, i, j) => b[i][j] || a[i][j]);
     }
 
-    var grid = {
+    var grid = /*#__PURE__*/Object.freeze({
         __proto__: null,
         makeArray: makeArray,
         Grid: Grid,
@@ -1871,7 +1875,7 @@
         offsetZip: offsetZip,
         intersection: intersection,
         unite: unite
-    };
+    });
 
     var commands = {};
     function addCommand(id, fn) {
@@ -2239,7 +2243,7 @@
     // Makes a default global loop that you access through these funcitons...
     const loop = make$6();
 
-    var io = {
+    var io = /*#__PURE__*/Object.freeze({
         __proto__: null,
         commands: commands,
         addCommand: addCommand,
@@ -2259,7 +2263,7 @@
         Loop: Loop,
         make: make$6,
         loop: loop
-    };
+    });
 
     var FovFlags;
     (function (FovFlags) {
@@ -2663,12 +2667,12 @@
         }
     }
 
-    var index$5 = {
+    var index$5 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get FovFlags () { return FovFlags; },
         FOV: FOV,
         FovSystem: FovSystem
-    };
+    });
 
     const FORBIDDEN = -1;
     const OBSTRUCTION = -2;
@@ -2914,7 +2918,7 @@
         return steps ? path : null;
     }
 
-    var path = {
+    var path = /*#__PURE__*/Object.freeze({
         __proto__: null,
         FORBIDDEN: FORBIDDEN,
         OBSTRUCTION: OBSTRUCTION,
@@ -2923,7 +2927,7 @@
         calculateDistances: calculateDistances,
         nextStep: nextStep,
         getPath: getPath
-    };
+    });
 
     /**
      * Data for an event listener.
@@ -3081,7 +3085,7 @@
         return true;
     }
 
-    var events = {
+    var events = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Listener: Listener,
         addListener: addListener,
@@ -3092,7 +3096,7 @@
         clearEvent: clearEvent,
         removeAllListeners: removeAllListeners,
         emit: emit
-    };
+    });
 
     function make$5(v) {
         if (v === undefined)
@@ -3145,10 +3149,10 @@
         return (level) => funcs.reduce((out, fn) => out || fn(level), 0);
     }
 
-    var frequency = {
+    var frequency = /*#__PURE__*/Object.freeze({
         __proto__: null,
         make: make$5
-    };
+    });
 
     class Scheduler {
         constructor() {
@@ -3221,10 +3225,10 @@
     }
     // export const scheduler = new Scheduler();
 
-    var scheduler = {
+    var scheduler = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Scheduler: Scheduler
-    };
+    });
 
     // Based on: https://github.com/ondras/fastiles/blob/master/ts/shaders.ts (v2.1.0)
     const VS = `
@@ -4055,6 +4059,11 @@ void main() {
                 (a.b - b.b) * (a.b - b.b) * 0.3333)) /
             65025);
     }
+    // Draws the smooth gradient that appears on a button when you hover over or depress it.
+    // Returns the percentage by which the current tile should be averaged toward a hilite color.
+    function smoothScalar(rgb, maxRgb = 255) {
+        return Math.floor(100 * Math.sin((Math.PI * rgb) / maxRgb));
+    }
     function install$3(name, ...args) {
         let info = args;
         if (args.length == 1) {
@@ -4113,7 +4122,7 @@ void main() {
     installSpread('silver', [75, 75, 75]);
     installSpread('gold', [100, 85, 0]);
 
-    var index$4 = {
+    var index$4 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         colors: colors,
         Color: Color,
@@ -4127,10 +4136,11 @@ void main() {
         swap: swap,
         relativeLuminance: relativeLuminance,
         distance: distance,
+        smoothScalar: smoothScalar,
         install: install$3,
         installSpread: installSpread,
         NONE: NONE
-    };
+    });
 
     class Mixer {
         constructor(base) {
@@ -4862,7 +4872,7 @@ void main() {
         }
     }
 
-    var index$3 = {
+    var index$3 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         compile: compile,
         apply: apply,
@@ -4879,7 +4889,7 @@ void main() {
         configure: configure,
         addHelper: addHelper,
         options: options
-    };
+    });
 
     class DataBuffer {
         constructor(width, height) {
@@ -5622,7 +5632,7 @@ void main() {
         return { position, uv };
     }
 
-    var index$2 = {
+    var index$2 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         NotSupportedError: NotSupportedError,
         BaseCanvas: BaseCanvas,
@@ -5634,7 +5644,7 @@ void main() {
         makeDataBuffer: makeDataBuffer,
         Buffer: Buffer,
         makeBuffer: makeBuffer
-    };
+    });
 
     class Sprite {
         constructor(ch, fg, bg, opacity = 100) {
@@ -5736,7 +5746,7 @@ void main() {
         return sprite;
     }
 
-    var index$1 = {
+    var index$1 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Sprite: Sprite,
         sprites: sprites,
@@ -5745,11 +5755,11 @@ void main() {
         install: install$2,
         Mixer: Mixer,
         makeMixer: makeMixer
-    };
+    });
 
-    var types = {
+    var types = /*#__PURE__*/Object.freeze({
         __proto__: null
-    };
+    });
 
     const data = {};
     const config$1 = {};
@@ -5894,7 +5904,7 @@ void main() {
         }
     }
 
-    var message = {
+    var message = /*#__PURE__*/Object.freeze({
         __proto__: null,
         templates: templates,
         install: install$1,
@@ -5904,7 +5914,7 @@ void main() {
         addAt: addAt,
         addCombat: addCombat,
         MessageCache: MessageCache
-    };
+    });
 
     class Blob {
         constructor(opts = {}) {
@@ -6036,12 +6046,12 @@ void main() {
         return new Blob(opts);
     }
 
-    var blob = {
+    var blob = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Blob: Blob,
         fillBlob: fillBlob,
         make: make$1
-    };
+    });
 
     // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
     const config = (config$1.light = {
@@ -6461,7 +6471,7 @@ void main() {
         }
     }
 
-    var index = {
+    var index = /*#__PURE__*/Object.freeze({
         __proto__: null,
         config: config,
         Light: Light,
@@ -6474,7 +6484,7 @@ void main() {
         install: install,
         installAll: installAll,
         LightSystem: LightSystem
-    };
+    });
 
     exports.blob = blob;
     exports.canvas = index$2;
@@ -6493,6 +6503,7 @@ void main() {
     exports.list = list;
     exports.loop = loop;
     exports.message = message;
+    exports.object = object;
     exports.path = path;
     exports.random = random;
     exports.range = range;
@@ -6502,6 +6513,7 @@ void main() {
     exports.text = index$3;
     exports.types = types;
     exports.utils = index$6;
+    exports.xy = xy;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

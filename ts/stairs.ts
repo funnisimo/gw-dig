@@ -3,11 +3,11 @@ import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
 export interface StairOpts {
-    up: boolean | GWU.utils.Loc;
-    down: boolean | GWU.utils.Loc;
+    up: boolean | GWU.xy.Loc;
+    down: boolean | GWU.xy.Loc;
     minDistance: number;
 
-    start: boolean | string | GWU.utils.Loc;
+    start: boolean | string | GWU.xy.Loc;
     upTile: number;
     downTile: number;
     wall: number;
@@ -35,9 +35,9 @@ export class Stairs {
             this.options.minDistance ||
             Math.floor(Math.max(site.width, site.height) / 2);
 
-        const locations: Record<string, GWU.utils.Loc> = {};
-        let upLoc: GWU.utils.Loc | null = null;
-        let downLoc: GWU.utils.Loc | null = null;
+        const locations: Record<string, GWU.xy.Loc> = {};
+        let upLoc: GWU.xy.Loc | null = null;
+        let downLoc: GWU.xy.Loc | null = null;
 
         const isValidLoc = this.isStairXY.bind(this, site);
 
@@ -51,8 +51,8 @@ export class Stairs {
                 );
             } else {
                 start = GWU.random.matchingLocNear(
-                    GWU.utils.x(start),
-                    GWU.utils.y(start),
+                    GWU.xy.x(start),
+                    GWU.xy.y(start),
                     isValidLoc
                 );
             }
@@ -65,14 +65,14 @@ export class Stairs {
         ) {
             const up = this.options.up;
             upLoc = GWU.random.matchingLocNear(
-                GWU.utils.x(up),
-                GWU.utils.y(up),
+                GWU.xy.x(up),
+                GWU.xy.y(up),
                 isValidLoc
             );
             const down = this.options.down;
             downLoc = GWU.random.matchingLocNear(
-                GWU.utils.x(down),
-                GWU.utils.y(down),
+                GWU.xy.x(down),
+                GWU.xy.y(down),
                 isValidLoc
             );
         } else if (
@@ -81,8 +81,8 @@ export class Stairs {
         ) {
             const up = this.options.up;
             upLoc = GWU.random.matchingLocNear(
-                GWU.utils.x(up),
-                GWU.utils.y(up),
+                GWU.xy.x(up),
+                GWU.xy.y(up),
                 isValidLoc
             );
             if (needDown) {
@@ -92,12 +92,8 @@ export class Stairs {
                     (x, y) => {
                         if (
                             // @ts-ignore
-                            GWU.utils.distanceBetween(
-                                x,
-                                y,
-                                upLoc![0],
-                                upLoc![1]
-                            ) < minDistance
+                            GWU.xy.distanceBetween(x, y, upLoc![0], upLoc![1]) <
+                            minDistance
                         )
                             return false;
                         return isValidLoc(x, y);
@@ -110,8 +106,8 @@ export class Stairs {
         ) {
             const down = this.options.down;
             downLoc = GWU.random.matchingLocNear(
-                GWU.utils.x(down),
-                GWU.utils.y(down),
+                GWU.xy.x(down),
+                GWU.xy.y(down),
                 isValidLoc
             );
             if (needUp) {
@@ -120,7 +116,7 @@ export class Stairs {
                     site.height,
                     (x, y) => {
                         if (
-                            GWU.utils.distanceBetween(
+                            GWU.xy.distanceBetween(
                                 x,
                                 y,
                                 downLoc![0],
@@ -141,12 +137,8 @@ export class Stairs {
                     (x, y) => {
                         if (
                             // @ts-ignore
-                            GWU.utils.distanceBetween(
-                                x,
-                                y,
-                                upLoc![0],
-                                upLoc![1]
-                            ) < minDistance
+                            GWU.xy.distanceBetween(x, y, upLoc![0], upLoc![1]) <
+                            minDistance
                         )
                             return false;
                         return isValidLoc(x, y);
@@ -162,12 +154,12 @@ export class Stairs {
         }
 
         if (upLoc) {
-            locations.up = upLoc.slice() as GWU.utils.Loc;
+            locations.up = upLoc.slice() as GWU.xy.Loc;
             this.setupStairs(site, upLoc[0], upLoc[1], this.options.upTile);
             if (this.options.start === 'up') locations.start = locations.up;
         }
         if (downLoc) {
-            locations.down = downLoc.slice() as GWU.utils.Loc;
+            locations.down = downLoc.slice() as GWU.xy.Loc;
             this.setupStairs(
                 site,
                 downLoc[0],
@@ -191,7 +183,7 @@ export class Stairs {
         if (!this.hasXY(site, x, y) || !site.isDiggable(x, y)) return false;
 
         for (let i = 0; i < 4; ++i) {
-            const dir = GWU.utils.DIRS[i];
+            const dir = GWU.xy.DIRS[i];
             if (!this.hasXY(site, x + dir[0], y + dir[1])) return false;
             if (!this.hasXY(site, x - dir[0], y - dir[1])) return false;
             if (site.isFloor(x + dir[0], y + dir[1])) {
@@ -210,9 +202,9 @@ export class Stairs {
     setupStairs(site: SITE.DigSite, x: number, y: number, tile: number) {
         const indexes = GWU.random.sequence(4);
 
-        let dir: GWU.utils.Loc | null = null;
+        let dir: GWU.xy.Loc | null = null;
         for (let i = 0; i < indexes.length; ++i) {
-            dir = GWU.utils.DIRS[i];
+            dir = GWU.xy.DIRS[i];
             const x0 = x + dir[0];
             const y0 = y + dir[1];
             if (site.isFloor(x0, y0)) {
@@ -226,18 +218,18 @@ export class Stairs {
 
         site.setTile(x, y, tile);
 
-        const dirIndex = GWU.utils.CLOCK_DIRS.findIndex(
+        const dirIndex = GWU.xy.CLOCK_DIRS.findIndex(
             // @ts-ignore
             (d) => d[0] == dir[0] && d[1] == dir[1]
         );
 
         const wall = this.options.wall;
 
-        for (let i = 0; i < GWU.utils.CLOCK_DIRS.length; ++i) {
+        for (let i = 0; i < GWU.xy.CLOCK_DIRS.length; ++i) {
             const l = i ? i - 1 : 7;
             const r = (i + 1) % 8;
             if (i == dirIndex || l == dirIndex || r == dirIndex) continue;
-            const d = GWU.utils.CLOCK_DIRS[i];
+            const d = GWU.xy.CLOCK_DIRS[i];
             site.setTile(x + d[0], y + d[1], wall);
             // map.setCellFlags(x + d[0], y + d[1], Flags.Cell.IMPREGNABLE);
         }

@@ -151,12 +151,7 @@ describe('buildStep', () => {
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GWU.utils.distanceBetween(
-                    x,
-                    y,
-                    builder.originX,
-                    builder.originY
-                )
+                GWU.xy.distanceBetween(x, y, builder.originX, builder.originY)
             ).toBeLessThan(4);
         });
     });
@@ -194,12 +189,7 @@ describe('buildStep', () => {
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GWU.utils.distanceBetween(
-                    x,
-                    y,
-                    builder.originX,
-                    builder.originY
-                )
+                GWU.xy.distanceBetween(x, y, builder.originX, builder.originY)
             ).toBeGreaterThan(3);
         });
     });

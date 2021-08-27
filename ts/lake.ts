@@ -121,7 +121,7 @@ export class Lakes {
                                 site.setTile(sx, sy, tile);
 
                                 if (hasWreath) {
-                                    GWU.utils.forCircle(
+                                    GWU.xy.forCircle(
                                         sx,
                                         sy,
                                         wreathSize,
@@ -163,7 +163,7 @@ export class Lakes {
         let disrupts = false;
 
         // Get all walkable locations after lake added
-        GWU.utils.forRect(site.width, site.height, (i, j) => {
+        GWU.xy.forRect(site.width, site.height, (i, j) => {
             const lakeX = i + lakeToMapX;
             const lakeY = j + lakeToMapY;
             if (lakeGrid.get(lakeX, lakeY)) {

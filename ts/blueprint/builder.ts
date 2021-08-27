@@ -32,14 +32,15 @@ export class Builder {
     public distance25: number = -1;
     public distance75: number = -1;
     public machineNumber = 0;
-    public adoptedItem: GWM.item.Item | null = null;
+    public depth = 0;
 
-    constructor(public map: GWM.map.Map, public depth: number) {
+    constructor(public map: GWM.map.Map, depth: number) {
         this.site = new SITE.MapSite(map);
         this.interior = GWU.grid.alloc(map.width, map.height);
         this.occupied = GWU.grid.alloc(map.width, map.height);
         this.viewMap = GWU.grid.alloc(map.width, map.height);
         this.distanceMap = GWU.grid.alloc(map.width, map.height);
+        this.depth = depth;
     }
 
     free() {
@@ -55,22 +56,25 @@ export class Builder {
         y = -1,
         adoptedItem: GWM.item.Item | null = null
     ) {
-        let tries = 10;
-        while (tries--) {
+        let tries = [];
+        while (tries.length < 10) {
             const blueprint = BLUE.random(requiredMachineFlags, this.depth);
             if (!blueprint) {
-                continue;
+                return false;
             }
+            tries.push(blueprint.id);
 
             if (this.build(blueprint, x, y, adoptedItem)) {
                 return true;
             }
         }
 
-        console.log(
-            'Failed to find blueprint matching flags: ' +
-                GWU.flag.toString(BLUE.Flags, requiredMachineFlags)
-        );
+        // console.log(
+        //     'Failed to build random blueprint matching flags: ' +
+        //         GWU.flag.toString(BLUE.Flags, requiredMachineFlags) +
+        //         ' tried : ' +
+        //         tries.join(', ')
+        // );
         return false;
     }
 
@@ -95,12 +99,11 @@ export class Builder {
             }
 
             if (this._build(blueprint, loc[0], loc[1], adoptedItem)) {
-                this.adoptedItem = null;
                 return true;
             }
         }
 
-        console.log('Failed to build blueprint.');
+        // console.log('Failed to build blueprint - ' + blueprint.id);
         return false;
     }
 
@@ -120,10 +123,8 @@ export class Builder {
 
         this.originX = originX;
         this.originY = originY;
-        this.adoptedItem = adoptedItem;
 
         if (!blueprint.computeInterior(this)) {
-            this.adoptedItem = null;
             return false;
         }
 
@@ -132,11 +133,11 @@ export class Builder {
         this.machineNumber = this.site.nextMachineId(); // Reserve this machine number, starting with 1.
 
         // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
-        blueprint.prepareInteriorWithMachineFlags(this);
+        blueprint.prepareInterior(this);
 
         // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
         // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
-        blueprint.calcDistances(this);
+        this.calcDistances(blueprint.size.hi);
 
         // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
         // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
@@ -150,22 +151,18 @@ export class Builder {
             const component = components[index];
             // console.log('BUILD COMPONENT', component);
 
-            if (!component.build(this, blueprint)) {
+            if (!component.build(this, blueprint, adoptedItem)) {
                 // failure! abort!
-                console.log(
-                    'Failed to place blueprint because of step failure.'
-                );
                 // Restore the map to how it was before we touched it.
                 this.site.restore(levelBackup);
                 // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
-                this.adoptedItem = null;
                 return false;
             }
         }
 
         // Clear out the interior flag for all non-wired cells, if requested.
         if (blueprint.noInteriorFlag) {
-            blueprint.clearInteriorFlag(this);
+            SITE.clearInteriorFlag(this.site, this.machineNumber);
         }
 
         // if (torchBearer && torch) {
@@ -177,7 +174,51 @@ export class Builder {
         // }
 
         // console.log('Built a machine from blueprint:', originX, originY);
-        this.adoptedItem = null;
         return true;
+    }
+
+    calcDistances(maxSize: number) {
+        this.distanceMap.fill(0);
+        SITE.computeDistanceMap(
+            this.site,
+            this.distanceMap,
+            this.originX,
+            this.originY,
+            maxSize
+        );
+        let qualifyingTileCount = 0;
+        const distances = new Array(100).fill(0);
+
+        this.interior.forEach((v, x, y) => {
+            if (!v) return;
+            const dist = this.distanceMap[x][y];
+            if (dist < 100) {
+                distances[dist]++; // create a histogram of distances -- poor man's sort function
+                qualifyingTileCount++;
+            }
+        });
+
+        let distance25 = Math.round(qualifyingTileCount / 4);
+        let distance75 = Math.round((3 * qualifyingTileCount) / 4);
+        for (let i = 0; i < 100; i++) {
+            if (distance25 <= distances[i]) {
+                distance25 = i;
+                break;
+            } else {
+                distance25 -= distances[i];
+            }
+        }
+
+        for (let i = 0; i < 100; i++) {
+            if (distance75 <= distances[i]) {
+                distance75 = i;
+                break;
+            } else {
+                distance75 -= distances[i];
+            }
+        }
+
+        this.distance25 = distance25;
+        this.distance75 = distance75;
     }
 }

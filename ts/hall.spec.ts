@@ -145,7 +145,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - down', () => {
-            room.doors[GWU.utils.DOWN] = [25, 30];
+            room.doors[GWU.xy.DOWN] = [25, 30];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -161,7 +161,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - up', () => {
-            room.doors[GWU.utils.UP] = [25, 19];
+            room.doors[GWU.xy.UP] = [25, 19];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -177,7 +177,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - left', () => {
-            room.doors[GWU.utils.LEFT] = [19, 25];
+            room.doors[GWU.xy.LEFT] = [19, 25];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -198,7 +198,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - right', () => {
-            room.doors[GWU.utils.RIGHT] = [30, 25];
+            room.doors[GWU.xy.RIGHT] = [30, 25];
             const digger = new HALL.HallDigger();
             const hall = digger.create(site, room.doors);
 
@@ -214,7 +214,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - down, width:2', () => {
-            room.doors[GWU.utils.DOWN] = [25, 30];
+            room.doors[GWU.xy.DOWN] = [25, 30];
             const digger = new HALL.HallDigger({ width: 2 });
             const hall = digger.create(site, room.doors);
 
@@ -230,7 +230,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - up, width:2', () => {
-            room.doors[GWU.utils.UP] = [25, 19];
+            room.doors[GWU.xy.UP] = [25, 19];
             const digger = new HALL.HallDigger({ width: 2 });
             const hall = digger.create(site, room.doors);
 
@@ -246,7 +246,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - left, width:2', () => {
-            room.doors[GWU.utils.LEFT] = [19, 25];
+            room.doors[GWU.xy.LEFT] = [19, 25];
             const digger = new HALL.HallDigger({ width: 2 });
             const hall = digger.create(site, room.doors);
 
@@ -269,7 +269,7 @@ describe('Hall', () => {
         });
 
         test('basic hall - right, width:3', () => {
-            room.doors[GWU.utils.RIGHT] = [30, 25];
+            room.doors[GWU.xy.RIGHT] = [30, 25];
             const digger = new HALL.HallDigger({ width: 3, tile: 10 });
             const hall = digger.create(site, room.doors);
 
@@ -308,7 +308,7 @@ describe('Hall', () => {
         });
 
         test('can set tile', () => {
-            room.doors[GWU.utils.DOWN] = [25, 30];
+            room.doors[GWU.xy.DOWN] = [25, 30];
             const digger = new HALL.HallDigger({ tile: 10 });
             const hall = digger.create(site, room.doors);
 

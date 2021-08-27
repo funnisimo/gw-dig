@@ -2,12 +2,12 @@ import * as GWU from 'gw-utils';
 import * as SITE from './site';
 import * as TYPES from './types';
 
-const DIRS = GWU.utils.DIRS;
+const DIRS = GWU.xy.DIRS;
 
 export function isDoorLoc(
     site: SITE.DigSite,
-    loc: GWU.utils.Loc,
-    dir: GWU.utils.Loc
+    loc: GWU.xy.Loc,
+    dir: GWU.xy.Loc
 ) {
     if (!site.hasXY(loc[0], loc[1])) return false;
     // TODO - boundary?
@@ -47,7 +47,7 @@ export function pickLength(
     dir: number,
     lengths: [GWU.range.Range, GWU.range.Range]
 ): number {
-    if (dir == GWU.utils.UP || dir == GWU.utils.DOWN) {
+    if (dir == GWU.xy.UP || dir == GWU.xy.DOWN) {
         return lengths[1].value();
     } else {
         return lengths[0].value();
@@ -56,12 +56,12 @@ export function pickLength(
 
 export function pickHallDirection(
     site: SITE.DigSite,
-    doors: GWU.utils.Loc[],
+    doors: GWU.xy.Loc[],
     lengths: [GWU.range.Range, GWU.range.Range]
 ): number {
     // Pick a direction.
-    let dir: number = GWU.utils.NO_DIRECTION;
-    if (dir == GWU.utils.NO_DIRECTION) {
+    let dir: number = GWU.xy.NO_DIRECTION;
+    if (dir == GWU.xy.NO_DIRECTION) {
         const dirs = GWU.random.sequence(4);
         for (let i = 0; i < 4; i++) {
             dir = dirs[i];
@@ -74,7 +74,7 @@ export function pickHallDirection(
                     break; // That's our direction!
                 }
             }
-            dir = GWU.utils.NO_DIRECTION;
+            dir = GWU.xy.NO_DIRECTION;
         }
     }
     return dir;
@@ -89,7 +89,7 @@ export function pickHallExits(
 ) {
     let newX: number, newY: number;
     const allowObliqueHallwayExit = GWU.random.chance(obliqueChance);
-    const hallDoors: GWU.utils.Loc[] = [
+    const hallDoors: GWU.xy.Loc[] = [
         // [-1, -1],
         // [-1, -1],
         // [-1, -1],
@@ -126,14 +126,14 @@ export function pickHallExits(
 //     }
 
 //     const dir = pickHallDirection(grid, room, opts);
-//     if (dir === GWU.utils.NO_DIRECTION) return null;
+//     if (dir === GWU.xy.NO_DIRECTION) return null;
 
 //     const length = pickLength(dir, opts.lengths);
 //     const width = pickWidth(opts) || 2;
 
 //     const door = room.doors[dir];
 //     const tile = opts.tile || SITE.FLOOR;
-//     const hallDoors: GWU.utils.Loc[] = [];
+//     const hallDoors: GWU.xy.Loc[] = [];
 
 //     let x0: number, y0: number;
 //     let hall;
@@ -205,7 +205,7 @@ export function pickHallExits(
 //     }
 
 //     const dir = pickHallDirection(grid, room, opts);
-//     if (dir === GWU.utils.NO_DIRECTION) return null;
+//     if (dir === GWU.xy.NO_DIRECTION) return null;
 
 //     const length = pickLength(dir, opts.length);
 
@@ -277,13 +277,13 @@ export class HallDigger {
         }
     }
 
-    create(site: SITE.DigSite, doors: GWU.utils.Loc[] = []): TYPES.Hall | null {
+    create(site: SITE.DigSite, doors: GWU.xy.Loc[] = []): TYPES.Hall | null {
         doors = doors || SITE.chooseRandomDoorSites(site);
 
         if (!GWU.random.chance(this.config.chance)) return null;
 
         const dir = pickHallDirection(site, doors, this.config.length);
-        if (dir === GWU.utils.NO_DIRECTION) return null;
+        if (dir === GWU.xy.NO_DIRECTION) return null;
         if (!doors[dir]) return null;
 
         const width = this.config.width.value();
@@ -299,8 +299,8 @@ export class HallDigger {
 
     _digLine(
         site: SITE.DigSite,
-        door: GWU.utils.Loc,
-        dir: GWU.utils.Loc,
+        door: GWU.xy.Loc,
+        dir: GWU.xy.Loc,
         length: number
     ) {
         let x = door[0];
@@ -319,7 +319,7 @@ export class HallDigger {
         return [x, y];
     }
 
-    dig(site: SITE.DigSite, dir: number, door: GWU.utils.Loc, length: number) {
+    dig(site: SITE.DigSite, dir: number, door: GWU.xy.Loc, length: number) {
         const DIR = DIRS[dir];
         const [x, y] = this._digLine(site, door, DIR, length);
         const hall = new TYPES.Hall(door, dir, length);
@@ -330,14 +330,14 @@ export class HallDigger {
     digWide(
         site: SITE.DigSite,
         dir: number,
-        door: GWU.utils.Loc,
+        door: GWU.xy.Loc,
         length: number,
         width: number
     ) {
-        const DIR = GWU.utils.DIRS[dir];
+        const DIR = GWU.xy.DIRS[dir];
 
-        const lower: GWU.utils.Loc = [door[0] - DIR[1], door[1] - DIR[0]];
-        const higher: GWU.utils.Loc = [door[0] + DIR[1], door[1] + DIR[0]];
+        const lower: GWU.xy.Loc = [door[0] - DIR[1], door[1] - DIR[0]];
+        const higher: GWU.xy.Loc = [door[0] + DIR[1], door[1] + DIR[0]];
 
         this._digLine(site, door, DIR, length);
         let actual = 1;
@@ -372,7 +372,7 @@ export class HallDigger {
 export function dig(
     config: Partial<HallOptions>,
     site: SITE.DigSite,
-    doors: GWU.utils.Loc[]
+    doors: GWU.xy.Loc[]
 ) {
     const digger = new HallDigger(config);
     return digger.create(site, doors);

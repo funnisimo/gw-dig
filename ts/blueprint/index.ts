@@ -1,3 +1,10 @@
 export * from './buildStep';
 export * from './builder';
-export * from './blueprint';
+export {
+    Flags,
+    Blueprint,
+    BlueprintOptions,
+    install,
+    random,
+    blueprints,
+} from './blueprint';

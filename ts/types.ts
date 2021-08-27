@@ -41,8 +41,8 @@ export interface RoomConfig {
 //     room: string | any;
 //     hall?: string | HallConfig | boolean;
 //     tries?: number;
-//     locs?: GWU.utils.Loc[];
-//     loc?: GWU.utils.Loc;
+//     locs?: GWU.xy.Loc[];
+//     loc?: GWU.xy.Loc;
 //     door?: number | boolean;
 // }
 
@@ -58,18 +58,18 @@ export class Hall {
     public dir: number;
     public width: number = 1;
 
-    public doors: GWU.utils.Loc[] = [];
+    public doors: GWU.xy.Loc[] = [];
 
-    constructor(loc: GWU.utils.Loc, dir: number, length: number, width = 1) {
+    constructor(loc: GWU.xy.Loc, dir: number, length: number, width = 1) {
         this.x = loc[0];
         this.y = loc[1];
-        const d = GWU.utils.DIRS[dir];
+        const d = GWU.xy.DIRS[dir];
         this.length = length;
         this.width = width;
 
         // console.log('Hall', loc, d, length, width);
 
-        if (dir === GWU.utils.UP || dir === GWU.utils.DOWN) {
+        if (dir === GWU.xy.UP || dir === GWU.xy.DOWN) {
             this.x2 = this.x + (width - 1);
             this.y2 = this.y + (length - 1) * d[1];
         } else {
@@ -98,8 +98,8 @@ export class Hall {
     }
 }
 
-export class Room extends GWU.utils.Bounds {
-    public doors: GWU.utils.Loc[] = [];
+export class Room extends GWU.xy.Bounds {
+    public doors: GWU.xy.Loc[] = [];
     public hall: Hall | null = null;
 
     constructor(x: number, y: number, width: number, height: number) {
@@ -136,6 +136,6 @@ export class Room extends GWU.utils.Bounds {
 //     room: RoomData;
 //     hall: HallData | null;
 //     tries: number;
-//     locs: GWU.utils.Loc[] | null;
+//     locs: GWU.xy.Loc[] | null;
 //     door: number;
 // }

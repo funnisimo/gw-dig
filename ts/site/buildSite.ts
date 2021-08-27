@@ -9,9 +9,9 @@ export interface BuildSite extends DigSite.DigSite {
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
 
-    isOccupied: GWU.utils.XYMatchFunc;
-    hasItem: GWU.utils.XYMatchFunc;
-    hasActor: GWU.utils.XYMatchFunc;
+    isOccupied: GWU.xy.XYMatchFunc;
+    hasItem: GWU.xy.XYMatchFunc;
+    hasActor: GWU.xy.XYMatchFunc;
 
     hasCellFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;

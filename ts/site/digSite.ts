@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as DIG from 'gw-utils';
 import * as GWM from 'gw-map';
 
 export const NOTHING = GWM.tile.get('NULL').index;
@@ -39,32 +39,32 @@ export interface DigSite {
     free(): void;
     clear(): void;
 
-    hasXY: GWU.utils.XYMatchFunc;
-    isBoundaryXY: GWU.utils.XYMatchFunc;
+    hasXY: DIG.xy.XYMatchFunc;
+    isBoundaryXY: DIG.xy.XYMatchFunc;
 
-    isSet: GWU.utils.XYMatchFunc;
-    isDiggable: GWU.utils.XYMatchFunc;
-    isNothing: GWU.utils.XYMatchFunc;
+    isSet: DIG.xy.XYMatchFunc;
+    isDiggable: DIG.xy.XYMatchFunc;
+    isNothing: DIG.xy.XYMatchFunc;
 
-    isPassable: GWU.utils.XYMatchFunc;
-    isFloor: GWU.utils.XYMatchFunc;
-    isBridge: GWU.utils.XYMatchFunc;
-    isDoor: GWU.utils.XYMatchFunc;
-    isSecretDoor: GWU.utils.XYMatchFunc;
+    isPassable: DIG.xy.XYMatchFunc;
+    isFloor: DIG.xy.XYMatchFunc;
+    isBridge: DIG.xy.XYMatchFunc;
+    isDoor: DIG.xy.XYMatchFunc;
+    isSecretDoor: DIG.xy.XYMatchFunc;
 
-    blocksMove: GWU.utils.XYMatchFunc;
-    blocksDiagonal: GWU.utils.XYMatchFunc;
-    blocksPathing: GWU.utils.XYMatchFunc;
-    blocksVision: GWU.utils.XYMatchFunc;
-    blocksItems: GWU.utils.XYMatchFunc;
-    blocksEffects: GWU.utils.XYMatchFunc;
+    blocksMove: DIG.xy.XYMatchFunc;
+    blocksDiagonal: DIG.xy.XYMatchFunc;
+    blocksPathing: DIG.xy.XYMatchFunc;
+    blocksVision: DIG.xy.XYMatchFunc;
+    blocksItems: DIG.xy.XYMatchFunc;
+    blocksEffects: DIG.xy.XYMatchFunc;
 
-    isWall: GWU.utils.XYMatchFunc;
-    isStairs: GWU.utils.XYMatchFunc;
+    isWall: DIG.xy.XYMatchFunc;
+    isStairs: DIG.xy.XYMatchFunc;
 
-    isDeep: GWU.utils.XYMatchFunc;
-    isShallow: GWU.utils.XYMatchFunc;
-    isAnyLiquid: GWU.utils.XYMatchFunc;
+    isDeep: DIG.xy.XYMatchFunc;
+    isShallow: DIG.xy.XYMatchFunc;
+    isAnyLiquid: DIG.xy.XYMatchFunc;
 
     setTile(
         x: number,
@@ -86,14 +86,14 @@ export interface DigSite {
 }
 
 export class GridSite implements DigSite {
-    public tiles: GWU.grid.NumGrid;
+    public tiles: DIG.grid.NumGrid;
 
     constructor(width: number, height: number) {
-        this.tiles = GWU.grid.alloc(width, height);
+        this.tiles = DIG.grid.alloc(width, height);
     }
 
     free() {
-        GWU.grid.free(this.tiles);
+        DIG.grid.free(this.tiles);
     }
     clear() {
         this.tiles.fill(0);

@@ -17,7 +17,7 @@ export interface DungeonOptions {
     width: number;
     height: number;
 
-    startLoc?: GWU.utils.Loc;
+    startLoc?: GWU.xy.Loc;
     startTile?: number;
     stairDistance?: number;
 
@@ -39,7 +39,7 @@ export interface DungeonOptions {
     boundary: boolean;
 }
 
-export type LocPair = [GWU.utils.Loc, GWU.utils.Loc];
+export type LocPair = [GWU.xy.Loc, GWU.xy.Loc];
 
 export class Dungeon {
     public config: DungeonOptions = {
@@ -59,7 +59,7 @@ export class Dungeon {
     public stairLocs: LocPair[] = [];
 
     constructor(options: Partial<DungeonOptions> = {}) {
-        GWU.utils.setOptions(this.config, options);
+        GWU.object.setOptions(this.config, options);
 
         if (this.config.seed) {
             GWU.random.seed(this.config.seed);
@@ -80,7 +80,7 @@ export class Dungeon {
     }
 
     initStairLocs() {
-        let startLoc: GWU.utils.Loc = this.config.startLoc || [
+        let startLoc: GWU.xy.Loc = this.config.startLoc || [
             Math.floor(this.config.width / 2),
             this.config.height - 2,
         ];
@@ -95,12 +95,8 @@ export class Dungeon {
                 this.config.height,
                 (x, y) => {
                     return (
-                        GWU.utils.distanceBetween(
-                            startLoc[0],
-                            startLoc[1],
-                            x,
-                            y
-                        ) > minDistance
+                        GWU.xy.distanceBetween(startLoc[0], startLoc[1], x, y) >
+                        minDistance
                     );
                 }
             );
@@ -171,8 +167,8 @@ export class Dungeon {
         const result = level.create(this.config.width, this.config.height, cb);
 
         if (
-            !GWU.utils.equalsXY(level.endLoc, opts.endLoc) ||
-            !GWU.utils.equalsXY(level.startLoc, opts.startLoc)
+            !GWU.xy.equalsXY(level.endLoc, opts.endLoc) ||
+            !GWU.xy.equalsXY(level.startLoc, opts.startLoc)
         ) {
             this.stairLocs[id] = [level.startLoc, level.endLoc];
         }

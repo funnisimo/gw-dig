@@ -1,8 +1,10 @@
 import * as GWU from 'gw-utils';
-import * as SITE from './digSite';
+import * as GWM from 'gw-map';
+import * as DIG from './digSite';
+import * as BUILD from './buildSite';
 // import * as TYPES from './types';
 
-const DIRS = GWU.utils.DIRS;
+const DIRS = GWU.xy.DIRS;
 
 // export function attachRoom(
 //     map: GWU.grid.NumGrid,
@@ -21,7 +23,7 @@ const DIRS = GWU.utils.DIRS;
 
 //         if (!(map.get(x, y) == SITE.NOTHING)) continue;
 //         const dir = directionOfDoorSite(site, x, y);
-//         if (dir != GWU.utils.NO_DIRECTION) {
+//         if (dir != GWU.xy.NO_DIRECTION) {
 //             const oppDir = (dir + 2) % 4;
 //             const door = doorSites[oppDir];
 //             if (!door) continue;
@@ -153,14 +155,14 @@ const DIRS = GWU.utils.DIRS;
 // a door out of that room, then return the outbound direction that the door faces.
 // Otherwise, return def.NO_DIRECTION.
 export function directionOfDoorSite(
-    site: SITE.DigSite,
+    site: DIG.DigSite,
     x: number,
     y: number
 ): number {
     let dir, solutionDir;
     let newX, newY, oppX, oppY;
 
-    solutionDir = GWU.utils.NO_DIRECTION;
+    solutionDir = GWU.xy.NO_DIRECTION;
     for (dir = 0; dir < 4; dir++) {
         newX = x + DIRS[dir][0];
         newY = y + DIRS[dir][1];
@@ -172,9 +174,9 @@ export function directionOfDoorSite(
             site.isFloor(oppX, oppY)
         ) {
             // This grid cell would be a valid tile on which to place a door that, facing outward, points dir.
-            if (solutionDir != GWU.utils.NO_DIRECTION) {
+            if (solutionDir != GWU.xy.NO_DIRECTION) {
                 // Already claimed by another direction; no doors here!
-                return GWU.utils.NO_DIRECTION;
+                return GWU.xy.NO_DIRECTION;
             }
             solutionDir = dir;
         }
@@ -182,12 +184,12 @@ export function directionOfDoorSite(
     return solutionDir;
 }
 
-export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
+export function chooseRandomDoorSites(site: DIG.DigSite): GWU.xy.Loc[] {
     let i, j, k, newX, newY;
     let dir;
     let doorSiteFailed;
 
-    const DOORS: GWU.utils.Loc[][] = [[], [], [], []];
+    const DOORS: GWU.xy.Loc[][] = [[], [], [], []];
 
     // const grid = GWU.grid.alloc(sourceGrid.width, sourceGrid.height);
     // grid.copy(sourceGrid);
@@ -199,11 +201,11 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
         for (j = 0; j < h; j++) {
             if (site.isDiggable(i, j)) {
                 dir = directionOfDoorSite(site, i, j);
-                if (dir != GWU.utils.NO_DIRECTION) {
+                if (dir != GWU.xy.NO_DIRECTION) {
                     // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                     // If it does, it's not a valid door site.
-                    newX = i + GWU.utils.DIRS[dir][0];
-                    newY = j + GWU.utils.DIRS[dir][1];
+                    newX = i + GWU.xy.DIRS[dir][0];
+                    newY = j + GWU.xy.DIRS[dir][1];
                     doorSiteFailed = false;
                     for (
                         k = 0;
@@ -213,8 +215,8 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
                         if (site.isSet(newX, newY)) {
                             doorSiteFailed = true;
                         }
-                        newX += GWU.utils.DIRS[dir][0];
-                        newY += GWU.utils.DIRS[dir][1];
+                        newX += GWU.xy.DIRS[dir][0];
+                        newY += GWU.xy.DIRS[dir][1];
                     }
                     if (!doorSiteFailed) {
                         DOORS[dir].push([i, j]);
@@ -224,7 +226,7 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
         }
     }
 
-    let doorSites: GWU.utils.Loc[] = [];
+    let doorSites: GWU.xy.Loc[] = [];
     // Pick four doors, one in each direction, and store them in doorSites[dir].
     for (dir = 0; dir < 4; dir++) {
         const loc = GWU.random.item(DOORS[dir]) || [-1, -1];
@@ -237,7 +239,7 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
 
 // export function forceRoomAtMapLoc(
 //     map: GWU.grid.NumGrid,
-//     xy: GWU.utils.Loc,
+//     xy: GWU.xy.Loc,
 //     roomGrid: GWU.grid.NumGrid,
 //     room: TYPES.Room,
 //     opts: TYPES.DigConfig
@@ -254,7 +256,7 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
 //         if (roomGrid[x][y]) continue;
 
 //         const dir = directionOfDoorSite(site, x, y);
-//         if (dir != GWU.utils.NO_DIRECTION) {
+//         if (dir != GWU.xy.NO_DIRECTION) {
 //             const dx = xy[0] - x;
 //             const dy = xy[1] - y;
 //             if (roomFitsAt(map, roomGrid, dx, dy)) {
@@ -280,11 +282,11 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
 
 // export function attachRoomAtMapDoor(
 //     map: GWU.grid.NumGrid,
-//     mapDoors: GWU.utils.Loc[],
+//     mapDoors: GWU.xy.Loc[],
 //     roomGrid: GWU.grid.NumGrid,
 //     room: TYPES.Room,
 //     opts: TYPES.DigInfo
-// ): boolean | GWU.utils.Loc[] {
+// ): boolean | GWU.xy.Loc[] {
 //     const doorIndexes = GWU.random.sequence(mapDoors.length);
 
 //     // console.log('attachRoomAtMapDoor', mapDoors.join(', '));
@@ -311,7 +313,7 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
 //     roomGrid: GWU.grid.NumGrid,
 //     room: TYPES.Room,
 //     opts: TYPES.DigInfo
-// ): boolean | GWU.utils.Loc[] {
+// ): boolean | GWU.xy.Loc[] {
 //     const doorSites = room.hall ? room.hall.doors : room.doors;
 //     const dirs = GWU.random.sequence(4);
 
@@ -339,8 +341,8 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
 //             // const newDoors = doorSites.map((site) => {
 //             //     const x0 = site[0] + offX;
 //             //     const y0 = site[1] + offY;
-//             //     if (x0 == x && y0 == y) return [-1, -1] as GWU.utils.Loc;
-//             //     return [x0, y0] as GWU.utils.Loc;
+//             //     if (x0 == x && y0 == y) return [-1, -1] as GWU.xy.Loc;
+//             //     return [x0, y0] as GWU.xy.Loc;
 //             // });
 //             return true;
 //         }
@@ -349,12 +351,12 @@ export function chooseRandomDoorSites(site: SITE.DigSite): GWU.utils.Loc[] {
 // }
 
 export function copySite(
-    dest: SITE.DigSite,
-    source: SITE.DigSite,
+    dest: DIG.DigSite,
+    source: DIG.DigSite,
     offsetX = 0,
     offsetY = 0
 ) {
-    GWU.utils.forRect(dest.width, dest.height, (x, y) => {
+    GWU.xy.forRect(dest.width, dest.height, (x, y) => {
         const otherX = x - offsetX;
         const otherY = y - offsetY;
         const v = source.getTileIndex(otherX, otherY);
@@ -363,7 +365,7 @@ export function copySite(
     });
 }
 
-export function fillCostGrid(source: SITE.DigSite, costGrid: GWU.grid.NumGrid) {
+export function fillCostGrid(source: DIG.DigSite, costGrid: GWU.grid.NumGrid) {
     costGrid.update((_v, x, y) =>
         source.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION
     );
@@ -376,7 +378,7 @@ export interface DisruptOptions {
 }
 
 export function siteDisruptedBy(
-    site: SITE.DigSite,
+    site: DIG.DigSite,
     blockingGrid: GWU.grid.NumGrid,
     options: Partial<DisruptOptions> = {}
 ) {
@@ -388,7 +390,7 @@ export function siteDisruptedBy(
     let disrupts = false;
 
     // Get all walkable locations after lake added
-    GWU.utils.forRect(site.width, site.height, (i, j) => {
+    GWU.xy.forRect(site.width, site.height, (i, j) => {
         const lakeX = i + options.offsetX!;
         const lakeY = j + options.offsetY!;
         if (blockingGrid.get(lakeX, lakeY)) {
@@ -426,7 +428,7 @@ export function siteDisruptedBy(
 }
 
 export function siteDisruptedSize(
-    site: SITE.DigSite,
+    site: DIG.DigSite,
     blockingGrid: GWU.grid.NumGrid,
     blockingToMapX = 0,
     blockingToMapY = 0
@@ -435,7 +437,7 @@ export function siteDisruptedSize(
     let disrupts = 0;
 
     // Get all walkable locations after lake added
-    GWU.utils.forRect(site.width, site.height, (i, j) => {
+    GWU.xy.forRect(site.width, site.height, (i, j) => {
         const lakeX = i + blockingToMapX;
         const lakeY = j + blockingToMapY;
         if (blockingGrid.get(lakeX, lakeY)) {
@@ -474,7 +476,7 @@ export function siteDisruptedSize(
 }
 
 export function computeDistanceMap(
-    site: SITE.DigSite,
+    site: DIG.DigSite,
     distanceMap: GWU.grid.NumGrid,
     originX: number,
     originY: number,
@@ -492,4 +494,21 @@ export function computeDistanceMap(
         maxDistance + 1 // max distance is the same as max size of this blueprint
     );
     GWU.grid.free(costGrid);
+}
+
+export function clearInteriorFlag(site: BUILD.BuildSite, machine: number) {
+    for (let i = 0; i < site.width; i++) {
+        for (let j = 0; j < site.height; j++) {
+            if (
+                site.getMachine(i, j) == machine &&
+                !site.hasCellFlag(
+                    i,
+                    j,
+                    GWM.flags.Cell.IS_WIRED | GWM.flags.Cell.IS_CIRCUIT_BREAKER
+                )
+            ) {
+                site.setMachine(i, j, 0);
+            }
+        }
+    }
 }
