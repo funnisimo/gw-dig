@@ -3,7 +3,7 @@ import * as UTILS from '../test/utils';
 import * as GWU from 'gw-utils';
 import * as HALL from './hall';
 import * as SITE from './site';
-import { Room } from './types';
+import { Room, Hall } from './types';
 
 describe('Hall', () => {
     beforeEach(() => {
@@ -153,27 +153,23 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(25);
             expect(hall!.y).toEqual(30);
-            expect(hall!.length).toEqual(6);
+            expect(hall!.height).toEqual(6);
             expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(25);
-            expect(hall!.y2).toEqual(35);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
         });
 
         test('basic hall - up', () => {
             room.doors[GWU.xy.UP] = [25, 19];
             const digger = new HALL.HallDigger();
-            const hall = digger.create(site, room.doors);
+            const hall = digger.create(site, room.doors) as Hall;
 
             // grid.dump();
             expect(hall).not.toBeNull();
-            expect(hall!.x).toEqual(25);
-            expect(hall!.y).toEqual(19);
-            expect(hall!.length).toEqual(6);
-            expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(25);
-            expect(hall!.y2).toEqual(14);
-            expect(hall!.doors).toEqual([[25, 13]]);
+            expect(hall.x).toEqual(25);
+            expect(hall.y).toEqual(14);
+            expect(hall.height).toEqual(6);
+            expect(hall.width).toEqual(1);
+            expect(hall.doors).toEqual([[25, 13]]);
         });
 
         test('basic hall - left', () => {
@@ -183,12 +179,10 @@ describe('Hall', () => {
 
             // grid.dump();
             expect(hall).not.toBeNull();
-            expect(hall!.x).toEqual(19);
+            expect(hall!.x).toEqual(11);
             expect(hall!.y).toEqual(25);
-            expect(hall!.length).toEqual(9);
-            expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(11);
-            expect(hall!.y2).toEqual(25);
+            expect(hall!.height).toEqual(1);
+            expect(hall!.width).toEqual(9);
             expect(hall!.doors).toEqual([
                 undefined,
                 undefined,
@@ -200,17 +194,15 @@ describe('Hall', () => {
         test('basic hall - right', () => {
             room.doors[GWU.xy.RIGHT] = [30, 25];
             const digger = new HALL.HallDigger();
-            const hall = digger.create(site, room.doors);
+            const hall = digger.create(site, room.doors) as Hall;
 
             // grid.dump();
             expect(hall).not.toBeNull();
-            expect(hall!.x).toEqual(30);
-            expect(hall!.y).toEqual(25);
-            expect(hall!.length).toEqual(9);
-            expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(38);
-            expect(hall!.y2).toEqual(25);
-            expect(hall!.doors).toEqual([undefined, [39, 25]]);
+            expect(hall.x).toEqual(30);
+            expect(hall.y).toEqual(25);
+            expect(hall.height).toEqual(1);
+            expect(hall.width).toEqual(9);
+            expect(hall.doors).toEqual([undefined, [39, 25]]);
         });
 
         test('basic hall - down, width:2', () => {
@@ -222,43 +214,37 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(24);
             expect(hall!.y).toEqual(30);
-            expect(hall!.length).toEqual(6);
+            expect(hall!.height).toEqual(6);
             expect(hall!.width).toEqual(2);
-            expect(hall!.x2).toEqual(25);
-            expect(hall!.y2).toEqual(35);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
         });
 
         test('basic hall - up, width:2', () => {
             room.doors[GWU.xy.UP] = [25, 19];
             const digger = new HALL.HallDigger({ width: 2 });
-            const hall = digger.create(site, room.doors);
+            const hall = digger.create(site, room.doors) as Hall;
 
             // grid.dump();
             expect(hall).not.toBeNull();
-            expect(hall!.x).toEqual(25);
-            expect(hall!.y).toEqual(19);
-            expect(hall!.length).toEqual(6);
-            expect(hall!.width).toEqual(2);
-            expect(hall!.x2).toEqual(26);
-            expect(hall!.y2).toEqual(14);
-            expect(hall!.doors).toEqual([[25, 13]]);
+            expect(hall.x).toEqual(25);
+            expect(hall.y).toEqual(14);
+            expect(hall.height).toEqual(6);
+            expect(hall.width).toEqual(2);
+            expect(hall.doors).toEqual([[25, 13]]);
         });
 
         test('basic hall - left, width:2', () => {
             room.doors[GWU.xy.LEFT] = [19, 25];
             const digger = new HALL.HallDigger({ width: 2 });
-            const hall = digger.create(site, room.doors);
+            const hall = digger.create(site, room.doors) as Hall;
 
             // grid.dump();
             expect(hall).not.toBeNull();
-            expect(hall!.x).toEqual(19);
-            expect(hall!.y).toEqual(25);
-            expect(hall!.length).toEqual(9);
-            expect(hall!.width).toEqual(2);
-            expect(hall!.x2).toEqual(11);
-            expect(hall!.y2).toEqual(26);
-            expect(hall!.doors).toEqual([
+            expect(hall.x).toEqual(11);
+            expect(hall.y).toEqual(25);
+            expect(hall.height).toEqual(2);
+            expect(hall.width).toEqual(9);
+            expect(hall.doors).toEqual([
                 undefined,
                 undefined,
                 undefined,
@@ -273,14 +259,13 @@ describe('Hall', () => {
             const digger = new HALL.HallDigger({ width: 3, tile: 10 });
             const hall = digger.create(site, room.doors);
 
-            // grid.dump();
+            // site.tiles.dump();
+
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(30);
             expect(hall!.y).toEqual(24);
-            expect(hall!.length).toEqual(9);
-            expect(hall!.width).toEqual(3);
-            expect(hall!.x2).toEqual(38);
-            expect(hall!.y2).toEqual(26);
+            expect(hall!.height).toEqual(3);
+            expect(hall!.width).toEqual(9);
             expect(hall!.doors).toEqual([undefined, [39, 25]]);
 
             expect(site.tiles.count(10)).toBeGreaterThan(0);
@@ -316,10 +301,8 @@ describe('Hall', () => {
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(25);
             expect(hall!.y).toEqual(30);
-            expect(hall!.length).toEqual(6);
+            expect(hall!.height).toEqual(6);
             expect(hall!.width).toEqual(1);
-            expect(hall!.x2).toEqual(25);
-            expect(hall!.y2).toEqual(35);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
 
             expect(site.tiles[hall!.x][hall!.y]).toEqual(10);

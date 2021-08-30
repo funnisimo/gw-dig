@@ -18,6 +18,7 @@ declare const TILEMAP: {
 interface DigSite {
     readonly width: number;
     readonly height: number;
+    seed: number;
     free(): void;
     clear(): void;
     hasXY: GWU.xy.XYMatchFunc;
@@ -45,9 +46,13 @@ interface DigSite {
     hasTile(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
     getTileIndex(x: number, y: number): number;
     getMachine(x: number, y: number): number;
+    updateDoorDirs(): void;
+    getDoorDir(x: number, y: number): number;
 }
 declare class GridSite implements DigSite {
     tiles: GWU.grid.NumGrid;
+    doors: GWU.grid.NumGrid;
+    seed: number;
     constructor(width: number, height: number);
     free(): void;
     clear(): void;
@@ -78,6 +83,8 @@ declare class GridSite implements DigSite {
     setTile(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
     hasTile(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
     getMachine(_x: number, _y: number): number;
+    updateDoorDirs(): void;
+    getDoorDir(x: number, y: number): number;
 }
 
 interface BuildSite extends DigSite {
@@ -101,7 +108,11 @@ interface BuildSite extends DigSite {
 declare class MapSite implements BuildSite {
     map: GWM.map.Map;
     machineCount: number;
+    needsAnalysis: boolean;
+    doors: GWU.grid.NumGrid;
     constructor(map: GWM.map.Map);
+    get seed(): number;
+    set seed(v: number);
     get width(): number;
     get height(): number;
     hasXY(x: number, y: number): boolean;
@@ -147,6 +158,8 @@ declare class MapSite implements BuildSite {
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
+    updateDoorDirs(): void;
+    getDoorDir(x: number, y: number): number;
 }
 
 declare function directionOfDoorSite(site: DigSite, x: number, y: number): number;
@@ -158,6 +171,7 @@ interface DisruptOptions {
     offsetY: number;
     machine: number;
 }
+declare function siteDisruptedByXY(site: DigSite, x: number, y: number, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedBy(site: DigSite, blockingGrid: GWU.grid.NumGrid, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedSize(site: DigSite, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
 declare function computeDistanceMap(site: DigSite, distanceMap: GWU.grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
@@ -186,6 +200,7 @@ declare const index_d$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const index_d$1_copySite: typeof copySite;
 declare const index_d$1_fillCostGrid: typeof fillCostGrid;
 type index_d$1_DisruptOptions = DisruptOptions;
+declare const index_d$1_siteDisruptedByXY: typeof siteDisruptedByXY;
 declare const index_d$1_siteDisruptedBy: typeof siteDisruptedBy;
 declare const index_d$1_siteDisruptedSize: typeof siteDisruptedSize;
 declare const index_d$1_computeDistanceMap: typeof computeDistanceMap;
@@ -213,6 +228,7 @@ declare namespace index_d$1 {
     index_d$1_copySite as copySite,
     index_d$1_fillCostGrid as fillCostGrid,
     index_d$1_DisruptOptions as DisruptOptions,
+    index_d$1_siteDisruptedByXY as siteDisruptedByXY,
     index_d$1_siteDisruptedBy as siteDisruptedBy,
     index_d$1_siteDisruptedSize as siteDisruptedSize,
     index_d$1_computeDistanceMap as computeDistanceMap,
@@ -225,18 +241,12 @@ interface RoomConfig {
     [x: string]: any;
 }
 declare type DigFn = (x: number, y: number, tile: number) => any;
-declare class Hall {
-    x: number;
-    y: number;
-    x2: number;
-    y2: number;
-    length: number;
-    dir: number;
-    width: number;
+declare class Hall extends GWU.xy.Bounds {
     doors: GWU.xy.Loc[];
-    constructor(loc: GWU.xy.Loc, dir: number, length: number, width?: number);
+    constructor(x: number, y: number, width: number, height: number);
     translate(dx: number, dy: number): void;
 }
+declare function makeHall(loc: GWU.xy.Loc, dirIndex: number, hallLength: number, hallWidth?: number): Hall;
 declare class Room extends GWU.xy.Bounds {
     doors: GWU.xy.Loc[];
     hall: Hall | null;
@@ -578,7 +588,7 @@ declare class Level {
     addRoom(site: DigSite): Room | null;
     _attachRoom(site: DigSite, roomSite: DigSite, room: Room): boolean;
     _attachRoomAtLoc(site: DigSite, roomSite: DigSite, room: Room, attachLoc: GWU.xy.Loc): boolean;
-    _roomFitsAt(map: DigSite, roomGrid: DigSite, roomToSiteX: number, roomToSiteY: number): boolean;
+    _roomFitsAt(map: DigSite, roomGrid: DigSite, room: Room, roomToSiteX: number, roomToSiteY: number): boolean;
     _attachDoor(map: DigSite, room: Room, x: number, y: number, dir: number): void;
     addLoops(site: DigSite, opts: Partial<LoopOptions>): number;
     addLakes(site: DigSite, opts: Partial<LakeOpts>): number;
@@ -676,15 +686,13 @@ declare class Blueprint {
     get noInteriorFlag(): boolean;
     qualifies(requiredFlags: number, depth: number): boolean;
     pickLocation(site: BuildSite): false | GWU.types.Loc;
-    computeInterior(builder: Builder): boolean;
-    prepareInterior(builder: Builder): void;
     pickComponents(): BuildStep[];
 }
 declare const blueprints: Record<string, Blueprint>;
 declare function install(id: string, blueprint: Blueprint | Partial<BlueprintOptions>): Blueprint;
 declare function random(requiredFlags: number, depth: number): Blueprint;
 
-declare class Builder {
+declare class BuildData {
     map: GWM.map.Map;
     site: MapSite;
     spawnedItems: GWM.item.Item[];
@@ -701,10 +709,19 @@ declare class Builder {
     depth: number;
     constructor(map: GWM.map.Map, depth: number);
     free(): void;
-    buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): boolean;
-    build(blueprint: Blueprint, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): boolean;
-    _build(blueprint: Blueprint, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): boolean;
+    reset(originX: number, originY: number): void;
     calcDistances(maxSize: number): void;
+}
+declare class Builder {
+    data: BuildData;
+    constructor(map: GWM.map.Map, depth: number);
+    buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    build(blueprint: Blueprint | string, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    _buildAt(blueprint: Blueprint, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    _build(blueprint: Blueprint, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    pickLocation(blueprint: Blueprint): Promise<false | GWU.types.Loc>;
+    computeInterior(blueprint: Blueprint): Promise<boolean>;
+    buildComponent(blueprint: Blueprint, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): Promise<boolean>;
 }
 
 interface StepOptions {
@@ -714,7 +731,7 @@ interface StepOptions {
     count: GWU.range.RangeBase;
     item: string | Partial<GWM.item.MatchOptions>;
     horde: any;
-    effect: Partial<GWM.effect.EffectConfig>;
+    effect: Partial<GWM.effect.EffectConfig> | string;
 }
 declare enum StepFlags {
     BF_OUTSOURCE_ITEM_TO_MACHINE,
@@ -759,19 +776,22 @@ declare class BuildStep {
     id: string;
     constructor(cfg?: Partial<StepOptions>);
     get repeatUntilNoProgress(): boolean;
+    get permitBlocking(): boolean;
+    get treatAsBlocking(): boolean;
+    get adoptItem(): boolean;
+    get itemIsKey(): boolean;
+    get keyIsDisposable(): boolean;
+    get outsourceItem(): boolean;
+    get impregnable(): boolean;
+    get buildVestibule(): boolean;
     get generateEverywhere(): boolean;
     get buildAtOrigin(): boolean;
-    cellIsCandidate(builder: Builder, blueprint: Blueprint, x: number, y: number, distanceBound: [number, number]): boolean;
-    distanceBound(builder: Builder): [number, number];
-    updateViewMap(builder: Builder): void;
-    build(builder: Builder, blueprint: Blueprint, adoptedItem: GWM.item.Item | null): boolean;
 }
-declare function updateViewMap(builder: Builder, buildStep: BuildStep): void;
-declare function calcDistanceBound(builder: Builder, buildStep: BuildStep): [number, number];
-declare function markCandidates(candidates: GWU.grid.NumGrid, builder: Builder, blueprint: Blueprint, buildStep: BuildStep, distanceBound: [number, number]): number;
-declare function cellIsCandidate(builder: Builder, blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, distanceBound: [number, number]): boolean;
-declare function makePersonalSpace(builder: Builder, x: number, y: number, candidates: GWU.grid.NumGrid, personalSpace: number): number;
-declare function buildStep(builder: Builder, blueprint: Blueprint, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): boolean;
+declare function updateViewMap(builder: BuildData, buildStep: BuildStep): void;
+declare function calcDistanceBound(builder: BuildData, buildStep: BuildStep): [number, number];
+declare function markCandidates(candidates: GWU.grid.NumGrid, builder: BuildData, blueprint: Blueprint, buildStep: BuildStep, distanceBound: [number, number]): number;
+declare function cellIsCandidate(builder: BuildData, blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, distanceBound: [number, number]): boolean;
+declare function makePersonalSpace(builder: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid, personalSpace: number): number;
 
 type index_d_Flags = Flags;
 declare const index_d_Flags: typeof Flags;
@@ -791,7 +811,8 @@ declare const index_d_calcDistanceBound: typeof calcDistanceBound;
 declare const index_d_markCandidates: typeof markCandidates;
 declare const index_d_cellIsCandidate: typeof cellIsCandidate;
 declare const index_d_makePersonalSpace: typeof makePersonalSpace;
-declare const index_d_buildStep: typeof buildStep;
+type index_d_BuildData = BuildData;
+declare const index_d_BuildData: typeof BuildData;
 type index_d_Builder = Builder;
 declare const index_d_Builder: typeof Builder;
 declare namespace index_d {
@@ -810,9 +831,9 @@ declare namespace index_d {
     index_d_markCandidates as markCandidates,
     index_d_cellIsCandidate as cellIsCandidate,
     index_d_makePersonalSpace as makePersonalSpace,
-    index_d_buildStep as buildStep,
+    index_d_BuildData as BuildData,
     index_d_Builder as Builder,
   };
 }
 
-export { DigFn, DoorOpts, Dungeon, DungeonOptions, Hall, Level, LevelOptions, LocPair, Room, RoomConfig, RoomOptions, index_d as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, loop_d as loop, room_d as room, index_d$1 as site, stairs_d as stairs };
+export { DigFn, DoorOpts, Dungeon, DungeonOptions, Hall, Level, LevelOptions, LocPair, Room, RoomConfig, RoomOptions, index_d as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, loop_d as loop, makeHall, room_d as room, index_d$1 as site, stairs_d as stairs };

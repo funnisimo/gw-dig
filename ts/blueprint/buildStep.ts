@@ -1,9 +1,8 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
-import * as SITE from '../site';
-import { Builder } from './builder';
-import { Blueprint, Flags } from './blueprint';
+import { BuildData } from './builder';
+import { Blueprint } from './blueprint';
 
 export interface StepOptions {
     tile: string | number;
@@ -12,7 +11,7 @@ export interface StepOptions {
     count: GWU.range.RangeBase;
     item: string | Partial<GWM.item.MatchOptions>;
     horde: any;
-    effect: Partial<GWM.effect.EffectConfig>;
+    effect: Partial<GWM.effect.EffectConfig> | string;
 }
 
 const Fl = GWU.flag.fl;
@@ -98,6 +97,38 @@ export class BuildStep {
         return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
     }
 
+    get permitBlocking(): boolean {
+        return !!(this.flags & StepFlags.BF_PERMIT_BLOCKING);
+    }
+
+    get treatAsBlocking(): boolean {
+        return !!(this.flags & StepFlags.BF_TREAT_AS_BLOCKING);
+    }
+
+    get adoptItem(): boolean {
+        return !!(this.flags & StepFlags.BF_ADOPT_ITEM);
+    }
+
+    get itemIsKey(): boolean {
+        return !!(this.flags & StepFlags.BF_ITEM_IS_KEY);
+    }
+
+    get keyIsDisposable(): boolean {
+        return !!(this.flags & StepFlags.BF_KEY_DISPOSABLE);
+    }
+
+    get outsourceItem(): boolean {
+        return !!(this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE);
+    }
+
+    get impregnable(): boolean {
+        return !!(this.flags & StepFlags.BF_IMPREGNABLE);
+    }
+
+    get buildVestibule(): boolean {
+        return !!(this.flags & StepFlags.BF_BUILD_VESTIBULE);
+    }
+
     get generateEverywhere(): boolean {
         return !!(
             this.flags &
@@ -110,34 +141,34 @@ export class BuildStep {
         return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
     }
 
-    cellIsCandidate(
-        builder: Builder,
-        blueprint: Blueprint,
-        x: number,
-        y: number,
-        distanceBound: [number, number]
-    ) {
-        return cellIsCandidate(builder, blueprint, this, x, y, distanceBound);
-    }
+    // cellIsCandidate(
+    //     builder: BuildData,
+    //     blueprint: Blueprint,
+    //     x: number,
+    //     y: number,
+    //     distanceBound: [number, number]
+    // ) {
+    //     return cellIsCandidate(builder, blueprint, this, x, y, distanceBound);
+    // }
 
-    distanceBound(builder: Builder): [number, number] {
-        return calcDistanceBound(builder, this);
-    }
+    // distanceBound(builder: BuildData): [number, number] {
+    //     return calcDistanceBound(builder, this);
+    // }
 
-    updateViewMap(builder: Builder): void {
-        updateViewMap(builder, this);
-    }
+    // updateViewMap(builder: BuildData): void {
+    //     updateViewMap(builder, this);
+    // }
 
-    build(
-        builder: Builder,
-        blueprint: Blueprint,
-        adoptedItem: GWM.item.Item | null
-    ): boolean {
-        return buildStep(builder, blueprint, this, adoptedItem);
-    }
+    // build(
+    //     builder: BuildData,
+    //     blueprint: Blueprint,
+    //     adoptedItem: GWM.item.Item | null
+    // ): boolean {
+    //     return buildStep(builder, blueprint, this, adoptedItem);
+    // }
 }
 
-export function updateViewMap(builder: Builder, buildStep: BuildStep): void {
+export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
     if (
         buildStep.flags &
         (StepFlags.BF_IN_VIEW_OF_ORIGIN |
@@ -176,7 +207,7 @@ export function updateViewMap(builder: Builder, buildStep: BuildStep): void {
 }
 
 export function calcDistanceBound(
-    builder: Builder,
+    builder: BuildData,
     buildStep: BuildStep
 ): [number, number] {
     const distanceBound: [number, number] = [0, 10000];
@@ -191,7 +222,7 @@ export function calcDistanceBound(
 
 export function markCandidates(
     candidates: GWU.grid.NumGrid,
-    builder: Builder,
+    builder: BuildData,
     blueprint: Blueprint,
     buildStep: BuildStep,
     distanceBound: [number, number]
@@ -211,7 +242,7 @@ export function markCandidates(
 }
 
 export function cellIsCandidate(
-    builder: Builder,
+    builder: BuildData,
     blueprint: Blueprint,
     buildStep: BuildStep,
     x: number,
@@ -352,7 +383,7 @@ export function cellIsCandidate(
 }
 
 export function makePersonalSpace(
-    builder: Builder,
+    builder: BuildData,
     x: number,
     y: number,
     candidates: GWU.grid.NumGrid,
@@ -374,215 +405,212 @@ export function makePersonalSpace(
     return count;
 }
 
-export function buildStep(
-    builder: Builder,
-    blueprint: Blueprint,
-    buildStep: BuildStep,
-    adoptedItem: GWM.item.Item | null
-): boolean {
-    let wantCount = 0;
-    let builtCount = 0;
+// export function buildStep(
+//     builder: BuildData,
+//     blueprint: Blueprint,
+//     buildStep: BuildStep,
+//     adoptedItem: GWM.item.Item | null
+// ): boolean {
+//     let wantCount = 0;
+//     let builtCount = 0;
 
-    const site = builder.site;
+//     const site = builder.site;
 
-    const candidates = GWU.grid.alloc(site.width, site.height);
+//     const candidates = GWU.grid.alloc(site.width, site.height);
 
-    // Figure out the distance bounds.
-    const distanceBound = calcDistanceBound(builder, buildStep);
-    buildStep.updateViewMap(builder);
+//     // Figure out the distance bounds.
+//     const distanceBound = calcDistanceBound(builder, buildStep);
+//     buildStep.updateViewMap(builder);
 
-    // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+//     // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
 
-    // Make a master map of candidate locations for this feature.
-    let qualifyingTileCount = markCandidates(
-        candidates,
-        builder,
-        blueprint,
-        buildStep,
-        distanceBound
-    );
+//     // Make a master map of candidate locations for this feature.
+//     let qualifyingTileCount = markCandidates(
+//         candidates,
+//         builder,
+//         blueprint,
+//         buildStep,
+//         distanceBound
+//     );
 
-    if (!buildStep.generateEverywhere) {
-        wantCount = buildStep.count.value();
-    }
+//     if (!buildStep.generateEverywhere) {
+//         wantCount = buildStep.count.value();
+//     }
 
-    if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
-        console.log(
-            ' - Only %s qualifying tiles - want at least %s.',
-            qualifyingTileCount,
-            buildStep.count.lo
-        );
-        return false;
-    }
+//     if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
+//         console.log(
+//             ' - Only %s qualifying tiles - want at least %s.',
+//             qualifyingTileCount,
+//             buildStep.count.lo
+//         );
+//         GWU.grid.free(candidates);
+//         return false;
+//     }
 
-    let x = 0,
-        y = 0;
+//     let x = 0,
+//         y = 0;
 
-    let success = true;
-    let didSomething = false;
+//     let success = true;
+//     let didSomething = false;
 
-    do {
-        success = true;
-        // Find a location for the feature.
-        if (buildStep.buildAtOrigin) {
-            // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-            x = builder.originX;
-            y = builder.originY;
-        } else {
-            // Pick our candidate location randomly, and also strike it from
-            // the candidates map so that subsequent instances of this same feature can't choose it.
-            [x, y] = GWU.random.matchingLoc(
-                candidates.width,
-                candidates.height,
-                (x, y) => candidates[x][y] > 0
-            );
-        }
-        // Don't waste time trying the same place again whether or not this attempt succeeds.
-        candidates[x][y] = 0;
-        qualifyingTileCount--;
+//     do {
+//         success = true;
+//         // Find a location for the feature.
+//         if (buildStep.buildAtOrigin) {
+//             // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+//             x = builder.originX;
+//             y = builder.originY;
+//         } else {
+//             // Pick our candidate location randomly, and also strike it from
+//             // the candidates map so that subsequent instances of this same feature can't choose it.
+//             [x, y] = GWU.random.matchingLoc(
+//                 candidates.width,
+//                 candidates.height,
+//                 (x, y) => candidates[x][y] > 0
+//             );
+//         }
+//         // Don't waste time trying the same place again whether or not this attempt succeeds.
+//         candidates[x][y] = 0;
+//         qualifyingTileCount--;
 
-        // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-        if (buildStep.effect) {
-            success = site.fireEffect(buildStep.effect, x, y);
-            didSomething = success;
-        }
+//         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+//         if (buildStep.effect) {
+//             success = site.fireEffect(buildStep.effect, x, y);
+//             didSomething = success;
+//         }
 
-        // Now try to place the terrain tile, if any.
-        if (success && buildStep.tile !== -1) {
-            const tile = GWM.tile.get(buildStep.tile);
-            if (
-                !(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
-                (tile.blocksMove() ||
-                    buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)
-            ) {
-                // Yes, check for blocking.
-                const blockingMap = GWU.grid.alloc(site.width, site.height);
-                blockingMap[x][y] = 1;
-                success = !SITE.siteDisruptedBy(site, blockingMap, {
-                    machine: site.machineCount,
-                });
-                GWU.grid.free(blockingMap);
-            }
-            if (success) {
-                success = site.setTile(x, y, tile);
-                didSomething = didSomething || success;
-            }
-        }
+//         // Now try to place the terrain tile, if any.
+//         if (success && buildStep.tile !== -1) {
+//             const tile = GWM.tile.get(buildStep.tile);
+//             if (
+//                 !(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+//                 (tile.blocksMove() ||
+//                     buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)
+//             ) {
+//                 // Yes, check for blocking.
+//                 success = !SITE.siteDisruptedByXY(site, x, y, {
+//                     machine: site.machineCount,
+//                 });
+//             }
+//             if (success) {
+//                 success = site.setTile(x, y, tile);
+//                 didSomething = didSomething || success;
+//             }
+//         }
 
-        // Generate an actor, if necessary
+//         // Generate an actor, if necessary
 
-        // Generate an item, if necessary
-        if (success && buildStep.item) {
-            const item = site.makeRandomItem(buildStep.item);
-            if (!item) {
-                success = false;
-            }
+//         // Generate an item, if necessary
+//         if (success && buildStep.item) {
+//             const item = site.makeRandomItem(buildStep.item);
+//             if (!item) {
+//                 success = false;
+//             }
 
-            if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
-                item.key = GWM.entity.makeKeyInfo(
-                    x,
-                    y,
-                    !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE)
-                );
-            }
+//             if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
+//                 item.key = GWM.entity.makeKeyInfo(
+//                     x,
+//                     y,
+//                     !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE)
+//                 );
+//             }
 
-            if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
-                success = builder.buildRandom(
-                    Flags.BP_ADOPT_ITEM,
-                    -1,
-                    -1,
-                    item
-                );
-                if (success) {
-                    didSomething = true;
-                }
-            } else {
-                success = site.addItem(x, y, item);
-                didSomething = didSomething || success;
-            }
-        } else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
-            // adopt item if necessary
-            if (!adoptedItem) {
-                throw new Error(
-                    'Failed to build blueprint because there is no adopted item.'
-                );
-            }
+//             if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+//                 success = builder.buildRandom(
+//                     Flags.BP_ADOPT_ITEM,
+//                     -1,
+//                     -1,
+//                     item
+//                 );
+//                 if (success) {
+//                     didSomething = true;
+//                 }
+//             } else {
+//                 success = site.addItem(x, y, item);
+//                 didSomething = didSomething || success;
+//             }
+//         } else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
+//             // adopt item if necessary
+//             if (!adoptedItem) {
+//                 GWU.grid.free(candidates);
+//                 throw new Error(
+//                     'Failed to build blueprint because there is no adopted item.'
+//                 );
+//             }
 
-            if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
-                // Yes, check for blocking.
-                const blockingMap = GWU.grid.alloc(site.width, site.height);
-                blockingMap[x][y] = 1;
-                success = !SITE.siteDisruptedBy(site, blockingMap);
-                GWU.grid.free(blockingMap);
-            }
+//             if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
+//                 // Yes, check for blocking.
+//                 success = !SITE.siteDisruptedByXY(site, x, y);
+//             }
 
-            if (success) {
-                success = site.addItem(x, y, adoptedItem);
-                if (success) {
-                    didSomething = true;
-                } else {
-                    console.log('- failed to add item', x, y);
-                }
-            } else {
-                // console.log('- blocks map', x, y);
-            }
-        }
+//             if (success) {
+//                 success = site.addItem(x, y, adoptedItem);
+//                 if (success) {
+//                     didSomething = true;
+//                 } else {
+//                     console.log('- failed to add item', x, y);
+//                 }
+//             } else {
+//                 // console.log('- blocks map', x, y);
+//             }
+//         }
 
-        if (success && didSomething) {
-            // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-            qualifyingTileCount -= makePersonalSpace(
-                builder,
-                x,
-                y,
-                candidates,
-                buildStep.pad
-            );
-            builtCount++; // we've placed an instance
+//         if (success && didSomething) {
+//             // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+//             qualifyingTileCount -= makePersonalSpace(
+//                 builder,
+//                 x,
+//                 y,
+//                 candidates,
+//                 buildStep.pad
+//             );
+//             builtCount++; // we've placed an instance
 
-            // Mark the feature location as part of the machine, in case it is not already inside of it.
-            if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
-                site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
-            }
+//             // Mark the feature location as part of the machine, in case it is not already inside of it.
+//             if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
+//                 site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+//             }
 
-            // Mark the feature location as impregnable if requested.
-            if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
-                site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
-            }
-        }
+//             // Mark the feature location as impregnable if requested.
+//             if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
+//                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
+//             }
+//         }
 
-        // Finished with this instance!
-    } while (
-        qualifyingTileCount > 0 &&
-        (buildStep.generateEverywhere ||
-            builtCount < wantCount ||
-            buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
-    );
+//         // Finished with this instance!
+//     } while (
+//         qualifyingTileCount > 0 &&
+//         (buildStep.generateEverywhere ||
+//             builtCount < wantCount ||
+//             buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
+//     );
 
-    if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
-        // Generate a door guard machine.
-        // Try to create a sub-machine that qualifies.
+//     if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
+//         // Generate a door guard machine.
+//         // Try to create a sub-machine that qualifies.
 
-        success = builder.buildRandom(
-            Flags.BP_VESTIBULE,
-            builder.originX,
-            builder.originY
-        );
+//         success = builder.buildRandom(
+//             Flags.BP_VESTIBULE,
+//             builder.originX,
+//             builder.originY
+//         );
 
-        if (!success) {
-            // console.log(
-            //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
-            // );
-            // failure! abort!
-            return false;
-        }
-        ++builtCount;
-    }
+//         if (!success) {
+//             // console.log(
+//             //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
+//             // );
+//             // failure! abort!
+//             GWU.grid.free(candidates);
+//             return false;
+//         }
+//         ++builtCount;
+//     }
 
-    //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
-    //DEBUG logBuffer(candidates);
+//     //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
+//     //DEBUG logBuffer(candidates);
 
-    success = builtCount > 0;
+//     success = builtCount > 0;
 
-    GWU.grid.free(candidates);
-    return success;
-}
+//     GWU.grid.free(candidates);
+//     return success;
+// }

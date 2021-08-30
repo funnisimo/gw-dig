@@ -255,6 +255,51 @@
         Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
     })(Map$1 || (Map$1 = {}));
 
+    const Fl = GWU__namespace.flag.fl;
+    ///////////////////////////////////////////////////////
+    // TILE EVENT
+    var Effect;
+    (function (Effect) {
+        // E_ALWAYS_FIRE = Fl(10), // Fire even if the cell is marked as having fired this turn
+        Effect[Effect["E_NEXT_ALWAYS"] = Fl(0)] = "E_NEXT_ALWAYS";
+        Effect[Effect["E_NEXT_EVERYWHERE"] = Fl(1)] = "E_NEXT_EVERYWHERE";
+        Effect[Effect["E_FIRED"] = Fl(2)] = "E_FIRED";
+        Effect[Effect["E_NO_MARK_FIRED"] = Fl(3)] = "E_NO_MARK_FIRED";
+        // MUST_REPLACE_LAYER
+        // NEEDS_EMPTY_LAYER
+        Effect[Effect["E_PROTECTED"] = Fl(4)] = "E_PROTECTED";
+        // E_NO_REDRAW_CELL = Fl(),
+        Effect[Effect["E_TREAT_AS_BLOCKING"] = Fl(5)] = "E_TREAT_AS_BLOCKING";
+        Effect[Effect["E_PERMIT_BLOCKING"] = Fl(6)] = "E_PERMIT_BLOCKING";
+        Effect[Effect["E_ABORT_IF_BLOCKS_MAP"] = Fl(7)] = "E_ABORT_IF_BLOCKS_MAP";
+        Effect[Effect["E_BLOCKED_BY_ITEMS"] = Fl(8)] = "E_BLOCKED_BY_ITEMS";
+        Effect[Effect["E_BLOCKED_BY_ACTORS"] = Fl(9)] = "E_BLOCKED_BY_ACTORS";
+        Effect[Effect["E_BLOCKED_BY_OTHER_LAYERS"] = Fl(10)] = "E_BLOCKED_BY_OTHER_LAYERS";
+        Effect[Effect["E_SUPERPRIORITY"] = Fl(11)] = "E_SUPERPRIORITY";
+        Effect[Effect["E_SPREAD_CIRCLE"] = Fl(13)] = "E_SPREAD_CIRCLE";
+        Effect[Effect["E_SPREAD_LINE"] = Fl(14)] = "E_SPREAD_LINE";
+        Effect[Effect["E_EVACUATE_CREATURES"] = Fl(15)] = "E_EVACUATE_CREATURES";
+        Effect[Effect["E_EVACUATE_ITEMS"] = Fl(16)] = "E_EVACUATE_ITEMS";
+        Effect[Effect["E_BUILD_IN_WALLS"] = Fl(17)] = "E_BUILD_IN_WALLS";
+        Effect[Effect["E_MUST_TOUCH_WALLS"] = Fl(18)] = "E_MUST_TOUCH_WALLS";
+        Effect[Effect["E_NO_TOUCH_WALLS"] = Fl(19)] = "E_NO_TOUCH_WALLS";
+        Effect[Effect["E_CLEAR_GROUND"] = Fl(21)] = "E_CLEAR_GROUND";
+        Effect[Effect["E_CLEAR_SURFACE"] = Fl(22)] = "E_CLEAR_SURFACE";
+        Effect[Effect["E_CLEAR_LIQUID"] = Fl(23)] = "E_CLEAR_LIQUID";
+        Effect[Effect["E_CLEAR_GAS"] = Fl(24)] = "E_CLEAR_GAS";
+        Effect[Effect["E_CLEAR_TILE"] = Fl(25)] = "E_CLEAR_TILE";
+        Effect[Effect["E_CLEAR_CELL"] = Effect.E_CLEAR_GROUND |
+            Effect.E_CLEAR_SURFACE |
+            Effect.E_CLEAR_LIQUID |
+            Effect.E_CLEAR_GAS] = "E_CLEAR_CELL";
+        Effect[Effect["E_ONLY_IF_EMPTY"] = Effect.E_BLOCKED_BY_ITEMS | Effect.E_BLOCKED_BY_ACTORS] = "E_ONLY_IF_EMPTY";
+        // E_NULLIFY_CELL = E_NULL_SURFACE | E_NULL_LIQUID | E_NULL_GAS,
+        // These should be effect types
+        Effect[Effect["E_ACTIVATE_DORMANT_MONSTER"] = Fl(27)] = "E_ACTIVATE_DORMANT_MONSTER";
+        Effect[Effect["E_AGGRAVATES_MONSTERS"] = Fl(28)] = "E_AGGRAVATES_MONSTERS";
+        Effect[Effect["E_RESURRECT_ALLY"] = Fl(29)] = "E_RESURRECT_ALLY";
+    })(Effect || (Effect = {}));
+
     var index$7 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get Depth () { return Depth$1; },
@@ -264,7 +309,8 @@
         get Tile () { return Tile$1; },
         get TileMech () { return TileMech; },
         get Cell () { return Cell$1; },
-        get Map () { return Map$1; }
+        get Map () { return Map$1; },
+        get Effect () { return Effect; }
     });
 
     // TODO - Do we need the machine?
@@ -553,51 +599,6 @@
         from: from$2
     });
 
-    const Fl = GWU__namespace.flag.fl;
-    ///////////////////////////////////////////////////////
-    // TILE EVENT
-    var Effect;
-    (function (Effect) {
-        // E_ALWAYS_FIRE = Fl(10), // Fire even if the cell is marked as having fired this turn
-        Effect[Effect["E_NEXT_ALWAYS"] = Fl(0)] = "E_NEXT_ALWAYS";
-        Effect[Effect["E_NEXT_EVERYWHERE"] = Fl(1)] = "E_NEXT_EVERYWHERE";
-        Effect[Effect["E_FIRED"] = Fl(2)] = "E_FIRED";
-        Effect[Effect["E_NO_MARK_FIRED"] = Fl(3)] = "E_NO_MARK_FIRED";
-        // MUST_REPLACE_LAYER
-        // NEEDS_EMPTY_LAYER
-        Effect[Effect["E_PROTECTED"] = Fl(4)] = "E_PROTECTED";
-        // E_NO_REDRAW_CELL = Fl(),
-        Effect[Effect["E_TREAT_AS_BLOCKING"] = Fl(5)] = "E_TREAT_AS_BLOCKING";
-        Effect[Effect["E_PERMIT_BLOCKING"] = Fl(6)] = "E_PERMIT_BLOCKING";
-        Effect[Effect["E_ABORT_IF_BLOCKS_MAP"] = Fl(7)] = "E_ABORT_IF_BLOCKS_MAP";
-        Effect[Effect["E_BLOCKED_BY_ITEMS"] = Fl(8)] = "E_BLOCKED_BY_ITEMS";
-        Effect[Effect["E_BLOCKED_BY_ACTORS"] = Fl(9)] = "E_BLOCKED_BY_ACTORS";
-        Effect[Effect["E_BLOCKED_BY_OTHER_LAYERS"] = Fl(10)] = "E_BLOCKED_BY_OTHER_LAYERS";
-        Effect[Effect["E_SUPERPRIORITY"] = Fl(11)] = "E_SUPERPRIORITY";
-        Effect[Effect["E_SPREAD_CIRCLE"] = Fl(13)] = "E_SPREAD_CIRCLE";
-        Effect[Effect["E_SPREAD_LINE"] = Fl(14)] = "E_SPREAD_LINE";
-        Effect[Effect["E_EVACUATE_CREATURES"] = Fl(15)] = "E_EVACUATE_CREATURES";
-        Effect[Effect["E_EVACUATE_ITEMS"] = Fl(16)] = "E_EVACUATE_ITEMS";
-        Effect[Effect["E_BUILD_IN_WALLS"] = Fl(17)] = "E_BUILD_IN_WALLS";
-        Effect[Effect["E_MUST_TOUCH_WALLS"] = Fl(18)] = "E_MUST_TOUCH_WALLS";
-        Effect[Effect["E_NO_TOUCH_WALLS"] = Fl(19)] = "E_NO_TOUCH_WALLS";
-        Effect[Effect["E_CLEAR_GROUND"] = Fl(21)] = "E_CLEAR_GROUND";
-        Effect[Effect["E_CLEAR_SURFACE"] = Fl(22)] = "E_CLEAR_SURFACE";
-        Effect[Effect["E_CLEAR_LIQUID"] = Fl(23)] = "E_CLEAR_LIQUID";
-        Effect[Effect["E_CLEAR_GAS"] = Fl(24)] = "E_CLEAR_GAS";
-        Effect[Effect["E_CLEAR_TILE"] = Fl(25)] = "E_CLEAR_TILE";
-        Effect[Effect["E_CLEAR_CELL"] = Effect.E_CLEAR_GROUND |
-            Effect.E_CLEAR_SURFACE |
-            Effect.E_CLEAR_LIQUID |
-            Effect.E_CLEAR_GAS] = "E_CLEAR_CELL";
-        Effect[Effect["E_ONLY_IF_EMPTY"] = Effect.E_BLOCKED_BY_ITEMS | Effect.E_BLOCKED_BY_ACTORS] = "E_ONLY_IF_EMPTY";
-        // E_NULLIFY_CELL = E_NULL_SURFACE | E_NULL_LIQUID | E_NULL_GAS,
-        // These should be effect types
-        Effect[Effect["E_ACTIVATE_DORMANT_MONSTER"] = Fl(27)] = "E_ACTIVATE_DORMANT_MONSTER";
-        Effect[Effect["E_AGGRAVATES_MONSTERS"] = Fl(28)] = "E_AGGRAVATES_MONSTERS";
-        Effect[Effect["E_RESURRECT_ALLY"] = Fl(29)] = "E_RESURRECT_ALLY";
-    })(Effect || (Effect = {}));
-
     function make$2(opts) {
         var _a;
         if (!opts)
@@ -676,18 +677,12 @@
         if (!ctx.force && effect.chance && !GWU__namespace.random.chance(effect.chance, 10000))
             return false;
         const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
-        let didSomething = true;
+        let didSomething = false;
         const allHandlers = Object.values(handlers);
         for (let h of allHandlers) {
             if (await h.fire(effect, map, x, y, ctx)) {
                 didSomething = true;
             }
-        }
-        // bookkeeping
-        if (didSomething &&
-            map.isVisible(x, y) &&
-            !(effect.flags & Effect.E_NO_MARK_FIRED)) {
-            effect.flags |= Effect.E_FIRED;
         }
         // do the next effect - if applicable
         if (effect.next &&
@@ -698,13 +693,20 @@
                 await grid.forEachAsync(async (v, i, j) => {
                     if (!v)
                         return;
-                    // @ts-ignore
-                    await fire(nextInfo, map, i, j, ctx);
+                    didSomething =
+                        (await fire(nextInfo, map, i, j, ctx)) || didSomething;
                 });
             }
             else {
-                await fire(nextInfo, map, x, y, ctx);
+                didSomething =
+                    (await fire(nextInfo, map, x, y, ctx)) || didSomething;
             }
+        }
+        // bookkeeping
+        if (didSomething &&
+            map.isVisible(x, y) &&
+            !(effect.flags & Effect.E_NO_MARK_FIRED)) {
+            effect.flags |= Effect.E_FIRED;
         }
         GWU__namespace.grid.free(grid);
         return didSomething;
@@ -722,7 +724,7 @@
         if (!ctx.force && effect.chance && !GWU__namespace.random.chance(effect.chance, 10000))
             return false;
         const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
-        let didSomething = true;
+        let didSomething = false;
         const allHandlers = Object.values(handlers);
         for (let h of allHandlers) {
             if (h.fireSync(effect, map, x, y, ctx)) {
@@ -756,39 +758,6 @@
     }
 
     //////////////////////////////////////////////
-    // MESSAGE
-    class MessageEffect {
-        make(src, dest) {
-            if (!src.message)
-                return true;
-            if (typeof src.message !== 'string') {
-                throw new Error('Emit must be configured with name of event to emit');
-            }
-            dest.message = src.message;
-            return true;
-        }
-        async fire(config, map, x, y, ctx) {
-            if (!config.message)
-                return false;
-            const fired = !!(config.flags & Effect.E_FIRED);
-            if (config.message &&
-                config.message.length &&
-                !fired &&
-                map.isVisible(x, y)) {
-                GWU__namespace.message.addAt(x, y, config.message, ctx);
-                return true;
-            }
-            return false;
-        }
-        fireSync(config, _map, _x, _y, _ctx) {
-            if (!config.message)
-                return false;
-            throw new Error('Cannot use "message" effects in build steps.');
-        }
-    }
-    installHandler('message', new MessageEffect());
-
-    //////////////////////////////////////////////
     // EMIT
     class EmitEffect {
         make(src, dest) {
@@ -802,7 +771,8 @@
         }
         async fire(config, _map, x, y, ctx) {
             if (config.emit) {
-                return await GWU__namespace.events.emit(config.emit, x, y, ctx);
+                await GWU__namespace.events.emit(config.emit, x, y, ctx);
+                return true;
             }
             return false;
         }
@@ -846,6 +816,39 @@
     installHandler('fn', new FnEffect());
 
     //////////////////////////////////////////////
+    // MESSAGE
+    class MessageEffect {
+        make(src, dest) {
+            if (!src.message)
+                return true;
+            if (typeof src.message !== 'string') {
+                throw new Error('Emit must be configured with name of event to emit');
+            }
+            dest.message = src.message;
+            return true;
+        }
+        async fire(config, map, x, y, ctx) {
+            if (!config.message)
+                return false;
+            const fired = !!(config.flags & Effect.E_FIRED);
+            if (config.message &&
+                config.message.length &&
+                !fired &&
+                map.isVisible(x, y)) {
+                GWU__namespace.message.addAt(x, y, config.message, ctx);
+                return true;
+            }
+            return false;
+        }
+        fireSync(config, _map, _x, _y, _ctx) {
+            if (!config.message)
+                return false;
+            throw new Error('Cannot use "message" effects in build steps.');
+        }
+    }
+    installHandler('message', new MessageEffect());
+
+    //////////////////////////////////////////////
     // ActivateMachine
     class ActivateMachineEffect {
         make(src, dest) {
@@ -877,9 +880,541 @@
     }
     installHandler('activateMachine', new ActivateMachineEffect());
 
+    //////////////////////////////////////////////
+    // EMIT
+    class EffectEffect {
+        make(src, dest) {
+            if (!src.effect)
+                return true;
+            dest.effect = src.effect;
+            return true;
+        }
+        async fire(config, map, x, y, ctx) {
+            if (config.effect) {
+                return await fire(config.effect, map, x, y, ctx);
+            }
+            return false;
+        }
+        fireSync(config, map, x, y, ctx) {
+            if (config.effect) {
+                return fireSync(config.effect, map, x, y, ctx);
+            }
+            return false;
+        }
+    }
+    installHandler('effect', new EffectEffect());
+
+    class SpawnEffect {
+        make(src, dest) {
+            var _a, _b, _c, _d, _e, _f, _g;
+            if (!src.tile)
+                return true; // no error
+            let config = src.tile;
+            if (typeof config === 'string') {
+                const parts = config.split(/[,|]/).map((p) => p.trim());
+                config = {
+                    tile: parts[0],
+                    grow: Number.parseInt(parts[1] || '0'),
+                    decrement: Number.parseInt(parts[2] || '0'),
+                };
+            }
+            const info = {
+                grow: (_b = (_a = config.grow) !== null && _a !== void 0 ? _a : config.spread) !== null && _b !== void 0 ? _b : 0,
+                decrement: (_c = config.decrement) !== null && _c !== void 0 ? _c : 0,
+                flags: GWU__namespace.flag.from(Effect, config.flags),
+                volume: (_d = config.volume) !== null && _d !== void 0 ? _d : 0,
+                next: (_e = config.next) !== null && _e !== void 0 ? _e : null,
+            };
+            const id = (_f = config.tile) !== null && _f !== void 0 ? _f : config.id;
+            if (typeof id === 'string') {
+                info.tile = id;
+            }
+            else {
+                throw new Error('Invalid tile spawn config: ' + id);
+            }
+            if (!info.tile) {
+                throw new Error('Must have tile.');
+            }
+            const match = (_g = config.matchTile) !== null && _g !== void 0 ? _g : config.match;
+            if (typeof match === 'string') {
+                info.matchTile = match;
+            }
+            else if (match) {
+                throw new Error('Invalid tile spawn match tile: ' + config.matchTile);
+            }
+            dest.tile = info;
+            return true;
+        }
+        async fire(effect, map, x, y, ctx) {
+            let didSomething = false;
+            const spawned = this.fireSync(effect, map, x, y, ctx);
+            if (spawned) {
+                didSomething = true;
+                // await spawnMap.forEachAsync( (v, x, y) => {
+                //     if (!v) return;
+                //     await map.applyInstantEffects(x, y);
+                // });
+                // if (applyEffects) {
+                // if (PLAYER.xLoc == i && PLAYER.yLoc == j && !PLAYER.status.levitating && refresh) {
+                // 	flavorMessage(tileFlavor(PLAYER.xLoc, PLAYER.yLoc));
+                // }
+                // if (cell.actor || cell.item) {
+                // 	for(let t of cell.tiles()) {
+                // 		await t.applyInstantEffects(map, i, j, cell);
+                // 		if (Data.gameHasEnded) {
+                // 			return true;
+                // 		}
+                // 	}
+                // }
+                // if (tile.flags & TileFlags.T_IS_FIRE) {
+                // 	if (cell.flags & CellFlags.HAS_ITEM) {
+                // 		theItem = map.itemAt(i, j);
+                // 		if (theItem.flags & Flags.Item.ITEM_FLAMMABLE) {
+                // 			await burnItem(theItem);
+                // 		}
+                // 	}
+                // }
+                // }
+            }
+            // GWU.grid.free(spawnMap);
+            return didSomething;
+        }
+        fireSync(effect, map, x, y, ctx) {
+            if (!effect.tile)
+                return false; // did nothing
+            const id = effect.tile.tile;
+            const tile = tiles[id] || null;
+            if (!tile) {
+                throw new Error('Failed to find tile for effect: ' + id);
+            }
+            const abortIfBlocking = !!(effect.flags & Effect.E_ABORT_IF_BLOCKS_MAP);
+            const isBlocking = !!(abortIfBlocking &&
+                !(effect.flags & Effect.E_PERMIT_BLOCKING) &&
+                (tile.blocksPathing() ||
+                    effect.flags & Effect.E_TREAT_AS_BLOCKING));
+            let didSomething = false;
+            didSomething = computeSpawnMap(effect, map, x, y, ctx);
+            if (!didSomething) {
+                return false;
+            }
+            if (abortIfBlocking &&
+                isBlocking &&
+                this.mapDisruptedBy(map, ctx.grid)) {
+                // GWU.grid.free(spawnMap);
+                return false;
+            }
+            if (effect.flags & Effect.E_EVACUATE_CREATURES) {
+                // first, evacuate creatures, so that they do not re-trigger the tile.
+                if (evacuateCreatures(map, ctx.grid)) {
+                    didSomething = true;
+                }
+            }
+            if (effect.flags & Effect.E_EVACUATE_ITEMS) {
+                // first, evacuate items, so that they do not re-trigger the tile.
+                if (evacuateItems(map, ctx.grid)) {
+                    didSomething = true;
+                }
+            }
+            if (effect.flags & Effect.E_CLEAR_CELL) {
+                // first, clear other tiles (not base/ground)
+                if (clearCells(map, ctx.grid, effect.flags)) {
+                    didSomething = true;
+                }
+            }
+            const spawned = spawnTiles(effect.flags, ctx.grid, map, tile, effect.tile.volume, ctx.machine);
+            return spawned;
+        }
+        mapDisruptedBy(map, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
+            const walkableGrid = GWU__namespace.grid.alloc(map.width, map.height);
+            let disrupts = false;
+            // Get all walkable locations after lake added
+            GWU__namespace.xy.forRect(map.width, map.height, (i, j) => {
+                const lakeX = i + blockingToMapX;
+                const lakeY = j + blockingToMapY;
+                if (blockingGrid.get(lakeX, lakeY)) {
+                    if (map.cellInfo(i, j).isStairs()) {
+                        disrupts = true;
+                    }
+                }
+                else if (!map.cellInfo(i, j).blocksMove()) {
+                    walkableGrid[i][j] = 1;
+                }
+            });
+            let first = true;
+            for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+                for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+                    if (walkableGrid[i][j] == 1) {
+                        if (first) {
+                            walkableGrid.floodFill(i, j, 1, 2);
+                            first = false;
+                        }
+                        else {
+                            disrupts = true;
+                        }
+                    }
+                }
+            }
+            // console.log('WALKABLE GRID');
+            // walkableGWU.grid.dump();
+            GWU__namespace.grid.free(walkableGrid);
+            return disrupts;
+        }
+    }
+    installHandler('tile', new SpawnEffect());
+    // tick
+    // Spawn
+    function spawnTiles(flags, spawnMap, map, tile, volume = 0, machine) {
+        let i, j;
+        let accomplishedSomething;
+        accomplishedSomething = false;
+        const blockedByOtherLayers = !!(flags & Effect.E_BLOCKED_BY_OTHER_LAYERS);
+        const superpriority = !!(flags & Effect.E_SUPERPRIORITY);
+        const blockedByActors = !!(flags & Effect.E_BLOCKED_BY_ACTORS);
+        const blockedByItems = !!(flags & Effect.E_BLOCKED_BY_ITEMS);
+        // const applyEffects = ctx.refreshCell;
+        volume = volume || 0; // (tile ? tile.volume : 0);
+        for (i = 0; i < spawnMap.width; i++) {
+            for (j = 0; j < spawnMap.height; j++) {
+                if (!spawnMap[i][j])
+                    continue; // If it's not flagged for building in the spawn map,
+                // const isRoot = spawnMap[i][j] === 1;
+                spawnMap[i][j] = 0; // so that the spawnmap reflects what actually got built
+                const cell = map.cell(i, j);
+                if (cell.hasTile(tile)) ;
+                else if (map.setTile(i, j, tile, {
+                    volume,
+                    superpriority,
+                    blockedByOtherLayers,
+                    blockedByActors,
+                    blockedByItems,
+                    machine,
+                })) {
+                    // if the fill won't violate the priority of the most important terrain in this cell:
+                    spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
+                    // map.redrawCell(cell);
+                    // if (volume && cell.gas) {
+                    //     cell.volume += (feat.volume || 0);
+                    // }
+                    cell.flags.cell |= Cell$1.EVENT_FIRED_THIS_TURN;
+                    if (flags & Effect.E_PROTECTED) {
+                        cell.flags.cell |= Cell$1.EVENT_PROTECTED;
+                    }
+                    accomplishedSomething = true;
+                    // debug('- tile', i, j, 'tile=', tile.id);
+                }
+            }
+        }
+        if (accomplishedSomething) {
+            map.setMapFlag(Map$1.MAP_CHANGED);
+        }
+        return accomplishedSomething;
+    }
+    // Spread
+    function cellIsOk(effect, map, x, y, isStart) {
+        if (!map.hasXY(x, y))
+            return false;
+        const cell = map.cell(x, y);
+        if (cell.hasCellFlag(Cell$1.EVENT_PROTECTED))
+            return false;
+        if (cell.blocksEffects() && !effect.tile.matchTile && !isStart) {
+            return false;
+        }
+        if (effect.flags & Effect.E_BUILD_IN_WALLS) {
+            if (!map.cellInfo(x, y).isWall())
+                return false;
+        }
+        else if (effect.flags & Effect.E_MUST_TOUCH_WALLS) {
+            let ok = false;
+            GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
+                if (map.cellInfo(i, j).isWall()) {
+                    ok = true;
+                }
+            }, true);
+            if (!ok)
+                return false;
+        }
+        else if (effect.flags & Effect.E_NO_TOUCH_WALLS) {
+            let ok = true;
+            if (map.cellInfo(x, y).isWall())
+                return false; // or on wall
+            GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
+                if (map.cellInfo(i, j).isWall()) {
+                    ok = false;
+                }
+            }, true);
+            if (!ok)
+                return false;
+        }
+        // if (ctx.bounds && !ctx.bounds.containsXY(x, y)) return false;
+        if (effect.tile.matchTile &&
+            !isStart &&
+            !cell.hasTile(effect.tile.matchTile)) {
+            return false;
+        }
+        return true;
+    }
+    function computeSpawnMap(effect, map, x, y, ctx) {
+        let i, j, dir, t, x2, y2;
+        let madeChange;
+        // const bounds = ctx.bounds || null;
+        // if (bounds) {
+        //   // Activation.debug('- bounds', bounds);
+        // }
+        const config = effect.tile;
+        let startProb = config.grow || 0;
+        let probDec = config.decrement || 0;
+        const spawnMap = ctx.grid;
+        spawnMap.fill(0);
+        if (!cellIsOk(effect, map, x, y, true)) {
+            return false;
+        }
+        spawnMap[x][y] = t = 1; // incremented before anything else happens
+        let count = 1;
+        if (startProb) {
+            madeChange = true;
+            if (startProb >= 100) {
+                probDec = probDec || 100;
+            }
+            if (probDec <= 0) {
+                probDec = startProb;
+            }
+            while (madeChange && startProb > 0) {
+                madeChange = false;
+                t++;
+                for (i = 0; i < map.width; i++) {
+                    for (j = 0; j < map.height; j++) {
+                        if (spawnMap[i][j] == t - 1) {
+                            for (dir = 0; dir < 4; dir++) {
+                                x2 = i + GWU__namespace.xy.DIRS[dir][0];
+                                y2 = j + GWU__namespace.xy.DIRS[dir][1];
+                                if (spawnMap.hasXY(x2, y2) &&
+                                    !spawnMap[x2][y2] &&
+                                    GWU__namespace.random.chance(startProb) &&
+                                    cellIsOk(effect, map, x2, y2, false)) {
+                                    spawnMap[x2][y2] = t;
+                                    madeChange = true;
+                                    ++count;
+                                }
+                            }
+                        }
+                    }
+                }
+                startProb -= probDec;
+            }
+        }
+        return count > 0;
+    }
+    // export function spreadCircle(
+    //     this: any,
+    //     ctx: Effect.EffectCtx,
+    //     spawnMap: GWU.grid.NumGrid
+    // ) {
+    //     const x = ctx.x;
+    //     const y = ctx.y;
+    //     let startProb = this.spread || 0;
+    //     let probDec = this.decrement || 0;
+    //     spawnMap.fill(0);
+    //     spawnMap[x][y] = 1; // incremented before anything else happens
+    //     let radius = 0;
+    //     startProb = startProb || 100;
+    //     if (startProb >= 100) {
+    //         probDec = probDec || 100;
+    //     }
+    //     while (GW.random.chance(startProb)) {
+    //         startProb -= probDec;
+    //         ++radius;
+    //     }
+    //     // startProb = 100;
+    //     // probDec = 0;
+    //     spawnMap.updateCircle(x, y, radius, (_v, i, j) => {
+    //         if (!cellIsOk(this, i, j, ctx)) return 0;
+    //         // const dist = Math.floor(GWU.utils.distanceBetween(x, y, i, j));
+    //         // const prob = startProb - dist * probDec;
+    //         // if (!random.chance(prob)) return 0;
+    //         return 1;
+    //     });
+    //     // spawnMap[x][y] = 1;
+    //     // if (!isOk(flags, x, y, ctx)) {
+    //     //     spawnMap[x][y] = 0;
+    //     // }
+    //     return true;
+    // }
+    // export function spreadLine(
+    //     this: any,
+    //     ctx: Effect.EffectCtx,
+    //     spawnMap: GWU.grid.NumGrid
+    // ) {
+    //     let x2, y2;
+    //     let madeChange;
+    //     const x = ctx.x;
+    //     const y = ctx.y;
+    //     let startProb = this.spread || 0;
+    //     let probDec = this.decrement || 0;
+    //     spawnMap.fill(0);
+    //     spawnMap[x][y] = 1; // incremented before anything else happens
+    //     if (startProb) {
+    //         madeChange = true;
+    //         if (startProb >= 100) {
+    //             probDec = probDec || 100;
+    //         }
+    //         x2 = x;
+    //         y2 = y;
+    //         const dir = GWU.xy.DIRS[GW.random.number(4)];
+    //         while (madeChange) {
+    //             madeChange = false;
+    //             x2 = x2 + dir[0];
+    //             y2 = y2 + dir[1];
+    //             if (
+    //                 spawnMap.hasXY(x2, y2) &&
+    //                 !spawnMap[x2][y2] &&
+    //                 cellIsOk(this, x2, y2, ctx) &&
+    //                 GW.random.chance(startProb)
+    //             ) {
+    //                 spawnMap[x2][y2] = 1;
+    //                 madeChange = true;
+    //                 startProb -= probDec;
+    //             }
+    //         }
+    //     }
+    //     if (!cellIsOk(this, x, y, ctx)) {
+    //         spawnMap[x][y] = 0;
+    //     }
+    //     return true;
+    // }
+    function clearCells(map, spawnMap, flags = 0) {
+        let didSomething = false;
+        const clearAll = (flags & Effect.E_CLEAR_CELL) === Effect.E_CLEAR_CELL;
+        spawnMap.forEach((v, i, j) => {
+            if (!v)
+                return;
+            const cell = map.cell(i, j);
+            if (clearAll) {
+                cell.clear();
+            }
+            else {
+                if (flags & Effect.E_CLEAR_GAS) {
+                    cell.clearDepth(Depth$1.GAS);
+                }
+                if (flags & Effect.E_CLEAR_LIQUID) {
+                    cell.clearDepth(Depth$1.LIQUID);
+                }
+                if (flags & Effect.E_CLEAR_SURFACE) {
+                    cell.clearDepth(Depth$1.SURFACE);
+                }
+                if (flags & Effect.E_CLEAR_GROUND) {
+                    cell.clearDepth(Depth$1.GROUND);
+                }
+            }
+            didSomething = true;
+        });
+        return didSomething;
+    }
+    function evacuateCreatures(map, blockingMap) {
+        let i = 0, j = 0;
+        let didSomething = false;
+        for (i = 0; i < map.width; i++) {
+            for (j = 0; j < map.height; j++) {
+                if (!blockingMap[i][j])
+                    continue;
+                const cell = map.cell(i, j);
+                if (!cell.hasActor())
+                    continue;
+                GWU__namespace.list.forEach(cell.actor, (obj) => {
+                    if (!(obj instanceof Actor))
+                        return;
+                    const monst = obj;
+                    const loc = GWU__namespace.random.matchingLocNear(i, j, (x, y) => {
+                        if (!map.hasXY(x, y))
+                            return false;
+                        if (blockingMap[x][y])
+                            return false;
+                        const c = map.cell(x, y);
+                        return !monst.forbidsCell(c);
+                    });
+                    if (loc && loc[0] >= 0 && loc[1] >= 0) {
+                        map.moveActor(loc[0], loc[1], monst);
+                        // map.redrawXY(loc[0], loc[1]);
+                        didSomething = true;
+                    }
+                });
+            }
+        }
+        return didSomething;
+    }
+    function evacuateItems(map, blockingMap) {
+        let didSomething = false;
+        blockingMap.forEach((v, i, j) => {
+            if (!v)
+                return;
+            const cell = map.cell(i, j);
+            if (!cell.hasItem())
+                return;
+            GWU__namespace.list.forEach(cell.item, (obj) => {
+                if (!(obj instanceof Item))
+                    return;
+                const item = obj;
+                const loc = GWU__namespace.random.matchingLocNear(i, j, (x, y) => {
+                    if (!map.hasXY(x, y))
+                        return false;
+                    if (blockingMap[x][y])
+                        return false;
+                    const dest = map.cell(x, y);
+                    return !item.forbidsCell(dest);
+                });
+                if (loc && loc[0] >= 0 && loc[1] >= 0) {
+                    map.moveItem(loc[0], loc[1], item);
+                    // map.redrawXY(loc[0], loc[1]);
+                    didSomething = true;
+                }
+            });
+        });
+        return didSomething;
+    }
+    class ClearTileEffect {
+        make(src, dest) {
+            if (!src.clear)
+                return true;
+            let config = src.clear;
+            let layers = 0;
+            if (typeof config === 'string') {
+                config = config.split(/[,|]/).map((t) => t.trim());
+            }
+            if (config === true) {
+                layers = Depth$1.ALL_LAYERS;
+            }
+            else if (typeof config === 'number') {
+                layers = config;
+            }
+            else if (Array.isArray(config)) {
+                layers = config.reduce((out, v) => {
+                    if (typeof v === 'number')
+                        return out | v;
+                    const depth = Depth$1[v] || 0;
+                    return out | depth;
+                }, 0);
+            }
+            else {
+                throw new Error('clear effect must have number or string config.');
+            }
+            dest.clear = layers;
+            return layers > 0;
+        }
+        fire(config, map, x, y, ctx) {
+            return this.fireSync(config, map, x, y, ctx);
+        }
+        fireSync(config, map, x, y, _ctx) {
+            if (!config.clear)
+                return false;
+            if (!map)
+                return false;
+            const cell = map.cell(x, y);
+            return cell.clearDepth(config.clear);
+        }
+    }
+    installHandler('clear', new ClearTileEffect());
+
     var index$3 = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        get Flags () { return Effect; },
         reset: reset,
         resetAll: resetAll,
         effects: effects,
@@ -891,10 +1426,17 @@
         from: from$1,
         fire: fire,
         fireSync: fireSync,
-        MessageEffect: MessageEffect,
         EmitEffect: EmitEffect,
         FnEffect: FnEffect,
-        ActivateMachineEffect: ActivateMachineEffect
+        MessageEffect: MessageEffect,
+        ActivateMachineEffect: ActivateMachineEffect,
+        EffectEffect: EffectEffect,
+        SpawnEffect: SpawnEffect,
+        spawnTiles: spawnTiles,
+        computeSpawnMap: computeSpawnMap,
+        clearCells: clearCells,
+        evacuateCreatures: evacuateCreatures,
+        evacuateItems: evacuateItems
     });
 
     class Tile {
@@ -2328,6 +2870,7 @@
 
     class Map {
         constructor(width, height, opts = {}) {
+            this.seed = 0;
             this.width = width;
             this.height = height;
             this.flags = { map: 0 };
@@ -2533,6 +3076,9 @@
         }
         hasTile(x, y, tile, useMemory = false) {
             return this.cellInfo(x, y, useMemory).hasTile(tile);
+        }
+        forceTile(x, y, tile) {
+            return this.setTile(x, y, tile, { superpriority: true });
         }
         setTile(x, y, tile, opts) {
             if (!(tile instanceof Tile)) {
@@ -3190,515 +3736,6 @@
     ////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////
 
-    class SpawnEffect {
-        make(src, dest) {
-            var _a, _b, _c, _d, _e, _f, _g;
-            if (!src.tile)
-                return true; // no error
-            let config = src.tile;
-            if (typeof config === 'string') {
-                const parts = config.split(/[,|]/).map((p) => p.trim());
-                config = {
-                    tile: parts[0],
-                    grow: Number.parseInt(parts[1] || '0'),
-                    decrement: Number.parseInt(parts[2] || '0'),
-                };
-            }
-            const info = {
-                grow: (_b = (_a = config.grow) !== null && _a !== void 0 ? _a : config.spread) !== null && _b !== void 0 ? _b : 0,
-                decrement: (_c = config.decrement) !== null && _c !== void 0 ? _c : 0,
-                flags: GWU__namespace.flag.from(Effect, config.flags),
-                volume: (_d = config.volume) !== null && _d !== void 0 ? _d : 0,
-                next: (_e = config.next) !== null && _e !== void 0 ? _e : null,
-            };
-            const id = (_f = config.tile) !== null && _f !== void 0 ? _f : config.id;
-            if (typeof id === 'string') {
-                info.tile = id;
-            }
-            else {
-                throw new Error('Invalid tile spawn config: ' + id);
-            }
-            if (!info.tile) {
-                throw new Error('Must have tile.');
-            }
-            const match = (_g = config.matchTile) !== null && _g !== void 0 ? _g : config.match;
-            if (typeof match === 'string') {
-                info.matchTile = match;
-            }
-            else if (match) {
-                throw new Error('Invalid tile spawn match tile: ' + config.matchTile);
-            }
-            dest.tile = info;
-            return true;
-        }
-        async fire(effect, map, x, y, ctx) {
-            let didSomething = false;
-            const spawned = this.fireSync(effect, map, x, y, ctx);
-            if (spawned) {
-                didSomething = true;
-                // await spawnMap.forEachAsync( (v, x, y) => {
-                //     if (!v) return;
-                //     await map.applyInstantEffects(x, y);
-                // });
-                // if (applyEffects) {
-                // if (PLAYER.xLoc == i && PLAYER.yLoc == j && !PLAYER.status.levitating && refresh) {
-                // 	flavorMessage(tileFlavor(PLAYER.xLoc, PLAYER.yLoc));
-                // }
-                // if (cell.actor || cell.item) {
-                // 	for(let t of cell.tiles()) {
-                // 		await t.applyInstantEffects(map, i, j, cell);
-                // 		if (Data.gameHasEnded) {
-                // 			return true;
-                // 		}
-                // 	}
-                // }
-                // if (tile.flags & TileFlags.T_IS_FIRE) {
-                // 	if (cell.flags & CellFlags.HAS_ITEM) {
-                // 		theItem = map.itemAt(i, j);
-                // 		if (theItem.flags & Flags.Item.ITEM_FLAMMABLE) {
-                // 			await burnItem(theItem);
-                // 		}
-                // 	}
-                // }
-                // }
-            }
-            // GWU.grid.free(spawnMap);
-            return didSomething;
-        }
-        fireSync(effect, map, x, y, ctx) {
-            if (!effect.tile)
-                return false; // did nothing
-            const id = effect.tile.tile;
-            const tile = tiles[id] || null;
-            if (!tile) {
-                throw new Error('Failed to find tile for effect: ' + id);
-            }
-            const abortIfBlocking = !!(effect.flags & Effect.E_ABORT_IF_BLOCKS_MAP);
-            const isBlocking = !!(abortIfBlocking &&
-                !(effect.flags & Effect.E_PERMIT_BLOCKING) &&
-                (tile.blocksPathing() ||
-                    effect.flags & Effect.E_TREAT_AS_BLOCKING));
-            let didSomething = false;
-            didSomething = computeSpawnMap(effect, map, x, y, ctx);
-            if (!didSomething) {
-                return false;
-            }
-            if (abortIfBlocking &&
-                isBlocking &&
-                this.mapDisruptedBy(map, effect.grid)) {
-                // GWU.grid.free(spawnMap);
-                return false;
-            }
-            if (effect.flags & Effect.E_EVACUATE_CREATURES) {
-                // first, evacuate creatures, so that they do not re-trigger the tile.
-                if (evacuateCreatures(map, ctx.grid)) {
-                    didSomething = true;
-                }
-            }
-            if (effect.flags & Effect.E_EVACUATE_ITEMS) {
-                // first, evacuate items, so that they do not re-trigger the tile.
-                if (evacuateItems(map, ctx.grid)) {
-                    didSomething = true;
-                }
-            }
-            if (effect.flags & Effect.E_CLEAR_CELL) {
-                // first, clear other tiles (not base/ground)
-                if (clearCells(map, ctx.grid, effect.flags)) {
-                    didSomething = true;
-                }
-            }
-            const spawned = spawnTiles(effect.flags, ctx.grid, map, tile, effect.tile.volume, ctx.machine);
-            return spawned;
-        }
-        mapDisruptedBy(map, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
-            const walkableGrid = GWU__namespace.grid.alloc(map.width, map.height);
-            let disrupts = false;
-            // Get all walkable locations after lake added
-            GWU__namespace.xy.forRect(map.width, map.height, (i, j) => {
-                const lakeX = i + blockingToMapX;
-                const lakeY = j + blockingToMapY;
-                if (blockingGrid.get(lakeX, lakeY)) {
-                    if (map.cellInfo(i, j).isStairs()) {
-                        disrupts = true;
-                    }
-                }
-                else if (!map.cellInfo(i, j).blocksMove()) {
-                    walkableGrid[i][j] = 1;
-                }
-            });
-            let first = true;
-            for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
-                for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-                    if (walkableGrid[i][j] == 1) {
-                        if (first) {
-                            walkableGrid.floodFill(i, j, 1, 2);
-                            first = false;
-                        }
-                        else {
-                            disrupts = true;
-                        }
-                    }
-                }
-            }
-            // console.log('WALKABLE GRID');
-            // walkableGWU.grid.dump();
-            GWU__namespace.grid.free(walkableGrid);
-            return disrupts;
-        }
-    }
-    installHandler('tile', new SpawnEffect());
-    // tick
-    // Spawn
-    function spawnTiles(flags, spawnMap, map, tile, volume = 0, machine) {
-        let i, j;
-        let accomplishedSomething;
-        accomplishedSomething = false;
-        const blockedByOtherLayers = !!(flags & Effect.E_BLOCKED_BY_OTHER_LAYERS);
-        const superpriority = !!(flags & Effect.E_SUPERPRIORITY);
-        const blockedByActors = !!(flags & Effect.E_BLOCKED_BY_ACTORS);
-        const blockedByItems = !!(flags & Effect.E_BLOCKED_BY_ITEMS);
-        // const applyEffects = ctx.refreshCell;
-        volume = volume || 0; // (tile ? tile.volume : 0);
-        for (i = 0; i < spawnMap.width; i++) {
-            for (j = 0; j < spawnMap.height; j++) {
-                if (!spawnMap[i][j])
-                    continue; // If it's not flagged for building in the spawn map,
-                // const isRoot = spawnMap[i][j] === 1;
-                spawnMap[i][j] = 0; // so that the spawnmap reflects what actually got built
-                const cell = map.cell(i, j);
-                if (cell.hasTile(tile)) ;
-                else if (map.setTile(i, j, tile, {
-                    volume,
-                    superpriority,
-                    blockedByOtherLayers,
-                    blockedByActors,
-                    blockedByItems,
-                    machine,
-                })) {
-                    // if the fill won't violate the priority of the most important terrain in this cell:
-                    spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
-                    // map.redrawCell(cell);
-                    // if (volume && cell.gas) {
-                    //     cell.volume += (feat.volume || 0);
-                    // }
-                    cell.flags.cell |= Cell$1.EVENT_FIRED_THIS_TURN;
-                    if (flags & Effect.E_PROTECTED) {
-                        cell.flags.cell |= Cell$1.EVENT_PROTECTED;
-                    }
-                    accomplishedSomething = true;
-                    // debug('- tile', i, j, 'tile=', tile.id);
-                }
-            }
-        }
-        if (accomplishedSomething) {
-            map.setMapFlag(Map$1.MAP_CHANGED);
-        }
-        return accomplishedSomething;
-    }
-    // Spread
-    function cellIsOk(effect, map, x, y, isStart) {
-        if (!map.hasXY(x, y))
-            return false;
-        const cell = map.cell(x, y);
-        if (cell.hasCellFlag(Cell$1.EVENT_PROTECTED))
-            return false;
-        if (cell.blocksEffects() && !effect.tile.matchTile && !isStart) {
-            return false;
-        }
-        if (effect.flags & Effect.E_BUILD_IN_WALLS) {
-            if (!map.cellInfo(x, y).isWall())
-                return false;
-        }
-        else if (effect.flags & Effect.E_MUST_TOUCH_WALLS) {
-            let ok = false;
-            GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
-                if (map.cellInfo(i, j).isWall()) {
-                    ok = true;
-                }
-            }, true);
-            if (!ok)
-                return false;
-        }
-        else if (effect.flags & Effect.E_NO_TOUCH_WALLS) {
-            let ok = true;
-            if (map.cellInfo(x, y).isWall())
-                return false; // or on wall
-            GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
-                if (map.cellInfo(i, j).isWall()) {
-                    ok = false;
-                }
-            }, true);
-            if (!ok)
-                return false;
-        }
-        // if (ctx.bounds && !ctx.bounds.containsXY(x, y)) return false;
-        if (effect.tile.matchTile &&
-            !isStart &&
-            !cell.hasTile(effect.tile.matchTile)) {
-            return false;
-        }
-        return true;
-    }
-    function computeSpawnMap(effect, map, x, y, ctx) {
-        let i, j, dir, t, x2, y2;
-        let madeChange;
-        // const bounds = ctx.bounds || null;
-        // if (bounds) {
-        //   // Activation.debug('- bounds', bounds);
-        // }
-        const config = effect.tile;
-        let startProb = config.grow || 0;
-        let probDec = config.decrement || 0;
-        const spawnMap = ctx.grid;
-        spawnMap.fill(0);
-        if (!cellIsOk(effect, map, x, y, true)) {
-            return false;
-        }
-        spawnMap[x][y] = t = 1; // incremented before anything else happens
-        let count = 1;
-        if (startProb) {
-            madeChange = true;
-            if (startProb >= 100) {
-                probDec = probDec || 100;
-            }
-            if (probDec <= 0) {
-                probDec = startProb;
-            }
-            while (madeChange && startProb > 0) {
-                madeChange = false;
-                t++;
-                for (i = 0; i < map.width; i++) {
-                    for (j = 0; j < map.height; j++) {
-                        if (spawnMap[i][j] == t - 1) {
-                            for (dir = 0; dir < 4; dir++) {
-                                x2 = i + GWU__namespace.xy.DIRS[dir][0];
-                                y2 = j + GWU__namespace.xy.DIRS[dir][1];
-                                if (spawnMap.hasXY(x2, y2) &&
-                                    !spawnMap[x2][y2] &&
-                                    GWU__namespace.random.chance(startProb) &&
-                                    cellIsOk(effect, map, x2, y2, false)) {
-                                    spawnMap[x2][y2] = t;
-                                    madeChange = true;
-                                    ++count;
-                                }
-                            }
-                        }
-                    }
-                }
-                startProb -= probDec;
-            }
-        }
-        return count > 0;
-    }
-    // export function spreadCircle(
-    //     this: any,
-    //     ctx: Effect.EffectCtx,
-    //     spawnMap: GWU.grid.NumGrid
-    // ) {
-    //     const x = ctx.x;
-    //     const y = ctx.y;
-    //     let startProb = this.spread || 0;
-    //     let probDec = this.decrement || 0;
-    //     spawnMap.fill(0);
-    //     spawnMap[x][y] = 1; // incremented before anything else happens
-    //     let radius = 0;
-    //     startProb = startProb || 100;
-    //     if (startProb >= 100) {
-    //         probDec = probDec || 100;
-    //     }
-    //     while (GW.random.chance(startProb)) {
-    //         startProb -= probDec;
-    //         ++radius;
-    //     }
-    //     // startProb = 100;
-    //     // probDec = 0;
-    //     spawnMap.updateCircle(x, y, radius, (_v, i, j) => {
-    //         if (!cellIsOk(this, i, j, ctx)) return 0;
-    //         // const dist = Math.floor(GWU.utils.distanceBetween(x, y, i, j));
-    //         // const prob = startProb - dist * probDec;
-    //         // if (!random.chance(prob)) return 0;
-    //         return 1;
-    //     });
-    //     // spawnMap[x][y] = 1;
-    //     // if (!isOk(flags, x, y, ctx)) {
-    //     //     spawnMap[x][y] = 0;
-    //     // }
-    //     return true;
-    // }
-    // export function spreadLine(
-    //     this: any,
-    //     ctx: Effect.EffectCtx,
-    //     spawnMap: GWU.grid.NumGrid
-    // ) {
-    //     let x2, y2;
-    //     let madeChange;
-    //     const x = ctx.x;
-    //     const y = ctx.y;
-    //     let startProb = this.spread || 0;
-    //     let probDec = this.decrement || 0;
-    //     spawnMap.fill(0);
-    //     spawnMap[x][y] = 1; // incremented before anything else happens
-    //     if (startProb) {
-    //         madeChange = true;
-    //         if (startProb >= 100) {
-    //             probDec = probDec || 100;
-    //         }
-    //         x2 = x;
-    //         y2 = y;
-    //         const dir = GWU.xy.DIRS[GW.random.number(4)];
-    //         while (madeChange) {
-    //             madeChange = false;
-    //             x2 = x2 + dir[0];
-    //             y2 = y2 + dir[1];
-    //             if (
-    //                 spawnMap.hasXY(x2, y2) &&
-    //                 !spawnMap[x2][y2] &&
-    //                 cellIsOk(this, x2, y2, ctx) &&
-    //                 GW.random.chance(startProb)
-    //             ) {
-    //                 spawnMap[x2][y2] = 1;
-    //                 madeChange = true;
-    //                 startProb -= probDec;
-    //             }
-    //         }
-    //     }
-    //     if (!cellIsOk(this, x, y, ctx)) {
-    //         spawnMap[x][y] = 0;
-    //     }
-    //     return true;
-    // }
-    function clearCells(map, spawnMap, flags = 0) {
-        let didSomething = false;
-        const clearAll = (flags & Effect.E_CLEAR_CELL) === Effect.E_CLEAR_CELL;
-        spawnMap.forEach((v, i, j) => {
-            if (!v)
-                return;
-            const cell = map.cell(i, j);
-            if (clearAll) {
-                cell.clear();
-            }
-            else {
-                if (flags & Effect.E_CLEAR_GAS) {
-                    cell.clearDepth(Depth$1.GAS);
-                }
-                if (flags & Effect.E_CLEAR_LIQUID) {
-                    cell.clearDepth(Depth$1.LIQUID);
-                }
-                if (flags & Effect.E_CLEAR_SURFACE) {
-                    cell.clearDepth(Depth$1.SURFACE);
-                }
-                if (flags & Effect.E_CLEAR_GROUND) {
-                    cell.clearDepth(Depth$1.GROUND);
-                }
-            }
-            didSomething = true;
-        });
-        return didSomething;
-    }
-    function evacuateCreatures(map, blockingMap) {
-        let i = 0, j = 0;
-        let didSomething = false;
-        for (i = 0; i < map.width; i++) {
-            for (j = 0; j < map.height; j++) {
-                if (!blockingMap[i][j])
-                    continue;
-                const cell = map.cell(i, j);
-                if (!cell.hasActor())
-                    continue;
-                GWU__namespace.list.forEach(cell.actor, (obj) => {
-                    if (!(obj instanceof Actor))
-                        return;
-                    const monst = obj;
-                    const loc = GWU__namespace.random.matchingLocNear(i, j, (x, y) => {
-                        if (!map.hasXY(x, y))
-                            return false;
-                        if (blockingMap[x][y])
-                            return false;
-                        const c = map.cell(x, y);
-                        return !monst.forbidsCell(c);
-                    });
-                    if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                        map.moveActor(loc[0], loc[1], monst);
-                        // map.redrawXY(loc[0], loc[1]);
-                        didSomething = true;
-                    }
-                });
-            }
-        }
-        return didSomething;
-    }
-    function evacuateItems(map, blockingMap) {
-        let didSomething = false;
-        blockingMap.forEach((v, i, j) => {
-            if (!v)
-                return;
-            const cell = map.cell(i, j);
-            if (!cell.hasItem())
-                return;
-            GWU__namespace.list.forEach(cell.item, (obj) => {
-                if (!(obj instanceof Item))
-                    return;
-                const item = obj;
-                const loc = GWU__namespace.random.matchingLocNear(i, j, (x, y) => {
-                    if (!map.hasXY(x, y))
-                        return false;
-                    if (blockingMap[x][y])
-                        return false;
-                    const dest = map.cell(x, y);
-                    return !item.forbidsCell(dest);
-                });
-                if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                    map.moveItem(loc[0], loc[1], item);
-                    // map.redrawXY(loc[0], loc[1]);
-                    didSomething = true;
-                }
-            });
-        });
-        return didSomething;
-    }
-    class ClearTileEffect {
-        make(src, dest) {
-            if (!src.clear)
-                return true;
-            let config = src.clear;
-            let layers = 0;
-            if (typeof config === 'string') {
-                config = config.split(/[,|]/).map((t) => t.trim());
-            }
-            if (config === true) {
-                layers = Depth$1.ALL_LAYERS;
-            }
-            else if (typeof config === 'number') {
-                layers = config;
-            }
-            else if (Array.isArray(config)) {
-                layers = config.reduce((out, v) => {
-                    if (typeof v === 'number')
-                        return out | v;
-                    const depth = Depth$1[v] || 0;
-                    return out | depth;
-                }, 0);
-            }
-            else {
-                throw new Error('clear effect must have number or string config.');
-            }
-            dest.clear = layers;
-            return layers > 0;
-        }
-        fire(config, map, x, y, ctx) {
-            return this.fireSync(config, map, x, y, ctx);
-        }
-        fireSync(config, map, x, y, _ctx) {
-            if (!config.clear)
-                return false;
-            if (!map)
-                return false;
-            const cell = map.cell(x, y);
-            return cell.clearDepth(config.clear);
-        }
-    }
-    installHandler('clear', new ClearTileEffect());
-
     var index = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Cell: Cell,
@@ -3713,12 +3750,6 @@
         checkLoopiness: checkLoopiness,
         fillInnerLoopGrid: fillInnerLoopGrid,
         cleanLoopiness: cleanLoopiness,
-        SpawnEffect: SpawnEffect,
-        spawnTiles: spawnTiles,
-        computeSpawnMap: computeSpawnMap,
-        clearCells: clearCells,
-        evacuateCreatures: evacuateCreatures,
-        evacuateItems: evacuateItems,
         CellMemory: CellMemory
     });
 

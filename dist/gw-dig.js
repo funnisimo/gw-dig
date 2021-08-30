@@ -21,352 +21,11 @@
             });
         }
         n['default'] = e;
-        return n;
+        return Object.freeze(n);
     }
 
     var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
     var GWM__namespace = /*#__PURE__*/_interopNamespace(GWM);
-
-    var _a, _b;
-    const NOTHING = GWM__namespace.tile.get('NULL').index;
-    const FLOOR = GWM__namespace.tile.get('FLOOR').index;
-    const DOOR = GWM__namespace.tile.get('DOOR').index;
-    const SECRET_DOOR = (_b = (_a = GWM__namespace.tile.get('DOOR_SECRET')) === null || _a === void 0 ? void 0 : _a.index) !== null && _b !== void 0 ? _b : -1;
-    const WALL = GWM__namespace.tile.get('WALL').index;
-    const DEEP = GWM__namespace.tile.get('LAKE').index;
-    const SHALLOW = GWM__namespace.tile.get('SHALLOW').index;
-    const BRIDGE = GWM__namespace.tile.get('BRIDGE').index;
-    const UP_STAIRS = GWM__namespace.tile.get('UP_STAIRS').index;
-    const DOWN_STAIRS = GWM__namespace.tile.get('DOWN_STAIRS').index;
-    const IMPREGNABLE = GWM__namespace.tile.get('IMPREGNABLE').index;
-    const TILEMAP = {
-        [NOTHING]: 'NULL',
-        [FLOOR]: 'FLOOR',
-        [DOOR]: 'DOOR',
-        [WALL]: 'WALL',
-        [IMPREGNABLE]: 'IMPREGNABLE',
-        [DEEP]: 'LAKE',
-        [SHALLOW]: 'SHALLOW',
-        [BRIDGE]: 'BRIDGE',
-        [UP_STAIRS]: 'UP_STAIRS',
-        [DOWN_STAIRS]: 'DOWN_STAIRS',
-    };
-    class GridSite {
-        constructor(width, height) {
-            this.tiles = GWU__namespace.grid.alloc(width, height);
-        }
-        free() {
-            GWU__namespace.grid.free(this.tiles);
-        }
-        clear() {
-            this.tiles.fill(0);
-        }
-        get width() {
-            return this.tiles.width;
-        }
-        get height() {
-            return this.tiles.height;
-        }
-        hasXY(x, y) {
-            return this.tiles.hasXY(x, y);
-        }
-        isBoundaryXY(x, y) {
-            return this.tiles.isBoundaryXY(x, y);
-        }
-        isPassable(x, y) {
-            return (this.isFloor(x, y) ||
-                this.isDoor(x, y) ||
-                this.isBridge(x, y) ||
-                this.isStairs(x, y) ||
-                this.isShallow(x, y));
-        }
-        isNothing(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === NOTHING;
-        }
-        isDiggable(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === NOTHING;
-        }
-        isFloor(x, y) {
-            return this.tiles.get(x, y) == FLOOR;
-        }
-        isDoor(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === DOOR;
-        }
-        isSecretDoor(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === SECRET_DOOR;
-        }
-        isBridge(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === BRIDGE;
-        }
-        isWall(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === WALL || v === IMPREGNABLE;
-        }
-        blocksMove(x, y) {
-            return this.isNothing(x, y) || this.isWall(x, y) || this.isDeep(x, y);
-        }
-        blocksDiagonal(x, y) {
-            return this.isNothing(x, y) || this.isWall(x, y);
-        }
-        blocksPathing(x, y) {
-            return (this.isNothing(x, y) ||
-                this.isWall(x, y) ||
-                this.isDeep(x, y) ||
-                this.isStairs(x, y));
-        }
-        blocksVision(x, y) {
-            return this.isNothing(x, y) || this.isWall(x, y);
-        }
-        blocksItems(x, y) {
-            return this.blocksPathing(x, y) || this.blocksPathing(x, y);
-        }
-        blocksEffects(x, y) {
-            return this.isWall(x, y);
-        }
-        isStairs(x, y) {
-            const v = this.tiles.get(x, y);
-            return v === UP_STAIRS || v === DOWN_STAIRS;
-        }
-        isDeep(x, y) {
-            return this.tiles.get(x, y) === DEEP;
-        }
-        isShallow(x, y) {
-            return this.tiles.get(x, y) === SHALLOW;
-        }
-        isAnyLiquid(x, y) {
-            return this.isDeep(x, y) || this.isShallow(x, y);
-        }
-        isSet(x, y) {
-            return (this.tiles.get(x, y) || 0) > 0;
-        }
-        getTileIndex(x, y) {
-            return this.tiles.get(x, y) || 0;
-        }
-        setTile(x, y, tile) {
-            if (tile instanceof GWM__namespace.tile.Tile) {
-                tile = tile.index;
-            }
-            if (typeof tile === 'string') {
-                const obj = GWM__namespace.tile.tiles[tile];
-                if (!obj)
-                    throw new Error('Failed to find tie: ' + tile);
-                tile = obj.index;
-            }
-            if (!this.tiles.hasXY(x, y))
-                return false;
-            this.tiles[x][y] = tile;
-            return true;
-        }
-        hasTile(x, y, tile) {
-            if (tile instanceof GWM__namespace.tile.Tile) {
-                tile = tile.index;
-            }
-            if (typeof tile === 'string') {
-                const obj = GWM__namespace.tile.tiles[tile];
-                if (!obj)
-                    throw new Error('Failed to find tie: ' + tile);
-                tile = obj.index;
-            }
-            return this.tiles.hasXY(x, y) && this.tiles[x][y] == tile;
-        }
-        getMachine(_x, _y) {
-            return 0;
-        }
-    }
-
-    const Flags$1 = GWM__namespace.flags.Cell;
-    class MapSite {
-        constructor(map) {
-            this.machineCount = 0;
-            this.map = map;
-        }
-        get width() {
-            return this.map.width;
-        }
-        get height() {
-            return this.map.height;
-        }
-        hasXY(x, y) {
-            return this.map.hasXY(x, y);
-        }
-        isBoundaryXY(x, y) {
-            return this.map.isBoundaryXY(x, y);
-        }
-        hasCellFlag(x, y, flag) {
-            return this.map.cellInfo(x, y).hasCellFlag(flag);
-        }
-        setCellFlag(x, y, flag) {
-            this.map.cell(x, y).setCellFlag(flag);
-        }
-        clearCellFlag(x, y, flag) {
-            this.map.cell(x, y).clearCellFlag(flag);
-        }
-        hasTile(x, y, tile) {
-            return this.map.cellInfo(x, y).hasTile(tile);
-        }
-        setTile(x, y, tile, opts) {
-            return this.map.setTile(x, y, tile, opts);
-        }
-        getTileIndex(x, y) {
-            if (!this.hasXY(x, y))
-                return 0;
-            const cell = this.map.cell(x, y);
-            const tile = cell.highestPriorityTile();
-            return tile.index;
-        }
-        clear() {
-            this.map.cells.forEach((c) => c.clear());
-        }
-        hasItem(x, y) {
-            return this.map.cellInfo(x, y).hasItem();
-        }
-        makeRandomItem(tags) {
-            return GWM__namespace.item.makeRandom(tags);
-        }
-        addItem(x, y, item) {
-            return this.map.forceItem(x, y, item);
-        }
-        hasActor(x, y) {
-            return this.map.hasActor(x, y);
-        }
-        blocksMove(x, y) {
-            return this.map.cellInfo(x, y).blocksMove();
-        }
-        blocksVision(x, y) {
-            return this.map.cellInfo(x, y).blocksVision();
-        }
-        blocksDiagonal(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_DIAGONAL);
-        }
-        blocksPathing(x, y) {
-            const info = this.map.cellInfo(x, y);
-            return (info.hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_MOVE) ||
-                info.hasTileFlag(GWM__namespace.tile.flags.Tile.T_PATHING_BLOCKER));
-        }
-        blocksItems(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_ITEMS);
-        }
-        blocksEffects(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_EFFECTS);
-        }
-        isWall(x, y) {
-            return this.map.cellInfo(x, y).isWall();
-        }
-        isStairs(x, y) {
-            return this.map.cellInfo(x, y).isStairs();
-        }
-        isSet(x, y) {
-            return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
-        }
-        isDiggable(x, y) {
-            if (!this.hasXY(x, y))
-                return false;
-            const cell = this.map.cell(x, y);
-            if (cell.isEmpty())
-                return true;
-            if (cell.isWall())
-                return true;
-            return false;
-        }
-        isNothing(x, y) {
-            return this.hasXY(x, y) && this.map.cell(x, y).isEmpty();
-        }
-        isFloor(x, y) {
-            return this.isPassable(x, y);
-        }
-        isBridge(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_BRIDGE);
-        }
-        isDoor(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DOOR);
-        }
-        isSecretDoor(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasEntityFlag(GWM__namespace.flags.Entity.L_SECRETLY_PASSABLE);
-        }
-        isDeep(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_DEEP_WATER);
-        }
-        isShallow(x, y) {
-            if (!this.hasXY(x, y))
-                return false;
-            const cell = this.map.cell(x, y);
-            return (!!cell.depthTile(GWM__namespace.flags.Depth.LIQUID) &&
-                !cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
-        }
-        isAnyLiquid(x, y) {
-            if (!this.hasXY(x, y))
-                return false;
-            const cell = this.map.cell(x, y);
-            return (cell.hasDepthTile(GWM__namespace.flags.Depth.LIQUID) ||
-                cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
-        }
-        isOccupied(x, y) {
-            return this.hasItem(x, y) || this.hasActor(x, y);
-        }
-        isPassable(x, y) {
-            const info = this.map.cellInfo(x, y);
-            return !(info.blocksMove() || info.blocksPathing());
-        }
-        // tileBlocksMove(tile: number): boolean {
-        //     return GWM.tile.get(tile).blocksMove();
-        // }
-        backup() {
-            const site = new MapSite(this.map.clone());
-            site.machineCount = this.machineCount;
-            return site;
-        }
-        restore(backup) {
-            this.map.copy(backup.map);
-            this.machineCount = backup.machineCount;
-        }
-        free() { }
-        getChokeCount(x, y) {
-            return this.map.cell(x, y).chokeCount;
-        }
-        setChokeCount(x, y, count) {
-            this.map.cell(x, y).chokeCount = count;
-        }
-        analyze() {
-            GWM__namespace.map.analyze(this.map);
-        }
-        fireEffect(effect, x, y) {
-            return GWM__namespace.effect.fireSync(effect, this.map, x, y);
-        }
-        nextMachineId() {
-            return ++this.machineCount;
-        }
-        getMachine(x, y) {
-            return this.map.cell(x, y).machineId;
-        }
-        setMachine(x, y, id, isRoom = true) {
-            this.map.cell(x, y).machineId = id;
-            if (id == 0) {
-                this.map.clearCellFlag(x, y, Flags$1.IS_IN_MACHINE);
-            }
-            else {
-                this.map.setCellFlag(x, y, isRoom ? Flags$1.IS_IN_ROOM_MACHINE : Flags$1.IS_IN_AREA_MACHINE);
-            }
-        }
-    }
 
     // import * as TYPES from './types';
     const DIRS$1 = GWU__namespace.xy.DIRS;
@@ -676,6 +335,21 @@
     function fillCostGrid(source, costGrid) {
         costGrid.update((_v, x, y) => source.isPassable(x, y) ? 1 : GWU__namespace.path.OBSTRUCTION);
     }
+    function siteDisruptedByXY(site, x, y, options = {}) {
+        var _a, _b, _c;
+        (_a = options.offsetX) !== null && _a !== void 0 ? _a : (options.offsetX = 0);
+        (_b = options.offsetY) !== null && _b !== void 0 ? _b : (options.offsetY = 0);
+        (_c = options.machine) !== null && _c !== void 0 ? _c : (options.machine = 0);
+        if (GWU__namespace.xy.arcCount(x, y, (i, j) => {
+            return site.isPassable(i, j);
+        }) <= 1)
+            return false;
+        const blockingGrid = GWU__namespace.grid.alloc(site.width, site.height);
+        blockingGrid[x][y] = 1;
+        const result = siteDisruptedBy(site, blockingGrid, options);
+        GWU__namespace.grid.free(blockingGrid);
+        return result;
+    }
     function siteDisruptedBy(site, blockingGrid, options = {}) {
         var _a, _b, _c;
         (_a = options.offsetX) !== null && _a !== void 0 ? _a : (options.offsetX = 0);
@@ -775,7 +449,390 @@
         }
     }
 
-    var index$1 = {
+    var _a, _b;
+    const NOTHING = GWM__namespace.tile.get('NULL').index;
+    const FLOOR = GWM__namespace.tile.get('FLOOR').index;
+    const DOOR = GWM__namespace.tile.get('DOOR').index;
+    const SECRET_DOOR = (_b = (_a = GWM__namespace.tile.get('DOOR_SECRET')) === null || _a === void 0 ? void 0 : _a.index) !== null && _b !== void 0 ? _b : -1;
+    const WALL = GWM__namespace.tile.get('WALL').index;
+    const DEEP = GWM__namespace.tile.get('LAKE').index;
+    const SHALLOW = GWM__namespace.tile.get('SHALLOW').index;
+    const BRIDGE = GWM__namespace.tile.get('BRIDGE').index;
+    const UP_STAIRS = GWM__namespace.tile.get('UP_STAIRS').index;
+    const DOWN_STAIRS = GWM__namespace.tile.get('DOWN_STAIRS').index;
+    const IMPREGNABLE = GWM__namespace.tile.get('IMPREGNABLE').index;
+    const TILEMAP = {
+        [NOTHING]: 'NULL',
+        [FLOOR]: 'FLOOR',
+        [DOOR]: 'DOOR',
+        [WALL]: 'WALL',
+        [IMPREGNABLE]: 'IMPREGNABLE',
+        [DEEP]: 'LAKE',
+        [SHALLOW]: 'SHALLOW',
+        [BRIDGE]: 'BRIDGE',
+        [UP_STAIRS]: 'UP_STAIRS',
+        [DOWN_STAIRS]: 'DOWN_STAIRS',
+    };
+    class GridSite {
+        constructor(width, height) {
+            this.seed = 0;
+            this.tiles = GWU__namespace.grid.alloc(width, height);
+            this.doors = GWU__namespace.grid.alloc(width, height);
+        }
+        free() {
+            GWU__namespace.grid.free(this.tiles);
+            GWU__namespace.grid.free(this.doors);
+        }
+        clear() {
+            this.tiles.fill(0);
+            this.doors.fill(0);
+        }
+        get width() {
+            return this.tiles.width;
+        }
+        get height() {
+            return this.tiles.height;
+        }
+        hasXY(x, y) {
+            return this.tiles.hasXY(x, y);
+        }
+        isBoundaryXY(x, y) {
+            return this.tiles.isBoundaryXY(x, y);
+        }
+        isPassable(x, y) {
+            return (this.isFloor(x, y) ||
+                this.isDoor(x, y) ||
+                this.isBridge(x, y) ||
+                this.isStairs(x, y) ||
+                this.isShallow(x, y));
+        }
+        isNothing(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === NOTHING;
+        }
+        isDiggable(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === NOTHING;
+        }
+        isFloor(x, y) {
+            return this.tiles.get(x, y) == FLOOR;
+        }
+        isDoor(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === DOOR;
+        }
+        isSecretDoor(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === SECRET_DOOR;
+        }
+        isBridge(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === BRIDGE;
+        }
+        isWall(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === WALL || v === IMPREGNABLE;
+        }
+        blocksMove(x, y) {
+            return this.isNothing(x, y) || this.isWall(x, y) || this.isDeep(x, y);
+        }
+        blocksDiagonal(x, y) {
+            return this.isNothing(x, y) || this.isWall(x, y);
+        }
+        blocksPathing(x, y) {
+            return (this.isNothing(x, y) ||
+                this.isWall(x, y) ||
+                this.isDeep(x, y) ||
+                this.isStairs(x, y));
+        }
+        blocksVision(x, y) {
+            return this.isNothing(x, y) || this.isWall(x, y);
+        }
+        blocksItems(x, y) {
+            return this.blocksPathing(x, y) || this.blocksPathing(x, y);
+        }
+        blocksEffects(x, y) {
+            return this.isWall(x, y);
+        }
+        isStairs(x, y) {
+            const v = this.tiles.get(x, y);
+            return v === UP_STAIRS || v === DOWN_STAIRS;
+        }
+        isDeep(x, y) {
+            return this.tiles.get(x, y) === DEEP;
+        }
+        isShallow(x, y) {
+            return this.tiles.get(x, y) === SHALLOW;
+        }
+        isAnyLiquid(x, y) {
+            return this.isDeep(x, y) || this.isShallow(x, y);
+        }
+        isSet(x, y) {
+            return (this.tiles.get(x, y) || 0) > 0;
+        }
+        getTileIndex(x, y) {
+            return this.tiles.get(x, y) || 0;
+        }
+        setTile(x, y, tile) {
+            if (tile instanceof GWM__namespace.tile.Tile) {
+                tile = tile.index;
+            }
+            if (typeof tile === 'string') {
+                const obj = GWM__namespace.tile.tiles[tile];
+                if (!obj)
+                    throw new Error('Failed to find tie: ' + tile);
+                tile = obj.index;
+            }
+            if (!this.tiles.hasXY(x, y))
+                return false;
+            this.tiles[x][y] = tile;
+            return true;
+        }
+        hasTile(x, y, tile) {
+            if (tile instanceof GWM__namespace.tile.Tile) {
+                tile = tile.index;
+            }
+            if (typeof tile === 'string') {
+                const obj = GWM__namespace.tile.tiles[tile];
+                if (!obj)
+                    throw new Error('Failed to find tie: ' + tile);
+                tile = obj.index;
+            }
+            return this.tiles.hasXY(x, y) && this.tiles[x][y] == tile;
+        }
+        getMachine(_x, _y) {
+            return 0;
+        }
+        updateDoorDirs() {
+            this.doors.update((_v, x, y) => {
+                return directionOfDoorSite(this, x, y);
+            });
+        }
+        getDoorDir(x, y) {
+            return this.doors[x][y];
+        }
+    }
+
+    const Flags$1 = GWM__namespace.flags.Cell;
+    class MapSite {
+        constructor(map) {
+            this.machineCount = 0;
+            this.needsAnalysis = true;
+            this.map = map;
+            this.doors = GWU__namespace.grid.alloc(map.width, map.height);
+        }
+        get seed() {
+            return this.map.seed;
+        }
+        set seed(v) {
+            this.map.seed = v;
+        }
+        get width() {
+            return this.map.width;
+        }
+        get height() {
+            return this.map.height;
+        }
+        hasXY(x, y) {
+            return this.map.hasXY(x, y);
+        }
+        isBoundaryXY(x, y) {
+            return this.map.isBoundaryXY(x, y);
+        }
+        hasCellFlag(x, y, flag) {
+            return this.map.cellInfo(x, y).hasCellFlag(flag);
+        }
+        setCellFlag(x, y, flag) {
+            this.needsAnalysis = true;
+            this.map.cell(x, y).setCellFlag(flag);
+        }
+        clearCellFlag(x, y, flag) {
+            this.needsAnalysis = true;
+            this.map.cell(x, y).clearCellFlag(flag);
+        }
+        hasTile(x, y, tile) {
+            return this.map.cellInfo(x, y).hasTile(tile);
+        }
+        setTile(x, y, tile, opts) {
+            this.needsAnalysis = true;
+            return this.map.setTile(x, y, tile, opts);
+        }
+        getTileIndex(x, y) {
+            if (!this.hasXY(x, y))
+                return 0;
+            const cell = this.map.cell(x, y);
+            const tile = cell.highestPriorityTile();
+            return tile.index;
+        }
+        clear() {
+            this.needsAnalysis = true;
+            this.map.cells.forEach((c) => c.clear());
+        }
+        hasItem(x, y) {
+            return this.map.cellInfo(x, y).hasItem();
+        }
+        makeRandomItem(tags) {
+            return GWM__namespace.item.makeRandom(tags);
+        }
+        addItem(x, y, item) {
+            this.needsAnalysis = true;
+            return this.map.forceItem(x, y, item);
+        }
+        hasActor(x, y) {
+            return this.map.hasActor(x, y);
+        }
+        blocksMove(x, y) {
+            return this.map.cellInfo(x, y).blocksMove();
+        }
+        blocksVision(x, y) {
+            return this.map.cellInfo(x, y).blocksVision();
+        }
+        blocksDiagonal(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_DIAGONAL);
+        }
+        blocksPathing(x, y) {
+            const info = this.map.cellInfo(x, y);
+            return (info.hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_MOVE) ||
+                info.hasTileFlag(GWM__namespace.tile.flags.Tile.T_PATHING_BLOCKER));
+        }
+        blocksItems(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_ITEMS);
+        }
+        blocksEffects(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_EFFECTS);
+        }
+        isWall(x, y) {
+            return this.map.cellInfo(x, y).isWall();
+        }
+        isStairs(x, y) {
+            return this.map.cellInfo(x, y).isStairs();
+        }
+        isSet(x, y) {
+            return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
+        }
+        isDiggable(x, y) {
+            if (!this.hasXY(x, y))
+                return false;
+            const cell = this.map.cell(x, y);
+            if (cell.isEmpty())
+                return true;
+            if (cell.isWall())
+                return true;
+            return false;
+        }
+        isNothing(x, y) {
+            return this.hasXY(x, y) && this.map.cell(x, y).isEmpty();
+        }
+        isFloor(x, y) {
+            return this.isPassable(x, y);
+        }
+        isBridge(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_BRIDGE);
+        }
+        isDoor(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DOOR);
+        }
+        isSecretDoor(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasEntityFlag(GWM__namespace.flags.Entity.L_SECRETLY_PASSABLE);
+        }
+        isDeep(x, y) {
+            return this.map
+                .cellInfo(x, y)
+                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_DEEP_WATER);
+        }
+        isShallow(x, y) {
+            if (!this.hasXY(x, y))
+                return false;
+            const cell = this.map.cell(x, y);
+            return (!!cell.depthTile(GWM__namespace.flags.Depth.LIQUID) &&
+                !cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
+        }
+        isAnyLiquid(x, y) {
+            if (!this.hasXY(x, y))
+                return false;
+            const cell = this.map.cell(x, y);
+            return (cell.hasDepthTile(GWM__namespace.flags.Depth.LIQUID) ||
+                cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
+        }
+        isOccupied(x, y) {
+            return this.hasItem(x, y) || this.hasActor(x, y);
+        }
+        isPassable(x, y) {
+            const info = this.map.cellInfo(x, y);
+            return !(info.blocksMove() || info.blocksPathing());
+        }
+        // tileBlocksMove(tile: number): boolean {
+        //     return GWM.tile.get(tile).blocksMove();
+        // }
+        backup() {
+            const site = new MapSite(this.map.clone());
+            site.machineCount = this.machineCount;
+            site.needsAnalysis = this.needsAnalysis;
+            return site;
+        }
+        restore(backup) {
+            this.map.copy(backup.map);
+            this.machineCount = backup.machineCount;
+            this.needsAnalysis = backup.needsAnalysis;
+        }
+        free() {
+            GWU__namespace.grid.free(this.doors);
+        }
+        getChokeCount(x, y) {
+            return this.map.cell(x, y).chokeCount;
+        }
+        setChokeCount(x, y, count) {
+            this.map.cell(x, y).chokeCount = count;
+        }
+        analyze() {
+            if (this.needsAnalysis) {
+                GWM__namespace.map.analyze(this.map);
+            }
+            this.needsAnalysis = false;
+        }
+        fireEffect(effect, x, y) {
+            this.needsAnalysis = true;
+            return GWM__namespace.effect.fireSync(effect, this.map, x, y);
+        }
+        nextMachineId() {
+            return ++this.machineCount;
+        }
+        getMachine(x, y) {
+            return this.map.cell(x, y).machineId;
+        }
+        setMachine(x, y, id, isRoom = true) {
+            this.needsAnalysis = true;
+            this.map.cell(x, y).machineId = id;
+            if (id == 0) {
+                this.map.clearCellFlag(x, y, Flags$1.IS_IN_MACHINE);
+            }
+            else {
+                this.map.setCellFlag(x, y, isRoom ? Flags$1.IS_IN_ROOM_MACHINE : Flags$1.IS_IN_AREA_MACHINE);
+            }
+        }
+        updateDoorDirs() {
+            this.doors.update((_v, x, y) => {
+                return directionOfDoorSite(this, x, y);
+            });
+        }
+        getDoorDir(x, y) {
+            return this.doors[x][y];
+        }
+    }
+
+    var index$1 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         NOTHING: NOTHING,
         FLOOR: FLOOR,
@@ -795,38 +852,21 @@
         chooseRandomDoorSites: chooseRandomDoorSites,
         copySite: copySite,
         fillCostGrid: fillCostGrid,
+        siteDisruptedByXY: siteDisruptedByXY,
         siteDisruptedBy: siteDisruptedBy,
         siteDisruptedSize: siteDisruptedSize,
         computeDistanceMap: computeDistanceMap,
         clearInteriorFlag: clearInteriorFlag
-    };
+    });
 
-    class Hall {
-        constructor(loc, dir, length, width = 1) {
-            this.width = 1;
+    class Hall extends GWU__namespace.xy.Bounds {
+        constructor(x, y, width, height) {
+            super(x, y, width, height);
             this.doors = [];
-            this.x = loc[0];
-            this.y = loc[1];
-            const d = GWU__namespace.xy.DIRS[dir];
-            this.length = length;
-            this.width = width;
-            // console.log('Hall', loc, d, length, width);
-            if (dir === GWU__namespace.xy.UP || dir === GWU__namespace.xy.DOWN) {
-                this.x2 = this.x + (width - 1);
-                this.y2 = this.y + (length - 1) * d[1];
-            }
-            else {
-                this.x2 = this.x + (length - 1) * d[0];
-                this.y2 = this.y + (width - 1);
-            }
-            // console.log(' - ', [this.x2, this.y2]);
-            this.dir = dir;
         }
         translate(dx, dy) {
             this.x += dx;
             this.y += dy;
-            this.x2 += dx;
-            this.y2 += dy;
             if (this.doors) {
                 this.doors.forEach((d) => {
                     if (!d)
@@ -838,6 +878,14 @@
                 });
             }
         }
+    }
+    function makeHall(loc, dirIndex, hallLength, hallWidth = 1) {
+        const dir = GWU__namespace.xy.DIRS[dirIndex];
+        const x = Math.min(loc[0], loc[0] + dir[0] * (hallLength - 1));
+        const y = Math.min(loc[1], loc[1] + dir[1] * (hallLength - 1));
+        const width = Math.abs(dir[0] * hallLength) || hallWidth;
+        const height = Math.abs(dir[1] * hallLength) || hallWidth;
+        return new Hall(x, y, width, height);
     }
     class Room extends GWU__namespace.xy.Bounds {
         constructor(x, y, width, height) {
@@ -1236,7 +1284,7 @@
     }
     install$2('DEFAULT', new Rectangular());
 
-    var room = {
+    var room = /*#__PURE__*/Object.freeze({
         __proto__: null,
         checkConfig: checkConfig,
         RoomDigger: RoomDigger,
@@ -1260,7 +1308,7 @@
         ChunkyRoom: ChunkyRoom,
         chunkyRoom: chunkyRoom,
         install: install$2
-    };
+    });
 
     const DIRS = GWU__namespace.xy.DIRS;
     function isDoorLoc(site, loc, dir) {
@@ -1415,7 +1463,7 @@
         dig(site, dir, door, length) {
             const DIR = DIRS[dir];
             const [x, y] = this._digLine(site, door, DIR, length);
-            const hall = new Hall(door, dir, length);
+            const hall = makeHall(door, dir, length);
             hall.doors = pickHallExits(site, x, y, dir, this.config.obliqueChance);
             return hall;
         }
@@ -1439,13 +1487,13 @@
                 startY = Math.min(higher[1], startY);
                 ++actual;
             }
-            const hall = new Hall([startX, startY], dir, length, width);
+            const hall = makeHall([startX, startY], dir, length, width);
             hall.doors = [];
             hall.doors[dir] = [
                 door[0] + length * DIR[0],
                 door[1] + length * DIR[1],
             ];
-            hall.width = width;
+            // hall.width = width;
             return hall;
         }
     }
@@ -1461,7 +1509,7 @@
     }
     install$1('DEFAULT', new HallDigger({ chance: 15 }));
 
-    var hall = {
+    var hall = /*#__PURE__*/Object.freeze({
         __proto__: null,
         isDoorLoc: isDoorLoc,
         pickWidth: pickWidth,
@@ -1472,7 +1520,7 @@
         dig: dig,
         halls: halls,
         install: install$1
-    };
+    });
 
     class Lakes {
         constructor(options = {}) {
@@ -1609,10 +1657,10 @@
         }
     }
 
-    var lake = {
+    var lake = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Lakes: Lakes
-    };
+    });
 
     class Bridges {
         constructor(options = {}) {
@@ -1718,10 +1766,10 @@
         }
     }
 
-    var bridge = {
+    var bridge = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Bridges: Bridges
-    };
+    });
 
     class Stairs {
         constructor(options = {}) {
@@ -1883,10 +1931,10 @@
         }
     }
 
-    var stairs = {
+    var stairs = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Stairs: Stairs
-    };
+    });
 
     class LoopDigger {
         constructor(options = {}) {
@@ -2032,11 +2080,11 @@
         return digger.create(site);
     }
 
-    var loop = {
+    var loop = /*#__PURE__*/Object.freeze({
         __proto__: null,
         LoopDigger: LoopDigger,
         digLoops: digLoops
-    };
+    });
 
     class Level {
         constructor(options = {}) {
@@ -2052,7 +2100,7 @@
             this.boundary = true;
             this.startLoc = [-1, -1];
             this.endLoc = [-1, -1];
-            this.seed = options.seed || 0;
+            this.seed = options.seed || GWU__namespace.random.number();
             GWU__namespace.object.setOptions(this.rooms, options.rooms);
             // Doors
             if (options.doors === false) {
@@ -2152,10 +2200,13 @@
             }
             if (!tries)
                 throw new Error('Failed to place first room!');
+            site.updateDoorDirs();
             let fails = 0;
             while (fails < 20) {
                 if (this.addRoom(site)) {
                     fails = 0;
+                    site.updateDoorDirs();
+                    GWU__namespace.random.shuffle(this.seq);
                 }
                 else {
                     ++fails;
@@ -2175,6 +2226,7 @@
         start(site) {
             if (this.seed) {
                 GWU__namespace.random.seed(this.seed);
+                site.seed = this.seed;
             }
             site.clear();
             this.seq = GWU__namespace.random.sequence(site.width * site.height);
@@ -2225,13 +2277,13 @@
         _attachRoom(site, roomSite, room) {
             // console.log('attachRoom');
             const doorSites = room.hall ? room.hall.doors : room.doors;
+            let i = 0;
+            const len = this.seq.length;
             // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
-            for (let i = 0; i < this.seq.length; i++) {
+            for (i = 0; i < len; i++) {
                 const x = Math.floor(this.seq[i] / site.height);
                 const y = this.seq[i] % site.height;
-                if (!site.isNothing(x, y))
-                    continue;
-                const dir = directionOfDoorSite(site, x, y);
+                const dir = site.getDoorDir(x, y);
                 if (dir != GWU__namespace.xy.NO_DIRECTION) {
                     const oppDir = (dir + 2) % 4;
                     const door = doorSites[oppDir];
@@ -2240,7 +2292,7 @@
                     const offsetX = x - door[0];
                     const offsetY = y - door[1];
                     if (door[0] != -1 &&
-                        this._roomFitsAt(site, roomSite, offsetX, offsetY)) {
+                        this._roomFitsAt(site, roomSite, room, offsetX, offsetY)) {
                         // TYPES.Room fits here.
                         copySite(site, roomSite, offsetX, offsetY);
                         this._attachDoor(site, room, x, y, oppDir);
@@ -2265,7 +2317,7 @@
                     continue;
                 const offX = x - door[0];
                 const offY = y - door[1];
-                if (this._roomFitsAt(site, roomSite, offX, offY)) {
+                if (this._roomFitsAt(site, roomSite, room, offX, offY)) {
                     // dungeon.debug("attachRoom: ", x, y, oppDir);
                     // TYPES.Room fits here.
                     copySite(site, roomSite, offX, offY);
@@ -2282,19 +2334,26 @@
             }
             return false;
         }
-        _roomFitsAt(map, roomGrid, roomToSiteX, roomToSiteY) {
+        _roomFitsAt(map, roomGrid, room, roomToSiteX, roomToSiteY) {
             let xRoom, yRoom, xSite, ySite, i, j;
             // console.log('roomFitsAt', roomToSiteX, roomToSiteY);
-            for (xRoom = 0; xRoom < roomGrid.width; xRoom++) {
-                for (yRoom = 0; yRoom < roomGrid.height; yRoom++) {
+            const hall = room.hall || room;
+            const left = Math.min(room.left, hall.left);
+            const top = Math.min(room.top, hall.top);
+            const right = Math.max(room.right, hall.right);
+            const bottom = Math.max(room.bottom, hall.bottom);
+            for (xRoom = left; xRoom <= right; xRoom++) {
+                for (yRoom = top; yRoom <= bottom; yRoom++) {
                     if (roomGrid.isSet(xRoom, yRoom)) {
                         xSite = xRoom + roomToSiteX;
                         ySite = yRoom + roomToSiteY;
+                        if (!map.hasXY(xSite, ySite) ||
+                            map.isBoundaryXY(xSite, ySite)) {
+                            return false;
+                        }
                         for (i = xSite - 1; i <= xSite + 1; i++) {
                             for (j = ySite - 1; j <= ySite + 1; j++) {
-                                if (!map.hasXY(i, j) ||
-                                    map.isBoundaryXY(i, j) ||
-                                    !map.isNothing(i, j)) {
+                                if (!map.isNothing(i, j)) {
                                     // console.log('- NO');
                                     return false;
                                 }
@@ -2315,7 +2374,7 @@
             const tile = isDoor ? opts.tile || DOOR : FLOOR;
             map.setTile(x, y, tile); // Door site.
             // most cases...
-            if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
+            if (!room.hall || room.hall.width == 1 || room.hall.height == 1) {
                 return;
             }
             if (dir === GWU__namespace.xy.UP || dir === GWU__namespace.xy.DOWN) {
@@ -2557,24 +2616,477 @@
     }
 
     const Fl$1 = GWU__namespace.flag.fl;
+    var StepFlags;
+    (function (StepFlags) {
+        StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
+        StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl$1(2)] = "BF_BUILD_VESTIBULE";
+        StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl$1(3)] = "BF_ADOPT_ITEM";
+        StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl$1(4)] = "BF_BUILD_AT_ORIGIN";
+        StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl$1(5)] = "BF_PERMIT_BLOCKING";
+        StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl$1(6)] = "BF_TREAT_AS_BLOCKING";
+        StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl$1(7)] = "BF_NEAR_ORIGIN";
+        StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl$1(8)] = "BF_FAR_FROM_ORIGIN";
+        StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl$1(9)] = "BF_IN_VIEW_OF_ORIGIN";
+        StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(10)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
+        StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl$1(11)] = "BF_MONSTER_TAKE_ITEM";
+        StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl$1(12)] = "BF_MONSTER_SLEEPING";
+        StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl$1(13)] = "BF_MONSTER_FLEEING";
+        StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl$1(14)] = "BF_MONSTERS_DORMANT";
+        StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl$1(15)] = "BF_ITEM_IS_KEY";
+        StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl$1(16)] = "BF_ITEM_IDENTIFIED";
+        StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl$1(17)] = "BF_ITEM_PLAYER_AVOIDS";
+        StepFlags[StepFlags["BF_EVERYWHERE"] = Fl$1(18)] = "BF_EVERYWHERE";
+        StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl$1(19)] = "BF_ALTERNATIVE";
+        StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl$1(20)] = "BF_ALTERNATIVE_2";
+        StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl$1(21)] = "BF_BUILD_IN_WALLS";
+        StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
+        StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
+        StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
+        // TODO - BF_ALLOW_IN_HALLWAY instead?
+        StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
+        // TODO - BF_ALLOW_BOUNDARY instead
+        StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl$1(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
+        StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl$1(29)] = "BF_SKELETON_KEY";
+        StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl$1(30)] = "BF_KEY_DISPOSABLE";
+    })(StepFlags || (StepFlags = {}));
+    class BuildStep {
+        constructor(cfg = {}) {
+            var _a;
+            this.tile = -1;
+            this.flags = 0;
+            this.pad = 0;
+            this.item = null;
+            this.horde = null;
+            this.effect = null;
+            this.chance = 0;
+            this.id = 'n/a';
+            this.tile = (_a = cfg.tile) !== null && _a !== void 0 ? _a : -1;
+            if (cfg.flags) {
+                this.flags = GWU__namespace.flag.from(StepFlags, cfg.flags);
+            }
+            if (cfg.pad) {
+                this.pad = cfg.pad;
+            }
+            this.count = GWU__namespace.range.make(cfg.count || 1);
+            this.item = cfg.item || null;
+            this.horde = cfg.horde || null;
+            if (cfg.effect) {
+                this.effect = GWM__namespace.effect.from(cfg.effect);
+            }
+            if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
+                throw new Error('Cannot have blueprint step with item and BF_ADOPT_ITEM.');
+            }
+        }
+        get repeatUntilNoProgress() {
+            return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
+        }
+        get permitBlocking() {
+            return !!(this.flags & StepFlags.BF_PERMIT_BLOCKING);
+        }
+        get treatAsBlocking() {
+            return !!(this.flags & StepFlags.BF_TREAT_AS_BLOCKING);
+        }
+        get adoptItem() {
+            return !!(this.flags & StepFlags.BF_ADOPT_ITEM);
+        }
+        get itemIsKey() {
+            return !!(this.flags & StepFlags.BF_ITEM_IS_KEY);
+        }
+        get keyIsDisposable() {
+            return !!(this.flags & StepFlags.BF_KEY_DISPOSABLE);
+        }
+        get outsourceItem() {
+            return !!(this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE);
+        }
+        get impregnable() {
+            return !!(this.flags & StepFlags.BF_IMPREGNABLE);
+        }
+        get buildVestibule() {
+            return !!(this.flags & StepFlags.BF_BUILD_VESTIBULE);
+        }
+        get generateEverywhere() {
+            return !!(this.flags &
+                StepFlags.BF_EVERYWHERE &
+                ~StepFlags.BF_BUILD_AT_ORIGIN);
+        }
+        get buildAtOrigin() {
+            return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
+        }
+    }
+    function updateViewMap(builder, buildStep) {
+        if (buildStep.flags &
+            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
+                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
+            const site = builder.site;
+            if (buildStep.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
+                const fov = new GWU__namespace.fov.FOV({
+                    isBlocked: (x, y) => {
+                        return site.blocksPathing(x, y);
+                    },
+                    hasXY: (x, y) => {
+                        return site.hasXY(x, y);
+                    },
+                });
+                fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                    builder.viewMap[x][y] = 1;
+                });
+            }
+            else {
+                const fov = new GWU__namespace.fov.FOV({
+                    // TileFlags.T_OBSTRUCTS_PASSABILITY |
+                    //     TileFlags.T_OBSTRUCTS_VISION,
+                    isBlocked: (x, y) => {
+                        return site.blocksPathing(x, y) || site.blocksVision(x, y);
+                    },
+                    hasXY: (x, y) => {
+                        return site.hasXY(x, y);
+                    },
+                });
+                fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                    builder.viewMap[x][y] = 1;
+                });
+            }
+            builder.viewMap[builder.originX][builder.originY] = 1;
+        }
+    }
+    function calcDistanceBound(builder, buildStep) {
+        const distanceBound = [0, 10000];
+        if (buildStep.flags & StepFlags.BF_NEAR_ORIGIN) {
+            distanceBound[1] = builder.distance25;
+        }
+        if (buildStep.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
+            distanceBound[0] = builder.distance75;
+        }
+        return distanceBound;
+    }
+    function markCandidates(candidates, builder, blueprint, buildStep, distanceBound) {
+        let count = 0;
+        candidates.update((_v, i, j) => {
+            if (cellIsCandidate(builder, blueprint, buildStep, i, j, distanceBound)) {
+                count++;
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        });
+        return count;
+    }
+    function cellIsCandidate(builder, blueprint, buildStep, x, y, distanceBound) {
+        const site = builder.site;
+        // No building in the hallway if it's prohibited.
+        // This check comes before the origin check, so an area machine will fail altogether
+        // if its origin is in a hallway and the feature that must be built there does not permit as much.
+        if (buildStep.flags & StepFlags.BF_NOT_IN_HALLWAY &&
+            GWU__namespace.xy.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
+            return false;
+        }
+        // No building along the perimeter of the level if it's prohibited.
+        if (buildStep.flags & StepFlags.BF_NOT_ON_LEVEL_PERIMETER &&
+            (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1)) {
+            return false;
+        }
+        // The origin is a candidate if the feature is flagged to be built at the origin.
+        // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
+        if (buildStep.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
+            return x == builder.originX && y == builder.originY ? true : false;
+        }
+        else if (blueprint.isRoom &&
+            x == builder.originX &&
+            y == builder.originY) {
+            return false;
+        }
+        // No building in another feature's personal space!
+        if (builder.occupied[x][y]) {
+            return false;
+        }
+        // Must be in the viewmap if the appropriate flag is set.
+        if (buildStep.flags &
+            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
+                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
+            !builder.viewMap[x][y]) {
+            return false;
+        }
+        // Do a distance check if the feature requests it.
+        let distance = 10000;
+        if (site.isWall(x, y)) {
+            // Distance is calculated for walls too.
+            GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
+                if (!builder.distanceMap.hasXY(i, j))
+                    return;
+                if (!site.blocksPathing(i, j) &&
+                    distance > builder.distanceMap[i][j] + 1) {
+                    distance = builder.distanceMap[i][j] + 1;
+                }
+            }, true);
+        }
+        else {
+            distance = builder.distanceMap[x][y];
+        }
+        if (distance > distanceBound[1] || // distance exceeds max
+            distance < distanceBound[0]) {
+            // distance falls short of min
+            return false;
+        }
+        if (buildStep.flags & StepFlags.BF_BUILD_IN_WALLS) {
+            // If we're supposed to build in a wall...
+            const cellMachine = site.getMachine(x, y);
+            if (!builder.interior[x][y] &&
+                (!cellMachine || cellMachine == builder.machineNumber) &&
+                site.isWall(x, y)) {
+                let ok = false;
+                // ...and this location is a wall that's not already machined...
+                GWU__namespace.xy.eachNeighbor(x, y, (newX, newY) => {
+                    if (site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
+                        ((builder.interior[newX][newY] &&
+                            !(newX == builder.originX && newY == builder.originY)) ||
+                            (buildStep.flags &
+                                StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL &&
+                                !site.blocksPathing(newX, newY) &&
+                                !site.getMachine(newX, newY)))) {
+                        ok = true;
+                    }
+                });
+                return ok;
+            }
+            return false;
+        }
+        else if (site.isWall(x, y)) {
+            // Can't build in a wall unless instructed to do so.
+            return false;
+        }
+        else if (buildStep.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
+            if ((buildStep.item && site.blocksItems(x, y)) ||
+                site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_CHOKEPOINT |
+                    GWM__namespace.flags.Cell.IS_IN_LOOP |
+                    GWM__namespace.flags.Cell.IS_IN_MACHINE)) {
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
+        else if (builder.interior[x][y]) {
+            return true;
+        }
+        return false;
+    }
+    function makePersonalSpace(builder, x, y, candidates, personalSpace) {
+        let count = 0;
+        for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
+            for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
+                if (builder.site.hasXY(i, j)) {
+                    if (candidates[i][j]) {
+                        candidates[i][j] = 0;
+                        ++count;
+                    }
+                    builder.occupied[i][j] = 1;
+                }
+            }
+        }
+        return count;
+    }
+    // export function buildStep(
+    //     builder: BuildData,
+    //     blueprint: Blueprint,
+    //     buildStep: BuildStep,
+    //     adoptedItem: GWM.item.Item | null
+    // ): boolean {
+    //     let wantCount = 0;
+    //     let builtCount = 0;
+    //     const site = builder.site;
+    //     const candidates = GWU.grid.alloc(site.width, site.height);
+    //     // Figure out the distance bounds.
+    //     const distanceBound = calcDistanceBound(builder, buildStep);
+    //     buildStep.updateViewMap(builder);
+    //     // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+    //     // Make a master map of candidate locations for this feature.
+    //     let qualifyingTileCount = markCandidates(
+    //         candidates,
+    //         builder,
+    //         blueprint,
+    //         buildStep,
+    //         distanceBound
+    //     );
+    //     if (!buildStep.generateEverywhere) {
+    //         wantCount = buildStep.count.value();
+    //     }
+    //     if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
+    //         console.log(
+    //             ' - Only %s qualifying tiles - want at least %s.',
+    //             qualifyingTileCount,
+    //             buildStep.count.lo
+    //         );
+    //         GWU.grid.free(candidates);
+    //         return false;
+    //     }
+    //     let x = 0,
+    //         y = 0;
+    //     let success = true;
+    //     let didSomething = false;
+    //     do {
+    //         success = true;
+    //         // Find a location for the feature.
+    //         if (buildStep.buildAtOrigin) {
+    //             // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+    //             x = builder.originX;
+    //             y = builder.originY;
+    //         } else {
+    //             // Pick our candidate location randomly, and also strike it from
+    //             // the candidates map so that subsequent instances of this same feature can't choose it.
+    //             [x, y] = GWU.random.matchingLoc(
+    //                 candidates.width,
+    //                 candidates.height,
+    //                 (x, y) => candidates[x][y] > 0
+    //             );
+    //         }
+    //         // Don't waste time trying the same place again whether or not this attempt succeeds.
+    //         candidates[x][y] = 0;
+    //         qualifyingTileCount--;
+    //         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+    //         if (buildStep.effect) {
+    //             success = site.fireEffect(buildStep.effect, x, y);
+    //             didSomething = success;
+    //         }
+    //         // Now try to place the terrain tile, if any.
+    //         if (success && buildStep.tile !== -1) {
+    //             const tile = GWM.tile.get(buildStep.tile);
+    //             if (
+    //                 !(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+    //                 (tile.blocksMove() ||
+    //                     buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)
+    //             ) {
+    //                 // Yes, check for blocking.
+    //                 success = !SITE.siteDisruptedByXY(site, x, y, {
+    //                     machine: site.machineCount,
+    //                 });
+    //             }
+    //             if (success) {
+    //                 success = site.setTile(x, y, tile);
+    //                 didSomething = didSomething || success;
+    //             }
+    //         }
+    //         // Generate an actor, if necessary
+    //         // Generate an item, if necessary
+    //         if (success && buildStep.item) {
+    //             const item = site.makeRandomItem(buildStep.item);
+    //             if (!item) {
+    //                 success = false;
+    //             }
+    //             if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
+    //                 item.key = GWM.entity.makeKeyInfo(
+    //                     x,
+    //                     y,
+    //                     !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE)
+    //                 );
+    //             }
+    //             if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+    //                 success = builder.buildRandom(
+    //                     Flags.BP_ADOPT_ITEM,
+    //                     -1,
+    //                     -1,
+    //                     item
+    //                 );
+    //                 if (success) {
+    //                     didSomething = true;
+    //                 }
+    //             } else {
+    //                 success = site.addItem(x, y, item);
+    //                 didSomething = didSomething || success;
+    //             }
+    //         } else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
+    //             // adopt item if necessary
+    //             if (!adoptedItem) {
+    //                 GWU.grid.free(candidates);
+    //                 throw new Error(
+    //                     'Failed to build blueprint because there is no adopted item.'
+    //                 );
+    //             }
+    //             if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
+    //                 // Yes, check for blocking.
+    //                 success = !SITE.siteDisruptedByXY(site, x, y);
+    //             }
+    //             if (success) {
+    //                 success = site.addItem(x, y, adoptedItem);
+    //                 if (success) {
+    //                     didSomething = true;
+    //                 } else {
+    //                     console.log('- failed to add item', x, y);
+    //                 }
+    //             } else {
+    //                 // console.log('- blocks map', x, y);
+    //             }
+    //         }
+    //         if (success && didSomething) {
+    //             // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+    //             qualifyingTileCount -= makePersonalSpace(
+    //                 builder,
+    //                 x,
+    //                 y,
+    //                 candidates,
+    //                 buildStep.pad
+    //             );
+    //             builtCount++; // we've placed an instance
+    //             // Mark the feature location as part of the machine, in case it is not already inside of it.
+    //             if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
+    //                 site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+    //             }
+    //             // Mark the feature location as impregnable if requested.
+    //             if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
+    //                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
+    //             }
+    //         }
+    //         // Finished with this instance!
+    //     } while (
+    //         qualifyingTileCount > 0 &&
+    //         (buildStep.generateEverywhere ||
+    //             builtCount < wantCount ||
+    //             buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
+    //     );
+    //     if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
+    //         // Generate a door guard machine.
+    //         // Try to create a sub-machine that qualifies.
+    //         success = builder.buildRandom(
+    //             Flags.BP_VESTIBULE,
+    //             builder.originX,
+    //             builder.originY
+    //         );
+    //         if (!success) {
+    //             // console.log(
+    //             //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
+    //             // );
+    //             // failure! abort!
+    //             GWU.grid.free(candidates);
+    //             return false;
+    //         }
+    //         ++builtCount;
+    //     }
+    //     //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
+    //     //DEBUG logBuffer(candidates);
+    //     success = builtCount > 0;
+    //     GWU.grid.free(candidates);
+    //     return success;
+    // }
+
+    const Fl = GWU__namespace.flag.fl;
     var Flags;
     (function (Flags) {
-        Flags[Flags["BP_ROOM"] = Fl$1(0)] = "BP_ROOM";
-        Flags[Flags["BP_VESTIBULE"] = Fl$1(1)] = "BP_VESTIBULE";
-        Flags[Flags["BP_REWARD"] = Fl$1(2)] = "BP_REWARD";
-        Flags[Flags["BP_ADOPT_ITEM"] = Fl$1(3)] = "BP_ADOPT_ITEM";
-        Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl$1(4)] = "BP_PURGE_PATHING_BLOCKERS";
-        Flags[Flags["BP_PURGE_INTERIOR"] = Fl$1(5)] = "BP_PURGE_INTERIOR";
-        Flags[Flags["BP_PURGE_LIQUIDS"] = Fl$1(6)] = "BP_PURGE_LIQUIDS";
-        Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl$1(7)] = "BP_SURROUND_WITH_WALLS";
-        Flags[Flags["BP_IMPREGNABLE"] = Fl$1(8)] = "BP_IMPREGNABLE";
-        Flags[Flags["BP_OPEN_INTERIOR"] = Fl$1(9)] = "BP_OPEN_INTERIOR";
-        Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl$1(10)] = "BP_MAXIMIZE_INTERIOR";
-        Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl$1(11)] = "BP_REDESIGN_INTERIOR";
-        Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl$1(12)] = "BP_TREAT_AS_BLOCKING";
-        Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl$1(13)] = "BP_REQUIRE_BLOCKING";
-        Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl$1(14)] = "BP_NO_INTERIOR_FLAG";
-        Flags[Flags["BP_NOT_IN_HALLWAY"] = Fl$1(15)] = "BP_NOT_IN_HALLWAY";
+        Flags[Flags["BP_ROOM"] = Fl(0)] = "BP_ROOM";
+        Flags[Flags["BP_VESTIBULE"] = Fl(1)] = "BP_VESTIBULE";
+        Flags[Flags["BP_REWARD"] = Fl(2)] = "BP_REWARD";
+        Flags[Flags["BP_ADOPT_ITEM"] = Fl(3)] = "BP_ADOPT_ITEM";
+        Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl(4)] = "BP_PURGE_PATHING_BLOCKERS";
+        Flags[Flags["BP_PURGE_INTERIOR"] = Fl(5)] = "BP_PURGE_INTERIOR";
+        Flags[Flags["BP_PURGE_LIQUIDS"] = Fl(6)] = "BP_PURGE_LIQUIDS";
+        Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl(7)] = "BP_SURROUND_WITH_WALLS";
+        Flags[Flags["BP_IMPREGNABLE"] = Fl(8)] = "BP_IMPREGNABLE";
+        Flags[Flags["BP_OPEN_INTERIOR"] = Fl(9)] = "BP_OPEN_INTERIOR";
+        Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl(10)] = "BP_MAXIMIZE_INTERIOR";
+        Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl(11)] = "BP_REDESIGN_INTERIOR";
+        Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl(12)] = "BP_TREAT_AS_BLOCKING";
+        Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl(13)] = "BP_REQUIRE_BLOCKING";
+        Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl(14)] = "BP_NO_INTERIOR_FLAG";
+        Flags[Flags["BP_NOT_IN_HALLWAY"] = Fl(15)] = "BP_NOT_IN_HALLWAY";
     })(Flags || (Flags = {}));
     class Blueprint {
         constructor(opts = {}) {
@@ -2676,13 +3188,6 @@
         }
         pickLocation(site) {
             return pickLocation(site, this);
-        }
-        // Assume site has been analyzed (aka GateSites and ChokeCounts set)
-        computeInterior(builder) {
-            return computeInterior(builder, this);
-        }
-        prepareInterior(builder) {
-            return prepareInterior(builder, this);
         }
         pickComponents() {
             const alternativeFlags = [
@@ -3104,407 +3609,6 @@
         return GWU__namespace.random.item(matches);
     }
 
-    const Fl = GWU__namespace.flag.fl;
-    var StepFlags;
-    (function (StepFlags) {
-        StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
-        StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl(2)] = "BF_BUILD_VESTIBULE";
-        StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl(3)] = "BF_ADOPT_ITEM";
-        StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl(4)] = "BF_BUILD_AT_ORIGIN";
-        StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl(5)] = "BF_PERMIT_BLOCKING";
-        StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl(6)] = "BF_TREAT_AS_BLOCKING";
-        StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl(7)] = "BF_NEAR_ORIGIN";
-        StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl(8)] = "BF_FAR_FROM_ORIGIN";
-        StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl(9)] = "BF_IN_VIEW_OF_ORIGIN";
-        StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl(10)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
-        StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl(11)] = "BF_MONSTER_TAKE_ITEM";
-        StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl(12)] = "BF_MONSTER_SLEEPING";
-        StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl(13)] = "BF_MONSTER_FLEEING";
-        StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl(14)] = "BF_MONSTERS_DORMANT";
-        StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl(15)] = "BF_ITEM_IS_KEY";
-        StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl(16)] = "BF_ITEM_IDENTIFIED";
-        StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl(17)] = "BF_ITEM_PLAYER_AVOIDS";
-        StepFlags[StepFlags["BF_EVERYWHERE"] = Fl(18)] = "BF_EVERYWHERE";
-        StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl(19)] = "BF_ALTERNATIVE";
-        StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl(20)] = "BF_ALTERNATIVE_2";
-        StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl(21)] = "BF_BUILD_IN_WALLS";
-        StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
-        StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
-        StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl(24)] = "BF_IMPREGNABLE";
-        // TODO - BF_ALLOW_IN_HALLWAY instead?
-        StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl(27)] = "BF_NOT_IN_HALLWAY";
-        // TODO - BF_ALLOW_BOUNDARY instead
-        StepFlags[StepFlags["BF_NOT_ON_LEVEL_PERIMETER"] = Fl(28)] = "BF_NOT_ON_LEVEL_PERIMETER";
-        StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl(29)] = "BF_SKELETON_KEY";
-        StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl(30)] = "BF_KEY_DISPOSABLE";
-    })(StepFlags || (StepFlags = {}));
-    class BuildStep {
-        constructor(cfg = {}) {
-            var _a;
-            this.tile = -1;
-            this.flags = 0;
-            this.pad = 0;
-            this.item = null;
-            this.horde = null;
-            this.effect = null;
-            this.chance = 0;
-            this.id = 'n/a';
-            this.tile = (_a = cfg.tile) !== null && _a !== void 0 ? _a : -1;
-            if (cfg.flags) {
-                this.flags = GWU__namespace.flag.from(StepFlags, cfg.flags);
-            }
-            if (cfg.pad) {
-                this.pad = cfg.pad;
-            }
-            this.count = GWU__namespace.range.make(cfg.count || 1);
-            this.item = cfg.item || null;
-            this.horde = cfg.horde || null;
-            if (cfg.effect) {
-                this.effect = GWM__namespace.effect.from(cfg.effect);
-            }
-            if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
-                throw new Error('Cannot have blueprint step with item and BF_ADOPT_ITEM.');
-            }
-        }
-        get repeatUntilNoProgress() {
-            return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
-        }
-        get generateEverywhere() {
-            return !!(this.flags &
-                StepFlags.BF_EVERYWHERE &
-                ~StepFlags.BF_BUILD_AT_ORIGIN);
-        }
-        get buildAtOrigin() {
-            return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
-        }
-        cellIsCandidate(builder, blueprint, x, y, distanceBound) {
-            return cellIsCandidate(builder, blueprint, this, x, y, distanceBound);
-        }
-        distanceBound(builder) {
-            return calcDistanceBound(builder, this);
-        }
-        updateViewMap(builder) {
-            updateViewMap(builder, this);
-        }
-        build(builder, blueprint, adoptedItem) {
-            return buildStep(builder, blueprint, this, adoptedItem);
-        }
-    }
-    function updateViewMap(builder, buildStep) {
-        if (buildStep.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
-            const site = builder.site;
-            if (buildStep.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
-                const fov = new GWU__namespace.fov.FOV({
-                    isBlocked: (x, y) => {
-                        return site.blocksPathing(x, y);
-                    },
-                    hasXY: (x, y) => {
-                        return site.hasXY(x, y);
-                    },
-                });
-                fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                    builder.viewMap[x][y] = 1;
-                });
-            }
-            else {
-                const fov = new GWU__namespace.fov.FOV({
-                    // TileFlags.T_OBSTRUCTS_PASSABILITY |
-                    //     TileFlags.T_OBSTRUCTS_VISION,
-                    isBlocked: (x, y) => {
-                        return site.blocksPathing(x, y) || site.blocksVision(x, y);
-                    },
-                    hasXY: (x, y) => {
-                        return site.hasXY(x, y);
-                    },
-                });
-                fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                    builder.viewMap[x][y] = 1;
-                });
-            }
-            builder.viewMap[builder.originX][builder.originY] = 1;
-        }
-    }
-    function calcDistanceBound(builder, buildStep) {
-        const distanceBound = [0, 10000];
-        if (buildStep.flags & StepFlags.BF_NEAR_ORIGIN) {
-            distanceBound[1] = builder.distance25;
-        }
-        if (buildStep.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
-            distanceBound[0] = builder.distance75;
-        }
-        return distanceBound;
-    }
-    function markCandidates(candidates, builder, blueprint, buildStep, distanceBound) {
-        let count = 0;
-        candidates.update((_v, i, j) => {
-            if (cellIsCandidate(builder, blueprint, buildStep, i, j, distanceBound)) {
-                count++;
-                return 1;
-            }
-            else {
-                return 0;
-            }
-        });
-        return count;
-    }
-    function cellIsCandidate(builder, blueprint, buildStep, x, y, distanceBound) {
-        const site = builder.site;
-        // No building in the hallway if it's prohibited.
-        // This check comes before the origin check, so an area machine will fail altogether
-        // if its origin is in a hallway and the feature that must be built there does not permit as much.
-        if (buildStep.flags & StepFlags.BF_NOT_IN_HALLWAY &&
-            GWU__namespace.xy.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
-            return false;
-        }
-        // No building along the perimeter of the level if it's prohibited.
-        if (buildStep.flags & StepFlags.BF_NOT_ON_LEVEL_PERIMETER &&
-            (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1)) {
-            return false;
-        }
-        // The origin is a candidate if the feature is flagged to be built at the origin.
-        // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
-        if (buildStep.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
-            return x == builder.originX && y == builder.originY ? true : false;
-        }
-        else if (blueprint.isRoom &&
-            x == builder.originX &&
-            y == builder.originY) {
-            return false;
-        }
-        // No building in another feature's personal space!
-        if (builder.occupied[x][y]) {
-            return false;
-        }
-        // Must be in the viewmap if the appropriate flag is set.
-        if (buildStep.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
-            !builder.viewMap[x][y]) {
-            return false;
-        }
-        // Do a distance check if the feature requests it.
-        let distance = 10000;
-        if (site.isWall(x, y)) {
-            // Distance is calculated for walls too.
-            GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
-                if (!builder.distanceMap.hasXY(i, j))
-                    return;
-                if (!site.blocksPathing(i, j) &&
-                    distance > builder.distanceMap[i][j] + 1) {
-                    distance = builder.distanceMap[i][j] + 1;
-                }
-            }, true);
-        }
-        else {
-            distance = builder.distanceMap[x][y];
-        }
-        if (distance > distanceBound[1] || // distance exceeds max
-            distance < distanceBound[0]) {
-            // distance falls short of min
-            return false;
-        }
-        if (buildStep.flags & StepFlags.BF_BUILD_IN_WALLS) {
-            // If we're supposed to build in a wall...
-            const cellMachine = site.getMachine(x, y);
-            if (!builder.interior[x][y] &&
-                (!cellMachine || cellMachine == builder.machineNumber) &&
-                site.isWall(x, y)) {
-                let ok = false;
-                // ...and this location is a wall that's not already machined...
-                GWU__namespace.xy.eachNeighbor(x, y, (newX, newY) => {
-                    if (site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
-                        ((builder.interior[newX][newY] &&
-                            !(newX == builder.originX && newY == builder.originY)) ||
-                            (buildStep.flags &
-                                StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL &&
-                                !site.blocksPathing(newX, newY) &&
-                                !site.getMachine(newX, newY)))) {
-                        ok = true;
-                    }
-                });
-                return ok;
-            }
-            return false;
-        }
-        else if (site.isWall(x, y)) {
-            // Can't build in a wall unless instructed to do so.
-            return false;
-        }
-        else if (buildStep.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
-            if ((buildStep.item && site.blocksItems(x, y)) ||
-                site.hasCellFlag(x, y, GWM__namespace.flags.Cell.IS_CHOKEPOINT |
-                    GWM__namespace.flags.Cell.IS_IN_LOOP |
-                    GWM__namespace.flags.Cell.IS_IN_MACHINE)) {
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-        else if (builder.interior[x][y]) {
-            return true;
-        }
-        return false;
-    }
-    function makePersonalSpace(builder, x, y, candidates, personalSpace) {
-        let count = 0;
-        for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
-            for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
-                if (builder.site.hasXY(i, j)) {
-                    if (candidates[i][j]) {
-                        candidates[i][j] = 0;
-                        ++count;
-                    }
-                    builder.occupied[i][j] = 1;
-                }
-            }
-        }
-        return count;
-    }
-    function buildStep(builder, blueprint, buildStep, adoptedItem) {
-        let wantCount = 0;
-        let builtCount = 0;
-        const site = builder.site;
-        const candidates = GWU__namespace.grid.alloc(site.width, site.height);
-        // Figure out the distance bounds.
-        const distanceBound = calcDistanceBound(builder, buildStep);
-        buildStep.updateViewMap(builder);
-        // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
-        // Make a master map of candidate locations for this feature.
-        let qualifyingTileCount = markCandidates(candidates, builder, blueprint, buildStep, distanceBound);
-        if (!buildStep.generateEverywhere) {
-            wantCount = buildStep.count.value();
-        }
-        if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
-            console.log(' - Only %s qualifying tiles - want at least %s.', qualifyingTileCount, buildStep.count.lo);
-            return false;
-        }
-        let x = 0, y = 0;
-        let success = true;
-        let didSomething = false;
-        do {
-            success = true;
-            // Find a location for the feature.
-            if (buildStep.buildAtOrigin) {
-                // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-                x = builder.originX;
-                y = builder.originY;
-            }
-            else {
-                // Pick our candidate location randomly, and also strike it from
-                // the candidates map so that subsequent instances of this same feature can't choose it.
-                [x, y] = GWU__namespace.random.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
-            }
-            // Don't waste time trying the same place again whether or not this attempt succeeds.
-            candidates[x][y] = 0;
-            qualifyingTileCount--;
-            // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-            if (buildStep.effect) {
-                success = site.fireEffect(buildStep.effect, x, y);
-                didSomething = success;
-            }
-            // Now try to place the terrain tile, if any.
-            if (success && buildStep.tile !== -1) {
-                const tile = GWM__namespace.tile.get(buildStep.tile);
-                if (!(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
-                    (tile.blocksMove() ||
-                        buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)) {
-                    // Yes, check for blocking.
-                    const blockingMap = GWU__namespace.grid.alloc(site.width, site.height);
-                    blockingMap[x][y] = 1;
-                    success = !siteDisruptedBy(site, blockingMap, {
-                        machine: site.machineCount,
-                    });
-                    GWU__namespace.grid.free(blockingMap);
-                }
-                if (success) {
-                    success = site.setTile(x, y, tile);
-                    didSomething = didSomething || success;
-                }
-            }
-            // Generate an actor, if necessary
-            // Generate an item, if necessary
-            if (success && buildStep.item) {
-                const item = site.makeRandomItem(buildStep.item);
-                if (!item) {
-                    success = false;
-                }
-                if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
-                    item.key = GWM__namespace.entity.makeKeyInfo(x, y, !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE));
-                }
-                if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
-                    success = builder.buildRandom(Flags.BP_ADOPT_ITEM, -1, -1, item);
-                    if (success) {
-                        didSomething = true;
-                    }
-                }
-                else {
-                    success = site.addItem(x, y, item);
-                    didSomething = didSomething || success;
-                }
-            }
-            else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
-                // adopt item if necessary
-                if (!adoptedItem) {
-                    throw new Error('Failed to build blueprint because there is no adopted item.');
-                }
-                if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
-                    // Yes, check for blocking.
-                    const blockingMap = GWU__namespace.grid.alloc(site.width, site.height);
-                    blockingMap[x][y] = 1;
-                    success = !siteDisruptedBy(site, blockingMap);
-                    GWU__namespace.grid.free(blockingMap);
-                }
-                if (success) {
-                    success = site.addItem(x, y, adoptedItem);
-                    if (success) {
-                        didSomething = true;
-                    }
-                    else {
-                        console.log('- failed to add item', x, y);
-                    }
-                }
-            }
-            if (success && didSomething) {
-                // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                qualifyingTileCount -= makePersonalSpace(builder, x, y, candidates, buildStep.pad);
-                builtCount++; // we've placed an instance
-                // Mark the feature location as part of the machine, in case it is not already inside of it.
-                if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
-                    site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
-                }
-                // Mark the feature location as impregnable if requested.
-                if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
-                    site.setCellFlag(x, y, GWM__namespace.flags.Cell.IMPREGNABLE);
-                }
-            }
-            // Finished with this instance!
-        } while (qualifyingTileCount > 0 &&
-            (buildStep.generateEverywhere ||
-                builtCount < wantCount ||
-                buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS));
-        if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
-            // Generate a door guard machine.
-            // Try to create a sub-machine that qualifies.
-            success = builder.buildRandom(Flags.BP_VESTIBULE, builder.originX, builder.originY);
-            if (!success) {
-                // console.log(
-                //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
-                // );
-                // failure! abort!
-                return false;
-            }
-            ++builtCount;
-        }
-        //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
-        //DEBUG logBuffer(candidates);
-        success = builtCount > 0;
-        GWU__namespace.grid.free(candidates);
-        return success;
-    }
-
     // export interface BuildData {
     //     site: SITE.BuildSite;
     //     spawnedItems: any[];
@@ -3519,7 +3623,7 @@
     //     distance75: number;
     //     machineNumber: number;
     // }
-    class Builder {
+    class BuildData {
         constructor(map, depth) {
             this.map = map;
             this.spawnedItems = [];
@@ -3543,94 +3647,13 @@
             GWU__namespace.grid.free(this.viewMap);
             GWU__namespace.grid.free(this.distanceMap);
         }
-        buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
-            let tries = [];
-            while (tries.length < 10) {
-                const blueprint = random(requiredMachineFlags, this.depth);
-                if (!blueprint) {
-                    return false;
-                }
-                tries.push(blueprint.id);
-                if (this.build(blueprint, x, y, adoptedItem)) {
-                    return true;
-                }
-            }
-            // console.log(
-            //     'Failed to build random blueprint matching flags: ' +
-            //         GWU.flag.toString(BLUE.Flags, requiredMachineFlags) +
-            //         ' tried : ' +
-            //         tries.join(', ')
-            // );
-            return false;
-        }
-        build(blueprint, x = -1, y = -1, adoptedItem = null) {
-            let tries = 10;
-            this.site.analyze();
-            if (x >= 0 && y >= 0) {
-                return this._build(blueprint, x, y, adoptedItem);
-            }
-            while (tries--) {
-                const loc = blueprint.pickLocation(this.site);
-                if (!loc) {
-                    continue;
-                }
-                if (this._build(blueprint, loc[0], loc[1], adoptedItem)) {
-                    return true;
-                }
-            }
-            // console.log('Failed to build blueprint - ' + blueprint.id);
-            return false;
-        }
-        //////////////////////////////////////////
-        // Returns true if the machine got built; false if it was aborted.
-        // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-        _build(blueprint, originX, originY, adoptedItem = null) {
+        reset(originX, originY) {
             this.interior.fill(0);
             this.occupied.fill(0);
             this.viewMap.fill(0);
             this.distanceMap.fill(0);
             this.originX = originX;
             this.originY = originY;
-            if (!blueprint.computeInterior(this)) {
-                return false;
-            }
-            // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
-            const levelBackup = this.site.backup();
-            this.machineNumber = this.site.nextMachineId(); // Reserve this machine number, starting with 1.
-            // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
-            blueprint.prepareInterior(this);
-            // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
-            // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
-            this.calcDistances(blueprint.size.hi);
-            // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
-            // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
-            const components = blueprint.pickComponents();
-            // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
-            // Now tick through the features and build them.
-            for (let index = 0; index < components.length; index++) {
-                const component = components[index];
-                // console.log('BUILD COMPONENT', component);
-                if (!component.build(this, blueprint, adoptedItem)) {
-                    // failure! abort!
-                    // Restore the map to how it was before we touched it.
-                    this.site.restore(levelBackup);
-                    // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
-                    return false;
-                }
-            }
-            // Clear out the interior flag for all non-wired cells, if requested.
-            if (blueprint.noInteriorFlag) {
-                clearInteriorFlag(this.site, this.machineNumber);
-            }
-            // if (torchBearer && torch) {
-            // 	if (torchBearer->carriedItem) {
-            // 		deleteItem(torchBearer->carriedItem);
-            // 	}
-            // 	removeItemFromChain(torch, floorItems);
-            // 	torchBearer->carriedItem = torch;
-            // }
-            // console.log('Built a machine from blueprint:', originX, originY);
-            return true;
         }
         calcDistances(maxSize) {
             this.distanceMap.fill(0);
@@ -3670,8 +3693,258 @@
             this.distance75 = distance75;
         }
     }
+    class Builder {
+        constructor(map, depth) {
+            this.data = new BuildData(map, depth);
+        }
+        async buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
+            this.data.site.analyze();
+            let tries = [];
+            while (tries.length < 10) {
+                const blueprint = random(requiredMachineFlags, this.data.depth);
+                if (!blueprint) {
+                    return false;
+                }
+                tries.push(blueprint.id);
+                if (await this._buildAt(blueprint, x, y, adoptedItem)) {
+                    return true;
+                }
+            }
+            // console.log(
+            //     'Failed to build random blueprint matching flags: ' +
+            //         GWU.flag.toString(BLUE.Flags, requiredMachineFlags) +
+            //         ' tried : ' +
+            //         tries.join(', ')
+            // );
+            return false;
+        }
+        async build(blueprint, x = -1, y = -1, adoptedItem = null) {
+            if (typeof blueprint === 'string') {
+                const id = blueprint;
+                blueprint = blueprints[id];
+                if (!blueprint)
+                    throw new Error('Failed to find blueprint - ' + id);
+            }
+            this.data.site.analyze();
+            return this._buildAt(blueprint, x, y, adoptedItem);
+        }
+        async _buildAt(blueprint, x = -1, y = -1, adoptedItem = null) {
+            if (x >= 0 && y >= 0) {
+                return await this._build(blueprint, x, y, adoptedItem);
+            }
+            let tries = 10;
+            while (tries--) {
+                const loc = await this.pickLocation(blueprint);
+                if (!loc) {
+                    continue;
+                }
+                if (await this._build(blueprint, loc[0], loc[1], adoptedItem)) {
+                    return true;
+                }
+            }
+            // console.log('Failed to build blueprint - ' + blueprint.id);
+            return false;
+        }
+        //////////////////////////////////////////
+        // Returns true if the machine got built; false if it was aborted.
+        // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
+        async _build(blueprint, originX, originY, adoptedItem = null) {
+            const data = this.data;
+            data.reset(originX, originY);
+            if (!(await this.computeInterior(blueprint))) {
+                return false;
+            }
+            // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
+            const levelBackup = data.site.backup();
+            data.machineNumber = data.site.nextMachineId(); // Reserve this machine number, starting with 1.
+            // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
+            prepareInterior(data, blueprint);
+            // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
+            // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
+            this.data.calcDistances(blueprint.size.hi);
+            // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
+            // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
+            const components = blueprint.pickComponents();
+            // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
+            // Now tick through the features and build them.
+            for (let index = 0; index < components.length; index++) {
+                const component = components[index];
+                // console.log('BUILD COMPONENT', component);
+                if (!(await this.buildComponent(blueprint, component, adoptedItem))) {
+                    // failure! abort!
+                    // Restore the map to how it was before we touched it.
+                    data.site.restore(levelBackup);
+                    // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
+                    return false;
+                }
+            }
+            // Clear out the interior flag for all non-wired cells, if requested.
+            if (blueprint.noInteriorFlag) {
+                clearInteriorFlag(data.site, this.data.machineNumber);
+            }
+            // if (torchBearer && torch) {
+            // 	if (torchBearer->carriedItem) {
+            // 		deleteItem(torchBearer->carriedItem);
+            // 	}
+            // 	removeItemFromChain(torch, floorItems);
+            // 	torchBearer->carriedItem = torch;
+            // }
+            // console.log('Built a machine from blueprint:', originX, originY);
+            return true;
+        }
+        async pickLocation(blueprint) {
+            return pickLocation(this.data.site, blueprint);
+        }
+        async computeInterior(blueprint) {
+            return computeInterior(this.data, blueprint);
+        }
+        async buildComponent(blueprint, buildStep, adoptedItem) {
+            let wantCount = 0;
+            let builtCount = 0;
+            const builder = this.data;
+            const site = builder.site;
+            const candidates = GWU__namespace.grid.alloc(site.width, site.height);
+            // console.log(
+            //     'buildComponent',
+            //     blueprint.id,
+            //     blueprint.steps.indexOf(buildStep)
+            // );
+            // Figure out the distance bounds.
+            const distanceBound = calcDistanceBound(builder, buildStep);
+            updateViewMap(builder, buildStep);
+            // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+            // Make a master map of candidate locations for this feature.
+            let qualifyingTileCount = markCandidates(candidates, builder, blueprint, buildStep, distanceBound);
+            if (!buildStep.generateEverywhere) {
+                wantCount = buildStep.count.value();
+            }
+            if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
+                // console.log(
+                //     `Blueprint ${blueprint.id}, step ${blueprint.steps.indexOf(
+                //         buildStep
+                //     )} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
+                // );
+                return false;
+            }
+            let x = 0, y = 0;
+            let success = true;
+            let didSomething = false;
+            do {
+                success = true;
+                // Find a location for the feature.
+                if (buildStep.buildAtOrigin) {
+                    // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+                    x = builder.originX;
+                    y = builder.originY;
+                }
+                else {
+                    // Pick our candidate location randomly, and also strike it from
+                    // the candidates map so that subsequent instances of this same feature can't choose it.
+                    [x, y] = GWU__namespace.random.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+                }
+                // Don't waste time trying the same place again whether or not this attempt succeeds.
+                candidates[x][y] = 0;
+                qualifyingTileCount--;
+                // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+                if (buildStep.effect) {
+                    success = site.fireEffect(buildStep.effect, x, y);
+                    didSomething = success;
+                }
+                // Now try to place the terrain tile, if any.
+                if (success && buildStep.tile !== -1) {
+                    const tile = GWM__namespace.tile.get(buildStep.tile);
+                    if (!buildStep.permitBlocking &&
+                        (tile.blocksMove() || buildStep.treatAsBlocking)) {
+                        // Yes, check for blocking.
+                        success = !siteDisruptedByXY(site, x, y, {
+                            machine: site.machineCount,
+                        });
+                    }
+                    if (success) {
+                        success = site.setTile(x, y, tile);
+                        didSomething = didSomething || success;
+                    }
+                }
+                // Generate an actor, if necessary
+                // Generate an item, if necessary
+                if (success && buildStep.item) {
+                    const item = site.makeRandomItem(buildStep.item);
+                    if (!item) {
+                        success = false;
+                    }
+                    if (buildStep.itemIsKey) {
+                        item.key = GWM__namespace.entity.makeKeyInfo(x, y, !!buildStep.keyIsDisposable);
+                    }
+                    if (buildStep.outsourceItem) {
+                        success = await this.buildRandom(Flags.BP_ADOPT_ITEM, -1, -1, item);
+                        if (success) {
+                            didSomething = true;
+                        }
+                    }
+                    else {
+                        success = site.addItem(x, y, item);
+                        didSomething = didSomething || success;
+                    }
+                }
+                else if (success && buildStep.adoptItem) {
+                    // adopt item if necessary
+                    if (!adoptedItem) {
+                        throw new Error('Failed to build blueprint because there is no adopted item.');
+                    }
+                    if (buildStep.treatAsBlocking) {
+                        // Yes, check for blocking.
+                        success = !siteDisruptedByXY(site, x, y);
+                    }
+                    if (success) {
+                        success = site.addItem(x, y, adoptedItem);
+                        if (success) {
+                            didSomething = true;
+                        }
+                        else {
+                            console.log('- failed to add item', x, y);
+                        }
+                    }
+                }
+                if (success && didSomething) {
+                    // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+                    qualifyingTileCount -= makePersonalSpace(builder, x, y, candidates, buildStep.pad);
+                    builtCount++; // we've placed an instance
+                    // Mark the feature location as part of the machine, in case it is not already inside of it.
+                    if (!blueprint.noInteriorFlag) {
+                        site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+                    }
+                    // Mark the feature location as impregnable if requested.
+                    if (buildStep.impregnable) {
+                        site.setCellFlag(x, y, GWM__namespace.flags.Cell.IMPREGNABLE);
+                    }
+                }
+                // Finished with this instance!
+            } while (qualifyingTileCount > 0 &&
+                (buildStep.generateEverywhere ||
+                    builtCount < wantCount ||
+                    buildStep.repeatUntilNoProgress));
+            if (success && buildStep.buildVestibule) {
+                // Generate a door guard machine.
+                // Try to create a sub-machine that qualifies.
+                success = await this.buildRandom(Flags.BP_VESTIBULE, builder.originX, builder.originY);
+                if (!success) {
+                    // console.log(
+                    //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
+                    // );
+                    // failure! abort!
+                    return false;
+                }
+                ++builtCount;
+            }
+            //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
+            //DEBUG logBuffer(candidates);
+            success = builtCount > 0;
+            GWU__namespace.grid.free(candidates);
+            return success;
+        }
+    }
 
-    var index = {
+    var index = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get Flags () { return Flags; },
         Blueprint: Blueprint,
@@ -3685,9 +3958,9 @@
         markCandidates: markCandidates,
         cellIsCandidate: cellIsCandidate,
         makePersonalSpace: makePersonalSpace,
-        buildStep: buildStep,
+        BuildData: BuildData,
         Builder: Builder
-    };
+    });
 
     exports.Dungeon = Dungeon;
     exports.Hall = Hall;
@@ -3698,6 +3971,7 @@
     exports.hall = hall;
     exports.lake = lake;
     exports.loop = loop;
+    exports.makeHall = makeHall;
     exports.room = room;
     exports.site = index$1;
     exports.stairs = stairs;
@@ -3705,3 +3979,4 @@
     Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
+//# sourceMappingURL=gw-dig.js.map

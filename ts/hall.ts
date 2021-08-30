@@ -322,7 +322,7 @@ export class HallDigger {
     dig(site: SITE.DigSite, dir: number, door: GWU.xy.Loc, length: number) {
         const DIR = DIRS[dir];
         const [x, y] = this._digLine(site, door, DIR, length);
-        const hall = new TYPES.Hall(door, dir, length);
+        const hall = TYPES.makeHall(door, dir, length);
         hall.doors = pickHallExits(site, x, y, dir, this.config.obliqueChance);
         return hall;
     }
@@ -358,13 +358,13 @@ export class HallDigger {
             ++actual;
         }
 
-        const hall = new TYPES.Hall([startX, startY], dir, length, width);
+        const hall = TYPES.makeHall([startX, startY], dir, length, width);
         hall.doors = [];
         hall.doors[dir] = [
             door[0] + length * DIR[0],
             door[1] + length * DIR[1],
         ];
-        hall.width = width;
+        // hall.width = width;
         return hall;
     }
 }

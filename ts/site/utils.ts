@@ -377,6 +377,30 @@ export interface DisruptOptions {
     machine: number;
 }
 
+export function siteDisruptedByXY(
+    site: DIG.DigSite,
+    x: number,
+    y: number,
+    options: Partial<DisruptOptions> = {}
+) {
+    options.offsetX ??= 0;
+    options.offsetY ??= 0;
+    options.machine ??= 0;
+
+    if (
+        GWU.xy.arcCount(x, y, (i, j) => {
+            return site.isPassable(i, j);
+        }) <= 1
+    )
+        return false;
+
+    const blockingGrid = GWU.grid.alloc(site.width, site.height);
+    blockingGrid[x][y] = 1;
+    const result = siteDisruptedBy(site, blockingGrid, options);
+    GWU.grid.free(blockingGrid);
+    return result;
+}
+
 export function siteDisruptedBy(
     site: DIG.DigSite,
     blockingGrid: GWU.grid.NumGrid,

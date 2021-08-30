@@ -30,7 +30,7 @@ describe('Builder', () => {
         builder = new BLUE.Builder(map, 1);
     });
 
-    test('Build Item', () => {
+    test('Build Item', async () => {
         GWM.item.install('ITEM', {
             name: 'a shovel',
             tags: 'SHOVEL',
@@ -44,7 +44,7 @@ describe('Builder', () => {
             steps: [{ item: 'SHOVEL', flags: 'BF_FAR_FROM_ORIGIN' }],
         });
 
-        expect(builder.build(blue, 20, 11)).toBeTruthy();
+        expect(await builder.build(blue, 20, 11)).toBeTruthy();
 
         // map.dump();
 

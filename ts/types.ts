@@ -48,45 +48,16 @@ export interface RoomConfig {
 
 export type DigFn = (x: number, y: number, tile: number) => any;
 
-export class Hall {
-    public x: number;
-    public y: number;
-    public x2: number;
-    public y2: number;
-    public length: number;
-
-    public dir: number;
-    public width: number = 1;
-
+export class Hall extends GWU.xy.Bounds {
     public doors: GWU.xy.Loc[] = [];
 
-    constructor(loc: GWU.xy.Loc, dir: number, length: number, width = 1) {
-        this.x = loc[0];
-        this.y = loc[1];
-        const d = GWU.xy.DIRS[dir];
-        this.length = length;
-        this.width = width;
-
-        // console.log('Hall', loc, d, length, width);
-
-        if (dir === GWU.xy.UP || dir === GWU.xy.DOWN) {
-            this.x2 = this.x + (width - 1);
-            this.y2 = this.y + (length - 1) * d[1];
-        } else {
-            this.x2 = this.x + (length - 1) * d[0];
-            this.y2 = this.y + (width - 1);
-        }
-
-        // console.log(' - ', [this.x2, this.y2]);
-
-        this.dir = dir;
+    constructor(x: number, y: number, width: number, height: number) {
+        super(x, y, width, height);
     }
 
     translate(dx: number, dy: number) {
         this.x += dx;
         this.y += dy;
-        this.x2 += dx;
-        this.y2 += dy;
         if (this.doors) {
             this.doors.forEach((d) => {
                 if (!d) return;
@@ -96,6 +67,20 @@ export class Hall {
             });
         }
     }
+}
+
+export function makeHall(
+    loc: GWU.xy.Loc,
+    dirIndex: number,
+    hallLength: number,
+    hallWidth = 1
+) {
+    const dir = GWU.xy.DIRS[dirIndex];
+    const x = Math.min(loc[0], loc[0] + dir[0] * (hallLength - 1));
+    const y = Math.min(loc[1], loc[1] + dir[1] * (hallLength - 1));
+    const width = Math.abs(dir[0] * hallLength) || hallWidth;
+    const height = Math.abs(dir[1] * hallLength) || hallWidth;
+    return new Hall(x, y, width, height);
 }
 
 export class Room extends GWU.xy.Bounds {

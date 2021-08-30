@@ -37,12 +37,13 @@ const blue = GWD.blueprint.install('ROOM', {
     steps: [{ flags: 'BF_BUILD_VESTIBULE' }],
 });
 
-builder.build(blue, 20, 11);
-
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
-map.drawInto(canvas);
 SHOW(canvas.node);
-canvas.render();
+
+builder.build(blue).then(() => {
+    map.drawInto(canvas);
+    canvas.render();
+});
 ```
 
 ### Vestibule with lever
@@ -110,12 +111,13 @@ const blue = GWD.blueprint.install('ROOM', {
     steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
 });
 
-builder.build(blue, 20, 11);
-
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
-map.drawInto(canvas);
 SHOW(canvas.node);
-canvas.render();
+
+builder.build(blue).then(() => {
+    map.drawInto(canvas);
+    canvas.render();
+});
 ```
 
 ### Throwing Tutorial
@@ -195,7 +197,7 @@ const edge = GWM.tile.install('CHASM_EDGE', {
 GWM.effect.install('CHASM_EDGE', { tile: 'CHASM_EDGE,100' });
 GWM.effect.install('CHASM_MEDIUM', {
     tile: 'CHASM,150,50',
-    flags: 'E_NEXT_EVERYWHERE',
+    flags: 'E_NEXT_EVERYWHERE, E_ABORT_IF_BLOCKS_MAP',
     next: 'CHASM_EDGE',
 });
 GWM.effect.install('HOLE_WITH_PLATE', {
@@ -216,7 +218,8 @@ GWD.blueprint.install('VESTIBULE', {
         {
             effect: 'CHASM_MEDIUM',
             tile: 'PRESSURE_PLATE',
-            flags: 'BF_TREAT_AS_BLOCKING, BF_FAR_FROM_ORIGIN',
+            flags:
+                'BF_TREAT_AS_BLOCKING, BF_FAR_FROM_ORIGIN, BF_IN_PASSABLE_VIEW_OF_ORIGIN',
         },
         {
             tile: 'PORTCULLIS_CLOSED',
@@ -243,7 +246,6 @@ const level = new GWD.Level({
 level.create(map);
 
 const builder = new GWD.blueprint.Builder(map, 1);
-builder.build(blue, 20, 11);
 
 const canvas = GWU.canvas.make({
     font: 'monospace',
@@ -251,12 +253,13 @@ const canvas = GWU.canvas.make({
     height: 34,
     loop: LOOP,
 });
-map.drawInto(canvas);
 SHOW(canvas.node);
-canvas.render();
 
 LOOP.run(
     {
+        start: async () => {
+            await builder.build(blue);
+        },
         click: async (e) => {
             await map.fire('enter', e.x, e.y);
         },

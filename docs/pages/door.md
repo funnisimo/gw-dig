@@ -33,11 +33,12 @@ const blue = new GWD.blueprint.Blueprint({
     ],
 });
 
-builder.build(blue, 20, 11);
+builder.build(blue, 20, 11).then(() => {
+    map.drawInto(canvas);
+    canvas.render();
+});
 
-map.drawInto(canvas);
 SHOW(canvas.node);
-canvas.render();
 ```
 
 ### Door via Vestibule
@@ -78,10 +79,11 @@ const blue = GWD.blueprint.install('ROOM', {
     ],
 });
 
-builder.build(blue, 20, 11);
-
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
-map.drawInto(canvas);
 SHOW(canvas.node);
-canvas.render();
+
+builder.build(blue, 20, 11).then(() => {
+    map.drawInto(canvas);
+    canvas.render();
+});
 ```

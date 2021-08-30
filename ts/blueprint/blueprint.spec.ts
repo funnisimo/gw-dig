@@ -176,7 +176,7 @@ describe('Blueprint', () => {
         expect(a.steps).toHaveLength(6);
     });
 
-    test('carpet', () => {
+    test('carpet', async () => {
         const map = GWM.map.make(80, 34, { visible: true });
 
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%' });
@@ -203,7 +203,7 @@ describe('Blueprint', () => {
             steps: [{ tile: 'CARPET', flags: 'BF_EVERYWHERE' }],
         });
 
-        expect(builder.build(blue)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
         expect(
             map.cells.count((c, _x, _y) => {

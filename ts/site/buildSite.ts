@@ -2,6 +2,7 @@ import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
 import * as DigSite from './digSite';
+import * as Utils from './utils';
 
 const Flags = GWM.flags.Cell;
 
@@ -35,9 +36,19 @@ export interface BuildSite extends DigSite.DigSite {
 export class MapSite implements BuildSite {
     public map: GWM.map.Map;
     public machineCount = 0;
+    public needsAnalysis = true;
+    public doors: GWU.grid.NumGrid;
 
     constructor(map: GWM.map.Map) {
         this.map = map;
+        this.doors = GWU.grid.alloc(map.width, map.height);
+    }
+
+    get seed() {
+        return this.map.seed;
+    }
+    set seed(v: number) {
+        this.map.seed = v;
     }
 
     get width(): number {
@@ -58,9 +69,11 @@ export class MapSite implements BuildSite {
         return this.map.cellInfo(x, y).hasCellFlag(flag);
     }
     setCellFlag(x: number, y: number, flag: number): void {
+        this.needsAnalysis = true;
         this.map.cell(x, y).setCellFlag(flag);
     }
     clearCellFlag(x: number, y: number, flag: number): void {
+        this.needsAnalysis = true;
         this.map.cell(x, y).clearCellFlag(flag);
     }
 
@@ -78,6 +91,7 @@ export class MapSite implements BuildSite {
         tile: string | number | GWM.tile.Tile,
         opts?: Partial<GWM.map.SetOptions>
     ): boolean {
+        this.needsAnalysis = true;
         return this.map.setTile(x, y, tile, opts);
     }
 
@@ -89,6 +103,7 @@ export class MapSite implements BuildSite {
     }
 
     clear() {
+        this.needsAnalysis = true;
         this.map.cells.forEach((c) => c.clear());
     }
 
@@ -101,6 +116,7 @@ export class MapSite implements BuildSite {
         return GWM.item.makeRandom(tags);
     }
     addItem(x: number, y: number, item: GWM.item.Item): boolean {
+        this.needsAnalysis = true;
         return this.map.forceItem(x, y, item);
     }
 
@@ -211,15 +227,19 @@ export class MapSite implements BuildSite {
     backup(): MapSite {
         const site = new MapSite(this.map.clone());
         site.machineCount = this.machineCount;
+        site.needsAnalysis = this.needsAnalysis;
         return site;
     }
 
     restore(backup: MapSite) {
         this.map.copy(backup.map);
         this.machineCount = backup.machineCount;
+        this.needsAnalysis = backup.needsAnalysis;
     }
 
-    free() {}
+    free() {
+        GWU.grid.free(this.doors);
+    }
 
     getChokeCount(x: number, y: number): number {
         return this.map.cell(x, y).chokeCount;
@@ -230,9 +250,13 @@ export class MapSite implements BuildSite {
     }
 
     analyze() {
-        GWM.map.analyze(this.map);
+        if (this.needsAnalysis) {
+            GWM.map.analyze(this.map);
+        }
+        this.needsAnalysis = false;
     }
     fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean {
+        this.needsAnalysis = true;
         return GWM.effect.fireSync(effect, this.map, x, y);
     }
 
@@ -243,6 +267,7 @@ export class MapSite implements BuildSite {
         return this.map.cell(x, y).machineId;
     }
     setMachine(x: number, y: number, id: number, isRoom = true) {
+        this.needsAnalysis = true;
         this.map.cell(x, y).machineId = id;
         if (id == 0) {
             this.map.clearCellFlag(x, y, Flags.IS_IN_MACHINE);
@@ -253,5 +278,14 @@ export class MapSite implements BuildSite {
                 isRoom ? Flags.IS_IN_ROOM_MACHINE : Flags.IS_IN_AREA_MACHINE
             );
         }
+    }
+
+    updateDoorDirs(): void {
+        this.doors.update((_v, x, y) => {
+            return Utils.directionOfDoorSite(this, x, y);
+        });
+    }
+    getDoorDir(x: number, y: number): number {
+        return this.doors[x][y];
     }
 }

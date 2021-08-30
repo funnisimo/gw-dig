@@ -133,12 +133,16 @@ class Example {
         };
 
         const LOOP = this._loop;
+        const ELEMENT = this._result.get(0);
 
         try {
             eval(code);
         } catch (e) {
             SHOW(e);
         }
+
+        this._result.keydown(LOOP.onkeydown.bind(LOOP));
+        this._result.attr('tabindex', 1);
     }
 }
 
@@ -162,7 +166,9 @@ var Manual = {
         $.get(
             'pages/' + what + '.md?' + Math.random(),
             this._response.bind(this)
-        );
+        ).fail(() => {
+            this._switchTo('intro');
+        });
 
         $('#menu a').each(function (i) {
             const $link = $(this);
@@ -180,9 +186,10 @@ var Manual = {
     },
 
     _response: function (data, status) {
-        if (status != 'success') {
-            return;
-        }
+        // if (status != 'success') {
+        //     this._switchTo('intro');
+        //     return;
+        // }
         document.body.scrollTop = 0;
         document.documentElement.scrollTop = 0;
 

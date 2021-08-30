@@ -26,7 +26,7 @@ describe('Blueprint - key', () => {
         );
     });
 
-    test('outsource key to machine', () => {
+    test('outsource key to machine', async () => {
         const level = new GWD.Level({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
@@ -67,7 +67,7 @@ describe('Blueprint - key', () => {
         const map = GWM.map.make(80, 34, { visible: true });
         level.create(map);
         const builder = new GWD.blueprint.Builder(map, 1);
-        builder.build(blue, 20, 11);
+        await builder.build(blue, 20, 11);
 
         // map.dump();
 
@@ -83,7 +83,7 @@ describe('Blueprint - key', () => {
         expect(count).toEqual(1);
     });
 
-    test.only('key - failed to place', () => {
+    test('key - failed to place', async () => {
         const level = new GWD.Level({
             seed: 34567890,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
@@ -128,7 +128,7 @@ describe('Blueprint - key', () => {
         // map.dump();
 
         const builder = new GWD.blueprint.Builder(map, 1);
-        builder.build(blue);
+        await builder.build(blue);
 
         let count = 0;
         map.eachItem(() => ++count);

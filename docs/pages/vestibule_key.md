@@ -4,6 +4,8 @@ Here, we create a locked door and place the key in a random place on the map.
 
 The demo is interactive. Click on the key to pick it up. Move it to the door to unlock it.
 
+First, lets setup our dungeon builder...
+
 ```js
 GWM.tile.install('LOCKED_DOOR', {
     extends: 'DOOR',
@@ -26,13 +28,6 @@ GWD.room.install(
     'ROOM',
     new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
 );
-
-const level = new GWD.Level({
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
-    doors: { chance: 0 },
-    loops: false,
-    lakes: false,
-});
 
 // Just
 GWD.blueprint.install('ADPOTER', {
@@ -63,11 +58,19 @@ const blue = GWD.blueprint.install('ROOM', {
     size: '10-100',
     steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
 });
+```
 
+Now, lets generate a new dungeon...
+
+```js
 const map = GWM.map.make(80, 34, { visible: true });
-level.create(map);
-const builder = new GWD.blueprint.Builder(map, 1);
-builder.build(blue);
+const level = new GWD.Level({
+    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+});
+const builder = new GWD.blueprint.DebugBuilder(map, 1);
 
 const canvas = GWU.canvas.make({
     font: 'monospace',
@@ -75,14 +78,37 @@ const canvas = GWU.canvas.make({
     height: map.height,
     loop: LOOP,
 });
-map.drawInto(canvas);
+canvas.node.tabIndex = -1;
+
 SHOW(canvas.node);
-canvas.render();
+// canvas.render();
+const buffer = canvas.buffer;
+
+async function buildMap() {
+    buffer.blackOut();
+    buffer.drawText(0, 0, 'Building Level', 'yellow');
+    buffer.render();
+
+    let start = Date.now();
+
+    level.create(map);
+    await builder.build('ROOM');
+
+    let elapsed = Date.now() - start;
+
+    map.drawInto(buffer);
+    buffer.drawText(0, 0, 'Elapsed: ' + Math.floor(elapsed), 'yellow');
+    buffer.render();
+}
 
 let carried = null;
 
 LOOP.run(
     {
+        start: async () => {
+            await buildMap();
+        },
+        Enter: buildMap,
         click: (e) => {
             if (carried) {
                 carried = null;
@@ -101,8 +127,8 @@ LOOP.run(
             await map.tick();
         },
         draw: () => {
-            map.drawInto(canvas);
-            canvas.render();
+            //            map.drawInto(canvas);
+            //            canvas.render();
         },
     },
     200

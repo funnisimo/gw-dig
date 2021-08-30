@@ -28,8 +28,8 @@ const level = new GWD.Level({
 });
 
 GWD.blueprint.install('VESTIBULE', {
-    flags: 'BP_VESTIBULE',
-    size: '10-100',
+    flags: 'BP_VESTIBULE, BP_NOT_IN_HALLWAY',
+    size: '10-40',
     steps: [
         {
             tile: 'DOOR',
@@ -49,16 +49,18 @@ const blue = GWD.blueprint.install('ROOM', {
 });
 
 const map = GWM.map.make(80, 34, { visible: true });
-level.create(map);
-const builder = new GWD.blueprint.Builder(map, 1);
-builder.build(blue, 20, 11);
-
 const canvas = GWU.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
 });
-map.drawInto(canvas);
 SHOW(canvas.node);
-canvas.render();
+
+level.create(map);
+const builder = new GWD.blueprint.Builder(map, 1);
+
+builder.build(blue).then(() => {
+    map.drawInto(canvas);
+    canvas.render();
+});
 ```

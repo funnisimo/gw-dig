@@ -3,7 +3,7 @@ import * as GWM from 'gw-map';
 
 import * as SITE from '../site';
 import * as STEP from './buildStep';
-import { Builder } from './builder';
+import { BuildData } from './builder';
 
 const Fl = GWU.flag.fl;
 
@@ -151,15 +151,6 @@ export class Blueprint {
 
     pickLocation(site: SITE.BuildSite) {
         return pickLocation(site, this);
-    }
-
-    // Assume site has been analyzed (aka GateSites and ChokeCounts set)
-    computeInterior(builder: Builder) {
-        return computeInterior(builder, this);
-    }
-
-    prepareInterior(builder: Builder) {
-        return prepareInterior(builder, this);
     }
 
     pickComponents() {
@@ -371,7 +362,7 @@ export function pickLocation(
 
 // Assume site has been analyzed (aka GateSites and ChokeCounts set)
 export function computeInterior(
-    builder: Builder,
+    builder: BuildData,
     blueprint: Blueprint
 ): boolean {
     let failsafe = blueprint.isRoom ? 10 : 20;
@@ -493,7 +484,7 @@ export function computeInterior(
 }
 
 export function computeVestibuleInterior(
-    builder: Builder,
+    builder: BuildData,
     blueprint: Blueprint
 ) {
     let success = true;
@@ -600,7 +591,7 @@ export function computeVestibuleInterior(
 // Returns true if everything went well, and false if we ran into a machine component
 // that was already there, as we don't want to build a machine around it.
 function addTileToInteriorAndIterate(
-    builder: Builder,
+    builder: BuildData,
     startX: number,
     startY: number
 ): boolean {
@@ -638,7 +629,7 @@ function addTileToInteriorAndIterate(
     return goodSoFar;
 }
 
-export function prepareInterior(builder: Builder, blueprint: Blueprint) {
+export function prepareInterior(builder: BuildData, blueprint: Blueprint) {
     const interior = builder.interior;
     const site = builder.site;
 
@@ -744,7 +735,7 @@ export function prepareInterior(builder: Builder, blueprint: Blueprint) {
 }
 
 export function expandMachineInterior(
-    builder: Builder,
+    builder: BuildData,
     minimumInteriorNeighbors = 1
 ) {
     let madeChange;

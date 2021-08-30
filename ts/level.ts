@@ -57,7 +57,7 @@ export class Level {
     public seq!: number[];
 
     constructor(options: Partial<LevelOptions> = {}) {
-        this.seed = options.seed || 0;
+        this.seed = options.seed || GWU.random.number();
         GWU.object.setOptions(this.rooms, options.rooms);
 
         // Doors
@@ -162,11 +162,14 @@ export class Level {
             if (this.addFirstRoom(site)) break;
         }
         if (!tries) throw new Error('Failed to place first room!');
+        site.updateDoorDirs();
 
         let fails = 0;
         while (fails < 20) {
             if (this.addRoom(site)) {
                 fails = 0;
+                site.updateDoorDirs();
+                GWU.random.shuffle(this.seq);
             } else {
                 ++fails;
             }
@@ -185,6 +188,7 @@ export class Level {
     start(site: SITE.DigSite) {
         if (this.seed) {
             GWU.random.seed(this.seed);
+            site.seed = this.seed;
         }
 
         site.clear();
@@ -259,14 +263,15 @@ export class Level {
     ): boolean {
         // console.log('attachRoom');
         const doorSites = room.hall ? room.hall.doors : room.doors;
+        let i = 0;
+        const len = this.seq.length;
 
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
-        for (let i = 0; i < this.seq.length; i++) {
+        for (i = 0; i < len; i++) {
             const x = Math.floor(this.seq[i] / site.height);
             const y = this.seq[i] % site.height;
 
-            if (!site.isNothing(x, y)) continue;
-            const dir = SITE.directionOfDoorSite(site, x, y);
+            const dir = site.getDoorDir(x, y);
             if (dir != GWU.xy.NO_DIRECTION) {
                 const oppDir = (dir + 2) % 4;
                 const door = doorSites[oppDir];
@@ -277,7 +282,7 @@ export class Level {
 
                 if (
                     door[0] != -1 &&
-                    this._roomFitsAt(site, roomSite, offsetX, offsetY)
+                    this._roomFitsAt(site, roomSite, room, offsetX, offsetY)
                 ) {
                     // TYPES.Room fits here.
                     SITE.copySite(site, roomSite, offsetX, offsetY);
@@ -314,7 +319,7 @@ export class Level {
             const offX = x - door[0];
             const offY = y - door[1];
 
-            if (this._roomFitsAt(site, roomSite, offX, offY)) {
+            if (this._roomFitsAt(site, roomSite, room, offX, offY)) {
                 // dungeon.debug("attachRoom: ", x, y, oppDir);
 
                 // TYPES.Room fits here.
@@ -336,6 +341,7 @@ export class Level {
     _roomFitsAt(
         map: SITE.DigSite,
         roomGrid: SITE.DigSite,
+        room: TYPES.Room,
         roomToSiteX: number,
         roomToSiteY: number
     ) {
@@ -343,19 +349,27 @@ export class Level {
 
         // console.log('roomFitsAt', roomToSiteX, roomToSiteY);
 
-        for (xRoom = 0; xRoom < roomGrid.width; xRoom++) {
-            for (yRoom = 0; yRoom < roomGrid.height; yRoom++) {
+        const hall = room.hall || room;
+        const left = Math.min(room.left, hall.left);
+        const top = Math.min(room.top, hall.top);
+        const right = Math.max(room.right, hall.right);
+        const bottom = Math.max(room.bottom, hall.bottom);
+
+        for (xRoom = left; xRoom <= right; xRoom++) {
+            for (yRoom = top; yRoom <= bottom; yRoom++) {
                 if (roomGrid.isSet(xRoom, yRoom)) {
                     xSite = xRoom + roomToSiteX;
                     ySite = yRoom + roomToSiteY;
+                    if (
+                        !map.hasXY(xSite, ySite) ||
+                        map.isBoundaryXY(xSite, ySite)
+                    ) {
+                        return false;
+                    }
 
                     for (i = xSite - 1; i <= xSite + 1; i++) {
                         for (j = ySite - 1; j <= ySite + 1; j++) {
-                            if (
-                                !map.hasXY(i, j) ||
-                                map.isBoundaryXY(i, j) ||
-                                !map.isNothing(i, j)
-                            ) {
+                            if (!map.isNothing(i, j)) {
                                 // console.log('- NO');
                                 return false;
                             }
@@ -386,7 +400,7 @@ export class Level {
         map.setTile(x, y, tile); // Door site.
 
         // most cases...
-        if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
+        if (!room.hall || room.hall.width == 1 || room.hall.height == 1) {
             return;
         }
 

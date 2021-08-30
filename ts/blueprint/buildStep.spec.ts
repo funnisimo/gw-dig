@@ -24,7 +24,7 @@ describe('buildStep', () => {
         expect(step.effect).toBeNull();
     });
 
-    test('build tile', () => {
+    test('build tile', async () => {
         GWU.random.seed(12345);
 
         GWM.tile.install('TEST', {
@@ -45,14 +45,14 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        expect(builder.build(blue)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
-        // site.map.dump();
+        // map.dump();
 
         expect(map.count((c) => c.hasTile('TEST'))).toBeGreaterThan(1);
     });
 
-    test('build spawn', () => {
+    test('build spawn', async () => {
         GWU.random.seed(12345);
 
         GWM.tile.install('A', {
@@ -80,7 +80,7 @@ describe('buildStep', () => {
         const level = new DIG.Level();
         level.create(map);
 
-        expect(builder.build(blue)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
         // map.dump();
 
@@ -88,9 +88,7 @@ describe('buildStep', () => {
         expect(map.count((c) => c.hasTile('B'))).toEqual(1);
     });
 
-    test('tile everywhere', () => {
-        GWU.random.seed(12345);
-
+    test('tile everywhere', async () => {
         GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
@@ -106,21 +104,23 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
+        const level = new DIG.Level({
+            seed: 12345,
+            loops: false,
+            lakes: false,
+        });
         level.create(map);
 
         // map.dump();
 
-        expect(builder.build(blue)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
         // map.dump();
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(12);
     });
 
-    test('tile near origin', () => {
-        GWU.random.seed(12345);
-
+    test('tile near origin', async () => {
         GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
@@ -136,28 +136,37 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
+        const level = new DIG.Level({
+            seed: 12345,
+            lakes: false,
+            loops: false,
+        });
         level.create(map);
 
-        expect(builder.build(blue)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
         // map.dump();
 
-        expect(builder.originX).toEqual(5);
-        expect(builder.originY).toEqual(27);
+        expect(builder.data.originX).toEqual(52);
+        expect(builder.data.originY).toEqual(6);
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(1);
 
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GWU.xy.distanceBetween(x, y, builder.originX, builder.originY)
+                GWU.xy.distanceBetween(
+                    x,
+                    y,
+                    builder.data.originX,
+                    builder.data.originY
+                )
             ).toBeLessThan(4);
         });
     });
 
-    test('tile far from origin', () => {
-        GWU.random.seed(12345);
+    test('tile far from origin', async () => {
+        // GWU.random.seed(12345);
 
         GWM.tile.install('A', {
             name: 'A',
@@ -174,22 +183,31 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
+        const level = new DIG.Level({
+            seed: 12345,
+            lakes: false,
+            loops: false,
+        });
         level.create(map);
 
-        expect(builder.build(blue)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
         // map.dump();
 
-        expect(builder.originX).toEqual(5);
-        expect(builder.originY).toEqual(27);
+        expect(builder.data.originX).toEqual(52);
+        expect(builder.data.originY).toEqual(6);
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(1);
 
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GWU.xy.distanceBetween(x, y, builder.originX, builder.originY)
+                GWU.xy.distanceBetween(
+                    x,
+                    y,
+                    builder.data.originX,
+                    builder.data.originY
+                )
             ).toBeGreaterThan(3);
         });
     });

@@ -5,7 +5,7 @@ import * as ROOM from '../room';
 import { Level } from '../level';
 
 describe('Builder', () => {
-    test('Build Vestiblue', () => {
+    test('Build Vestiblue', async () => {
         const map = GWM.map.make(80, 34, { visible: true });
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
         ROOM.install('ENTRANCE', new ROOM.BrogueEntrance());
@@ -24,7 +24,6 @@ describe('Builder', () => {
         level.create(map);
 
         GWM.map.analyze(map);
-        expect(map.cell(20, 11).chokeCount).toEqual(49);
 
         const builder = new BLUE.Builder(map, 1);
 
@@ -48,15 +47,16 @@ describe('Builder', () => {
             ],
         });
 
-        expect(builder.build(blue, 20, 11)).toBeTruthy();
+        expect(await builder.build(blue, 57, 7)).toBeTruthy();
 
-        expect(map.hasTile(20, 11, 'DOOR')).toBeTruthy();
+        // map.dump();
 
-        GWM.map.analyze(map);
-        expect(map.cell(20, 11).chokeCount).toEqual(49);
+        expect(map.hasTile(57, 7, 'DOOR')).toBeTruthy();
+
+        expect(map.cell(57, 7).chokeCount).toEqual(36);
     });
 
-    test('Vestibule with Wall Lever', () => {
+    test('Vestibule with Wall Lever', async () => {
         // Portcullis (closed, dormant)
         // [WALL_CHAR,		gray,					floorBackColor,		10,	0,	DF_PLAIN_FIRE,	0,			DF_OPEN_PORTCULLIS,	0,			NO_LIGHT,		(T_OBSTRUCTS_PASSABILITY | T_OBSTRUCTS_ITEMS), (TM_STAND_IN_TILE | TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED | TM_LIST_IN_SIDEBAR | TM_VISUALLY_DISTINCT | TM_CONNECTS_LEVEL), "a heavy portcullis",	"The iron bars rattle but will not budge; they are firmly locked in place."],
         // [FLOOR_CHAR,	floorForeColor,		floorBackColor,		95,	0,	DF_PLAIN_FIRE,	0,			DF_ACTIVATE_PORTCULLIS,0,		NO_LIGHT,		(0), (TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED),                                                    "the ground",			""],
@@ -80,6 +80,7 @@ describe('Builder', () => {
         const portcullis = GWM.tile.install('PORTCULLIS_CLOSED', {
             extends: 'WALL',
             priority: '+1',
+            ch: 'A',
             fg: 0x800,
             bg: GWM.tile.tiles.FLOOR.sprite.bg,
             flags:
@@ -114,7 +115,6 @@ describe('Builder', () => {
         level.create(map);
 
         GWM.map.analyze(map);
-        expect(map.cell(20, 11).chokeCount).toEqual(49);
 
         const builder = new BLUE.Builder(map, 1);
 
@@ -146,11 +146,11 @@ describe('Builder', () => {
             ],
         });
 
-        expect(builder.build(blue, 20, 11)).toBeTruthy();
+        expect(await builder.build(blue, 48, 6)).toBeTruthy();
 
         // map.dump();
 
-        expect(map.hasTile(20, 11, 'PORTCULLIS_CLOSED')).toBeTruthy();
-        expect(map.hasTile(12, 7, 'WALL_LEVER')).toBeTruthy();
+        expect(map.hasTile(48, 6, 'PORTCULLIS_CLOSED')).toBeTruthy();
+        expect(map.hasTile(53, 10, 'WALL_LEVER')).toBeTruthy();
     });
 });
