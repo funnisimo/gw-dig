@@ -3,7 +3,7 @@ import * as GWM from 'gw-map';
 
 import * as SITE from '../site';
 import * as STEP from './buildStep';
-import { BuildData } from './builder';
+import { BuildData } from './data';
 
 const Fl = GWU.flag.fl;
 
@@ -34,7 +34,7 @@ export enum Flags {
 export interface BlueprintOptions {
     tags: string | string[];
     frequency: GWU.frequency.FrequencyConfig;
-    size: string | number[];
+    size: string | number[] | number;
     flags: GWU.flag.FlagBase;
     steps: Partial<STEP.StepOptions>[];
 }
@@ -58,8 +58,8 @@ export class Blueprint {
 
         if (opts.size) {
             this.size = GWU.range.make(opts.size);
-            if (this.size.lo > this.size.hi)
-                throw new Error('Blueprint size must be small to large.');
+            if (this.size.lo <= 0) this.size.lo = 1;
+            if (this.size.hi < this.size.lo) this.size.hi = this.size.lo;
         } else {
             this.size = GWU.range.make([1, 1]); // Anything bigger makes weird things happen
         }
@@ -78,17 +78,6 @@ export class Blueprint {
                 );
             }
         }
-    }
-
-    getChance(level: number, tags?: string | string[]) {
-        if (tags && tags.length) {
-            if (typeof tags === 'string') {
-                tags = tags.split(/[,|]/).map((v) => v.trim());
-            }
-            // Must match all tags!
-            if (!tags.every((want) => this.tags.includes(want))) return 0;
-        }
-        return this.frequency(level);
     }
 
     get isRoom() {
@@ -134,9 +123,20 @@ export class Blueprint {
         return !!(this.flags & Flags.BP_NO_INTERIOR_FLAG);
     }
 
-    qualifies(requiredFlags: number, depth: number) {
+    get notInHallway() {
+        return !!(this.flags & Flags.BP_NOT_IN_HALLWAY);
+    }
+
+    qualifies(requiredFlags: number, tags?: string | string[]) {
+        if (tags && tags.length) {
+            if (typeof tags === 'string') {
+                tags = tags.split(/[,|]/).map((v) => v.trim());
+            }
+            // Must match all tags!
+            if (!tags.every((want) => this.tags.includes(want))) return false;
+        }
+
         if (
-            this.frequency(depth) <= 0 ||
             // Must have the required flags:
             ~this.flags & requiredFlags ||
             // May NOT have BP_ADOPT_ITEM unless that flag is required:
@@ -147,10 +147,6 @@ export class Blueprint {
             return false;
         }
         return true;
-    }
-
-    pickLocation(site: SITE.BuildSite) {
-        return pickLocation(site, this);
     }
 
     pickComponents() {
@@ -170,7 +166,7 @@ export class Blueprint {
                 }
             }
             if (totalFreq > 0) {
-                let randIndex = GWU.random.range(1, totalFreq);
+                let randIndex = GWU.rng.random.range(1, totalFreq);
                 for (let i = 0; i < keepFeature.length; i++) {
                     if (this.steps[i].flags & alternativeFlags[j]) {
                         if (randIndex == 1) {
@@ -185,6 +181,79 @@ export class Blueprint {
         }
 
         return this.steps.filter((_f, i) => keepFeature[i]);
+    }
+
+    fillInterior(builder: BuildData): number {
+        const interior = builder.interior;
+        const site = builder.site;
+
+        interior.fill(0);
+
+        // Find a location and map out the machine interior.
+        if (this.isRoom) {
+            // If it's a room machine, count up the gates of appropriate
+            // choke size and remember where they are. The origin of the room will be the gate location.
+
+            // Now map out the interior into interior[][].
+            // Start at the gate location and do a depth-first floodfill to grab all adjoining tiles with the
+            // same or lower choke value, ignoring any tiles that are already part of a machine.
+            // If we get false from this, try again. If we've tried too many times already, abort.
+            return addTileToInteriorAndIterate(
+                builder,
+                builder.originX,
+                builder.originY
+            );
+        } else if (this.isVestiblue) {
+            return computeVestibuleInterior(builder, this);
+            // success
+        } else {
+            // Find a location and map out the interior for a non-room machine.
+            // The strategy here is simply to pick a random location on the map,
+            // expand it along a pathing map by one space in all directions until the size reaches
+            // the chosen size, and then make sure the resulting space qualifies.
+            // If not, try again. If we've tried too many times already, abort.
+
+            let distanceMap = builder.distanceMap;
+
+            SITE.computeDistanceMap(
+                site,
+                distanceMap,
+                builder.originX,
+                builder.originY,
+                this.size.hi
+            );
+
+            const seq = GWU.rng.random.sequence(site.width * site.height);
+            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+            let goalSize = this.size.value(); // Keeps track of the goal size.
+
+            for (let k = 0; k < 1000 && qualifyingTileCount < goalSize; k++) {
+                for (
+                    let n = 0;
+                    n < seq.length && qualifyingTileCount < goalSize;
+                    n++
+                ) {
+                    const i = Math.floor(seq[n] / site.height);
+                    const j = seq[n] % site.height;
+
+                    if (distanceMap[i][j] == k) {
+                        interior[i][j] = 1;
+                        qualifyingTileCount++;
+
+                        if (
+                            site.isOccupied(i, j) ||
+                            site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)
+                        ) {
+                            // Abort if we've entered another machine or engulfed another machine's item or monster.
+                            return 0;
+                        }
+                    }
+                }
+            }
+            // If locationFailsafe runs out, tryAgain will still be true, and we'll try a different machine.
+            // If we're not choosing the blueprint, then don't bother with the locationFailsafe; just use the higher-level failsafe.
+            return qualifyingTileCount;
+        }
     }
 
     // async function redesignInterior( interior, originX, originY, theDungeonProfileIndex) {
@@ -310,193 +379,135 @@ export class Blueprint {
     // }
 }
 
-export function pickLocation(
-    site: SITE.BuildSite,
+export function markCandidates(
+    buildData: BuildData,
     blueprint: Blueprint
-): GWU.xy.Loc | false {
+): number {
+    const site = buildData.site;
+    const candidates = buildData.candidates;
+    candidates.fill(0);
+
     // Find a location and map out the machine interior.
     if (blueprint.isRoom) {
         // If it's a room machine, count up the gates of appropriate
         // choke size and remember where they are. The origin of the room will be the gate location.
 
-        const randSite = GWU.random.matchingLoc(
-            site.width,
-            site.height,
-            (x, y) => {
-                return (
-                    site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE) &&
-                    blueprint.size.contains(site.getChokeCount(x, y))
-                );
-            }
-        );
-        if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
-            // If no suitable sites, abort.
-            console.log(
-                'Failed to build a machine; there was no eligible door candidate for the chosen room machine from blueprint.'
-            );
-            return false;
-        }
-        return randSite;
+        candidates.update((_v, x, y) => {
+            return site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE) &&
+                blueprint.size.contains(site.getChokeCount(x, y))
+                ? 1
+                : 0;
+        });
     } else if (blueprint.isVestiblue) {
         //  Door machines must have locations passed in. We can't pick one ourselves.
-        console.log(
+        throw new Error(
             'ERROR: Attempted to build a vestiblue without a location being provided.'
         );
-        return false;
-    }
-
-    // Pick a random origin location.
-    const pos = GWU.random.matchingLoc(site.width, site.height, (x, y) => {
-        if (!site.isPassable(x, y)) return false;
-        if (blueprint.flags & Flags.BP_NOT_IN_HALLWAY) {
-            const count = GWU.xy.arcCount(x, y, (i, j) =>
-                site.isPassable(i, j)
-            );
-            return count <= 1;
-        }
-        return true;
-    });
-    if (!pos || pos[0] < 0 || pos[1] < 0) return false;
-    return pos;
-}
-
-// Assume site has been analyzed (aka GateSites and ChokeCounts set)
-export function computeInterior(
-    builder: BuildData,
-    blueprint: Blueprint
-): boolean {
-    let failsafe = blueprint.isRoom ? 10 : 20;
-    let tryAgain;
-    const interior = builder.interior;
-    const site = builder.site;
-
-    do {
-        tryAgain = false;
-        if (--failsafe <= 0) {
-            // console.log(
-            //     `Failed to build blueprint ${blueprint.id}; failed repeatedly to find a suitable blueprint location.`
-            // );
-            return false;
-        }
-
-        interior.fill(0);
-
-        // Find a location and map out the machine interior.
-        if (blueprint.isRoom) {
-            // If it's a room machine, count up the gates of appropriate
-            // choke size and remember where they are. The origin of the room will be the gate location.
-
-            // Now map out the interior into interior[][].
-            // Start at the gate location and do a depth-first floodfill to grab all adjoining tiles with the
-            // same or lower choke value, ignoring any tiles that are already part of a machine.
-            // If we get false from this, try again. If we've tried too many times already, abort.
-            tryAgain = !addTileToInteriorAndIterate(
-                builder,
-                builder.originX,
-                builder.originY
-            );
-        } else if (blueprint.isVestiblue) {
-            if (!computeVestibuleInterior(builder, blueprint)) {
-                // TODO - tryagain = true?
-                console.log(
-                    `ERROR: Attempted to build vestibule ${blueprint.id}: not enough room.`
+    } else {
+        candidates.update((_v, x, y) => {
+            if (!site.isPassable(x, y)) return 0;
+            if (blueprint.notInHallway) {
+                const count = GWU.xy.arcCount(x, y, (i, j) =>
+                    site.isPassable(i, j)
                 );
-                return false;
+                return count <= 1 ? 1 : 0;
             }
-            // success
-        } else {
-            // Find a location and map out the interior for a non-room machine.
-            // The strategy here is simply to pick a random location on the map,
-            // expand it along a pathing map by one space in all directions until the size reaches
-            // the chosen size, and then make sure the resulting space qualifies.
-            // If not, try again. If we've tried too many times already, abort.
-
-            let distanceMap = GWU.grid.alloc(interior.width, interior.height);
-
-            SITE.computeDistanceMap(
-                site,
-                distanceMap,
-                builder.originX,
-                builder.originY,
-                blueprint.size.hi
-            );
-
-            const seq = GWU.random.sequence(site.width * site.height);
-            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-            let goalSize = blueprint.size.value(); // Keeps track of the goal size.
-
-            for (let k = 0; k < 1000 && qualifyingTileCount < goalSize; k++) {
-                for (
-                    let n = 0;
-                    n < seq.length && qualifyingTileCount < goalSize;
-                    n++
-                ) {
-                    const i = Math.floor(seq[n] / site.height);
-                    const j = seq[n] % site.height;
-
-                    if (distanceMap[i][j] == k) {
-                        interior[i][j] = 1;
-                        qualifyingTileCount++;
-
-                        if (
-                            site.isOccupied(i, j) ||
-                            site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)
-                        ) {
-                            // Abort if we've entered another machine or engulfed another machine's item or monster.
-                            tryAgain = true;
-                            qualifyingTileCount = goalSize; // This is a hack to drop out of these three for-loops.
-                        }
-                    }
-                }
-            }
-
-            // Now make sure the interior map satisfies the machine's qualifications.
-            if (qualifyingTileCount < goalSize) {
-                tryAgain = true;
-                console.debug('- too small');
-            } else if (
-                blueprint.treatAsBlocking &&
-                SITE.siteDisruptedBy(site, interior, {
-                    machine: site.machineCount,
-                })
-            ) {
-                console.debug(' - disconnected');
-                tryAgain = true;
-            } else if (
-                blueprint.requireBlocking &&
-                SITE.siteDisruptedSize(site, interior) < 100
-            ) {
-                console.debug(' - not disconnected enough');
-                tryAgain = true; // BP_REQUIRE_BLOCKING needs some work to make sure the disconnect is interesting.
-            }
-            // If locationFailsafe runs out, tryAgain will still be true, and we'll try a different machine.
-            // If we're not choosing the blueprint, then don't bother with the locationFailsafe; just use the higher-level failsafe.
-
-            GWU.grid.free(distanceMap);
-        }
-
-        // Now loop if necessary.
-    } while (tryAgain);
-
-    // console.log(tryAgain, failsafe);
-
-    return true;
+            return 1;
+        });
+    }
+    return candidates.count((v) => v == 1);
 }
+
+export function pickCandidateLoc(
+    buildData: BuildData,
+    _blueprint: Blueprint
+): GWU.xy.Loc | null {
+    const site = buildData.site;
+    const candidates = buildData.candidates;
+
+    const randSite = GWU.rng.random.matchingLoc(
+        site.width,
+        site.height,
+        (x, y) => candidates[x][y] == 1
+    );
+
+    if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
+        // If no suitable sites, abort.
+        return null;
+    }
+    return randSite;
+}
+
+// // Assume site has been analyzed (aka GateSites and ChokeCounts set)
+// export function computeInterior(
+//     builder: BuildData,
+//     blueprint: Blueprint
+// ): boolean {
+//     let failsafe = blueprint.isRoom ? 10 : 20;
+//     let tryAgain;
+//     const interior = builder.interior;
+//     const site = builder.site;
+
+//     do {
+//         tryAgain = false;
+//         if (--failsafe <= 0) {
+//             // console.log(
+//             //     `Failed to build blueprint ${blueprint.id}; failed repeatedly to find a suitable blueprint location.`
+//             // );
+//             return false;
+//         }
+
+//         let count = fillInterior(builder, blueprint);
+
+//         // Now make sure the interior map satisfies the machine's qualifications.
+//         if (!count) {
+//             console.debug('- no interior');
+//             tryAgain = true;
+//         } else if (!blueprint.size.contains(count)) {
+//             console.debug('- too small');
+//             tryAgain = true;
+//         } else if (
+//             blueprint.treatAsBlocking &&
+//             SITE.siteDisruptedBy(site, interior, { machine: site.machineCount })
+//         ) {
+//             console.debug('- blocks');
+//             tryAgain = true;
+//         } else if (
+//             blueprint.requireBlocking &&
+//             SITE.siteDisruptedSize(site, interior) < 100
+//         ) {
+//             console.debug('- does not block');
+//             tryAgain = true;
+//         }
+
+//         // Now loop if necessary.
+//     } while (tryAgain);
+
+//     // console.log(tryAgain, failsafe);
+
+//     return true;
+// }
 
 export function computeVestibuleInterior(
     builder: BuildData,
     blueprint: Blueprint
-) {
+): number {
     let success = true;
 
     const site = builder.site;
     const interior = builder.interior;
     interior.fill(0);
 
-    // console.log('DISTANCE MAP', originX, originY);
-    // RUT.Grid.dump(distMap);
+    if (blueprint.size.hi == 1) {
+        interior[builder.originX][builder.originY] = 1;
+        return 1;
+    }
 
+    // If this is a wall - it is really an error (maybe manually trying a build location?)
     const doorChokeCount = site.getChokeCount(builder.originX, builder.originY);
+    if (doorChokeCount > 10000) {
+        return 0;
+    }
 
     const vestibuleLoc = [-1, -1];
     let vestibuleChokeCount = doorChokeCount;
@@ -529,13 +540,13 @@ export function computeVestibuleInterior(
             },
             1
         );
-        if (success && blueprint.size.contains(count)) return true;
+        if (success && blueprint.size.contains(count)) return roomSize;
     }
 
     let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
     const wantSize = blueprint.size.value(); // Keeps track of the goal size.
 
-    const distMap = GWU.grid.alloc(site.width, site.height);
+    const distMap = builder.distanceMap;
     SITE.computeDistanceMap(
         site,
         distMap,
@@ -544,7 +555,7 @@ export function computeVestibuleInterior(
         blueprint.size.hi
     );
 
-    const cells = GWU.random.sequence(site.width * site.height);
+    const cells = GWU.rng.random.sequence(site.width * site.height);
     success = true;
     for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
         for (
@@ -569,22 +580,7 @@ export function computeVestibuleInterior(
         }
     }
 
-    // Now make sure the interior map satisfies the machine's qualifications.
-    if (
-        blueprint.treatAsBlocking &&
-        SITE.siteDisruptedBy(site, interior, { machine: site.machineCount })
-    ) {
-        success = false;
-        console.debug('- blocks');
-    } else if (
-        blueprint.requireBlocking &&
-        SITE.siteDisruptedSize(site, interior) < 100
-    ) {
-        success = false;
-        console.debug('- does not block');
-    }
-    GWU.grid.free(distMap);
-    return success;
+    return qualifyingTileCount;
 }
 
 // Assumes (startX, startY) is in the machine.
@@ -594,11 +590,12 @@ function addTileToInteriorAndIterate(
     builder: BuildData,
     startX: number,
     startY: number
-): boolean {
+): number {
     let goodSoFar = true;
     const interior = builder.interior;
     const site = builder.site;
 
+    let count = 1;
     interior[startX][startY] = 1;
     const startChokeCount = site.getChokeCount(startX, startY);
 
@@ -617,16 +614,18 @@ function addTileToInteriorAndIterate(
             // Items haven't been populated yet, so the only way this could happen is if another machine
             // previously placed an item here.
             // Also abort if we're touching another machine at any point other than a gate tile.
-            return false;
+            return 0;
         }
         if (
             site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
             !site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_IN_MACHINE)
         ) {
-            goodSoFar = addTileToInteriorAndIterate(builder, newX, newY);
+            let additional = addTileToInteriorAndIterate(builder, newX, newY);
+            if (additional <= 0) return 0;
+            count += additional;
         }
     }
-    return goodSoFar;
+    return count;
 }
 
 export function prepareInterior(builder: BuildData, blueprint: Blueprint) {
@@ -819,8 +818,13 @@ export function install(
 }
 
 export function random(requiredFlags: number, depth: number): Blueprint {
-    const matches = Object.values(blueprints).filter((b) =>
-        b.qualifies(requiredFlags, depth)
+    const matches = Object.values(blueprints).filter(
+        (b) => b.qualifies(requiredFlags) && b.frequency(depth)
     );
-    return GWU.random.item(matches);
+    return GWU.rng.random.item(matches);
+}
+
+export function get(id: string | Blueprint): Blueprint {
+    if (id instanceof Blueprint) return id;
+    return blueprints[id];
 }

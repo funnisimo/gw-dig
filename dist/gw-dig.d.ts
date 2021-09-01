@@ -99,7 +99,7 @@ interface BuildSite extends DigSite {
     makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     analyze(): void;
-    fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
     backup(): any;
     restore(backup: any): void;
     nextMachineId(): number;
@@ -154,7 +154,7 @@ declare class MapSite implements BuildSite {
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
     analyze(): void;
-    fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -374,7 +374,11 @@ declare namespace room_d {
 }
 
 declare function isDoorLoc(site: DigSite, loc: GWU.xy.Loc, dir: GWU.xy.Loc): boolean;
-declare function pickWidth(opts?: any): number;
+declare function pickWidth(opts: number | {
+    width?: GWU.range.RangeBase | {
+        [key: number]: number;
+    };
+}): number;
 declare function pickLength(dir: number, lengths: [GWU.range.Range, GWU.range.Range]): number;
 declare function pickHallDirection(site: DigSite, doors: GWU.xy.Loc[], lengths: [GWU.range.Range, GWU.range.Range]): number;
 declare function pickHallExits(site: DigSite, x: number, y: number, dir: number, obliqueChance: number): GWU.types.Loc[];
@@ -636,69 +640,12 @@ declare class Dungeon {
     makeLevel(id: number, opts: Partial<LevelOptions>, cb: DigFn): boolean;
 }
 
-declare enum Flags {
-    BP_ROOM,
-    BP_VESTIBULE,
-    BP_REWARD,
-    BP_ADOPT_ITEM,
-    BP_PURGE_PATHING_BLOCKERS,
-    BP_PURGE_INTERIOR,
-    BP_PURGE_LIQUIDS,
-    BP_SURROUND_WITH_WALLS,
-    BP_IMPREGNABLE,
-    BP_OPEN_INTERIOR,
-    BP_MAXIMIZE_INTERIOR,
-    BP_REDESIGN_INTERIOR,
-    BP_TREAT_AS_BLOCKING,
-    BP_REQUIRE_BLOCKING,
-    BP_NO_INTERIOR_FLAG,
-    BP_NOT_IN_HALLWAY
-}
-interface BlueprintOptions {
-    tags: string | string[];
-    frequency: GWU.frequency.FrequencyConfig;
-    size: string | number[];
-    flags: GWU.flag.FlagBase;
-    steps: Partial<StepOptions>[];
-}
-declare class Blueprint {
-    tags: string[];
-    frequency: GWU.frequency.FrequencyFn;
-    size: GWU.range.Range;
-    flags: number;
-    steps: BuildStep[];
-    id: string;
-    constructor(opts?: Partial<BlueprintOptions>);
-    getChance(level: number, tags?: string | string[]): number;
-    get isRoom(): boolean;
-    get isReward(): boolean;
-    get isVestiblue(): boolean;
-    get adoptsItem(): boolean;
-    get treatAsBlocking(): boolean;
-    get requireBlocking(): boolean;
-    get purgeInterior(): boolean;
-    get purgeBlockers(): boolean;
-    get purgeLiquids(): boolean;
-    get surroundWithWalls(): boolean;
-    get makeImpregnable(): boolean;
-    get maximizeInterior(): boolean;
-    get openInterior(): boolean;
-    get noInteriorFlag(): boolean;
-    qualifies(requiredFlags: number, depth: number): boolean;
-    pickLocation(site: BuildSite): false | GWU.types.Loc;
-    pickComponents(): BuildStep[];
-}
-declare const blueprints: Record<string, Blueprint>;
-declare function install(id: string, blueprint: Blueprint | Partial<BlueprintOptions>): Blueprint;
-declare function random(requiredFlags: number, depth: number): Blueprint;
-
 declare class BuildData {
     map: GWM.map.Map;
     site: MapSite;
-    spawnedItems: GWM.item.Item[];
-    spawnedHordes: GWM.actor.Actor[];
     interior: GWU.grid.NumGrid;
     occupied: GWU.grid.NumGrid;
+    candidates: GWU.grid.NumGrid;
     viewMap: GWU.grid.NumGrid;
     distanceMap: GWU.grid.NumGrid;
     originX: number;
@@ -711,17 +658,6 @@ declare class BuildData {
     free(): void;
     reset(originX: number, originY: number): void;
     calcDistances(maxSize: number): void;
-}
-declare class Builder {
-    data: BuildData;
-    constructor(map: GWM.map.Map, depth: number);
-    buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
-    build(blueprint: Blueprint | string, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
-    _buildAt(blueprint: Blueprint, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
-    _build(blueprint: Blueprint, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
-    pickLocation(blueprint: Blueprint): Promise<false | GWU.types.Loc>;
-    computeInterior(blueprint: Blueprint): Promise<boolean>;
-    buildComponent(blueprint: Blueprint, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): Promise<boolean>;
 }
 
 interface StepOptions {
@@ -759,7 +695,7 @@ declare enum StepFlags {
     BF_REPEAT_UNTIL_NO_PROGRESS,
     BF_IMPREGNABLE,
     BF_NOT_IN_HALLWAY,
-    BF_NOT_ON_LEVEL_PERIMETER,
+    BF_ALLOW_BOUNDARY,
     BF_SKELETON_KEY,
     BF_KEY_DISPOSABLE
 }
@@ -775,6 +711,10 @@ declare class BuildStep {
     next: null;
     id: string;
     constructor(cfg?: Partial<StepOptions>);
+    get allowBoundary(): boolean;
+    get notInHallway(): boolean;
+    get buildInWalls(): boolean;
+    get buildAnywhere(): boolean;
     get repeatUntilNoProgress(): boolean;
     get permitBlocking(): boolean;
     get treatAsBlocking(): boolean;
@@ -786,12 +726,140 @@ declare class BuildStep {
     get buildVestibule(): boolean;
     get generateEverywhere(): boolean;
     get buildAtOrigin(): boolean;
+    get buildsInstances(): boolean;
+    markCandidates(data: BuildData, blueprint: Blueprint, candidates: GWU.grid.NumGrid, distanceBound?: [number, number]): number;
 }
 declare function updateViewMap(builder: BuildData, buildStep: BuildStep): void;
 declare function calcDistanceBound(builder: BuildData, buildStep: BuildStep): [number, number];
-declare function markCandidates(candidates: GWU.grid.NumGrid, builder: BuildData, blueprint: Blueprint, buildStep: BuildStep, distanceBound: [number, number]): number;
 declare function cellIsCandidate(builder: BuildData, blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, distanceBound: [number, number]): boolean;
 declare function makePersonalSpace(builder: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid, personalSpace: number): number;
+
+declare enum Flags {
+    BP_ROOM,
+    BP_VESTIBULE,
+    BP_REWARD,
+    BP_ADOPT_ITEM,
+    BP_PURGE_PATHING_BLOCKERS,
+    BP_PURGE_INTERIOR,
+    BP_PURGE_LIQUIDS,
+    BP_SURROUND_WITH_WALLS,
+    BP_IMPREGNABLE,
+    BP_OPEN_INTERIOR,
+    BP_MAXIMIZE_INTERIOR,
+    BP_REDESIGN_INTERIOR,
+    BP_TREAT_AS_BLOCKING,
+    BP_REQUIRE_BLOCKING,
+    BP_NO_INTERIOR_FLAG,
+    BP_NOT_IN_HALLWAY
+}
+interface BlueprintOptions {
+    tags: string | string[];
+    frequency: GWU.frequency.FrequencyConfig;
+    size: string | number[] | number;
+    flags: GWU.flag.FlagBase;
+    steps: Partial<StepOptions>[];
+}
+declare class Blueprint {
+    tags: string[];
+    frequency: GWU.frequency.FrequencyFn;
+    size: GWU.range.Range;
+    flags: number;
+    steps: BuildStep[];
+    id: string;
+    constructor(opts?: Partial<BlueprintOptions>);
+    get isRoom(): boolean;
+    get isReward(): boolean;
+    get isVestiblue(): boolean;
+    get adoptsItem(): boolean;
+    get treatAsBlocking(): boolean;
+    get requireBlocking(): boolean;
+    get purgeInterior(): boolean;
+    get purgeBlockers(): boolean;
+    get purgeLiquids(): boolean;
+    get surroundWithWalls(): boolean;
+    get makeImpregnable(): boolean;
+    get maximizeInterior(): boolean;
+    get openInterior(): boolean;
+    get noInteriorFlag(): boolean;
+    get notInHallway(): boolean;
+    qualifies(requiredFlags: number, tags?: string | string[]): boolean;
+    pickComponents(): BuildStep[];
+    fillInterior(builder: BuildData): number;
+}
+declare const blueprints: Record<string, Blueprint>;
+declare function install(id: string, blueprint: Blueprint | Partial<BlueprintOptions>): Blueprint;
+declare function random(requiredFlags: number, depth: number): Blueprint;
+
+interface BuildLogger {
+    onError(data: BuildData, error: string): Promise<any>;
+    onBlueprintPick(data: BuildData, blueprint: Blueprint, flags: number, depth: number): Promise<any>;
+    onBlueprintCandidates(data: BuildData, blueprint: Blueprint): Promise<any>;
+    onBlueprintStart(data: BuildData, blueprint: Blueprint, adoptedItem: GWM.item.Item | null): Promise<any>;
+    onBlueprintInterior(data: BuildData, blueprint: Blueprint): Promise<any>;
+    onBlueprintFail(data: BuildData, blueprint: Blueprint, error: string): Promise<any>;
+    onBlueprintSuccess(data: BuildData, blueprint: Blueprint): Promise<any>;
+    onStepStart(data: BuildData, blueprint: Blueprint, step: BuildStep, item: GWM.item.Item | null): Promise<any>;
+    onStepCandidates(data: BuildData, blueprint: Blueprint, step: BuildStep, candidates: GWU.grid.NumGrid, wantCount: number): Promise<any>;
+    onStepInstanceSuccess(data: BuildData, blueprint: Blueprint, step: BuildStep, x: number, y: number): Promise<any>;
+    onStepInstanceFail(data: BuildData, blueprint: Blueprint, step: BuildStep, x: number, y: number, error: string): Promise<any>;
+    onStepSuccess(data: BuildData, blueprint: Blueprint, step: BuildStep): Promise<any>;
+    onStepFail(data: BuildData, blueprint: Blueprint, step: BuildStep, error: string): Promise<any>;
+}
+declare class NullLogger implements BuildLogger {
+    onError(): Promise<any>;
+    onBlueprintPick(): Promise<any>;
+    onBlueprintCandidates(): Promise<any>;
+    onBlueprintStart(): Promise<any>;
+    onBlueprintInterior(): Promise<any>;
+    onBlueprintFail(): Promise<any>;
+    onBlueprintSuccess(): Promise<any>;
+    onStepStart(): Promise<any>;
+    onStepCandidates(): Promise<any>;
+    onStepInstanceSuccess(): Promise<any>;
+    onStepInstanceFail(): Promise<any>;
+    onStepSuccess(): Promise<any>;
+    onStepFail(): Promise<any>;
+}
+
+declare type BlueType = Blueprint | string;
+interface BuilderOptions {
+    blueprints?: BlueType[] | {
+        [key: string]: BlueType;
+    };
+    depth?: number;
+    log?: BuildLogger | boolean;
+}
+declare class Builder {
+    data: BuildData;
+    blueprints: Blueprint[];
+    log: BuildLogger;
+    constructor(map: GWM.map.Map, options?: BuilderOptions);
+    _pickRandom(requiredFlags: number): Blueprint | null;
+    buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    build(blueprint: Blueprint | string, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    _buildAt(blueprint: Blueprint, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    _build(blueprint: Blueprint, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    _markCandidates(blueprint: Blueprint): Promise<number>;
+    _computeInterior(blueprint: Blueprint): Promise<boolean>;
+    _buildStep(blueprint: Blueprint, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): Promise<boolean>;
+    _buildStepInstance(blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+}
+
+declare class ConsoleLogger implements BuildLogger {
+    onError(_data: BuildData, error: string): Promise<void>;
+    onBlueprintPick(_data: BuildData, blueprint: Blueprint, flags: number, depth: number): Promise<void>;
+    onBlueprintCandidates(data: BuildData, blueprint: Blueprint): Promise<void>;
+    onBlueprintStart(data: BuildData, blueprint: Blueprint): Promise<void>;
+    onBlueprintInterior(data: BuildData, blueprint: Blueprint): Promise<void>;
+    onBlueprintFail(data: BuildData, blueprint: Blueprint, error: string): Promise<void>;
+    onBlueprintSuccess(data: BuildData, blueprint: Blueprint): Promise<void>;
+    onStepStart(data: BuildData, blueprint: Blueprint, step: BuildStep): Promise<void>;
+    onStepCandidates(data: BuildData, blueprint: Blueprint, step: BuildStep, candidates: GWU.grid.NumGrid, wantCount: number): Promise<void>;
+    onStepInstanceSuccess(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, x: number, y: number): Promise<void>;
+    onStepInstanceFail(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, x: number, y: number, error: string): Promise<void>;
+    onStepSuccess(data: BuildData, blueprint: Blueprint, step: BuildStep): Promise<void>;
+    onStepFail(data: BuildData, blueprint: Blueprint, step: BuildStep, error: string): Promise<void>;
+}
 
 type index_d_Flags = Flags;
 declare const index_d_Flags: typeof Flags;
@@ -801,6 +869,11 @@ type index_d_BlueprintOptions = BlueprintOptions;
 declare const index_d_install: typeof install;
 declare const index_d_random: typeof random;
 declare const index_d_blueprints: typeof blueprints;
+type index_d_BuildData = BuildData;
+declare const index_d_BuildData: typeof BuildData;
+type index_d_BuildLogger = BuildLogger;
+type index_d_NullLogger = NullLogger;
+declare const index_d_NullLogger: typeof NullLogger;
 type index_d_StepOptions = StepOptions;
 type index_d_StepFlags = StepFlags;
 declare const index_d_StepFlags: typeof StepFlags;
@@ -808,13 +881,14 @@ type index_d_BuildStep = BuildStep;
 declare const index_d_BuildStep: typeof BuildStep;
 declare const index_d_updateViewMap: typeof updateViewMap;
 declare const index_d_calcDistanceBound: typeof calcDistanceBound;
-declare const index_d_markCandidates: typeof markCandidates;
 declare const index_d_cellIsCandidate: typeof cellIsCandidate;
 declare const index_d_makePersonalSpace: typeof makePersonalSpace;
-type index_d_BuildData = BuildData;
-declare const index_d_BuildData: typeof BuildData;
+type index_d_BlueType = BlueType;
+type index_d_BuilderOptions = BuilderOptions;
 type index_d_Builder = Builder;
 declare const index_d_Builder: typeof Builder;
+type index_d_ConsoleLogger = ConsoleLogger;
+declare const index_d_ConsoleLogger: typeof ConsoleLogger;
 declare namespace index_d {
   export {
     index_d_Flags as Flags,
@@ -823,16 +897,20 @@ declare namespace index_d {
     index_d_install as install,
     index_d_random as random,
     index_d_blueprints as blueprints,
+    index_d_BuildData as BuildData,
+    index_d_BuildLogger as BuildLogger,
+    index_d_NullLogger as NullLogger,
     index_d_StepOptions as StepOptions,
     index_d_StepFlags as StepFlags,
     index_d_BuildStep as BuildStep,
     index_d_updateViewMap as updateViewMap,
     index_d_calcDistanceBound as calcDistanceBound,
-    index_d_markCandidates as markCandidates,
     index_d_cellIsCandidate as cellIsCandidate,
     index_d_makePersonalSpace as makePersonalSpace,
-    index_d_BuildData as BuildData,
+    index_d_BlueType as BlueType,
+    index_d_BuilderOptions as BuilderOptions,
     index_d_Builder as Builder,
+    index_d_ConsoleLogger as ConsoleLogger,
   };
 }
 

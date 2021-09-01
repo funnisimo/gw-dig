@@ -57,7 +57,7 @@ const canvas = GWU.canvas.make({
 SHOW(canvas.node);
 
 level.create(map);
-const builder = new GWD.blueprint.Builder(map, 1);
+const builder = new GWD.blueprint.Builder(map);
 
 builder.build(blue).then(() => {
     map.drawInto(canvas);

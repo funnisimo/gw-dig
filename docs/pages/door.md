@@ -22,7 +22,7 @@ const level = new GWD.Level({
 });
 level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, 1);
+const builder = new GWD.blueprint.Builder(map);
 
 const blue = new GWD.blueprint.Blueprint({
     flags: 'BP_ROOM',
@@ -33,7 +33,7 @@ const blue = new GWD.blueprint.Blueprint({
     ],
 });
 
-builder.build(blue, 20, 11).then(() => {
+builder.build(blue).then(() => {
     map.drawInto(canvas);
     canvas.render();
 });
@@ -63,8 +63,6 @@ const level = new GWD.Level({
 });
 level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, 1);
-
 GWD.blueprint.install('VESTIBULE', {
     flags: 'BP_VESTIBULE',
     steps: [{ tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' }],
@@ -79,10 +77,12 @@ const blue = GWD.blueprint.install('ROOM', {
     ],
 });
 
+const builder = new GWD.blueprint.Builder(map);
+
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 SHOW(canvas.node);
 
-builder.build(blue, 20, 11).then(() => {
+builder.build(blue).then(() => {
     map.drawInto(canvas);
     canvas.render();
 });

@@ -24,7 +24,7 @@ export interface BuildSite extends DigSite.DigSite {
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
 
     analyze(): void;
-    fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
 
     backup(): any;
     restore(backup: any): void;
@@ -255,7 +255,7 @@ export class MapSite implements BuildSite {
         }
         this.needsAnalysis = false;
     }
-    fireEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean {
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean {
         this.needsAnalysis = true;
         return GWM.effect.fireSync(effect, this.map, x, y);
     }

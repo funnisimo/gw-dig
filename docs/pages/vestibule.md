@@ -20,8 +20,6 @@ const level = new GWD.Level({
 });
 level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, 1);
-
 GWD.blueprint.install('VESTIBULE', {
     flags: 'BP_VESTIBULE',
     size: '5-10',
@@ -36,6 +34,8 @@ const blue = GWD.blueprint.install('ROOM', {
     size: '10-100',
     steps: [{ flags: 'BF_BUILD_VESTIBULE' }],
 });
+
+const builder = new GWD.blueprint.Builder(map);
 
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 SHOW(canvas.node);
@@ -87,8 +87,6 @@ level.create(map);
 
 GWM.map.analyze(map);
 
-const builder = new GWD.blueprint.Builder(map, 1);
-
 GWD.blueprint.install('VESTIBULE', {
     flags: 'BP_VESTIBULE',
     size: 1,
@@ -100,7 +98,7 @@ GWD.blueprint.install('VESTIBULE', {
         {
             tile: 'WALL_LEVER',
             flags:
-                'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL',
+                'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL, BF_NOT_IN_HALLWAYS',
         },
     ],
 });
@@ -110,6 +108,8 @@ const blue = GWD.blueprint.install('ROOM', {
     size: '10-100',
     steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
 });
+
+const builder = new GWD.blueprint.Builder(map);
 
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 SHOW(canvas.node);
@@ -245,7 +245,7 @@ const level = new GWD.Level({
 });
 level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, 1);
+const builder = new GWD.blueprint.Builder(map, { log: true });
 
 const canvas = GWU.canvas.make({
     font: 'monospace',

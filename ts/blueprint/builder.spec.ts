@@ -25,8 +25,6 @@ describe('Builder', () => {
 
         GWM.map.analyze(map);
 
-        const builder = new BLUE.Builder(map, 1);
-
         BLUE.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',
             size: [1, 1],
@@ -47,9 +45,13 @@ describe('Builder', () => {
             ],
         });
 
-        expect(await builder.build(blue, 57, 7)).toBeTruthy();
+        const builder = new BLUE.Builder(map);
+
+        const result = await builder.build(blue, 57, 7);
 
         // map.dump();
+
+        expect(result).toBeTruthy();
 
         expect(map.hasTile(57, 7, 'DOOR')).toBeTruthy();
 
@@ -116,8 +118,6 @@ describe('Builder', () => {
 
         GWM.map.analyze(map);
 
-        const builder = new BLUE.Builder(map, 1);
-
         BLUE.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',
             size: [1, 1],
@@ -146,11 +146,15 @@ describe('Builder', () => {
             ],
         });
 
-        expect(await builder.build(blue, 48, 6)).toBeTruthy();
+        const builder = new BLUE.Builder(map);
+
+        expect(await builder.build(blue)).toBeTruthy();
 
         // map.dump();
 
-        expect(map.hasTile(48, 6, 'PORTCULLIS_CLOSED')).toBeTruthy();
-        expect(map.hasTile(53, 10, 'WALL_LEVER')).toBeTruthy();
+        expect(map.cells.count((c) => c.hasTile('PORTCULLIS_CLOSED'))).toEqual(
+            1
+        );
+        expect(map.cells.count((c) => c.hasTile('WALL_LEVER'))).toEqual(1);
     });
 });

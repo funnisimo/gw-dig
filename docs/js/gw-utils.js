@@ -4,6 +4,62 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GWU = {}));
 }(this, (function (exports) { 'use strict';
 
+    /**
+     * GW.utils
+     * @module utils
+     */
+    function NOOP() { }
+    function TRUE() {
+        return true;
+    }
+    function FALSE() {
+        return false;
+    }
+    function ONE() {
+        return 1;
+    }
+    function ZERO() {
+        return 0;
+    }
+    function IDENTITY(x) {
+        return x;
+    }
+    function IS_ZERO(x) {
+        return x == 0;
+    }
+    function IS_NONZERO(x) {
+        return x != 0;
+    }
+    /**
+     * clamps a value between min and max (inclusive)
+     * @param v {Number} the value to clamp
+     * @param min {Number} the minimum value
+     * @param max {Number} the maximum value
+     * @returns {Number} the clamped value
+     */
+    function clamp(v, min, max) {
+        if (v < min)
+            return min;
+        if (v > max)
+            return max;
+        return v;
+    }
+    function ERROR(message) {
+        throw new Error(message);
+    }
+    function WARN(...args) {
+        console.warn(...args);
+    }
+    function first(...args) {
+        return args.find((v) => v !== undefined);
+    }
+    function arraysIntersect(a, b) {
+        return a.some((av) => b.includes(av));
+    }
+    function sum(arr) {
+        return arr.reduce((a, b) => a + b);
+    }
+
     // DIRS are organized clockwise
     // - first 4 are arrow directions
     //   >> rotate 90 degrees clockwise ==>> newIndex = (oldIndex + 1) % 4
@@ -54,10 +110,6 @@
     }
     class Bounds {
         constructor(x, y, w, h) {
-            this.x = 0;
-            this.y = 0;
-            this.width = 0;
-            this.height = 0;
             this.x = x;
             this.y = y;
             this.width = w;
@@ -426,372 +478,6 @@
         arcCount: arcCount
     });
 
-    /**
-     * The code in this function is extracted from ROT.JS.
-     * Source: https://github.com/ondras/rot.js/blob/v2.2.0/src/rng.ts
-     * Copyright (c) 2012-now(), Ondrej Zara
-     * All rights reserved.
-     * License: BSD 3-Clause "New" or "Revised" License
-     * See: https://github.com/ondras/rot.js/blob/v2.2.0/license.txt
-     */
-    function Alea(seed) {
-        /**
-         * This code is an implementation of Alea algorithm; (C) 2010 Johannes Baagøe.
-         * Alea is licensed according to the http://en.wikipedia.org/wiki/MIT_License.
-         */
-        seed = Math.abs(seed || Date.now());
-        seed = seed < 1 ? 1 / seed : seed;
-        const FRAC = 2.3283064365386963e-10; /* 2^-32 */
-        let _s0 = 0;
-        let _s1 = 0;
-        let _s2 = 0;
-        let _c = 0;
-        /**
-         * Seed the number generator
-         */
-        _s0 = (seed >>> 0) * FRAC;
-        seed = (seed * 69069 + 1) >>> 0;
-        _s1 = seed * FRAC;
-        seed = (seed * 69069 + 1) >>> 0;
-        _s2 = seed * FRAC;
-        _c = 1;
-        /**
-         * @returns Pseudorandom value [0,1), uniformly distributed
-         */
-        return function alea() {
-            let t = 2091639 * _s0 + _c * FRAC;
-            _s0 = _s1;
-            _s1 = _s2;
-            _c = t | 0;
-            _s2 = t - _c;
-            return _s2;
-        };
-    }
-    const RANDOM_CONFIG = {
-        make: Alea,
-        // make: (seed?: number) => {
-        //     let rng = ROT.RNG.clone();
-        //     if (seed) {
-        //         rng.setSeed(seed);
-        //     }
-        //     return rng.getUniform.bind(rng);
-        // },
-    };
-    function lotteryDrawArray(rand, frequencies) {
-        let i, maxFreq, randIndex;
-        maxFreq = 0;
-        for (i = 0; i < frequencies.length; i++) {
-            maxFreq += frequencies[i];
-        }
-        if (maxFreq <= 0) {
-            // console.warn(
-            //     'Lottery Draw - no frequencies',
-            //     frequencies,
-            //     frequencies.length
-            // );
-            return -1;
-        }
-        randIndex = rand.range(0, maxFreq - 1);
-        for (i = 0; i < frequencies.length; i++) {
-            if (frequencies[i] > randIndex) {
-                return i;
-            }
-            else {
-                randIndex -= frequencies[i];
-            }
-        }
-        console.warn('Lottery Draw failed.', frequencies, frequencies.length);
-        return 0;
-    }
-    function lotteryDrawObject(rand, weights) {
-        const entries = Object.entries(weights);
-        const frequencies = entries.map(([_, weight]) => weight);
-        const index = lotteryDrawArray(rand, frequencies);
-        return entries[index][0];
-    }
-    class Random {
-        // static configure(opts: Partial<RandomConfig>) {
-        //     if (opts.make) {
-        //         if (typeof opts.make !== 'function')
-        //             throw new Error('Random make parameter must be a function.');
-        //         if (typeof opts.make(12345) !== 'function')
-        //             throw new Error(
-        //                 'Random make function must accept a numeric seed and return a random function.'
-        //             );
-        //         RANDOM_CONFIG.make = opts.make;
-        //         random.seed();
-        //         cosmetic.seed();
-        //     }
-        // }
-        constructor() {
-            this._fn = RANDOM_CONFIG.make();
-        }
-        configure(config = {}) {
-            if (config.make) {
-                RANDOM_CONFIG.make = config.make;
-                random.seed();
-                cosmetic.seed();
-            }
-        }
-        seed(val) {
-            val = val || Date.now();
-            this._fn = RANDOM_CONFIG.make(val);
-        }
-        value() {
-            return this._fn();
-        }
-        float() {
-            return this.value();
-        }
-        number(max = Number.MAX_SAFE_INTEGER) {
-            if (max <= 0)
-                return 0;
-            return Math.floor(this.value() * max);
-        }
-        int(max = 0) {
-            return this.number(max);
-        }
-        range(lo, hi) {
-            if (hi <= lo)
-                return hi;
-            const diff = hi - lo + 1;
-            return lo + this.number(diff);
-        }
-        dice(count, sides, addend = 0) {
-            let total = 0;
-            let mult = 1;
-            if (count < 0) {
-                count = -count;
-                mult = -1;
-            }
-            addend = addend || 0;
-            for (let i = 0; i < count; ++i) {
-                total += this.range(1, sides);
-            }
-            total *= mult;
-            return total + addend;
-        }
-        weighted(weights) {
-            if (Array.isArray(weights)) {
-                return lotteryDrawArray(this, weights);
-            }
-            return lotteryDrawObject(this, weights);
-        }
-        item(list) {
-            if (!Array.isArray(list)) {
-                list = Object.values(list);
-            }
-            return list[this.range(0, list.length - 1)];
-        }
-        key(obj) {
-            return this.item(Object.keys(obj));
-        }
-        shuffle(list, fromIndex = 0, toIndex = 0) {
-            if (arguments.length == 2) {
-                toIndex = fromIndex;
-                fromIndex = 0;
-            }
-            let i, r, buf;
-            toIndex = toIndex || list.length;
-            fromIndex = fromIndex || 0;
-            for (i = fromIndex; i < toIndex; i++) {
-                r = this.range(fromIndex, toIndex - 1);
-                if (i != r) {
-                    buf = list[r];
-                    list[r] = list[i];
-                    list[i] = buf;
-                }
-            }
-            return list;
-        }
-        sequence(n) {
-            const list = [];
-            for (let i = 0; i < n; i++) {
-                list[i] = i;
-            }
-            return this.shuffle(list);
-        }
-        chance(percent, outOf = 100) {
-            if (percent <= 0)
-                return false;
-            if (percent >= outOf)
-                return true;
-            return this.number(outOf) < percent;
-        }
-        // Get a random int between lo and hi, inclusive, with probability distribution
-        // affected by clumps.
-        clumped(lo, hi, clumps) {
-            if (hi <= lo) {
-                return lo;
-            }
-            if (clumps <= 1) {
-                return this.range(lo, hi);
-            }
-            let i, total = 0, numSides = Math.floor((hi - lo) / clumps);
-            for (i = 0; i < (hi - lo) % clumps; i++) {
-                total += this.range(0, numSides + 1);
-            }
-            for (; i < clumps; i++) {
-                total += this.range(0, numSides);
-            }
-            return total + lo;
-        }
-        matchingLoc(width, height, matchFn) {
-            let locationCount = 0;
-            let i, j, index;
-            locationCount = 0;
-            forRect(width, height, (i, j) => {
-                if (matchFn(i, j)) {
-                    locationCount++;
-                }
-            });
-            if (locationCount == 0) {
-                return [-1, -1];
-            }
-            else {
-                index = this.range(0, locationCount - 1);
-            }
-            for (i = 0; i < width && index >= 0; i++) {
-                for (j = 0; j < height && index >= 0; j++) {
-                    if (matchFn(i, j)) {
-                        if (index == 0) {
-                            return [i, j];
-                        }
-                        index--;
-                    }
-                }
-            }
-            return [-1, -1];
-        }
-        matchingLocNear(x, y, matchFn) {
-            let loc = [-1, -1];
-            let i, j, k, candidateLocs, randIndex;
-            candidateLocs = 0;
-            // count up the number of candidate locations
-            for (k = 0; k < 50 && !candidateLocs; k++) {
-                for (i = x - k; i <= x + k; i++) {
-                    for (j = y - k; j <= y + k; j++) {
-                        if ((i == x - k ||
-                            i == x + k ||
-                            j == y - k ||
-                            j == y + k) &&
-                            matchFn(i, j)) {
-                            candidateLocs++;
-                        }
-                    }
-                }
-            }
-            if (candidateLocs == 0) {
-                return [-1, -1];
-            }
-            // and pick one
-            randIndex = 1 + this.number(candidateLocs);
-            for (k = 0; k < 50; k++) {
-                for (i = x - k; i <= x + k; i++) {
-                    for (j = y - k; j <= y + k; j++) {
-                        if ((i == x - k ||
-                            i == x + k ||
-                            j == y - k ||
-                            j == y + k) &&
-                            matchFn(i, j)) {
-                            if (--randIndex == 0) {
-                                loc[0] = i;
-                                loc[1] = j;
-                                return loc;
-                            }
-                        }
-                    }
-                }
-            }
-            return [-1, -1]; // should never reach this point
-        }
-    }
-    const random = new Random();
-    const cosmetic = new Random();
-
-    /**
-     * GW.utils
-     * @module utils
-     */
-    function NOOP() { }
-    function TRUE() {
-        return true;
-    }
-    function FALSE() {
-        return false;
-    }
-    function ONE() {
-        return 1;
-    }
-    function ZERO() {
-        return 0;
-    }
-    function IDENTITY(x) {
-        return x;
-    }
-    function IS_ZERO(x) {
-        return x == 0;
-    }
-    function IS_NONZERO(x) {
-        return x != 0;
-    }
-    /**
-     * clamps a value between min and max (inclusive)
-     * @param v {Number} the value to clamp
-     * @param min {Number} the minimum value
-     * @param max {Number} the maximum value
-     * @returns {Number} the clamped value
-     */
-    function clamp(v, min, max) {
-        if (v < min)
-            return min;
-        if (v > max)
-            return max;
-        return v;
-    }
-    function ERROR(message) {
-        throw new Error(message);
-    }
-    function WARN(...args) {
-        console.warn(...args);
-    }
-    function first(...args) {
-        return args.find((v) => v !== undefined);
-    }
-    function arraysIntersect(a, b) {
-        return a.some((av) => b.includes(av));
-    }
-    function sum(arr) {
-        return arr.reduce((a, b) => a + b);
-    }
-    // ALGOS
-    async function asyncForEach(iterable, fn) {
-        for (let t of iterable) {
-            await fn(t);
-        }
-    }
-
-    var index$6 = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        Random: Random,
-        Alea: Alea,
-        NOOP: NOOP,
-        TRUE: TRUE,
-        FALSE: FALSE,
-        ONE: ONE,
-        ZERO: ZERO,
-        IDENTITY: IDENTITY,
-        IS_ZERO: IS_ZERO,
-        IS_NONZERO: IS_NONZERO,
-        clamp: clamp,
-        ERROR: ERROR,
-        WARN: WARN,
-        first: first,
-        arraysIntersect: arraysIntersect,
-        sum: sum,
-        asyncForEach: asyncForEach
-    });
-
     // CHAIN
     function length$1(root) {
         let count = 0;
@@ -1121,6 +807,302 @@
         clearObject: clearObject,
         getOpt: getOpt,
         firstOpt: firstOpt
+    });
+
+    /**
+     * The code in this function is extracted from ROT.JS.
+     * Source: https://github.com/ondras/rot.js/blob/v2.2.0/src/rng.ts
+     * Copyright (c) 2012-now(), Ondrej Zara
+     * All rights reserved.
+     * License: BSD 3-Clause "New" or "Revised" License
+     * See: https://github.com/ondras/rot.js/blob/v2.2.0/license.txt
+     */
+    function Alea(seed) {
+        /**
+         * This code is an implementation of Alea algorithm; (C) 2010 Johannes Baagøe.
+         * Alea is licensed according to the http://en.wikipedia.org/wiki/MIT_License.
+         */
+        seed = Math.abs(seed || Date.now());
+        seed = seed < 1 ? 1 / seed : seed;
+        const FRAC = 2.3283064365386963e-10; /* 2^-32 */
+        let _s0 = 0;
+        let _s1 = 0;
+        let _s2 = 0;
+        let _c = 0;
+        /**
+         * Seed the number generator
+         */
+        _s0 = (seed >>> 0) * FRAC;
+        seed = (seed * 69069 + 1) >>> 0;
+        _s1 = seed * FRAC;
+        seed = (seed * 69069 + 1) >>> 0;
+        _s2 = seed * FRAC;
+        _c = 1;
+        /**
+         * @returns Pseudorandom value [0,1), uniformly distributed
+         */
+        return function alea() {
+            let t = 2091639 * _s0 + _c * FRAC;
+            _s0 = _s1;
+            _s1 = _s2;
+            _c = t | 0;
+            _s2 = t - _c;
+            return _s2;
+        };
+    }
+    const RANDOM_CONFIG = {
+        make: Alea,
+        // make: (seed?: number) => {
+        //     let rng = ROT.RNG.clone();
+        //     if (seed) {
+        //         rng.setSeed(seed);
+        //     }
+        //     return rng.getUniform.bind(rng);
+        // },
+    };
+    function configure$1(config = {}) {
+        if (config.make) {
+            RANDOM_CONFIG.make = config.make;
+            random.seed();
+            cosmetic.seed();
+        }
+    }
+    function lotteryDrawArray(rand, frequencies) {
+        let i, maxFreq, randIndex;
+        maxFreq = 0;
+        for (i = 0; i < frequencies.length; i++) {
+            maxFreq += frequencies[i];
+        }
+        if (maxFreq <= 0) {
+            // console.warn(
+            //     'Lottery Draw - no frequencies',
+            //     frequencies,
+            //     frequencies.length
+            // );
+            return -1;
+        }
+        randIndex = rand.range(0, maxFreq - 1);
+        for (i = 0; i < frequencies.length; i++) {
+            if (frequencies[i] > randIndex) {
+                return i;
+            }
+            else {
+                randIndex -= frequencies[i];
+            }
+        }
+        console.warn('Lottery Draw failed.', frequencies, frequencies.length);
+        return 0;
+    }
+    function lotteryDrawObject(rand, weights) {
+        const entries = Object.entries(weights);
+        const frequencies = entries.map(([_, weight]) => weight);
+        const index = lotteryDrawArray(rand, frequencies);
+        return entries[index][0];
+    }
+    class Random {
+        // static configure(opts: Partial<RandomConfig>) {
+        //     if (opts.make) {
+        //         if (typeof opts.make !== 'function')
+        //             throw new Error('Random make parameter must be a function.');
+        //         if (typeof opts.make(12345) !== 'function')
+        //             throw new Error(
+        //                 'Random make function must accept a numeric seed and return a random function.'
+        //             );
+        //         RANDOM_CONFIG.make = opts.make;
+        //         random.seed();
+        //         cosmetic.seed();
+        //     }
+        // }
+        constructor(seed) {
+            this._fn = RANDOM_CONFIG.make(seed);
+        }
+        seed(val) {
+            val = val || Date.now();
+            this._fn = RANDOM_CONFIG.make(val);
+        }
+        value() {
+            return this._fn();
+        }
+        float() {
+            return this.value();
+        }
+        number(max = Number.MAX_SAFE_INTEGER) {
+            if (max <= 0)
+                return 0;
+            return Math.floor(this.value() * max);
+        }
+        int(max = 0) {
+            return this.number(max);
+        }
+        range(lo, hi) {
+            if (hi <= lo)
+                return hi;
+            const diff = hi - lo + 1;
+            return lo + this.number(diff);
+        }
+        dice(count, sides, addend = 0) {
+            let total = 0;
+            let mult = 1;
+            if (count < 0) {
+                count = -count;
+                mult = -1;
+            }
+            addend = addend || 0;
+            for (let i = 0; i < count; ++i) {
+                total += this.range(1, sides);
+            }
+            total *= mult;
+            return total + addend;
+        }
+        weighted(weights) {
+            if (Array.isArray(weights)) {
+                return lotteryDrawArray(this, weights);
+            }
+            return lotteryDrawObject(this, weights);
+        }
+        item(list) {
+            if (!Array.isArray(list)) {
+                list = Object.values(list);
+            }
+            return list[this.range(0, list.length - 1)];
+        }
+        key(obj) {
+            return this.item(Object.keys(obj));
+        }
+        shuffle(list, fromIndex = 0, toIndex = 0) {
+            if (arguments.length == 2) {
+                toIndex = fromIndex;
+                fromIndex = 0;
+            }
+            let i, r, buf;
+            toIndex = toIndex || list.length;
+            fromIndex = fromIndex || 0;
+            for (i = fromIndex; i < toIndex; i++) {
+                r = this.range(fromIndex, toIndex - 1);
+                if (i != r) {
+                    buf = list[r];
+                    list[r] = list[i];
+                    list[i] = buf;
+                }
+            }
+            return list;
+        }
+        sequence(n) {
+            const list = [];
+            for (let i = 0; i < n; i++) {
+                list[i] = i;
+            }
+            return this.shuffle(list);
+        }
+        chance(percent, outOf = 100) {
+            if (percent <= 0)
+                return false;
+            if (percent >= outOf)
+                return true;
+            return this.number(outOf) < percent;
+        }
+        // Get a random int between lo and hi, inclusive, with probability distribution
+        // affected by clumps.
+        clumped(lo, hi, clumps) {
+            if (hi <= lo) {
+                return lo;
+            }
+            if (clumps <= 1) {
+                return this.range(lo, hi);
+            }
+            let i, total = 0, numSides = Math.floor((hi - lo) / clumps);
+            for (i = 0; i < (hi - lo) % clumps; i++) {
+                total += this.range(0, numSides + 1);
+            }
+            for (; i < clumps; i++) {
+                total += this.range(0, numSides);
+            }
+            return total + lo;
+        }
+        matchingLoc(width, height, matchFn) {
+            let locationCount = 0;
+            let i, j, index;
+            locationCount = 0;
+            forRect(width, height, (i, j) => {
+                if (matchFn(i, j)) {
+                    locationCount++;
+                }
+            });
+            if (locationCount == 0) {
+                return [-1, -1];
+            }
+            else {
+                index = this.range(0, locationCount - 1);
+            }
+            for (i = 0; i < width && index >= 0; i++) {
+                for (j = 0; j < height && index >= 0; j++) {
+                    if (matchFn(i, j)) {
+                        if (index == 0) {
+                            return [i, j];
+                        }
+                        index--;
+                    }
+                }
+            }
+            return [-1, -1];
+        }
+        matchingLocNear(x, y, matchFn) {
+            let loc = [-1, -1];
+            let i, j, k, candidateLocs, randIndex;
+            candidateLocs = 0;
+            // count up the number of candidate locations
+            for (k = 0; k < 50 && !candidateLocs; k++) {
+                for (i = x - k; i <= x + k; i++) {
+                    for (j = y - k; j <= y + k; j++) {
+                        if ((i == x - k ||
+                            i == x + k ||
+                            j == y - k ||
+                            j == y + k) &&
+                            matchFn(i, j)) {
+                            candidateLocs++;
+                        }
+                    }
+                }
+            }
+            if (candidateLocs == 0) {
+                return [-1, -1];
+            }
+            // and pick one
+            randIndex = 1 + this.number(candidateLocs);
+            for (k = 0; k < 50; k++) {
+                for (i = x - k; i <= x + k; i++) {
+                    for (j = y - k; j <= y + k; j++) {
+                        if ((i == x - k ||
+                            i == x + k ||
+                            j == y - k ||
+                            j == y + k) &&
+                            matchFn(i, j)) {
+                            if (--randIndex == 0) {
+                                loc[0] = i;
+                                loc[1] = j;
+                                return loc;
+                            }
+                        }
+                    }
+                }
+            }
+            return [-1, -1]; // should never reach this point
+        }
+    }
+    const random = new Random();
+    const cosmetic = new Random();
+    function make$9(seed) {
+        return new Random(seed);
+    }
+
+    var rng = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Alea: Alea,
+        configure: configure$1,
+        Random: Random,
+        random: random,
+        cosmetic: cosmetic,
+        make: make$9
     });
 
     class Range {
@@ -1548,6 +1530,26 @@
                     ++count;
             });
             return count;
+        }
+        /**
+         * Finds the first matching value/result and returns that location as an xy.Loc
+         * @param v - The fill value or a function that returns the fill value.
+         * @returns xy.Loc | null - The location of the first cell matching the criteria or null if not found.
+         * TSIGNORE
+         */
+        // @ts-ignore
+        find(match) {
+            const fn = typeof match === 'function'
+                ? match
+                : (v) => v == match;
+            for (let x = 0; x < this.width; ++x) {
+                for (let y = 0; y < this.height; ++y) {
+                    const v = this[x][y];
+                    if (fn(v, x, y, this))
+                        return [x, y];
+                }
+            }
+            return null;
         }
         dump(fmtFn, log = console.log) {
             this.dumpRect(0, 0, this.width, this.height, fmtFn, log);
@@ -2944,9 +2946,9 @@
     class Listener {
         /**
          * Creates a Listener.
-         * @param {Function} fn The listener function.
-         * @param {Object} [context=null] The context to invoke the listener with.
-         * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+         * @param {EventFn} fn The listener function.
+         * @param {any} [context=null] The context to invoke the listener with.
+         * @param {boolean} [once=false] Specify if the listener is a one-time listener.
          */
         constructor(fn, context, once = false) {
             this.fn = fn;
@@ -2956,9 +2958,9 @@
         }
         /**
          * Compares this Listener to the parameters.
-         * @param {Function} fn - The function
-         * @param {Object} [context] - The context Object.
-         * @param {Boolean} [once] - Whether or not it is a one time handler.
+         * @param {EventFn} fn - The function
+         * @param {any} [context] - The context Object.
+         * @param {boolean} [once] - Whether or not it is a one time handler.
          * @returns Whether or not this Listener matches the parameters.
          */
         matches(fn, context, once) {
@@ -2972,9 +2974,9 @@
      * Add a listener for a given event.
      *
      * @param {String} event The event name.
-     * @param {Function} fn The listener function.
+     * @param {EventFn} fn The listener function.
      * @param {*} context The context to invoke the listener with.
-     * @param {Boolean} once Specify if the listener is a one-time listener.
+     * @param {boolean} once Specify if the listener is a one-time listener.
      * @returns {Listener}
      */
     function addListener(event, fn, context, once = false) {
@@ -2989,9 +2991,9 @@
      * Add a listener for a given event.
      *
      * @param {String} event The event name.
-     * @param {Function} fn The listener function.
+     * @param {EventFn} fn The listener function.
      * @param {*} context The context to invoke the listener with.
-     * @param {Boolean} once Specify if the listener is a one-time listener.
+     * @param {boolean} once Specify if the listener is a one-time listener.
      * @returns {Listener}
      */
     function on(event, fn, context, once = false) {
@@ -3001,7 +3003,7 @@
      * Add a one-time listener for a given event.
      *
      * @param {(String|Symbol)} event The event name.
-     * @param {Function} fn The listener function.
+     * @param {EventFn} fn The listener function.
      * @param {*} [context=this] The context to invoke the listener with.
      * @returns {EventEmitter} `this`.
      * @public
@@ -3013,9 +3015,9 @@
      * Remove the listeners of a given event.
      *
      * @param {String} event The event name.
-     * @param {Function} fn Only remove the listeners that match this function.
+     * @param {EventFn} fn Only remove the listeners that match this function.
      * @param {*} context Only remove the listeners that have this context.
-     * @param {Boolean} once Only remove one-time listeners.
+     * @param {boolean} once Only remove one-time listeners.
      * @returns {EventEmitter} `this`.
      * @public
      */
@@ -3037,9 +3039,9 @@
      * Remove the listeners of a given event.
      *
      * @param {String} event The event name.
-     * @param {Function} fn Only remove the listeners that match this function.
+     * @param {EventFn} fn Only remove the listeners that match this function.
      * @param {*} context Only remove the listeners that have this context.
-     * @param {Boolean} once Only remove one-time listeners.
+     * @param {boolean} once Only remove one-time listeners.
      * @returns {EventEmitter} `this`.
      * @public
      */
@@ -3076,7 +3078,7 @@
      *
      * @param {String} event The event name.
      * @param {...*} args The additional arguments to the event handlers.
-     * @returns {Boolean} `true` if the event had listeners, else `false`.
+     * @returns {boolean} `true` if the event had listeners, else `false`.
      * @public
      */
     async function emit(...args) {
@@ -6508,14 +6510,26 @@ void main() {
         LightSystem: LightSystem
     });
 
+    exports.ERROR = ERROR;
+    exports.FALSE = FALSE;
+    exports.IDENTITY = IDENTITY;
+    exports.IS_NONZERO = IS_NONZERO;
+    exports.IS_ZERO = IS_ZERO;
+    exports.NOOP = NOOP;
+    exports.ONE = ONE;
+    exports.TRUE = TRUE;
+    exports.WARN = WARN;
+    exports.ZERO = ZERO;
+    exports.arraysIntersect = arraysIntersect;
     exports.blob = blob;
     exports.canvas = index$2;
+    exports.clamp = clamp;
     exports.color = index$4;
     exports.colors = colors;
     exports.config = config$1;
-    exports.cosmetic = cosmetic;
     exports.data = data;
     exports.events = events;
+    exports.first = first;
     exports.flag = flag;
     exports.fov = index$5;
     exports.frequency = frequency;
@@ -6527,14 +6541,14 @@ void main() {
     exports.message = message;
     exports.object = object;
     exports.path = path;
-    exports.random = random;
     exports.range = range;
+    exports.rng = rng;
     exports.scheduler = scheduler;
     exports.sprite = index$1;
     exports.sprites = sprites;
+    exports.sum = sum;
     exports.text = index$3;
     exports.types = types;
-    exports.utils = index$6;
     exports.xy = xy;
 
     Object.defineProperty(exports, '__esModule', { value: true });

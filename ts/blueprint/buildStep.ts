@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
-import { BuildData } from './builder';
+import { BuildData } from './data';
 import { Blueprint } from './blueprint';
 
 export interface StepOptions {
@@ -51,8 +51,7 @@ export enum StepFlags {
     // TODO - BF_ALLOW_IN_HALLWAY instead?
     BF_NOT_IN_HALLWAY = Fl(27), // the feature location must have a passableArcCount of <= 1
 
-    // TODO - BF_ALLOW_BOUNDARY instead
-    BF_NOT_ON_LEVEL_PERIMETER = Fl(28), // don't build it in the outermost walls of the level
+    BF_ALLOW_BOUNDARY = Fl(28), // allow build it in the outermost walls of the level
 
     BF_SKELETON_KEY = Fl(29), // if a key is generated or adopted by this feature, it will open all locks in this machine.
     BF_KEY_DISPOSABLE = Fl(30), // if a key is generated or adopted, it will self-destruct after being used at this current location.
@@ -91,6 +90,28 @@ export class BuildStep {
                 'Cannot have blueprint step with item and BF_ADOPT_ITEM.'
             );
         }
+
+        if (this.buildAtOrigin && this.count.hi > 1) {
+            throw new Error(
+                'Cannot have count > 1 for step with BF_BUILD_AT_ORIGIN.'
+            );
+        }
+    }
+
+    get allowBoundary(): boolean {
+        return !!(this.flags & StepFlags.BF_ALLOW_BOUNDARY);
+    }
+
+    get notInHallway(): boolean {
+        return !!(this.flags & StepFlags.BF_NOT_IN_HALLWAY);
+    }
+
+    get buildInWalls(): boolean {
+        return !!(this.flags & StepFlags.BF_BUILD_IN_WALLS);
+    }
+
+    get buildAnywhere(): boolean {
+        return !!(this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL);
     }
 
     get repeatUntilNoProgress(): boolean {
@@ -141,6 +162,16 @@ export class BuildStep {
         return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
     }
 
+    get buildsInstances(): boolean {
+        return !!(
+            this.effect ||
+            this.tile != -1 ||
+            this.item ||
+            this.horde ||
+            this.adoptItem
+        );
+    }
+
     // cellIsCandidate(
     //     builder: BuildData,
     //     blueprint: Blueprint,
@@ -166,6 +197,26 @@ export class BuildStep {
     // ): boolean {
     //     return buildStep(builder, blueprint, this, adoptedItem);
     // }
+
+    markCandidates(
+        data: BuildData,
+        blueprint: Blueprint,
+        candidates: GWU.grid.NumGrid,
+        distanceBound: [number, number] = [0, 10000]
+    ): number {
+        updateViewMap(data, this);
+
+        let count = 0;
+        candidates.update((_v, i, j) => {
+            if (cellIsCandidate(data, blueprint, this, i, j, distanceBound)) {
+                count++;
+                return 1;
+            } else {
+                return 0;
+            }
+        });
+        return count;
+    }
 }
 
 export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
@@ -220,27 +271,6 @@ export function calcDistanceBound(
     return distanceBound;
 }
 
-export function markCandidates(
-    candidates: GWU.grid.NumGrid,
-    builder: BuildData,
-    blueprint: Blueprint,
-    buildStep: BuildStep,
-    distanceBound: [number, number]
-): number {
-    let count = 0;
-    candidates.update((_v, i, j) => {
-        if (
-            cellIsCandidate(builder, blueprint, buildStep, i, j, distanceBound)
-        ) {
-            count++;
-            return 1;
-        } else {
-            return 0;
-        }
-    });
-    return count;
-}
-
 export function cellIsCandidate(
     builder: BuildData,
     blueprint: Blueprint,
@@ -255,7 +285,7 @@ export function cellIsCandidate(
     // This check comes before the origin check, so an area machine will fail altogether
     // if its origin is in a hallway and the feature that must be built there does not permit as much.
     if (
-        buildStep.flags & StepFlags.BF_NOT_IN_HALLWAY &&
+        buildStep.notInHallway &&
         GWU.xy.arcCount(
             x,
             y,
@@ -267,16 +297,16 @@ export function cellIsCandidate(
 
     // No building along the perimeter of the level if it's prohibited.
     if (
-        buildStep.flags & StepFlags.BF_NOT_ON_LEVEL_PERIMETER &&
-        (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1)
+        (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1) &&
+        !buildStep.allowBoundary
     ) {
         return false;
     }
 
     // The origin is a candidate if the feature is flagged to be built at the origin.
     // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
-    if (buildStep.flags & StepFlags.BF_BUILD_AT_ORIGIN) {
-        return x == builder.originX && y == builder.originY ? true : false;
+    if (buildStep.buildAtOrigin) {
+        return x == builder.originX && y == builder.originY;
     } else if (
         blueprint.isRoom &&
         x == builder.originX &&
@@ -330,7 +360,7 @@ export function cellIsCandidate(
         return false;
     }
 
-    if (buildStep.flags & StepFlags.BF_BUILD_IN_WALLS) {
+    if (buildStep.buildInWalls) {
         // If we're supposed to build in a wall...
         const cellMachine = site.getMachine(x, y);
         if (
@@ -340,28 +370,36 @@ export function cellIsCandidate(
         ) {
             let ok = false;
             // ...and this location is a wall that's not already machined...
-            GWU.xy.eachNeighbor(x, y, (newX, newY) => {
-                if (
-                    site.hasXY(newX, newY) && // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
-                    ((builder.interior[newX][newY] &&
-                        !(
-                            newX == builder.originX && newY == builder.originY
-                        )) ||
-                        (buildStep.flags &
-                            StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL &&
-                            !site.blocksPathing(newX, newY) &&
-                            !site.getMachine(newX, newY)))
-                ) {
-                    ok = true;
-                }
-            });
+            GWU.xy.eachNeighbor(
+                x,
+                y,
+                (newX, newY) => {
+                    if (!site.hasXY(newX, newY)) return;
+                    if (
+                        !builder.interior[newX][newY] &&
+                        !buildStep.buildAnywhere
+                    ) {
+                        return;
+                    }
+                    // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
+                    if (
+                        buildStep.buildAnywhere &&
+                        !site.blocksPathing(newX, newY) &&
+                        !site.getMachine(newX, newY) &&
+                        !(newX == builder.originX && newY == builder.originY)
+                    ) {
+                        ok = true;
+                    }
+                },
+                true
+            );
             return ok;
         }
         return false;
     } else if (site.isWall(x, y)) {
         // Can't build in a wall unless instructed to do so.
         return false;
-    } else if (buildStep.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL) {
+    } else if (buildStep.buildAnywhere) {
         if (
             (buildStep.item && site.blocksItems(x, y)) ||
             site.hasCellFlag(
@@ -463,7 +501,7 @@ export function makePersonalSpace(
 //         } else {
 //             // Pick our candidate location randomly, and also strike it from
 //             // the candidates map so that subsequent instances of this same feature can't choose it.
-//             [x, y] = GWU.random.matchingLoc(
+//             [x, y] = GWU.rng.random.matchingLoc(
 //                 candidates.width,
 //                 candidates.height,
 //                 (x, y) => candidates[x][y] > 0

@@ -6,6 +6,7 @@ describe('Blueprint - key', () => {
         GWM.tile.install('LOCKED_DOOR', {
             extends: 'DOOR',
             bg: 'red',
+            ch: 'L',
             effects: {
                 enter: null,
                 key: { tile: 'FLOOR' },
@@ -14,7 +15,7 @@ describe('Blueprint - key', () => {
 
         GWM.item.install('KEY', {
             name: 'a key',
-            ch: '~',
+            ch: 'K',
             fg: 'gold',
             tags: 'key',
         });
@@ -66,8 +67,12 @@ describe('Blueprint - key', () => {
 
         const map = GWM.map.make(80, 34, { visible: true });
         level.create(map);
-        const builder = new GWD.blueprint.Builder(map, 1);
-        await builder.build(blue, 20, 11);
+        const builder = new GWD.blueprint.Builder(map);
+
+        // @ts-ignore
+        // const _logger = new GWD.blueprint.Logger();
+
+        await builder.build(blue);
 
         // map.dump();
 
@@ -76,11 +81,11 @@ describe('Blueprint - key', () => {
             ++count;
             expect(i.hasTag('key')).toBeTruthy();
             expect(i.key).not.toBeNull();
-            expect(i.key!.x).toEqual(20);
-            expect(i.key!.y).toEqual(11);
             expect(i.key!.disposable).toBeTruthy();
         });
         expect(count).toEqual(1);
+
+        expect(map.cells.count((c) => c.hasTile('LOCKED_DOOR'))).toEqual(1);
     });
 
     test('key - failed to place', async () => {
@@ -125,11 +130,16 @@ describe('Blueprint - key', () => {
         const map = GWM.map.make(80, 34, { visible: true });
         level.create(map);
 
+        const builder = new GWD.blueprint.Builder(map);
+
+        // @ts-ignore
+        // const _logger = new GWD.blueprint.Logger();
+
+        const result = await builder.build(blue);
+
         // map.dump();
 
-        const builder = new GWD.blueprint.Builder(map, 1);
-        await builder.build(blue);
-
+        expect(result).toBeTruthy();
         let count = 0;
         map.eachItem(() => ++count);
         expect(count).toEqual(1);

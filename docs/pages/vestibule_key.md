@@ -70,7 +70,7 @@ const level = new GWD.Level({
     loops: false,
     lakes: false,
 });
-const builder = new GWD.blueprint.DebugBuilder(map, 1);
+const builder = new GWD.blueprint.Builder(map);
 
 const canvas = GWU.canvas.make({
     font: 'monospace',

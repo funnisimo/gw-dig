@@ -27,7 +27,7 @@ describe('Builder', () => {
         });
         level.create(map);
 
-        builder = new BLUE.Builder(map, 1);
+        builder = new BLUE.Builder(map);
     });
 
     test('Build Item', async () => {
@@ -44,7 +44,7 @@ describe('Builder', () => {
             steps: [{ item: 'SHOVEL', flags: 'BF_FAR_FROM_ORIGIN' }],
         });
 
-        expect(await builder.build(blue, 20, 11)).toBeTruthy();
+        expect(await builder.build(blue)).toBeTruthy();
 
         // map.dump();
 

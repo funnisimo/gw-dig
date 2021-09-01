@@ -25,7 +25,7 @@ describe('buildStep', () => {
     });
 
     test('build tile', async () => {
-        GWU.random.seed(12345);
+        GWU.rng.random.seed(12345);
 
         GWM.tile.install('TEST', {
             name: 'test',
@@ -34,7 +34,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map, 1);
+        const builder = new BUILDER.Builder(map);
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
@@ -53,7 +53,7 @@ describe('buildStep', () => {
     });
 
     test('build spawn', async () => {
-        GWU.random.seed(12345);
+        GWU.rng.random.seed(12345);
 
         GWM.tile.install('A', {
             name: 'A',
@@ -68,7 +68,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map, 1);
+        const builder = new BUILDER.Builder(map);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -95,7 +95,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map, 1);
+        const builder = new BUILDER.Builder(map);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -127,7 +127,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map, 1);
+        const builder = new BUILDER.Builder(map);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -166,7 +166,7 @@ describe('buildStep', () => {
     });
 
     test('tile far from origin', async () => {
-        // GWU.random.seed(12345);
+        // GWU.rng.random.seed(12345);
 
         GWM.tile.install('A', {
             name: 'A',
@@ -174,7 +174,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map, 1);
+        const builder = new BUILDER.Builder(map);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',

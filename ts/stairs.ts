@@ -44,13 +44,13 @@ export class Stairs {
         if (this.options.start && typeof this.options.start !== 'string') {
             let start = this.options.start;
             if (start === true) {
-                start = GWU.random.matchingLoc(
+                start = GWU.rng.random.matchingLoc(
                     site.width,
                     site.height,
                     isValidLoc
                 );
             } else {
-                start = GWU.random.matchingLocNear(
+                start = GWU.rng.random.matchingLocNear(
                     GWU.xy.x(start),
                     GWU.xy.y(start),
                     isValidLoc
@@ -64,13 +64,13 @@ export class Stairs {
             Array.isArray(this.options.down)
         ) {
             const up = this.options.up;
-            upLoc = GWU.random.matchingLocNear(
+            upLoc = GWU.rng.random.matchingLocNear(
                 GWU.xy.x(up),
                 GWU.xy.y(up),
                 isValidLoc
             );
             const down = this.options.down;
-            downLoc = GWU.random.matchingLocNear(
+            downLoc = GWU.rng.random.matchingLocNear(
                 GWU.xy.x(down),
                 GWU.xy.y(down),
                 isValidLoc
@@ -80,13 +80,13 @@ export class Stairs {
             !Array.isArray(this.options.down)
         ) {
             const up = this.options.up;
-            upLoc = GWU.random.matchingLocNear(
+            upLoc = GWU.rng.random.matchingLocNear(
                 GWU.xy.x(up),
                 GWU.xy.y(up),
                 isValidLoc
             );
             if (needDown) {
-                downLoc = GWU.random.matchingLoc(
+                downLoc = GWU.rng.random.matchingLoc(
                     site.width,
                     site.height,
                     (x, y) => {
@@ -105,13 +105,13 @@ export class Stairs {
             !Array.isArray(this.options.up)
         ) {
             const down = this.options.down;
-            downLoc = GWU.random.matchingLocNear(
+            downLoc = GWU.rng.random.matchingLocNear(
                 GWU.xy.x(down),
                 GWU.xy.y(down),
                 isValidLoc
             );
             if (needUp) {
-                upLoc = GWU.random.matchingLoc(
+                upLoc = GWU.rng.random.matchingLoc(
                     site.width,
                     site.height,
                     (x, y) => {
@@ -129,9 +129,13 @@ export class Stairs {
                 );
             }
         } else if (needUp) {
-            upLoc = GWU.random.matchingLoc(site.width, site.height, isValidLoc);
+            upLoc = GWU.rng.random.matchingLoc(
+                site.width,
+                site.height,
+                isValidLoc
+            );
             if (needDown) {
-                downLoc = GWU.random.matchingLoc(
+                downLoc = GWU.rng.random.matchingLoc(
                     site.width,
                     site.height,
                     (x, y) => {
@@ -146,7 +150,7 @@ export class Stairs {
                 );
             }
         } else if (needDown) {
-            downLoc = GWU.random.matchingLoc(
+            downLoc = GWU.rng.random.matchingLoc(
                 site.width,
                 site.height,
                 isValidLoc
@@ -200,7 +204,7 @@ export class Stairs {
     }
 
     setupStairs(site: SITE.DigSite, x: number, y: number, tile: number) {
-        const indexes = GWU.random.sequence(4);
+        const indexes = GWU.rng.random.sequence(4);
 
         let dir: GWU.xy.Loc | null = null;
         for (let i = 0; i < indexes.length; ++i) {
@@ -214,7 +218,7 @@ export class Stairs {
             dir = null;
         }
 
-        if (!dir) GWU.utils.ERROR('No stair direction found!');
+        if (!dir) GWU.ERROR('No stair direction found!');
 
         site.setTile(x, y, tile);
 

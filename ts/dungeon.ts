@@ -62,7 +62,7 @@ export class Dungeon {
         GWU.object.setOptions(this.config, options);
 
         if (this.config.seed) {
-            GWU.random.seed(this.config.seed);
+            GWU.rng.random.seed(this.config.seed);
         }
 
         this.initSeeds();
@@ -75,7 +75,7 @@ export class Dungeon {
 
     initSeeds() {
         for (let i = 0; i < this.config.levels; ++i) {
-            this.seeds[i] = GWU.random.number(2 ** 32);
+            this.seeds[i] = GWU.rng.random.number(2 ** 32);
         }
     }
 
@@ -90,7 +90,7 @@ export class Dungeon {
             Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
 
         for (let i = 0; i < this.config.levels; ++i) {
-            const endLoc = GWU.random.matchingLoc(
+            const endLoc = GWU.rng.random.matchingLoc(
                 this.config.width,
                 this.config.height,
                 (x, y) => {
@@ -112,7 +112,7 @@ export class Dungeon {
     getLevel(id: number, cb: TYPES.DigFn) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
-        GWU.random.seed(this.seeds[id]);
+        GWU.rng.random.seed(this.seeds[id]);
 
         // Generate the level
         const [startLoc, endLoc] = this.stairLocs[id];

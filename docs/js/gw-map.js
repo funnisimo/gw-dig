@@ -331,6 +331,7 @@
     class EntityKind {
         constructor(config) {
             this.tags = [];
+            this.id = config.id || config.name;
             this.name = config.name;
             this.flavor = config.flavor || this.name;
             this.description = config.description || this.flavor;
@@ -480,6 +481,7 @@
             return kind;
         }
         const made = makeKind(kind);
+        made.id = id;
         kinds[id] = made;
         return made;
     }
@@ -525,14 +527,13 @@
             match.forbidTags = opts.forbidTags.slice();
         }
         const matches = Object.values(kinds).filter((k) => {
-            if (match.tags.length && !GWU__namespace.utils.arraysIntersect(match.tags, k.tags))
+            if (match.tags.length && !GWU__namespace.arraysIntersect(match.tags, k.tags))
                 return false;
-            if (match.forbidTags &&
-                GWU__namespace.utils.arraysIntersect(match.forbidTags, k.tags))
+            if (match.forbidTags && GWU__namespace.arraysIntersect(match.forbidTags, k.tags))
                 return false;
             return true;
         });
-        return GWU__namespace.random.item(matches) || null;
+        return GWU__namespace.rng.random.item(matches) || null;
     }
 
     class Item extends Entity {
@@ -674,7 +675,9 @@
                 throw new Error('Failed to find effect: ' + name);
         }
         const ctx = ctx_;
-        if (!ctx.force && effect.chance && !GWU__namespace.random.chance(effect.chance, 10000))
+        if (!ctx.force &&
+            effect.chance &&
+            !GWU__namespace.rng.random.chance(effect.chance, 10000))
             return false;
         const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
         let didSomething = false;
@@ -721,7 +724,9 @@
                 throw new Error('Failed to find effect: ' + name);
         }
         const ctx = ctx_;
-        if (!ctx.force && effect.chance && !GWU__namespace.random.chance(effect.chance, 10000))
+        if (!ctx.force &&
+            effect.chance &&
+            !GWU__namespace.rng.random.chance(effect.chance, 10000))
             return false;
         const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
         let didSomething = false;
@@ -1189,7 +1194,7 @@
                                 y2 = j + GWU__namespace.xy.DIRS[dir][1];
                                 if (spawnMap.hasXY(x2, y2) &&
                                     !spawnMap[x2][y2] &&
-                                    GWU__namespace.random.chance(startProb) &&
+                                    GWU__namespace.rng.random.chance(startProb) &&
                                     cellIsOk(effect, map, x2, y2, false)) {
                                     spawnMap[x2][y2] = t;
                                     madeChange = true;
@@ -1323,7 +1328,7 @@
                     if (!(obj instanceof Actor))
                         return;
                     const monst = obj;
-                    const loc = GWU__namespace.random.matchingLocNear(i, j, (x, y) => {
+                    const loc = GWU__namespace.rng.random.matchingLocNear(i, j, (x, y) => {
                         if (!map.hasXY(x, y))
                             return false;
                         if (blockingMap[x][y])
@@ -1353,7 +1358,7 @@
                 if (!(obj instanceof Item))
                     return;
                 const item = obj;
-                const loc = GWU__namespace.random.matchingLocNear(i, j, (x, y) => {
+                const loc = GWU__namespace.rng.random.matchingLocNear(i, j, (x, y) => {
                     if (!map.hasXY(x, y))
                         return false;
                     if (blockingMap[x][y])
@@ -2220,7 +2225,7 @@
                 }
             });
             if (alwaysIgnite ||
-                (ignitionChance && GWU__namespace.random.chance(ignitionChance, 10000))) {
+                (ignitionChance && GWU__namespace.rng.random.chance(ignitionChance, 10000))) {
                 // If it ignites...
                 fireIgnited = true;
                 // Count explosive neighbors.
@@ -3164,7 +3169,7 @@
                         promoteChance = effect.chance || 100 * 100; // 100%
                     }
                     if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                        GWU__namespace.random.chance(promoteChance, 10000)) {
+                        GWU__namespace.rng.random.chance(promoteChance, 10000)) {
                         willFire[x][y] |= GWU__namespace.flag.fl(tile.depth);
                         // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                     }
@@ -3222,7 +3227,7 @@
                         promoteChance = effect.chance || 100 * 100; // 100%
                     }
                     if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                        GWU__namespace.random.chance(promoteChance, 10000)) {
+                        GWU__namespace.rng.random.chance(promoteChance, 10000)) {
                         willFire[x][y] |= GWU__namespace.flag.fl(tile.depth);
                         // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                     }

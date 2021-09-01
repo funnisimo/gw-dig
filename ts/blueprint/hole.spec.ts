@@ -128,17 +128,19 @@ describe('Blueprint - hole', () => {
         const map = GWM.map.make(80, 34, { visible: true });
         level.create(map);
 
-        const builder = new GWD.blueprint.Builder(map, 1);
+        const builder = new GWD.blueprint.Builder(map);
 
-        jest.spyOn(builder, '_buildAt');
+        // jest.spyOn(builder, '_buildAt');
 
-        const result = await builder.build(blue, 59, 11);
+        // map.dump();
+
+        const result = await builder.build(blue, 59, 10);
 
         // map.dump();
 
         expect(result).toBeFalsy();
 
-        expect(builder._buildAt).toHaveBeenCalledTimes(11); // (ROOM + 10 * (VESTIBULE @ 1 locs))
+        // expect(builder._buildAt).toHaveBeenCalledTimes(11); // (ROOM + 10 * (VESTIBULE @ 1 locs))
 
         expect(map.cells.count((c) => c.hasTile('CHASM'))).toEqual(0);
         expect(map.cells.count((c) => c.hasTile('CHASM_EDGE'))).toEqual(0);

@@ -229,7 +229,7 @@ export function chooseRandomDoorSites(site: DIG.DigSite): GWU.xy.Loc[] {
     let doorSites: GWU.xy.Loc[] = [];
     // Pick four doors, one in each direction, and store them in doorSites[dir].
     for (dir = 0; dir < 4; dir++) {
-        const loc = GWU.random.item(DOORS[dir]) || [-1, -1];
+        const loc = GWU.rng.random.item(DOORS[dir]) || [-1, -1];
         doorSites[dir] = [loc[0], loc[1]];
     }
 
@@ -287,7 +287,7 @@ export function chooseRandomDoorSites(site: DIG.DigSite): GWU.xy.Loc[] {
 //     room: TYPES.Room,
 //     opts: TYPES.DigInfo
 // ): boolean | GWU.xy.Loc[] {
-//     const doorIndexes = GWU.random.sequence(mapDoors.length);
+//     const doorIndexes = GWU.rng.random.sequence(mapDoors.length);
 
 //     // console.log('attachRoomAtMapDoor', mapDoors.join(', '));
 //     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
@@ -315,7 +315,7 @@ export function chooseRandomDoorSites(site: DIG.DigSite): GWU.xy.Loc[] {
 //     opts: TYPES.DigInfo
 // ): boolean | GWU.xy.Loc[] {
 //     const doorSites = room.hall ? room.hall.doors : room.doors;
-//     const dirs = GWU.random.sequence(4);
+//     const dirs = GWU.rng.random.sequence(4);
 
 //     // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
 

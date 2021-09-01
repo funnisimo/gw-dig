@@ -57,7 +57,7 @@ export class Level {
     public seq!: number[];
 
     constructor(options: Partial<LevelOptions> = {}) {
-        this.seed = options.seed || GWU.random.number();
+        this.seed = options.seed || GWU.rng.random.number();
         GWU.object.setOptions(this.rooms, options.rooms);
 
         // Doors
@@ -169,7 +169,7 @@ export class Level {
             if (this.addRoom(site)) {
                 fails = 0;
                 site.updateDoorDirs();
-                GWU.random.shuffle(this.seq);
+                GWU.rng.random.shuffle(this.seq);
             } else {
                 ++fails;
             }
@@ -187,12 +187,12 @@ export class Level {
 
     start(site: SITE.DigSite) {
         if (this.seed) {
-            GWU.random.seed(this.seed);
+            GWU.rng.random.seed(this.seed);
             site.seed = this.seed;
         }
 
         site.clear();
-        this.seq = GWU.random.sequence(site.width * site.height);
+        this.seq = GWU.rng.random.sequence(site.width * site.height);
     }
 
     getDigger(
@@ -307,7 +307,7 @@ export class Level {
     ): boolean {
         const [x, y] = attachLoc;
         const doorSites = room.hall ? room.hall.doors : room.doors;
-        const dirs = GWU.random.sequence(4);
+        const dirs = GWU.rng.random.sequence(4);
 
         // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
 
@@ -392,7 +392,7 @@ export class Level {
         const opts = this.doors;
         let isDoor = false;
 
-        if (opts.chance && GWU.random.chance(opts.chance)) {
+        if (opts.chance && GWU.rng.random.chance(opts.chance)) {
             isDoor = true;
         }
 
@@ -490,7 +490,7 @@ export class Level {
                             site.blocksDiagonal(i + k, j + 1) &&
                             !site.blocksMove(i + (1 - k), j + 1)
                         ) {
-                            if (GWU.random.chance(50)) {
+                            if (GWU.rng.random.chance(50)) {
                                 x1 = i + (1 - k);
                                 y1 = j;
                             } else {

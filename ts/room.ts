@@ -86,9 +86,12 @@ export class ChoiceRoom extends RoomDigger {
     _setOptions(config: TYPES.RoomConfig, expected: TYPES.RoomConfig = {}) {
         const choices = config.choices || expected.choices;
         if (Array.isArray(choices)) {
-            this.randomRoom = GWU.random.item.bind(GWU.random, choices);
+            this.randomRoom = GWU.rng.random.item.bind(GWU.rng.random, choices);
         } else if (typeof choices == 'object') {
-            this.randomRoom = GWU.random.weighted.bind(GWU.random, choices);
+            this.randomRoom = GWU.rng.random.weighted.bind(
+                GWU.rng.random,
+                choices
+            );
         } else {
             throw new Error(
                 'Expected choices to be either array of room ids or weighted map - ex: { ROOM_ID: weight }'
@@ -100,7 +103,7 @@ export class ChoiceRoom extends RoomDigger {
         let id = this.randomRoom() as string;
         const room = rooms[id];
         if (!room) {
-            GWU.utils.ERROR('Missing room digger choice: ' + id);
+            GWU.ERROR('Missing room digger choice: ' + id);
         }
 
         // debug('Chose room: ', id);
@@ -235,23 +238,23 @@ export class Cross extends RoomDigger {
         const roomWidth = width;
         const roomWidth2 = Math.max(
             3,
-            Math.floor((width * GWU.random.range(25, 75)) / 100)
+            Math.floor((width * GWU.rng.random.range(25, 75)) / 100)
         ); // [4,20]
         const roomHeight = Math.max(
             3,
-            Math.floor((height * GWU.random.range(25, 75)) / 100)
+            Math.floor((height * GWU.rng.random.range(25, 75)) / 100)
         ); // [2,5]
         const roomHeight2 = height;
 
         const roomX = Math.floor((site.width - roomWidth) / 2);
         const roomX2 =
             roomX +
-            GWU.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
+            GWU.rng.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
 
         const roomY2 = Math.floor((site.height - roomHeight2) / 2);
         const roomY =
             roomY2 +
-            GWU.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
+            GWU.rng.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
 
         GWU.xy.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) =>
             site.setTile(x, y, tile)
@@ -286,14 +289,14 @@ export class SymmetricalCross extends RoomDigger {
 
         let minorWidth = Math.max(
             3,
-            Math.floor((width * GWU.random.range(25, 50)) / 100)
+            Math.floor((width * GWU.rng.random.range(25, 50)) / 100)
         ); // [2,4]
         // if (height % 2 == 0 && minorWidth > 2) {
         //     minorWidth -= 1;
         // }
         let minorHeight = Math.max(
             3,
-            Math.floor((height * GWU.random.range(25, 50)) / 100)
+            Math.floor((height * GWU.rng.random.range(25, 50)) / 100)
         ); // [2,3]?
         // if (width % 2 == 0 && minorHeight > 2) {
         //     minorHeight -= 1;
@@ -404,12 +407,12 @@ export class BrogueDonut extends RoomDigger {
 
         if (
             radius > ringMinWidth + holeMinSize &&
-            GWU.random.chance(this.options.holeChance.value())
+            GWU.rng.random.chance(this.options.holeChance.value())
         ) {
             GWU.xy.forCircle(
                 x,
                 y,
-                GWU.random.range(holeMinSize, radius - holeMinSize),
+                GWU.rng.random.range(holeMinSize, radius - holeMinSize),
                 (x, y) => site.setTile(x, y, 0)
             );
         }
@@ -463,8 +466,8 @@ export class ChunkyRoom extends RoomDigger {
         bottom += 2;
 
         for (i = 0; i < chunkCount; ) {
-            x = GWU.random.range(minX, maxX);
-            y = GWU.random.range(minY, maxY);
+            x = GWU.rng.random.range(minX, maxX);
+            y = GWU.rng.random.range(minY, maxY);
             if (site.isSet(x, y)) {
                 if (x - 2 < minX) continue;
                 if (x + 2 > maxX) continue;

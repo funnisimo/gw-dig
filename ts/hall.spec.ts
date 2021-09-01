@@ -8,7 +8,7 @@ import { Room, Hall } from './types';
 describe('Hall', () => {
     beforeEach(() => {
         // UTILS.mockRandom();
-        GWU.random.seed(12345);
+        GWU.rng.random.seed(12345);
     });
 
     afterEach(() => {

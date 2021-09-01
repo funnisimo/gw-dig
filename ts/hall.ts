@@ -21,24 +21,31 @@ export function isDoorLoc(
     return true;
 }
 
-export function pickWidth(opts: any = {}): number {
-    return GWU.utils.clamp(_pickWidth(opts), 1, 3);
+export function pickWidth(
+    opts: number | { width?: GWU.range.RangeBase | { [key: number]: number } }
+): number {
+    if (typeof opts === 'number') opts = { width: opts };
+    opts.width = opts.width || 1;
+    return GWU.clamp(_pickWidth(opts.width), 1, 3);
 }
 
-function _pickWidth(opts: any): number {
-    if (!opts) return 1;
-    if (typeof opts === 'number') return opts;
-    if (opts.width === undefined) return 1;
+function _pickWidth(
+    width: GWU.range.RangeBase | { [key: number]: number }
+): number {
+    if (!width) return 1;
+    if (typeof width === 'number') return width;
+    if (width === undefined) return 1;
 
-    let width = opts.width;
     if (typeof width === 'number') return width;
     else if (Array.isArray(width)) {
-        // @ts-ignore
-        width = GWU.random.weighted(width) + 1;
+        width = GWU.rng.random.weighted(width) + 1;
     } else if (typeof width === 'string') {
         width = GWU.range.make(width).value();
+    } else if (width instanceof GWU.range.Range) {
+        width = width.value();
     } else {
-        width = Number.parseInt(GWU.random.weighted(width) as string);
+        const weights = width as GWU.types.WeightedObject;
+        width = Number.parseInt(GWU.rng.random.weighted(weights) as string);
     }
     return width;
 }
@@ -62,7 +69,7 @@ export function pickHallDirection(
     // Pick a direction.
     let dir: number = GWU.xy.NO_DIRECTION;
     if (dir == GWU.xy.NO_DIRECTION) {
-        const dirs = GWU.random.sequence(4);
+        const dirs = GWU.rng.random.sequence(4);
         for (let i = 0; i < 4; i++) {
             dir = dirs[i];
             const length = lengths[(i + 1) % 2].hi; // biggest measurement
@@ -88,7 +95,7 @@ export function pickHallExits(
     obliqueChance: number
 ) {
     let newX: number, newY: number;
-    const allowObliqueHallwayExit = GWU.random.chance(obliqueChance);
+    const allowObliqueHallwayExit = GWU.rng.random.chance(obliqueChance);
     const hallDoors: GWU.xy.Loc[] = [
         // [-1, -1],
         // [-1, -1],
@@ -138,7 +145,7 @@ export function pickHallExits(
 //     let x0: number, y0: number;
 //     let hall;
 //     if (dir === GWU.utils.UP) {
-//         x0 = GWU.utils.clamp(door[0], room.x, room.x + room.width - width);
+//         x0 = GWU.clamp(door[0], room.x, room.x + room.width - width);
 //         y0 = door[1] - length + 1;
 
 //         for (let x = x0; x < x0 + width; ++x) {
@@ -150,7 +157,7 @@ export function pickHallExits(
 //         hallDoors[dir] = [x0, y0 - 1];
 //         hall = new TYPES.Hall([x0, door[1]], dir, length, 2);
 //     } else if (dir === GWU.utils.DOWN) {
-//         x0 = GWU.utils.clamp(door[0], room.x, room.x + room.width - width);
+//         x0 = GWU.clamp(door[0], room.x, room.x + room.width - width);
 //         y0 = door[1] + length - 1;
 
 //         for (let x = x0; x < x0 + width; ++x) {
@@ -163,7 +170,7 @@ export function pickHallExits(
 //         hall = new TYPES.Hall([x0, door[1]], dir, length, 2);
 //     } else if (dir === GWU.utils.LEFT) {
 //         x0 = door[0] - length + 1;
-//         y0 = GWU.utils.clamp(door[1], room.y, room.y + room.height - width);
+//         y0 = GWU.clamp(door[1], room.y, room.y + room.height - width);
 
 //         for (let x = x0; x < x0 + length; ++x) {
 //             for (let y = y0; y < y0 + width; ++y) {
@@ -176,7 +183,7 @@ export function pickHallExits(
 //     } else {
 //         //if (dir === GWU.utils.RIGHT) {
 //         x0 = door[0] + length - 1;
-//         y0 = GWU.utils.clamp(door[1], room.y, room.y + room.height - width);
+//         y0 = GWU.clamp(door[1], room.y, room.y + room.height - width);
 
 //         for (let x = x0; x > x0 - length; --x) {
 //             for (let y = y0; y < y0 + width; ++y) {
@@ -280,7 +287,7 @@ export class HallDigger {
     create(site: SITE.DigSite, doors: GWU.xy.Loc[] = []): TYPES.Hall | null {
         doors = doors || SITE.chooseRandomDoorSites(site);
 
-        if (!GWU.random.chance(this.config.chance)) return null;
+        if (!GWU.rng.random.chance(this.config.chance)) return null;
 
         const dir = pickHallDirection(site, doors, this.config.length);
         if (dir === GWU.xy.NO_DIRECTION) return null;

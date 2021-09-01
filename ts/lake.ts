@@ -49,7 +49,7 @@ export class Lakes {
         tries = this.options.tries || 20;
         maxCount = this.options.count || 1;
         canDisrupt = this.options.canDisrupt || false;
-        const hasWreath = GWU.random.chance(this.options.wreathChance)
+        const hasWreath = GWU.rng.random.chance(this.options.wreathChance)
             ? true
             : false;
         const wreathTile = this.options.wreathTile || SITE.SHALLOW;
@@ -96,11 +96,11 @@ export class Lakes {
             for (k = 0; k < tries && !success; k++) {
                 // placement attempts
                 // propose a position for the top-left of the lakeGrid in the dungeon
-                x = GWU.random.range(
+                x = GWU.rng.random.range(
                     1 - bounds.x,
                     lakeGrid.width - bounds.width - bounds.x - 2
                 );
-                y = GWU.random.range(
+                y = GWU.rng.random.range(
                     1 - bounds.y,
                     lakeGrid.height - bounds.height - bounds.y - 2
                 );

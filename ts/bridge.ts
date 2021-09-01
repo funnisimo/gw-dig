@@ -36,7 +36,7 @@ export class Bridges {
             site.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION
         );
 
-        const seq = GWU.random.sequence(site.width * site.height);
+        const seq = GWU.rng.random.sequence(site.width * site.height);
 
         for (i = 0; i < seq.length; i++) {
             x = Math.floor(seq[i] / site.height);

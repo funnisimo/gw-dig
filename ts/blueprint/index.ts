@@ -1,3 +1,5 @@
+export * from './data';
+export * from './logger';
 export * from './buildStep';
 export * from './builder';
 export {
@@ -8,3 +10,4 @@ export {
     random,
     blueprints,
 } from './blueprint';
+export * from './consoleLogger';

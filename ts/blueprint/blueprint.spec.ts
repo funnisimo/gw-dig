@@ -17,14 +17,18 @@ describe('Blueprint', () => {
             new BLUE.Blueprint({
                 frequency: 50,
                 tags: 'room',
+                flags: 0,
             })
         );
 
         const a = BLUE.blueprints.A;
-        expect(a.getChance(1, 'room')).toEqual(50);
-        expect(a.getChance(10, 'room')).toEqual(50);
-        expect(a.getChance(10, 'room, town')).toEqual(0);
-        expect(a.getChance(10)).toEqual(50);
+        expect(a.qualifies(0, 'room')).toBeTruthy();
+        expect(a.qualifies(10, 'room')).toBeFalsy();
+        expect(a.qualifies(10, 'room, town')).toBeFalsy();
+        expect(a.qualifies(0)).toBeTruthy();
+
+        expect(a.frequency(1)).toEqual(50);
+        expect(a.frequency(10)).toEqual(50);
     });
 
     test('random', () => {
@@ -96,7 +100,7 @@ describe('Blueprint', () => {
         // dumpSite(site);
 
         // Create a build site
-        const builder = new BLUE.Builder(map, 1);
+        const builder = new BLUE.Builder(map);
         expect(builder.build(a)).toBeTruthy();
 
         // dumpSite(site);
@@ -170,9 +174,9 @@ describe('Blueprint', () => {
         });
 
         const a = BLUE.blueprints.MIXED_ITEM_LIBRARY;
-        expect(a.getChance(1)).toEqual(30);
-        expect(a.getChance(10)).toEqual(30);
-        expect(a.getChance(15)).toEqual(0);
+        expect(a.frequency(1)).toEqual(30);
+        expect(a.frequency(10)).toEqual(30);
+        expect(a.frequency(15)).toEqual(0);
         expect(a.steps).toHaveLength(6);
     });
 
@@ -195,7 +199,7 @@ describe('Blueprint', () => {
         });
         level.create(map);
 
-        const builder = new BLUE.Builder(map, 1);
+        const builder = new BLUE.Builder(map);
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
