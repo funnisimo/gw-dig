@@ -42,8 +42,8 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
-        level.create(map);
+        const digger = new DIG.Digger();
+        digger.create(map);
 
         expect(await builder.build(blue)).toBeTruthy();
 
@@ -77,8 +77,8 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
-        level.create(map);
+        const digger = new DIG.Digger();
+        digger.create(map);
 
         expect(await builder.build(blue)).toBeTruthy();
 
@@ -104,12 +104,12 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         // map.dump();
 
@@ -136,12 +136,12 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             lakes: false,
             loops: false,
         });
-        level.create(map);
+        digger.create(map);
 
         expect(await builder.build(blue)).toBeTruthy();
 
@@ -183,12 +183,12 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             lakes: false,
             loops: false,
         });
-        level.create(map);
+        digger.create(map);
 
         expect(await builder.build(blue)).toBeTruthy();
 

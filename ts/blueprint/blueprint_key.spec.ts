@@ -28,7 +28,7 @@ describe('Blueprint - key', () => {
     });
 
     test('outsource key to machine', async () => {
-        const level = new GWD.Level({
+        const digger = new GWD.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
@@ -36,7 +36,7 @@ describe('Blueprint - key', () => {
             lakes: false,
         });
 
-        // Just put it anywhere on the level... (not a room or a vestibule)
+        // Just put it anywhere on the digger... (not a room or a vestibule)
         GWD.blueprint.install('ADPOTER', {
             flags: 'BP_ADOPT_ITEM',
             steps: [
@@ -66,7 +66,7 @@ describe('Blueprint - key', () => {
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
-        level.create(map);
+        digger.create(map);
         const builder = new GWD.blueprint.Builder(map);
 
         // @ts-ignore
@@ -89,7 +89,7 @@ describe('Blueprint - key', () => {
     });
 
     test('key - failed to place', async () => {
-        const level = new GWD.Level({
+        const digger = new GWD.Digger({
             seed: 34567890,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
@@ -128,7 +128,7 @@ describe('Blueprint - key', () => {
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
-        level.create(map);
+        digger.create(map);
 
         const builder = new GWD.blueprint.Builder(map);
 

@@ -25,7 +25,7 @@ describe('buildStep - noBlockOrigin', () => {
             new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new GWD.Level({
+        const digger = new GWD.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
@@ -60,7 +60,7 @@ describe('buildStep - noBlockOrigin', () => {
 
         const map = GWM.map.make(80, 34, { visible: true });
 
-        level.create(map);
+        digger.create(map);
         const builder = new GWD.blueprint.Builder(map, {
             seed: 12345,
             // log: true,

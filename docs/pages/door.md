@@ -18,7 +18,7 @@ GWD.room.install(
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     //seed: 12345,
     rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
@@ -50,7 +50,7 @@ SHOW(canvas.node);
 
 async function buildMap() {
     map.clear();
-    level.create(map);
+    digger.create(map);
     await builder.build(room);
     map.drawInto(canvas);
     canvas.render();
@@ -69,7 +69,7 @@ Another way to protect a room is to use a vestibule machine. This builds another
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     // seed: 12345,
     rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
@@ -108,7 +108,7 @@ SHOW(canvas.node);
 
 async function buildMap() {
     map.clear();
-    level.create(map);
+    digger.create(map);
     await builder.build(room);
     map.drawInto(canvas);
     canvas.render();

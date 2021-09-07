@@ -162,15 +162,15 @@ export class Dungeon {
         // TODO - Update startLoc, endLoc
     }
 
-    makeLevel(id: number, opts: Partial<LEVEL.LevelOptions>, cb: TYPES.DigFn) {
-        const level = new LEVEL.Level(opts);
-        const result = level.create(this.config.width, this.config.height, cb);
+    makeLevel(id: number, opts: Partial<LEVEL.DiggerOptions>, cb: TYPES.DigFn) {
+        const digger = new LEVEL.Digger(opts);
+        const result = digger.create(this.config.width, this.config.height, cb);
 
         if (
-            !GWU.xy.equalsXY(level.endLoc, opts.endLoc) ||
-            !GWU.xy.equalsXY(level.startLoc, opts.startLoc)
+            !GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
+            !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)
         ) {
-            this.stairLocs[id] = [level.startLoc, level.endLoc];
+            this.stairLocs[id] = [digger.startLoc, digger.endLoc];
         }
         return result;
     }

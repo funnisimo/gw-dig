@@ -2,7 +2,7 @@ import * as GWM from 'gw-map';
 
 import * as BLUE from './index';
 import * as ROOM from '../room';
-import { Level } from '../digger';
+import { Digger } from '../digger';
 
 describe('Builder', () => {
     let map: GWM.map.Map;
@@ -18,14 +18,14 @@ describe('Builder', () => {
 
         map = GWM.map.make(80, 34, { visible: true });
 
-        const level = new Level({
+        const digger = new Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         builder = new BLUE.Builder(map);
     });

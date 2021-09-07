@@ -2100,7 +2100,7 @@ var loop = /*#__PURE__*/Object.freeze({
     digLoops: digLoops
 });
 
-class Level {
+class Digger {
     constructor(options = {}) {
         var _a, _b;
         this.seed = 0;
@@ -2630,11 +2630,11 @@ class Dungeon {
         // TODO - Update startLoc, endLoc
     }
     makeLevel(id, opts, cb) {
-        const level = new Level(opts);
-        const result = level.create(this.config.width, this.config.height, cb);
-        if (!GWU.xy.equalsXY(level.endLoc, opts.endLoc) ||
-            !GWU.xy.equalsXY(level.startLoc, opts.startLoc)) {
-            this.stairLocs[id] = [level.startLoc, level.endLoc];
+        const digger = new Digger(opts);
+        const result = digger.create(this.config.width, this.config.height, cb);
+        if (!GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
+            !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)) {
+            this.stairLocs[id] = [digger.startLoc, digger.endLoc];
         }
         return result;
     }
@@ -4278,4 +4278,4 @@ var index = /*#__PURE__*/Object.freeze({
     ConsoleLogger: ConsoleLogger
 });
 
-export { Dungeon, Hall, Level, Room, index as blueprint, bridge, hall, lake, loop, makeHall, room, index$1 as site, stairs };
+export { Digger, Dungeon, Hall, Room, index as blueprint, bridge, hall, lake, loop, makeHall, room, index$1 as site, stairs };

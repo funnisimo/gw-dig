@@ -115,14 +115,14 @@ const map = GWM.map.make(80, 34, {
     // seed: 12345
 });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     // seed: 12345,
     rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
+digger.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
@@ -155,7 +155,7 @@ const canvas = GWU.canvas.make({
 SHOW(canvas.node);
 
 async function buildMap() {
-    level.create(map);
+    digger.create(map);
     await builder.build(room);
 }
 
@@ -176,14 +176,14 @@ You can also build tiles outside the vestibule's interior area with the 'BF_BUIL
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
+digger.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
@@ -255,14 +255,14 @@ const room = GWD.blueprint.make({
 
 const map = GWM.map.make(80, 34, { visible: true });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
+digger.create(map);
 
 const builder = new GWD.blueprint.Builder(map, {
     seed: 12345,

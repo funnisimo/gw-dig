@@ -64,7 +64,7 @@ Now, lets generate a new dungeon...
 
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
@@ -93,7 +93,7 @@ async function buildMap() {
 
     let start = Date.now();
 
-    level.create(map);
+    digger.create(map);
     await builder.build('ROOM');
 
     elapsed = Date.now() - start;

@@ -92,8 +92,8 @@ describe('Blueprint', () => {
 
         // Create Dig Site
         const map = GWM.map.make(50, 50);
-        const level = new DIG.Level({ seed: 12345 });
-        level.create(map);
+        const digger = new DIG.Digger({ seed: 12345 });
+        digger.create(map);
 
         GWM.map.analyze(map);
 
@@ -190,14 +190,14 @@ describe('Blueprint', () => {
             new DIG.room.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false, // { minDistance: 20, maxLength: 1 },
             stairs: { up: [40, 32], down: true },
         });
-        level.create(map);
+        digger.create(map);
 
         const builder = new BLUE.Builder(map);
 

@@ -2,7 +2,7 @@ import * as GWM from 'gw-map';
 
 import * as BLUE from './index';
 import * as ROOM from '../room';
-import { Level } from '../digger';
+import { Digger } from '../digger';
 
 describe('Builder', () => {
     test('seeding map', async () => {
@@ -25,14 +25,14 @@ describe('Builder', () => {
             new ROOM.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new Level({
+        const digger = new Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         // GWM.map.analyze(map);
 
@@ -118,14 +118,14 @@ describe('Builder', () => {
             new ROOM.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new Level({
+        const digger = new Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         GWM.map.analyze(map);
 

@@ -22,7 +22,7 @@ export interface RoomOptions {
     digger: string | string[] | Record<string, number> | ROOM.RoomDigger;
 }
 
-export interface LevelOptions {
+export interface DiggerOptions {
     halls?: Partial<HALL.HallOptions> | boolean;
     loops?: Partial<LOOP.LoopOptions> | boolean;
     lakes?: Partial<LAKE.LakeOpts> | boolean;
@@ -39,7 +39,7 @@ export interface LevelOptions {
     boundary?: boolean;
 }
 
-export class Level {
+export class Digger {
     public site!: SITE.DigSite;
 
     public seed = 0;
@@ -57,7 +57,7 @@ export class Level {
 
     public seq!: number[];
 
-    constructor(options: Partial<LevelOptions> = {}) {
+    constructor(options: Partial<DiggerOptions> = {}) {
         this.seed = options.seed || 0;
         GWU.object.setOptions(this.rooms, options.rooms);
 

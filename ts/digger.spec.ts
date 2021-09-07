@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 import * as Dig from './index';
-import { Level } from './digger';
+import { Digger } from './digger';
 
 describe('Level', () => {
     test('basic', () => {
@@ -10,7 +10,7 @@ describe('Level', () => {
         Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
         Dig.room.install('ROOM', new Dig.room.Rectangular());
 
-        const level = new Dig.Level({
+        const digger = new Dig.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 50 },
@@ -29,7 +29,7 @@ describe('Level', () => {
             },
             stairs: { up: [20, 38], down: true },
         });
-        level.create(40, 40, (x, y, v) => {
+        digger.create(40, 40, (x, y, v) => {
             grid[x][y] = v;
         });
 
@@ -55,7 +55,7 @@ describe('Level', () => {
         test('roomFitsAt - just room', () => {
             const site = new Dig.site.GridSite(100, 100);
             const roomSite = new Dig.site.GridSite(100, 100);
-            const level = new Level();
+            const digger = new Digger();
 
             // Top left of site
             GWU.xy.forRect(1, 1, 9, 9, (x, y) =>
@@ -72,28 +72,28 @@ describe('Level', () => {
             // room.doors[GWU.xy.LEFT] = [44,50];
 
             expect(
-                level._roomFitsAt(site, roomSite, room, -34, -44)
+                digger._roomFitsAt(site, roomSite, room, -34, -44)
             ).toBeTruthy();
             expect(
-                level._roomFitsAt(site, roomSite, room, -44, -34)
+                digger._roomFitsAt(site, roomSite, room, -44, -34)
             ).toBeTruthy();
             expect(
-                level._roomFitsAt(site, roomSite, room, -44, -44)
+                digger._roomFitsAt(site, roomSite, room, -44, -44)
             ).toBeFalsy();
 
             // Middle of nowhere
             expect(
-                level._roomFitsAt(site, roomSite, room, -20, -20)
+                digger._roomFitsAt(site, roomSite, room, -20, -20)
             ).toBeTruthy();
             expect(
-                level._roomFitsAt(site, roomSite, room, 20, 20)
+                digger._roomFitsAt(site, roomSite, room, 20, 20)
             ).toBeTruthy();
         });
 
         test('roomFitsAt - up hall', () => {
             const site = new Dig.site.GridSite(100, 100);
             const roomSite = new Dig.site.GridSite(100, 100);
-            const level = new Level();
+            const digger = new Digger();
 
             // Top left of site
             GWU.xy.forRect(1, 1, 9, 9, (x, y) =>
@@ -120,22 +120,22 @@ describe('Level', () => {
 
             // Hall off top
             expect(
-                level._roomFitsAt(site, roomSite, room, -34, -44)
+                digger._roomFitsAt(site, roomSite, room, -34, -44)
             ).toBeFalsy();
 
             // Hall into other room
             expect(
-                level._roomFitsAt(site, roomSite, room, -44, -34)
+                digger._roomFitsAt(site, roomSite, room, -44, -34)
             ).toBeFalsy();
 
             // Room overlap
             expect(
-                level._roomFitsAt(site, roomSite, room, -44, -44)
+                digger._roomFitsAt(site, roomSite, room, -44, -44)
             ).toBeFalsy();
 
             // OK
             expect(
-                level._roomFitsAt(site, roomSite, room, -44, -29)
+                digger._roomFitsAt(site, roomSite, room, -44, -29)
             ).toBeTruthy();
         });
     });
@@ -149,14 +149,14 @@ describe('Level', () => {
 
         const map = GWM.map.make(80, 34, { visible: true });
 
-        const level = new Dig.Level({
+        const digger = new Dig.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         let lines: string[] = [];
         map.dump(undefined, (line: string) => {
@@ -164,7 +164,7 @@ describe('Level', () => {
         });
         map.clear();
 
-        level.create(map);
+        digger.create(map);
         let lines2: string[] = [];
         map.dump(undefined, (line: string) => {
             lines2.push(line);

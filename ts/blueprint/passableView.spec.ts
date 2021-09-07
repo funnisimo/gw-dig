@@ -35,14 +35,14 @@ describe('inPassableViewOfOrigin', () => {
             new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new GWD.Level({
+        const digger = new GWD.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         const vestibule = GWD.blueprint.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',

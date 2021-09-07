@@ -117,7 +117,7 @@ describe('Blueprint - hole', () => {
             steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
         });
 
-        const level = new GWD.Level({
+        const digger = new GWD.Digger({
             seed: 123456,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
@@ -126,7 +126,7 @@ describe('Blueprint - hole', () => {
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
-        level.create(map);
+        digger.create(map);
 
         const builder = new GWD.blueprint.Builder(map);
 

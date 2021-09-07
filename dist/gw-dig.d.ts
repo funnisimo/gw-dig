@@ -582,7 +582,7 @@ interface RoomOptions {
     first: string | string[] | Record<string, number> | RoomDigger;
     digger: string | string[] | Record<string, number> | RoomDigger;
 }
-interface LevelOptions {
+interface DiggerOptions {
     halls?: Partial<HallOptions> | boolean;
     loops?: Partial<LoopOptions> | boolean;
     lakes?: Partial<LakeOpts> | boolean;
@@ -595,7 +595,7 @@ interface LevelOptions {
     seed?: number;
     boundary?: boolean;
 }
-declare class Level {
+declare class Digger {
     site: DigSite;
     seed: number;
     rooms: Partial<RoomOptions>;
@@ -609,7 +609,7 @@ declare class Level {
     startLoc: GWU.xy.Loc;
     endLoc: GWU.xy.Loc;
     seq: number[];
-    constructor(options?: Partial<LevelOptions>);
+    constructor(options?: Partial<DiggerOptions>);
     _makeRoomSite(width: number, height: number): GridSite;
     create(width: number, height: number, cb: DigFn): boolean;
     create(map: GWM.map.Map): boolean;
@@ -665,7 +665,7 @@ declare class Dungeon {
     initSeeds(): void;
     initStairLocs(): void;
     getLevel(id: number, cb: DigFn): boolean;
-    makeLevel(id: number, opts: Partial<LevelOptions>, cb: DigFn): boolean;
+    makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn): boolean;
 }
 
 interface DataOptions {
@@ -953,4 +953,4 @@ declare namespace index_d {
   };
 }
 
-export { DigFn, DoorOpts, Dungeon, DungeonOptions, Hall, Level, LevelOptions, LocPair, Room, RoomConfig, RoomOptions, index_d as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, loop_d as loop, makeHall, room_d as room, index_d$1 as site, stairs_d as stairs };
+export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, index_d as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, loop_d as loop, makeHall, room_d as room, index_d$1 as site, stairs_d as stairs };

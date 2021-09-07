@@ -19,7 +19,7 @@ GWD.room.install(
     new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
 );
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
@@ -58,7 +58,7 @@ const canvas = GWU.canvas.make({
 });
 SHOW(canvas.node);
 
-level.create(map);
+digger.create(map);
 const builder = new GWD.blueprint.Builder(map, {
     seed: 12345,
     blueprints: [vestibule, room],
