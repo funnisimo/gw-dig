@@ -9,5 +9,4 @@ export * from './types';
 export * from './digger';
 export * from './dungeon';
 export * as blueprint from './blueprint';
-export * from './logger';
-export * from './consoleLogger';
+export * as log from './log';

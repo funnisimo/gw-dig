@@ -1,11 +1,11 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
-import { DigSite } from './site/digSite';
-import { Room } from './types';
-import { BuildData } from './blueprint/data';
-import { Blueprint } from './blueprint/blueprint';
-import { BuildStep } from './blueprint/buildStep';
+import { DigSite } from '../site/digSite';
+import { Room } from '../types';
+import { BuildData } from '../blueprint/data';
+import { Blueprint } from '../blueprint/blueprint';
+import { BuildStep } from '../blueprint/buildStep';
 
 export interface Logger {
     onDigFirstRoom(site: DigSite): Promise<any>;

@@ -845,7 +845,7 @@ class MapSite {
     }
 }
 
-var index$1 = /*#__PURE__*/Object.freeze({
+var index$2 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     NOTHING: NOTHING,
     FLOOR: FLOOR,
@@ -4322,7 +4322,7 @@ class Builder {
     }
 }
 
-var index = /*#__PURE__*/Object.freeze({
+var index$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     get Flags () { return Flags; },
     Blueprint: Blueprint,
@@ -4340,4 +4340,10 @@ var index = /*#__PURE__*/Object.freeze({
     Builder: Builder
 });
 
-export { ConsoleLogger, Digger, Dungeon, Hall, NullLogger, Room, index as blueprint, bridge, hall, lake, loop, makeHall, room, index$1 as site, stairs };
+var index = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    NullLogger: NullLogger,
+    ConsoleLogger: ConsoleLogger
+});
+
+export { Digger, Dungeon, Hall, Room, index$1 as blueprint, bridge, hall, lake, index as log, loop, makeHall, room, index$2 as site, stairs };

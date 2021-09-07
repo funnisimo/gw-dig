@@ -6,8 +6,8 @@ import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 
 import { BuildData, DataOptions } from './data';
-import { NullLogger, Logger } from '../logger';
-import { ConsoleLogger } from '../consoleLogger';
+import { NullLogger, Logger } from '../log/logger';
+import { ConsoleLogger } from '../log/consoleLogger';
 import { DisruptOptions } from '../site';
 
 export type BlueType = BLUE.Blueprint | string;

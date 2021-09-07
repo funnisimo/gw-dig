@@ -871,7 +871,7 @@
         }
     }
 
-    var index$1 = /*#__PURE__*/Object.freeze({
+    var index$2 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         NOTHING: NOTHING,
         FLOOR: FLOOR,
@@ -4348,7 +4348,7 @@
         }
     }
 
-    var index = /*#__PURE__*/Object.freeze({
+    var index$1 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get Flags () { return Flags; },
         Blueprint: Blueprint,
@@ -4366,20 +4366,25 @@
         Builder: Builder
     });
 
-    exports.ConsoleLogger = ConsoleLogger;
+    var index = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        NullLogger: NullLogger,
+        ConsoleLogger: ConsoleLogger
+    });
+
     exports.Digger = Digger;
     exports.Dungeon = Dungeon;
     exports.Hall = Hall;
-    exports.NullLogger = NullLogger;
     exports.Room = Room;
-    exports.blueprint = index;
+    exports.blueprint = index$1;
     exports.bridge = bridge;
     exports.hall = hall;
     exports.lake = lake;
+    exports.log = index;
     exports.loop = loop;
     exports.makeHall = makeHall;
     exports.room = room;
-    exports.site = index$1;
+    exports.site = index$2;
     exports.stairs = stairs;
 
     Object.defineProperty(exports, '__esModule', { value: true });

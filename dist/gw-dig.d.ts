@@ -198,67 +198,67 @@ declare class MapSite implements BuildSite {
     getDoorDir(x: number, y: number): number;
 }
 
-declare const index_d$1_NOTHING: typeof NOTHING;
-declare const index_d$1_FLOOR: typeof FLOOR;
-declare const index_d$1_DOOR: typeof DOOR;
-declare const index_d$1_SECRET_DOOR: typeof SECRET_DOOR;
-declare const index_d$1_WALL: typeof WALL;
-declare const index_d$1_DEEP: typeof DEEP;
-declare const index_d$1_SHALLOW: typeof SHALLOW;
-declare const index_d$1_BRIDGE: typeof BRIDGE;
-declare const index_d$1_UP_STAIRS: typeof UP_STAIRS;
-declare const index_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
-declare const index_d$1_IMPREGNABLE: typeof IMPREGNABLE;
-declare const index_d$1_TILEMAP: typeof TILEMAP;
-type index_d$1_DigSite = DigSite;
-type index_d$1_Snapshot = Snapshot;
-type index_d$1_BuildSite = BuildSite;
-declare const index_d$1_directionOfDoorSite: typeof directionOfDoorSite;
-declare const index_d$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
-declare const index_d$1_copySite: typeof copySite;
-declare const index_d$1_fillCostGrid: typeof fillCostGrid;
-type index_d$1_DisruptOptions = DisruptOptions;
-declare const index_d$1_siteDisruptedByXY: typeof siteDisruptedByXY;
-declare const index_d$1_siteDisruptedBy: typeof siteDisruptedBy;
-declare const index_d$1_siteDisruptedSize: typeof siteDisruptedSize;
-declare const index_d$1_computeDistanceMap: typeof computeDistanceMap;
-declare const index_d$1_clearInteriorFlag: typeof clearInteriorFlag;
-type index_d$1_GridSite = GridSite;
-declare const index_d$1_GridSite: typeof GridSite;
-type index_d$1_MapSnapshot = MapSnapshot;
-declare const index_d$1_MapSnapshot: typeof MapSnapshot;
-type index_d$1_MapSite = MapSite;
-declare const index_d$1_MapSite: typeof MapSite;
-declare namespace index_d$1 {
+declare const index_d$2_NOTHING: typeof NOTHING;
+declare const index_d$2_FLOOR: typeof FLOOR;
+declare const index_d$2_DOOR: typeof DOOR;
+declare const index_d$2_SECRET_DOOR: typeof SECRET_DOOR;
+declare const index_d$2_WALL: typeof WALL;
+declare const index_d$2_DEEP: typeof DEEP;
+declare const index_d$2_SHALLOW: typeof SHALLOW;
+declare const index_d$2_BRIDGE: typeof BRIDGE;
+declare const index_d$2_UP_STAIRS: typeof UP_STAIRS;
+declare const index_d$2_DOWN_STAIRS: typeof DOWN_STAIRS;
+declare const index_d$2_IMPREGNABLE: typeof IMPREGNABLE;
+declare const index_d$2_TILEMAP: typeof TILEMAP;
+type index_d$2_DigSite = DigSite;
+type index_d$2_Snapshot = Snapshot;
+type index_d$2_BuildSite = BuildSite;
+declare const index_d$2_directionOfDoorSite: typeof directionOfDoorSite;
+declare const index_d$2_chooseRandomDoorSites: typeof chooseRandomDoorSites;
+declare const index_d$2_copySite: typeof copySite;
+declare const index_d$2_fillCostGrid: typeof fillCostGrid;
+type index_d$2_DisruptOptions = DisruptOptions;
+declare const index_d$2_siteDisruptedByXY: typeof siteDisruptedByXY;
+declare const index_d$2_siteDisruptedBy: typeof siteDisruptedBy;
+declare const index_d$2_siteDisruptedSize: typeof siteDisruptedSize;
+declare const index_d$2_computeDistanceMap: typeof computeDistanceMap;
+declare const index_d$2_clearInteriorFlag: typeof clearInteriorFlag;
+type index_d$2_GridSite = GridSite;
+declare const index_d$2_GridSite: typeof GridSite;
+type index_d$2_MapSnapshot = MapSnapshot;
+declare const index_d$2_MapSnapshot: typeof MapSnapshot;
+type index_d$2_MapSite = MapSite;
+declare const index_d$2_MapSite: typeof MapSite;
+declare namespace index_d$2 {
   export {
-    index_d$1_NOTHING as NOTHING,
-    index_d$1_FLOOR as FLOOR,
-    index_d$1_DOOR as DOOR,
-    index_d$1_SECRET_DOOR as SECRET_DOOR,
-    index_d$1_WALL as WALL,
-    index_d$1_DEEP as DEEP,
-    index_d$1_SHALLOW as SHALLOW,
-    index_d$1_BRIDGE as BRIDGE,
-    index_d$1_UP_STAIRS as UP_STAIRS,
-    index_d$1_DOWN_STAIRS as DOWN_STAIRS,
-    index_d$1_IMPREGNABLE as IMPREGNABLE,
-    index_d$1_TILEMAP as TILEMAP,
-    index_d$1_DigSite as DigSite,
-    index_d$1_Snapshot as Snapshot,
-    index_d$1_BuildSite as BuildSite,
-    index_d$1_directionOfDoorSite as directionOfDoorSite,
-    index_d$1_chooseRandomDoorSites as chooseRandomDoorSites,
-    index_d$1_copySite as copySite,
-    index_d$1_fillCostGrid as fillCostGrid,
-    index_d$1_DisruptOptions as DisruptOptions,
-    index_d$1_siteDisruptedByXY as siteDisruptedByXY,
-    index_d$1_siteDisruptedBy as siteDisruptedBy,
-    index_d$1_siteDisruptedSize as siteDisruptedSize,
-    index_d$1_computeDistanceMap as computeDistanceMap,
-    index_d$1_clearInteriorFlag as clearInteriorFlag,
-    index_d$1_GridSite as GridSite,
-    index_d$1_MapSnapshot as MapSnapshot,
-    index_d$1_MapSite as MapSite,
+    index_d$2_NOTHING as NOTHING,
+    index_d$2_FLOOR as FLOOR,
+    index_d$2_DOOR as DOOR,
+    index_d$2_SECRET_DOOR as SECRET_DOOR,
+    index_d$2_WALL as WALL,
+    index_d$2_DEEP as DEEP,
+    index_d$2_SHALLOW as SHALLOW,
+    index_d$2_BRIDGE as BRIDGE,
+    index_d$2_UP_STAIRS as UP_STAIRS,
+    index_d$2_DOWN_STAIRS as DOWN_STAIRS,
+    index_d$2_IMPREGNABLE as IMPREGNABLE,
+    index_d$2_TILEMAP as TILEMAP,
+    index_d$2_DigSite as DigSite,
+    index_d$2_Snapshot as Snapshot,
+    index_d$2_BuildSite as BuildSite,
+    index_d$2_directionOfDoorSite as directionOfDoorSite,
+    index_d$2_chooseRandomDoorSites as chooseRandomDoorSites,
+    index_d$2_copySite as copySite,
+    index_d$2_fillCostGrid as fillCostGrid,
+    index_d$2_DisruptOptions as DisruptOptions,
+    index_d$2_siteDisruptedByXY as siteDisruptedByXY,
+    index_d$2_siteDisruptedBy as siteDisruptedBy,
+    index_d$2_siteDisruptedSize as siteDisruptedSize,
+    index_d$2_computeDistanceMap as computeDistanceMap,
+    index_d$2_clearInteriorFlag as clearInteriorFlag,
+    index_d$2_GridSite as GridSite,
+    index_d$2_MapSnapshot as MapSnapshot,
+    index_d$2_MapSite as MapSite,
   };
 }
 
@@ -898,52 +898,52 @@ declare class Builder {
     _buildStepInstance(blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
 }
 
-type index_d_Flags = Flags;
-declare const index_d_Flags: typeof Flags;
-type index_d_Blueprint = Blueprint;
-declare const index_d_Blueprint: typeof Blueprint;
-type index_d_BlueprintOptions = BlueprintOptions;
-declare const index_d_install: typeof install;
-declare const index_d_random: typeof random;
-declare const index_d_blueprints: typeof blueprints;
-declare const index_d_make: typeof make;
-type index_d_DataOptions = DataOptions;
-type index_d_BuildData = BuildData;
-declare const index_d_BuildData: typeof BuildData;
-type index_d_StepOptions = StepOptions;
-type index_d_StepFlags = StepFlags;
-declare const index_d_StepFlags: typeof StepFlags;
-type index_d_BuildStep = BuildStep;
-declare const index_d_BuildStep: typeof BuildStep;
-declare const index_d_updateViewMap: typeof updateViewMap;
-declare const index_d_calcDistanceBound: typeof calcDistanceBound;
-declare const index_d_cellIsCandidate: typeof cellIsCandidate;
-declare const index_d_makePersonalSpace: typeof makePersonalSpace;
-type index_d_BlueType = BlueType;
-type index_d_BuilderOptions = BuilderOptions;
-type index_d_Builder = Builder;
-declare const index_d_Builder: typeof Builder;
-declare namespace index_d {
+type index_d$1_Flags = Flags;
+declare const index_d$1_Flags: typeof Flags;
+type index_d$1_Blueprint = Blueprint;
+declare const index_d$1_Blueprint: typeof Blueprint;
+type index_d$1_BlueprintOptions = BlueprintOptions;
+declare const index_d$1_install: typeof install;
+declare const index_d$1_random: typeof random;
+declare const index_d$1_blueprints: typeof blueprints;
+declare const index_d$1_make: typeof make;
+type index_d$1_DataOptions = DataOptions;
+type index_d$1_BuildData = BuildData;
+declare const index_d$1_BuildData: typeof BuildData;
+type index_d$1_StepOptions = StepOptions;
+type index_d$1_StepFlags = StepFlags;
+declare const index_d$1_StepFlags: typeof StepFlags;
+type index_d$1_BuildStep = BuildStep;
+declare const index_d$1_BuildStep: typeof BuildStep;
+declare const index_d$1_updateViewMap: typeof updateViewMap;
+declare const index_d$1_calcDistanceBound: typeof calcDistanceBound;
+declare const index_d$1_cellIsCandidate: typeof cellIsCandidate;
+declare const index_d$1_makePersonalSpace: typeof makePersonalSpace;
+type index_d$1_BlueType = BlueType;
+type index_d$1_BuilderOptions = BuilderOptions;
+type index_d$1_Builder = Builder;
+declare const index_d$1_Builder: typeof Builder;
+declare namespace index_d$1 {
   export {
-    index_d_Flags as Flags,
-    index_d_Blueprint as Blueprint,
-    index_d_BlueprintOptions as BlueprintOptions,
-    index_d_install as install,
-    index_d_random as random,
-    index_d_blueprints as blueprints,
-    index_d_make as make,
-    index_d_DataOptions as DataOptions,
-    index_d_BuildData as BuildData,
-    index_d_StepOptions as StepOptions,
-    index_d_StepFlags as StepFlags,
-    index_d_BuildStep as BuildStep,
-    index_d_updateViewMap as updateViewMap,
-    index_d_calcDistanceBound as calcDistanceBound,
-    index_d_cellIsCandidate as cellIsCandidate,
-    index_d_makePersonalSpace as makePersonalSpace,
-    index_d_BlueType as BlueType,
-    index_d_BuilderOptions as BuilderOptions,
-    index_d_Builder as Builder,
+    index_d$1_Flags as Flags,
+    index_d$1_Blueprint as Blueprint,
+    index_d$1_BlueprintOptions as BlueprintOptions,
+    index_d$1_install as install,
+    index_d$1_random as random,
+    index_d$1_blueprints as blueprints,
+    index_d$1_make as make,
+    index_d$1_DataOptions as DataOptions,
+    index_d$1_BuildData as BuildData,
+    index_d$1_StepOptions as StepOptions,
+    index_d$1_StepFlags as StepFlags,
+    index_d$1_BuildStep as BuildStep,
+    index_d$1_updateViewMap as updateViewMap,
+    index_d$1_calcDistanceBound as calcDistanceBound,
+    index_d$1_cellIsCandidate as cellIsCandidate,
+    index_d$1_makePersonalSpace as makePersonalSpace,
+    index_d$1_BlueType as BlueType,
+    index_d$1_BuilderOptions as BuilderOptions,
+    index_d$1_Builder as Builder,
   };
 }
 
@@ -971,4 +971,17 @@ declare class ConsoleLogger implements Logger {
     onStepFail(data: BuildData, blueprint: Blueprint, step: BuildStep, error: string): Promise<void>;
 }
 
-export { ConsoleLogger, DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Logger, NullLogger, Room, RoomConfig, RoomOptions, index_d as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, loop_d as loop, makeHall, room_d as room, index_d$1 as site, stairs_d as stairs };
+type index_d_Logger = Logger;
+type index_d_NullLogger = NullLogger;
+declare const index_d_NullLogger: typeof NullLogger;
+type index_d_ConsoleLogger = ConsoleLogger;
+declare const index_d_ConsoleLogger: typeof ConsoleLogger;
+declare namespace index_d {
+  export {
+    index_d_Logger as Logger,
+    index_d_NullLogger as NullLogger,
+    index_d_ConsoleLogger as ConsoleLogger,
+  };
+}
+
+export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, index_d$1 as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, index_d as log, loop_d as loop, makeHall, room_d as room, index_d$2 as site, stairs_d as stairs };

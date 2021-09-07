@@ -1,10 +1,10 @@
 import * as GWU from 'gw-utils';
-import { Room } from './types';
-import { DigSite } from './site/digSite';
-import { Blueprint, Flags } from './blueprint/blueprint';
+import { Room } from '../types';
+import { DigSite } from '../site/digSite';
+import { Blueprint, Flags } from '../blueprint/blueprint';
 import { Logger } from './logger';
-import { BuildData } from './blueprint/data';
-import { BuildStep, StepFlags } from './blueprint/buildStep';
+import { BuildData } from '../blueprint/data';
+import { BuildStep, StepFlags } from '../blueprint/buildStep';
 
 export class ConsoleLogger implements Logger {
     async onDigFirstRoom(site: DigSite) {

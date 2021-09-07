@@ -10,8 +10,8 @@ import * as LAKE from './lake';
 import * as BRIDGE from './bridge';
 import * as STAIRS from './stairs';
 
-import * as LOGGER from './logger';
-import { ConsoleLogger } from './consoleLogger';
+import * as LOGGER from './log/logger';
+import { ConsoleLogger } from './log/consoleLogger';
 
 export interface DoorOpts {
     chance: number;
