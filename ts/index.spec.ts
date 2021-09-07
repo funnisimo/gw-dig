@@ -1,8 +1,9 @@
 import 'jest-extended';
 import * as DIG from './index';
 
-describe('GW.dig', () => {
+describe('GWU.dig', () => {
     test('exports', () => {
-        expect(DIG.dig).toBeObject();
+        expect(DIG.room).toBeObject();
+        expect(DIG.blueprint).toBeObject();
     });
 });
