@@ -93,7 +93,7 @@ async function buildMap() {
 
     let start = Date.now();
 
-    digger.create(map);
+    await digger.create(map);
     await builder.build('ROOM');
 
     elapsed = Date.now() - start;
@@ -103,9 +103,7 @@ let carried = null;
 
 LOOP.run(
     {
-        start: async () => {
-            await buildMap();
-        },
+        start: buildMap,
         Enter: buildMap,
         click: (e) => {
             if (carried) {

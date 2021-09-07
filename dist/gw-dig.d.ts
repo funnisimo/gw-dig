@@ -611,9 +611,9 @@ declare class Digger {
     seq: number[];
     constructor(options?: Partial<DiggerOptions>);
     _makeRoomSite(width: number, height: number): GridSite;
-    create(width: number, height: number, cb: DigFn): boolean;
-    create(map: GWM.map.Map): boolean;
-    _create(site: DigSite): boolean;
+    create(width: number, height: number, cb: DigFn): Promise<boolean>;
+    create(map: GWM.map.Map): Promise<boolean>;
+    _create(site: DigSite): Promise<boolean>;
     start(site: DigSite): void;
     getDigger(id: string | string[] | Record<string, number> | RoomDigger): RoomDigger;
     addFirstRoom(site: DigSite): Room | null;
@@ -664,8 +664,8 @@ declare class Dungeon {
     get levels(): number;
     initSeeds(): void;
     initStairLocs(): void;
-    getLevel(id: number, cb: DigFn): boolean;
-    makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn): boolean;
+    getLevel(id: number, cb: DigFn): Promise<boolean>;
+    makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn): Promise<boolean>;
 }
 
 interface DataOptions {

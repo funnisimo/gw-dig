@@ -50,7 +50,7 @@ SHOW(canvas.node);
 
 async function buildMap() {
     map.clear();
-    digger.create(map);
+    await digger.create(map);
     await builder.build(room);
     map.drawInto(canvas);
     canvas.render();
@@ -108,7 +108,7 @@ SHOW(canvas.node);
 
 async function buildMap() {
     map.clear();
-    digger.create(map);
+    await digger.create(map);
     await builder.build(room);
     map.drawInto(canvas);
     canvas.render();

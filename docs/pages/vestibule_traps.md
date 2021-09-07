@@ -58,14 +58,18 @@ const canvas = GWU.canvas.make({
 });
 SHOW(canvas.node);
 
-digger.create(map);
 const builder = new GWD.blueprint.Builder(map, {
     seed: 12345,
     blueprints: [vestibule, room],
 });
 
-builder.build(room).then(() => {
-    map.drawInto(canvas);
-    canvas.render();
-});
+digger
+    .create(map)
+    .then(async () => {
+        await builder.build(room);
+    })
+    .then(() => {
+        map.drawInto(canvas);
+        canvas.render();
+    });
 ```

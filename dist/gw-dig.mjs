@@ -2179,7 +2179,7 @@ class Digger {
         site.rng = this.site.rng;
         return site;
     }
-    create(...args) {
+    async create(...args) {
         if (args.length == 1 && args[0] instanceof GWM.map.Map) {
             const map = args[0];
             this.site = new MapSite(map);
@@ -2189,7 +2189,7 @@ class Digger {
             const height = args[1];
             this.site = new GridSite(width, height);
         }
-        const result = this._create(this.site);
+        const result = await this._create(this.site);
         if (args.length > 1) {
             const width = args[0];
             const height = args[1];
@@ -2203,7 +2203,7 @@ class Digger {
         this.site.free();
         return result;
     }
-    _create(site) {
+    async _create(site) {
         if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
             this.startLoc[0] = Math.floor(site.width / 2);
             this.startLoc[1] = site.height - 2;
@@ -2585,7 +2585,7 @@ class Dungeon {
             startLoc = endLoc;
         }
     }
-    getLevel(id, cb) {
+    async getLevel(id, cb) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
         // Generate the level
@@ -2629,9 +2629,9 @@ class Dungeon {
         return this.makeLevel(id, levelOpts, cb);
         // TODO - Update startLoc, endLoc
     }
-    makeLevel(id, opts, cb) {
+    async makeLevel(id, opts, cb) {
         const digger = new Digger(opts);
-        const result = digger.create(this.config.width, this.config.height, cb);
+        const result = await digger.create(this.config.width, this.config.height, cb);
         if (!GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
             !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)) {
             this.stairLocs[id] = [digger.startLoc, digger.endLoc];

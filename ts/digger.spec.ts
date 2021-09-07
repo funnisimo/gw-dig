@@ -4,7 +4,7 @@ import * as Dig from './index';
 import { Digger } from './digger';
 
 describe('Level', () => {
-    test('basic', () => {
+    test('basic', async () => {
         const grid = new GWU.grid.NumGrid(40, 40);
 
         Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
@@ -29,7 +29,7 @@ describe('Level', () => {
             },
             stairs: { up: [20, 38], down: true },
         });
-        digger.create(40, 40, (x, y, v) => {
+        await digger.create(40, 40, (x, y, v) => {
             grid[x][y] = v;
         });
 
@@ -140,7 +140,7 @@ describe('Level', () => {
         });
     });
 
-    test('multiple calls with map', () => {
+    test('multiple calls with map', async () => {
         Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
         Dig.room.install(
             'ROOM',
@@ -156,7 +156,7 @@ describe('Level', () => {
             loops: false,
             lakes: false,
         });
-        digger.create(map);
+        await digger.create(map);
 
         let lines: string[] = [];
         map.dump(undefined, (line: string) => {
@@ -164,7 +164,7 @@ describe('Level', () => {
         });
         map.clear();
 
-        digger.create(map);
+        await digger.create(map);
         let lines2: string[] = [];
         map.dump(undefined, (line: string) => {
             lines2.push(line);

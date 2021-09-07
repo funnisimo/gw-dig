@@ -122,9 +122,13 @@ export class Digger {
         return site;
     }
 
-    create(width: number, height: number, cb: TYPES.DigFn): boolean;
-    create(map: GWM.map.Map): boolean;
-    create(...args: any[]): boolean {
+    async create(
+        width: number,
+        height: number,
+        cb: TYPES.DigFn
+    ): Promise<boolean>;
+    async create(map: GWM.map.Map): Promise<boolean>;
+    async create(...args: any[]): Promise<boolean> {
         if (args.length == 1 && args[0] instanceof GWM.map.Map) {
             const map = args[0] as GWM.map.Map;
             this.site = new SITE.MapSite(map);
@@ -135,7 +139,7 @@ export class Digger {
             this.site = new SITE.GridSite(width, height);
         }
 
-        const result = this._create(this.site);
+        const result = await this._create(this.site);
 
         if (args.length > 1) {
             const width = args[0] as number;
@@ -152,7 +156,7 @@ export class Digger {
         return result;
     }
 
-    _create(site: SITE.DigSite): boolean {
+    async _create(site: SITE.DigSite): Promise<boolean> {
         if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
             this.startLoc[0] = Math.floor(site.width / 2);
             this.startLoc[1] = site.height - 2;

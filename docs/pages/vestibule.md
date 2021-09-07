@@ -122,7 +122,6 @@ const digger = new GWD.Digger({
     loops: false,
     lakes: false,
 });
-digger.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
@@ -155,7 +154,7 @@ const canvas = GWU.canvas.make({
 SHOW(canvas.node);
 
 async function buildMap() {
-    digger.create(map);
+    await digger.create(map);
     await builder.build(room);
 }
 
@@ -183,7 +182,6 @@ const digger = new GWD.Digger({
     loops: false,
     lakes: false,
 });
-digger.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
@@ -217,10 +215,15 @@ const builder = new GWD.blueprint.Builder(map, {
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 SHOW(canvas.node);
 
-builder.build(room).then(() => {
-    map.drawInto(canvas);
-    canvas.render();
-});
+digger
+    .create(map)
+    .then(async () => {
+        await builder.build(room);
+    })
+    .then(() => {
+        map.drawInto(canvas);
+        canvas.render();
+    });
 ```
 
 ### Throwing Tutorial
@@ -262,7 +265,6 @@ const digger = new GWD.Digger({
     loops: false,
     lakes: false,
 });
-digger.create(map);
 
 const builder = new GWD.blueprint.Builder(map, {
     seed: 12345,
@@ -280,6 +282,7 @@ SHOW(canvas.node);
 LOOP.run(
     {
         start: async () => {
+            await digger.create(map);
             await builder.build(room);
         },
         click: async (e) => {
