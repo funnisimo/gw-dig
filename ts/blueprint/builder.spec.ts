@@ -2,7 +2,7 @@ import * as GWM from 'gw-map';
 
 import * as BLUE from './index';
 import * as ROOM from '../room';
-import { Level } from '../level';
+import { Level } from '../digger';
 
 describe('Builder', () => {
     test('seeding map', async () => {

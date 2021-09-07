@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 import * as Dig from './index';
-import { Level } from './level';
+import { Level } from './digger';
 
 describe('Level', () => {
     test('basic', () => {

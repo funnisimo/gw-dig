@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import * as LEVEL from './level';
+import * as LEVEL from './digger';
 
 import * as TYPES from './types';
 import * as ROOM from './room';

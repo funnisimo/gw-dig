@@ -6,6 +6,6 @@ export * as bridge from './bridge';
 export * as stairs from './stairs';
 export * as loop from './loop';
 export * from './types';
-export * from './level';
+export * from './digger';
 export * from './dungeon';
 export * as blueprint from './blueprint';
