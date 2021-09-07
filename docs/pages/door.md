@@ -16,19 +16,19 @@ GWD.room.install(
 ## Using tile effect
 
 ```js
-const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 const map = GWM.map.make(80, 34, { visible: true });
 
 const level = new GWD.Level({
-    seed: 12345,
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    //seed: 12345,
+    rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, { seed: 12345 });
+const builder = new GWD.blueprint.Builder(map, {
+    //seed: 12345
+});
 
 const room = GWD.blueprint.make({
     id: 'ROOM',
@@ -40,12 +40,26 @@ const room = GWD.blueprint.make({
     ],
 });
 
-builder.build(room).then(() => {
+const canvas = GWU.canvas.make({
+    font: 'monospace',
+    width: 80,
+    height: 34,
+    loop: LOOP,
+});
+SHOW(canvas.node);
+
+async function buildMap() {
+    map.clear();
+    level.create(map);
+    await builder.build(room);
     map.drawInto(canvas);
     canvas.render();
-});
+}
 
-SHOW(canvas.node);
+LOOP.run({
+    start: buildMap,
+    Enter: buildMap,
+});
 ```
 
 ## Door via Vestibule
@@ -56,13 +70,12 @@ Another way to protect a room is to use a vestibule machine. This builds another
 const map = GWM.map.make(80, 34, { visible: true });
 
 const level = new GWD.Level({
-    seed: 12345,
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    // seed: 12345,
+    rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
@@ -81,15 +94,28 @@ const room = GWD.blueprint.make({
 });
 
 const builder = new GWD.blueprint.Builder(map, {
-    seed: 12345,
+    // seed: 12345,
     blueprints: { room, vestibule },
 });
 
-const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
+const canvas = GWU.canvas.make({
+    font: 'monospace',
+    width: 80,
+    height: 34,
+    loop: LOOP,
+});
 SHOW(canvas.node);
 
-builder.build(room).then(() => {
+async function buildMap() {
+    map.clear();
+    level.create(map);
+    await builder.build(room);
     map.drawInto(canvas);
     canvas.render();
+}
+
+LOOP.run({
+    start: buildMap,
+    Enter: buildMap,
 });
 ```
