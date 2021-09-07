@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
-import { Blueprint, Flags } from './blueprint';
+import { Blueprint, Flags } from './blueprint/blueprint';
 import { BuildLogger } from './logger';
-import { BuildData } from './data';
-import { BuildStep, StepFlags } from './buildStep';
+import { BuildData } from './blueprint/data';
+import { BuildStep, StepFlags } from './blueprint/buildStep';
 
 export class ConsoleLogger implements BuildLogger {
     async onError(_data: BuildData, error: string) {

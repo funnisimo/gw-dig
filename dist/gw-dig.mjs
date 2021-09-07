@@ -2719,22 +2719,6 @@ class BuildData {
     }
 }
 
-class NullLogger {
-    async onError() { }
-    async onBlueprintPick() { }
-    async onBlueprintCandidates() { }
-    async onBlueprintStart() { }
-    async onBlueprintInterior() { }
-    async onBlueprintFail() { }
-    async onBlueprintSuccess() { }
-    async onStepStart() { }
-    async onStepCandidates() { }
-    async onStepInstanceSuccess() { }
-    async onStepInstanceFail() { }
-    async onStepSuccess() { }
-    async onStepFail() { }
-}
-
 const Fl$1 = GWU.flag.fl;
 var StepFlags;
 (function (StepFlags) {
@@ -3823,6 +3807,22 @@ function make(config) {
     return new Blueprint(config);
 }
 
+class NullLogger {
+    async onError() { }
+    async onBlueprintPick() { }
+    async onBlueprintCandidates() { }
+    async onBlueprintStart() { }
+    async onBlueprintInterior() { }
+    async onBlueprintFail() { }
+    async onBlueprintSuccess() { }
+    async onStepStart() { }
+    async onStepCandidates() { }
+    async onStepInstanceSuccess() { }
+    async onStepInstanceFail() { }
+    async onStepSuccess() { }
+    async onStepFail() { }
+}
+
 class ConsoleLogger {
     async onError(_data, error) {
         console.log(`onBuildError - error: ${error}`);
@@ -4267,15 +4267,13 @@ var index = /*#__PURE__*/Object.freeze({
     blueprints: blueprints,
     make: make,
     BuildData: BuildData,
-    NullLogger: NullLogger,
     get StepFlags () { return StepFlags; },
     BuildStep: BuildStep,
     updateViewMap: updateViewMap,
     calcDistanceBound: calcDistanceBound,
     cellIsCandidate: cellIsCandidate,
     makePersonalSpace: makePersonalSpace,
-    Builder: Builder,
-    ConsoleLogger: ConsoleLogger
+    Builder: Builder
 });
 
-export { Digger, Dungeon, Hall, Room, index as blueprint, bridge, hall, lake, loop, makeHall, room, index$1 as site, stairs };
+export { ConsoleLogger, Digger, Dungeon, Hall, NullLogger, Room, index as blueprint, bridge, hall, lake, loop, makeHall, room, index$1 as site, stairs };

@@ -2745,22 +2745,6 @@
         }
     }
 
-    class NullLogger {
-        async onError() { }
-        async onBlueprintPick() { }
-        async onBlueprintCandidates() { }
-        async onBlueprintStart() { }
-        async onBlueprintInterior() { }
-        async onBlueprintFail() { }
-        async onBlueprintSuccess() { }
-        async onStepStart() { }
-        async onStepCandidates() { }
-        async onStepInstanceSuccess() { }
-        async onStepInstanceFail() { }
-        async onStepSuccess() { }
-        async onStepFail() { }
-    }
-
     const Fl$1 = GWU__namespace.flag.fl;
     var StepFlags;
     (function (StepFlags) {
@@ -3849,6 +3833,22 @@
         return new Blueprint(config);
     }
 
+    class NullLogger {
+        async onError() { }
+        async onBlueprintPick() { }
+        async onBlueprintCandidates() { }
+        async onBlueprintStart() { }
+        async onBlueprintInterior() { }
+        async onBlueprintFail() { }
+        async onBlueprintSuccess() { }
+        async onStepStart() { }
+        async onStepCandidates() { }
+        async onStepInstanceSuccess() { }
+        async onStepInstanceFail() { }
+        async onStepSuccess() { }
+        async onStepFail() { }
+    }
+
     class ConsoleLogger {
         async onError(_data, error) {
             console.log(`onBuildError - error: ${error}`);
@@ -4293,20 +4293,20 @@
         blueprints: blueprints,
         make: make,
         BuildData: BuildData,
-        NullLogger: NullLogger,
         get StepFlags () { return StepFlags; },
         BuildStep: BuildStep,
         updateViewMap: updateViewMap,
         calcDistanceBound: calcDistanceBound,
         cellIsCandidate: cellIsCandidate,
         makePersonalSpace: makePersonalSpace,
-        Builder: Builder,
-        ConsoleLogger: ConsoleLogger
+        Builder: Builder
     });
 
+    exports.ConsoleLogger = ConsoleLogger;
     exports.Digger = Digger;
     exports.Dungeon = Dungeon;
     exports.Hall = Hall;
+    exports.NullLogger = NullLogger;
     exports.Room = Room;
     exports.blueprint = index;
     exports.bridge = bridge;

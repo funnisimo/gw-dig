@@ -1,9 +1,9 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
-import { BuildData } from './data';
-import { Blueprint } from './blueprint';
-import { BuildStep } from './buildStep';
+import { BuildData } from './blueprint/data';
+import { Blueprint } from './blueprint/blueprint';
+import { BuildStep } from './blueprint/buildStep';
 
 export interface BuildLogger {
     onError(data: BuildData, error: string): Promise<any>;
