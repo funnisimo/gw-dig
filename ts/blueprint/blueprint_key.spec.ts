@@ -66,7 +66,7 @@ describe('Blueprint - key', () => {
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
-        digger.create(map);
+        await digger.create(map);
         const builder = new GWD.blueprint.Builder(map);
 
         // @ts-ignore
@@ -128,7 +128,7 @@ describe('Blueprint - key', () => {
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
-        digger.create(map);
+        await digger.create(map);
 
         const builder = new GWD.blueprint.Builder(map);
 

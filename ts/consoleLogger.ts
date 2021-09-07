@@ -1,11 +1,55 @@
 import * as GWU from 'gw-utils';
+import { Room } from './types';
+import { DigSite } from './site/digSite';
 import { Blueprint, Flags } from './blueprint/blueprint';
-import { BuildLogger } from './logger';
+import { Logger } from './logger';
 import { BuildData } from './blueprint/data';
 import { BuildStep, StepFlags } from './blueprint/buildStep';
 
-export class ConsoleLogger implements BuildLogger {
-    async onError(_data: BuildData, error: string) {
+export class ConsoleLogger implements Logger {
+    async onDigFirstRoom(site: DigSite) {
+        console.group('dig first room');
+        site.dump();
+        console.groupEnd();
+    }
+
+    async onRoomCandidate(roomSite: DigSite): Promise<any> {
+        console.group('room candidate');
+        roomSite.dump();
+        console.groupEnd();
+    }
+
+    async onRoomFailed(
+        _site: DigSite,
+        _room: Room,
+        _roomSite: DigSite,
+        error: string
+    ): Promise<any> {
+        console.log('Room Failed - ', error);
+    }
+
+    async onRoomSuccess(site: DigSite, room: Room): Promise<any> {
+        console.group('Added Room - ' + room.toString());
+        site.dump();
+        console.groupEnd();
+    }
+
+    async onLoopsAdded(_site: DigSite): Promise<any> {
+        console.log('loops added');
+    }
+    async onLakesAdded(_site: DigSite): Promise<any> {
+        console.log('lakes added');
+    }
+    async onBridgesAdded(_site: DigSite): Promise<any> {
+        console.log('bridges added');
+    }
+    async onStairsAdded(_site: DigSite): Promise<any> {
+        console.log('stairs added');
+    }
+
+    //
+
+    async onBuildError(_data: BuildData, error: string) {
         console.log(`onBuildError - error: ${error}`);
     }
 

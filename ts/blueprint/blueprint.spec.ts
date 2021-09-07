@@ -197,7 +197,7 @@ describe('Blueprint', () => {
             loops: false, // { minDistance: 20, maxLength: 1 },
             stairs: { up: [40, 32], down: true },
         });
-        digger.create(map);
+        await digger.create(map);
 
         const builder = new BLUE.Builder(map);
 

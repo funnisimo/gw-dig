@@ -32,7 +32,7 @@ describe('Builder', () => {
             loops: false,
             lakes: false,
         });
-        digger.create(map);
+        await digger.create(map);
 
         // GWM.map.analyze(map);
 

@@ -6,7 +6,7 @@ import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 
 import { BuildData, DataOptions } from './data';
-import { NullLogger, BuildLogger } from '../logger';
+import { NullLogger, Logger } from '../logger';
 import { ConsoleLogger } from '../consoleLogger';
 import { DisruptOptions } from '../site';
 
@@ -14,13 +14,13 @@ export type BlueType = BLUE.Blueprint | string;
 
 export interface BuilderOptions extends DataOptions {
     blueprints: BlueType[] | { [key: string]: BlueType };
-    log: BuildLogger | boolean;
+    log: Logger | boolean;
 }
 
 export class Builder {
     data: BuildData;
     blueprints: BLUE.Blueprint[] | null = null;
-    log: BuildLogger;
+    log: Logger;
 
     constructor(map: GWM.map.Map, options: Partial<BuilderOptions> = {}) {
         this.data = new BuildData(map, options);
@@ -61,7 +61,7 @@ export class Builder {
         while (tries < 10) {
             const blueprint = this._pickRandom(requiredMachineFlags);
             if (!blueprint) {
-                await this.log.onError(
+                await this.log.onBuildError(
                     data,
                     `Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(
                         BLUE.Flags,

@@ -139,6 +139,9 @@
                 this.x + this.width > i &&
                 this.y + this.height > j);
         }
+        toString() {
+            return `[${this.x},${this.y} -> ${this.right},${this.bottom}]`;
+        }
     }
     function copyXY(dest, src) {
         dest.x = x(src);

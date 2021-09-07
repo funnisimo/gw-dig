@@ -10,6 +10,9 @@ import * as LAKE from './lake';
 import * as BRIDGE from './bridge';
 import * as STAIRS from './stairs';
 
+import * as LOGGER from './logger';
+import { ConsoleLogger } from './consoleLogger';
+
 export interface DoorOpts {
     chance: number;
     tile: number;
@@ -37,6 +40,8 @@ export interface DiggerOptions {
 
     seed?: number;
     boundary?: boolean;
+
+    log?: LOGGER.Logger | boolean;
 }
 
 export class Digger {
@@ -56,6 +61,7 @@ export class Digger {
     public endLoc: GWU.xy.Loc = [-1, -1];
 
     public seq!: number[];
+    public log: LOGGER.Logger;
 
     constructor(options: Partial<DiggerOptions> = {}) {
         this.seed = options.seed || 0;
@@ -114,6 +120,14 @@ export class Digger {
 
         this.startLoc = options.startLoc || [-1, -1];
         this.endLoc = options.endLoc || [-1, -1];
+
+        if (options.log === true) {
+            this.log = new ConsoleLogger();
+        } else if (options.log) {
+            this.log = options.log;
+        } else {
+            this.log = new LOGGER.NullLogger();
+        }
     }
 
     _makeRoomSite(width: number, height: number) {
@@ -166,10 +180,12 @@ export class Digger {
 
         let tries = 20;
         while (--tries) {
-            if (this.addFirstRoom(site)) break;
+            if (await this.addFirstRoom(site)) break;
         }
         if (!tries) throw new Error('Failed to place first room!');
         site.updateDoorDirs();
+
+        await this.log.onDigFirstRoom(site);
 
         // site.dump();
         // console.log('- rng.number', site.rng.number());
@@ -178,7 +194,7 @@ export class Digger {
         let count = 1;
         const maxFails = this.rooms.fails || 20;
         while (fails < maxFails) {
-            if (this.addRoom(site)) {
+            if (await this.addRoom(site)) {
                 fails = 0;
                 site.updateDoorDirs();
                 site.rng.shuffle(this.seq);
@@ -194,10 +210,22 @@ export class Digger {
             }
         }
 
-        if (this.loops) this.addLoops(site, this.loops);
-        if (this.lakes) this.addLakes(site, this.lakes);
-        if (this.bridges) this.addBridges(site, this.bridges);
-        if (this.stairs) this.addStairs(site, this.stairs);
+        if (this.loops) {
+            this.addLoops(site, this.loops);
+            await this.log.onLoopsAdded(site);
+        }
+        if (this.lakes) {
+            this.addLakes(site, this.lakes);
+            await this.log.onLakesAdded(site);
+        }
+        if (this.bridges) {
+            this.addBridges(site, this.bridges);
+            await this.log.onBridgesAdded(site);
+        }
+        if (this.stairs) {
+            this.addStairs(site, this.stairs);
+            await this.log.onStairsAdded(site);
+        }
 
         this.finish(site);
 
@@ -227,7 +255,7 @@ export class Digger {
         return new ROOM.ChoiceRoom(id);
     }
 
-    addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
+    async addFirstRoom(site: SITE.DigSite): Promise<TYPES.Room | null> {
         const roomSite = this._makeRoomSite(site.width, site.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
@@ -237,7 +265,7 @@ export class Digger {
 
         if (
             room &&
-            !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)
+            !(await this._attachRoomAtLoc(site, roomSite, room, this.startLoc))
         ) {
             room = null;
         }
@@ -246,7 +274,7 @@ export class Digger {
         return room;
     }
 
-    addRoom(site: SITE.DigSite): TYPES.Room | null {
+    async addRoom(site: SITE.DigSite): Promise<TYPES.Room | null> {
         const roomSite = this._makeRoomSite(site.width, site.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
@@ -255,7 +283,7 @@ export class Digger {
         let room: TYPES.Room | null = digger.create(roomSite);
 
         // attach hall?
-        if (this.halls.chance) {
+        if (room && this.halls.chance) {
             let hall: TYPES.Hall | null = HALL.dig(
                 this.halls,
                 roomSite,
@@ -269,9 +297,22 @@ export class Digger {
         // console.log('potential room');
         // roomSite.dump();
 
-        if (room && !this._attachRoom(site, roomSite, room)) {
-            room = null;
+        if (room) {
+            await this.log.onRoomCandidate(roomSite);
+
+            if (this._attachRoom(site, roomSite, room)) {
+                await this.log.onRoomSuccess(site, room);
+            } else {
+                await this.log.onRoomFailed(
+                    site,
+                    room,
+                    roomSite,
+                    'Did not fit.'
+                );
+                room = null;
+            }
         }
+
         roomSite.free();
         return room;
     }
@@ -319,12 +360,12 @@ export class Digger {
         return false;
     }
 
-    _attachRoomAtLoc(
+    async _attachRoomAtLoc(
         site: SITE.DigSite,
         roomSite: SITE.DigSite,
         room: TYPES.Room,
         attachLoc: GWU.xy.Loc
-    ): boolean {
+    ): Promise<boolean> {
         const [x, y] = attachLoc;
         const doorSites = room.hall ? room.hall.doors : room.doors;
         const dirs = site.rng.sequence(4);

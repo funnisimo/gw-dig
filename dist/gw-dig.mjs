@@ -2100,623 +2100,28 @@ var loop = /*#__PURE__*/Object.freeze({
     digLoops: digLoops
 });
 
-class Digger {
-    constructor(options = {}) {
-        var _a, _b;
-        this.seed = 0;
-        this.rooms = { fails: 20 };
-        this.doors = { chance: 15 };
-        this.halls = { chance: 15 };
-        this.loops = {};
-        this.lakes = {};
-        this.bridges = {};
-        this.stairs = {};
-        this.boundary = true;
-        this.startLoc = [-1, -1];
-        this.endLoc = [-1, -1];
-        this.seed = options.seed || 0;
-        GWU.object.setOptions(this.rooms, options.rooms);
-        // Doors
-        if (options.doors === false) {
-            options.doors = { chance: 0 };
-        }
-        else if (options.doors === true) {
-            options.doors = { chance: 100 };
-        }
-        GWU.object.setOptions(this.doors, options.doors);
-        // Halls
-        if (options.halls === false) {
-            options.halls = { chance: 0 };
-        }
-        else if (options.halls === true) {
-            options.halls = {};
-        }
-        GWU.object.setOptions(this.halls, options.halls);
-        // Loops
-        if (options.loops === false) {
-            this.loops = null;
-        }
-        else {
-            if (options.loops === true)
-                options.loops = {};
-            options.loops = options.loops || {};
-            options.loops.doorChance =
-                (_a = options.loops.doorChance) !== null && _a !== void 0 ? _a : (_b = options.doors) === null || _b === void 0 ? void 0 : _b.chance;
-            GWU.object.setOptions(this.loops, options.loops);
-        }
-        // Lakes
-        if (options.lakes === false) {
-            this.lakes = null;
-        }
-        else {
-            if (options.lakes === true)
-                options.lakes = {};
-            GWU.object.setOptions(this.lakes, options.lakes);
-        }
-        // Bridges
-        if (options.bridges === false) {
-            this.bridges = null;
-        }
-        else {
-            if (options.bridges === true)
-                options.bridges = {};
-            GWU.object.setOptions(this.bridges, options.bridges);
-        }
-        // Stairs
-        if (options.stairs === false) {
-            this.stairs = null;
-        }
-        else {
-            if (options.stairs === true)
-                options.stairs = {};
-            GWU.object.setOptions(this.stairs, options.stairs);
-        }
-        this.startLoc = options.startLoc || [-1, -1];
-        this.endLoc = options.endLoc || [-1, -1];
-    }
-    _makeRoomSite(width, height) {
-        const site = new GridSite(width, height);
-        site.rng = this.site.rng;
-        return site;
-    }
-    async create(...args) {
-        if (args.length == 1 && args[0] instanceof GWM.map.Map) {
-            const map = args[0];
-            this.site = new MapSite(map);
-        }
-        if (args.length > 1) {
-            const width = args[0];
-            const height = args[1];
-            this.site = new GridSite(width, height);
-        }
-        const result = await this._create(this.site);
-        if (args.length > 1) {
-            const width = args[0];
-            const height = args[1];
-            const cb = args[2];
-            GWU.xy.forRect(width, height, (x, y) => {
-                const t = this.site.getTileIndex(x, y);
-                if (t)
-                    cb(x, y, t);
-            });
-        }
-        this.site.free();
-        return result;
-    }
-    async _create(site) {
-        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
-            this.startLoc[0] = Math.floor(site.width / 2);
-            this.startLoc[1] = site.height - 2;
-        }
-        this.start(site);
-        let tries = 20;
-        while (--tries) {
-            if (this.addFirstRoom(site))
-                break;
-        }
-        if (!tries)
-            throw new Error('Failed to place first room!');
-        site.updateDoorDirs();
-        // site.dump();
-        // console.log('- rng.number', site.rng.number());
-        let fails = 0;
-        let count = 1;
-        const maxFails = this.rooms.fails || 20;
-        while (fails < maxFails) {
-            if (this.addRoom(site)) {
-                fails = 0;
-                site.updateDoorDirs();
-                site.rng.shuffle(this.seq);
-                // site.dump();
-                // console.log('- rng.number', site.rng.number());
-                if (this.rooms.count && ++count >= this.rooms.count) {
-                    break; // we are done
-                }
-            }
-            else {
-                ++fails;
-            }
-        }
-        if (this.loops)
-            this.addLoops(site, this.loops);
-        if (this.lakes)
-            this.addLakes(site, this.lakes);
-        if (this.bridges)
-            this.addBridges(site, this.bridges);
-        if (this.stairs)
-            this.addStairs(site, this.stairs);
-        this.finish(site);
-        return true;
-    }
-    start(site) {
-        const seed = this.seed || GWU.rng.random.number();
-        site.setSeed(seed);
-        site.clear();
-        this.seq = site.rng.sequence(site.width * site.height);
-    }
-    getDigger(id) {
-        if (!id)
-            throw new Error('Missing digger!');
-        if (id instanceof RoomDigger)
-            return id;
-        if (typeof id === 'string') {
-            const digger = rooms[id];
-            if (!digger) {
-                throw new Error('Failed to find digger - ' + id);
-            }
-            return digger;
-        }
-        return new ChoiceRoom(id);
-    }
-    addFirstRoom(site) {
-        const roomSite = this._makeRoomSite(site.width, site.height);
-        let digger = this.getDigger(this.rooms.first || this.rooms.digger || 'DEFAULT');
-        let room = digger.create(roomSite);
-        if (room &&
-            !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)) {
-            room = null;
-        }
-        roomSite.free();
-        // Should we add the starting stairs now too?
-        return room;
-    }
-    addRoom(site) {
-        const roomSite = this._makeRoomSite(site.width, site.height);
-        let digger = this.getDigger(this.rooms.digger || 'DEFAULT');
-        let room = digger.create(roomSite);
-        // attach hall?
-        if (this.halls.chance) {
-            let hall$1 = dig(this.halls, roomSite, room.doors);
-            if (hall$1) {
-                room.hall = hall$1;
-            }
-        }
-        // console.log('potential room');
-        // roomSite.dump();
-        if (room && !this._attachRoom(site, roomSite, room)) {
-            room = null;
-        }
-        roomSite.free();
-        return room;
-    }
-    _attachRoom(site, roomSite, room) {
-        // console.log('attachRoom');
-        const doorSites = room.hall ? room.hall.doors : room.doors;
-        let i = 0;
-        const len = this.seq.length;
-        // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
-        for (i = 0; i < len; i++) {
-            const x = Math.floor(this.seq[i] / site.height);
-            const y = this.seq[i] % site.height;
-            const dir = site.getDoorDir(x, y);
-            if (dir != GWU.xy.NO_DIRECTION) {
-                const oppDir = (dir + 2) % 4;
-                const door = doorSites[oppDir];
-                if (!door)
-                    continue;
-                const offsetX = x - door[0];
-                const offsetY = y - door[1];
-                if (door[0] != -1 &&
-                    this._roomFitsAt(site, roomSite, room, offsetX, offsetY)) {
-                    // TYPES.Room fits here.
-                    copySite(site, roomSite, offsetX, offsetY);
-                    this._attachDoor(site, room, x, y, oppDir);
-                    // door[0] = -1;
-                    // door[1] = -1;
-                    room.translate(offsetX, offsetY);
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    _attachRoomAtLoc(site, roomSite, room, attachLoc) {
-        const [x, y] = attachLoc;
-        const doorSites = room.hall ? room.hall.doors : room.doors;
-        const dirs = site.rng.sequence(4);
-        // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
-        for (let dir of dirs) {
-            const oppDir = (dir + 2) % 4;
-            const door = doorSites[oppDir];
-            if (!door || door[0] == -1)
-                continue;
-            const offX = x - door[0];
-            const offY = y - door[1];
-            if (this._roomFitsAt(site, roomSite, room, offX, offY)) {
-                // dungeon.debug("attachRoom: ", x, y, oppDir);
-                // TYPES.Room fits here.
-                copySite(site, roomSite, offX, offY);
-                // this._attachDoor(site, room, x, y, oppDir);  // No door on first room!
-                room.translate(offX, offY);
-                // const newDoors = doorSites.map((site) => {
-                //     const x0 = site[0] + offX;
-                //     const y0 = site[1] + offY;
-                //     if (x0 == x && y0 == y) return [-1, -1] as GWU.xy.Loc;
-                //     return [x0, y0] as GWU.xy.Loc;
-                // });
-                return true;
-            }
-        }
-        return false;
-    }
-    _roomFitsAt(map, roomGrid, room, roomToSiteX, roomToSiteY) {
-        let xRoom, yRoom, xSite, ySite, i, j;
-        // console.log('roomFitsAt', roomToSiteX, roomToSiteY);
-        const hall = room.hall || room;
-        const left = Math.min(room.left, hall.left);
-        const top = Math.min(room.top, hall.top);
-        const right = Math.max(room.right, hall.right);
-        const bottom = Math.max(room.bottom, hall.bottom);
-        for (xRoom = left; xRoom <= right; xRoom++) {
-            for (yRoom = top; yRoom <= bottom; yRoom++) {
-                if (roomGrid.isSet(xRoom, yRoom)) {
-                    xSite = xRoom + roomToSiteX;
-                    ySite = yRoom + roomToSiteY;
-                    if (!map.hasXY(xSite, ySite) ||
-                        map.isBoundaryXY(xSite, ySite)) {
-                        return false;
-                    }
-                    for (i = xSite - 1; i <= xSite + 1; i++) {
-                        for (j = ySite - 1; j <= ySite + 1; j++) {
-                            if (!map.isNothing(i, j)) {
-                                // console.log('- NO');
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // console.log('- YES');
-        return true;
-    }
-    _attachDoor(site, room, x, y, dir) {
-        const opts = this.doors;
-        let isDoor = false;
-        if (opts.chance && site.rng.chance(opts.chance)) {
-            isDoor = true;
-        }
-        const tile = isDoor ? opts.tile || DOOR : FLOOR;
-        site.setTile(x, y, tile); // Door site.
-        // most cases...
-        if (!room.hall || room.hall.width == 1 || room.hall.height == 1) {
-            return;
-        }
-        if (dir === GWU.xy.UP || dir === GWU.xy.DOWN) {
-            let didSomething = true;
-            let k = 1;
-            while (didSomething) {
-                didSomething = false;
-                if (site.isNothing(x - k, y)) {
-                    if (site.isSet(x - k, y - 1) && site.isSet(x - k, y + 1)) {
-                        site.setTile(x - k, y, tile);
-                        didSomething = true;
-                    }
-                }
-                if (site.isNothing(x + k, y)) {
-                    if (site.isSet(x + k, y - 1) && site.isSet(x + k, y + 1)) {
-                        site.setTile(x + k, y, tile);
-                        didSomething = true;
-                    }
-                }
-                ++k;
-            }
-        }
-        else {
-            let didSomething = true;
-            let k = 1;
-            while (didSomething) {
-                didSomething = false;
-                if (site.isNothing(x, y - k)) {
-                    if (site.isSet(x - 1, y - k) && site.isSet(x + 1, y - k)) {
-                        site.setTile(x, y - k, tile);
-                        didSomething = true;
-                    }
-                }
-                if (site.isNothing(x, y + k)) {
-                    if (site.isSet(x - 1, y + k) && site.isSet(x + 1, y + k)) {
-                        site.setTile(x, y + k, tile);
-                        didSomething = true;
-                    }
-                }
-                ++k;
-            }
-        }
-    }
-    addLoops(site, opts) {
-        const digger = new LoopDigger(opts);
-        return digger.create(site);
-    }
-    addLakes(site, opts) {
-        const digger = new Lakes(opts);
-        return digger.create(site);
-    }
-    addBridges(site, opts) {
-        const digger = new Bridges(opts);
-        return digger.create(site);
-    }
-    addStairs(site, opts) {
-        const digger = new Stairs(opts);
-        return digger.create(site);
-    }
-    finish(site) {
-        this._removeDiagonalOpenings(site);
-        this._finishWalls(site);
-        this._finishDoors(site);
-    }
-    _removeDiagonalOpenings(site) {
-        let i, j, k, x1, y1;
-        let diagonalCornerRemoved;
-        do {
-            diagonalCornerRemoved = false;
-            for (i = 0; i < site.width - 1; i++) {
-                for (j = 0; j < site.height - 1; j++) {
-                    for (k = 0; k <= 1; k++) {
-                        if (!site.blocksMove(i + k, j) &&
-                            site.blocksMove(i + (1 - k), j) &&
-                            site.blocksDiagonal(i + (1 - k), j) &&
-                            site.blocksMove(i + k, j + 1) &&
-                            site.blocksDiagonal(i + k, j + 1) &&
-                            !site.blocksMove(i + (1 - k), j + 1)) {
-                            if (site.rng.chance(50)) {
-                                x1 = i + (1 - k);
-                                y1 = j;
-                            }
-                            else {
-                                x1 = i + k;
-                                y1 = j + 1;
-                            }
-                            diagonalCornerRemoved = true;
-                            site.setTile(x1, y1, FLOOR); // todo - pick one of the passable tiles around it...
-                        }
-                    }
-                }
-            }
-        } while (diagonalCornerRemoved == true);
-    }
-    _finishDoors(site) {
-        GWU.xy.forRect(site.width, site.height, (x, y) => {
-            if (site.isBoundaryXY(x, y))
-                return;
-            // todo - isDoorway...
-            if (site.isDoor(x, y)) {
-                if (
-                // TODO - isPassable
-                (site.isFloor(x + 1, y) || site.isFloor(x - 1, y)) &&
-                    (site.isFloor(x, y + 1) || site.isFloor(x, y - 1))) {
-                    // If there's passable terrain to the left or right, and there's passable terrain
-                    // above or below, then the door is orphaned and must be removed.
-                    site.setTile(x, y, FLOOR); // todo - take passable neighbor value
-                }
-                else if ((site.blocksPathing(x + 1, y) ? 1 : 0) +
-                    (site.blocksPathing(x - 1, y) ? 1 : 0) +
-                    (site.blocksPathing(x, y + 1) ? 1 : 0) +
-                    (site.blocksPathing(x, y - 1) ? 1 : 0) >=
-                    3) {
-                    // If the door has three or more pathing blocker neighbors in the four cardinal directions,
-                    // then the door is orphaned and must be removed.
-                    site.setTile(x, y, FLOOR); // todo - take passable neighbor
-                }
-            }
-        });
-    }
-    _finishWalls(site) {
-        const boundaryTile = this.boundary ? IMPREGNABLE : WALL;
-        GWU.xy.forRect(site.width, site.height, (x, y) => {
-            if (site.isNothing(x, y)) {
-                if (site.isBoundaryXY(x, y)) {
-                    site.setTile(x, y, boundaryTile);
-                }
-                else {
-                    site.setTile(x, y, WALL);
-                }
-            }
-        });
-    }
-}
-
-class Dungeon {
-    constructor(options = {}) {
-        this.config = {
-            levels: 1,
-            width: 80,
-            height: 34,
-            rooms: { count: 20, digger: 'DEFAULT' },
-            halls: {},
-            loops: {},
-            lakes: {},
-            bridges: {},
-            stairs: {},
-            boundary: true,
-        };
-        this.seeds = [];
-        this.stairLocs = [];
-        GWU.object.setOptions(this.config, options);
-        if (this.config.seed) {
-            GWU.rng.random.seed(this.config.seed);
-        }
-        this.initSeeds();
-        this.initStairLocs();
-    }
-    get levels() {
-        return this.config.levels;
-    }
-    initSeeds() {
-        for (let i = 0; i < this.config.levels; ++i) {
-            this.seeds[i] = GWU.rng.random.number(2 ** 32);
-        }
-    }
-    initStairLocs() {
-        let startLoc = this.config.startLoc || [
-            Math.floor(this.config.width / 2),
-            this.config.height - 2,
-        ];
-        const minDistance = this.config.stairDistance ||
-            Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
-        for (let i = 0; i < this.config.levels; ++i) {
-            const endLoc = GWU.rng.random.matchingLoc(this.config.width, this.config.height, (x, y) => {
-                return (GWU.xy.distanceBetween(startLoc[0], startLoc[1], x, y) >
-                    minDistance);
-            });
-            this.stairLocs.push([
-                [startLoc[0], startLoc[1]],
-                [endLoc[0], endLoc[1]],
-            ]);
-            startLoc = endLoc;
-        }
-    }
-    async getLevel(id, cb) {
-        if (id < 0 || id > this.config.levels)
-            throw new Error('Invalid level id: ' + id);
-        // Generate the level
-        const [startLoc, endLoc] = this.stairLocs[id];
-        const stairOpts = Object.assign({}, this.config.stairs);
-        if (this.config.goesUp) {
-            stairOpts.down = startLoc;
-            stairOpts.up = endLoc;
-            if (id == 0 && this.config.startTile) {
-                stairOpts.downTile = this.config.startTile;
-            }
-            if (id == this.config.levels - 1 && this.config.endTile) {
-                stairOpts.upTile = this.config.endTile;
-            }
-        }
-        else {
-            stairOpts.down = endLoc;
-            stairOpts.up = startLoc;
-            if (id == 0 && this.config.startTile) {
-                stairOpts.upTile = this.config.startTile;
-            }
-            if (id == this.config.levels - 1 && this.config.endTile) {
-                stairOpts.downTile = this.config.endTile;
-            }
-        }
-        const rooms = Object.assign({}, this.config.rooms);
-        if (id === 0 && rooms.entrance) {
-            rooms.first = rooms.entrance;
-        }
-        const levelOpts = {
-            seed: this.seeds[id],
-            loops: this.config.loops,
-            lakes: this.config.lakes,
-            bridges: this.config.bridges,
-            rooms: rooms,
-            stairs: stairOpts,
-            boundary: this.config.boundary,
-            width: this.config.width,
-            height: this.config.height,
-        };
-        return this.makeLevel(id, levelOpts, cb);
-        // TODO - Update startLoc, endLoc
-    }
-    async makeLevel(id, opts, cb) {
-        const digger = new Digger(opts);
-        const result = await digger.create(this.config.width, this.config.height, cb);
-        if (!GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
-            !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)) {
-            this.stairLocs[id] = [digger.startLoc, digger.endLoc];
-        }
-        return result;
-    }
-}
-
-class BuildData {
-    constructor(map, options = {}) {
-        this.map = map;
-        this.originX = -1;
-        this.originY = -1;
-        this.distance25 = -1;
-        this.distance75 = -1;
-        this.machineNumber = 0;
-        this.depth = 0;
-        this.seed = 0;
-        this.site = new MapSite(map);
-        this.interior = GWU.grid.alloc(map.width, map.height);
-        this.occupied = GWU.grid.alloc(map.width, map.height);
-        this.viewMap = GWU.grid.alloc(map.width, map.height);
-        this.distanceMap = GWU.grid.alloc(map.width, map.height);
-        this.candidates = GWU.grid.alloc(map.width, map.height);
-        this.depth = options.depth || 1;
-        this.seed = options.seed || 0;
-    }
-    free() {
-        GWU.grid.free(this.interior);
-        GWU.grid.free(this.occupied);
-        GWU.grid.free(this.viewMap);
-        GWU.grid.free(this.distanceMap);
-        GWU.grid.free(this.candidates);
-    }
-    reset(originX, originY) {
-        this.interior.fill(0);
-        this.occupied.fill(0);
-        this.viewMap.fill(0);
-        this.distanceMap.fill(0);
-        // this.candidates.fill(0);
-        this.originX = originX;
-        this.originY = originY;
-        this.distance25 = 0;
-        this.distance75 = 0;
-        if (this.seed) {
-            this.site.setSeed(this.seed);
-        }
-    }
-    calcDistances(maxSize) {
-        this.distanceMap.fill(0);
-        computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxSize);
-        let qualifyingTileCount = 0;
-        const distances = new Array(100).fill(0);
-        this.interior.forEach((v, x, y) => {
-            if (!v)
-                return;
-            const dist = this.distanceMap[x][y];
-            if (dist < 100) {
-                distances[dist]++; // create a histogram of distances -- poor man's sort function
-                qualifyingTileCount++;
-            }
-        });
-        let distance25 = Math.round(qualifyingTileCount / 4);
-        let distance75 = Math.round((3 * qualifyingTileCount) / 4);
-        for (let i = 0; i < 100; i++) {
-            if (distance25 <= distances[i]) {
-                distance25 = i;
-                break;
-            }
-            else {
-                distance25 -= distances[i];
-            }
-        }
-        for (let i = 0; i < 100; i++) {
-            if (distance75 <= distances[i]) {
-                distance75 = i;
-                break;
-            }
-            else {
-                distance75 -= distances[i];
-            }
-        }
-        this.distance25 = distance25;
-        this.distance75 = distance75;
-    }
+class NullLogger {
+    async onDigFirstRoom() { }
+    async onRoomCandidate() { }
+    async onRoomFailed() { }
+    async onRoomSuccess() { }
+    async onLoopsAdded() { }
+    async onLakesAdded() { }
+    async onBridgesAdded() { }
+    async onStairsAdded() { }
+    async onBuildError() { }
+    async onBlueprintPick() { }
+    async onBlueprintCandidates() { }
+    async onBlueprintStart() { }
+    async onBlueprintInterior() { }
+    async onBlueprintFail() { }
+    async onBlueprintSuccess() { }
+    async onStepStart() { }
+    async onStepCandidates() { }
+    async onStepInstanceSuccess() { }
+    async onStepInstanceFail() { }
+    async onStepSuccess() { }
+    async onStepFail() { }
 }
 
 const Fl$1 = GWU.flag.fl;
@@ -3807,24 +3212,39 @@ function make(config) {
     return new Blueprint(config);
 }
 
-class NullLogger {
-    async onError() { }
-    async onBlueprintPick() { }
-    async onBlueprintCandidates() { }
-    async onBlueprintStart() { }
-    async onBlueprintInterior() { }
-    async onBlueprintFail() { }
-    async onBlueprintSuccess() { }
-    async onStepStart() { }
-    async onStepCandidates() { }
-    async onStepInstanceSuccess() { }
-    async onStepInstanceFail() { }
-    async onStepSuccess() { }
-    async onStepFail() { }
-}
-
 class ConsoleLogger {
-    async onError(_data, error) {
+    async onDigFirstRoom(site) {
+        console.group('dig first room');
+        site.dump();
+        console.groupEnd();
+    }
+    async onRoomCandidate(roomSite) {
+        console.group('room candidate');
+        roomSite.dump();
+        console.groupEnd();
+    }
+    async onRoomFailed(_site, _room, _roomSite, error) {
+        console.log('Room Failed - ', error);
+    }
+    async onRoomSuccess(site, room) {
+        console.group('Added Room - ' + room.toString());
+        site.dump();
+        console.groupEnd();
+    }
+    async onLoopsAdded(_site) {
+        console.log('loops added');
+    }
+    async onLakesAdded(_site) {
+        console.log('lakes added');
+    }
+    async onBridgesAdded(_site) {
+        console.log('bridges added');
+    }
+    async onStairsAdded(_site) {
+        console.log('stairs added');
+    }
+    //
+    async onBuildError(_data, error) {
         console.log(`onBuildError - error: ${error}`);
     }
     async onBlueprintPick(_data, blueprint, flags, depth) {
@@ -3876,6 +3296,650 @@ class ConsoleLogger {
     }
 }
 
+class Digger {
+    constructor(options = {}) {
+        var _a, _b;
+        this.seed = 0;
+        this.rooms = { fails: 20 };
+        this.doors = { chance: 15 };
+        this.halls = { chance: 15 };
+        this.loops = {};
+        this.lakes = {};
+        this.bridges = {};
+        this.stairs = {};
+        this.boundary = true;
+        this.startLoc = [-1, -1];
+        this.endLoc = [-1, -1];
+        this.seed = options.seed || 0;
+        GWU.object.setOptions(this.rooms, options.rooms);
+        // Doors
+        if (options.doors === false) {
+            options.doors = { chance: 0 };
+        }
+        else if (options.doors === true) {
+            options.doors = { chance: 100 };
+        }
+        GWU.object.setOptions(this.doors, options.doors);
+        // Halls
+        if (options.halls === false) {
+            options.halls = { chance: 0 };
+        }
+        else if (options.halls === true) {
+            options.halls = {};
+        }
+        GWU.object.setOptions(this.halls, options.halls);
+        // Loops
+        if (options.loops === false) {
+            this.loops = null;
+        }
+        else {
+            if (options.loops === true)
+                options.loops = {};
+            options.loops = options.loops || {};
+            options.loops.doorChance =
+                (_a = options.loops.doorChance) !== null && _a !== void 0 ? _a : (_b = options.doors) === null || _b === void 0 ? void 0 : _b.chance;
+            GWU.object.setOptions(this.loops, options.loops);
+        }
+        // Lakes
+        if (options.lakes === false) {
+            this.lakes = null;
+        }
+        else {
+            if (options.lakes === true)
+                options.lakes = {};
+            GWU.object.setOptions(this.lakes, options.lakes);
+        }
+        // Bridges
+        if (options.bridges === false) {
+            this.bridges = null;
+        }
+        else {
+            if (options.bridges === true)
+                options.bridges = {};
+            GWU.object.setOptions(this.bridges, options.bridges);
+        }
+        // Stairs
+        if (options.stairs === false) {
+            this.stairs = null;
+        }
+        else {
+            if (options.stairs === true)
+                options.stairs = {};
+            GWU.object.setOptions(this.stairs, options.stairs);
+        }
+        this.startLoc = options.startLoc || [-1, -1];
+        this.endLoc = options.endLoc || [-1, -1];
+        if (options.log === true) {
+            this.log = new ConsoleLogger();
+        }
+        else if (options.log) {
+            this.log = options.log;
+        }
+        else {
+            this.log = new NullLogger();
+        }
+    }
+    _makeRoomSite(width, height) {
+        const site = new GridSite(width, height);
+        site.rng = this.site.rng;
+        return site;
+    }
+    async create(...args) {
+        if (args.length == 1 && args[0] instanceof GWM.map.Map) {
+            const map = args[0];
+            this.site = new MapSite(map);
+        }
+        if (args.length > 1) {
+            const width = args[0];
+            const height = args[1];
+            this.site = new GridSite(width, height);
+        }
+        const result = await this._create(this.site);
+        if (args.length > 1) {
+            const width = args[0];
+            const height = args[1];
+            const cb = args[2];
+            GWU.xy.forRect(width, height, (x, y) => {
+                const t = this.site.getTileIndex(x, y);
+                if (t)
+                    cb(x, y, t);
+            });
+        }
+        this.site.free();
+        return result;
+    }
+    async _create(site) {
+        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+            this.startLoc[0] = Math.floor(site.width / 2);
+            this.startLoc[1] = site.height - 2;
+        }
+        this.start(site);
+        let tries = 20;
+        while (--tries) {
+            if (await this.addFirstRoom(site))
+                break;
+        }
+        if (!tries)
+            throw new Error('Failed to place first room!');
+        site.updateDoorDirs();
+        await this.log.onDigFirstRoom(site);
+        // site.dump();
+        // console.log('- rng.number', site.rng.number());
+        let fails = 0;
+        let count = 1;
+        const maxFails = this.rooms.fails || 20;
+        while (fails < maxFails) {
+            if (await this.addRoom(site)) {
+                fails = 0;
+                site.updateDoorDirs();
+                site.rng.shuffle(this.seq);
+                // site.dump();
+                // console.log('- rng.number', site.rng.number());
+                if (this.rooms.count && ++count >= this.rooms.count) {
+                    break; // we are done
+                }
+            }
+            else {
+                ++fails;
+            }
+        }
+        if (this.loops) {
+            this.addLoops(site, this.loops);
+            await this.log.onLoopsAdded(site);
+        }
+        if (this.lakes) {
+            this.addLakes(site, this.lakes);
+            await this.log.onLakesAdded(site);
+        }
+        if (this.bridges) {
+            this.addBridges(site, this.bridges);
+            await this.log.onBridgesAdded(site);
+        }
+        if (this.stairs) {
+            this.addStairs(site, this.stairs);
+            await this.log.onStairsAdded(site);
+        }
+        this.finish(site);
+        return true;
+    }
+    start(site) {
+        const seed = this.seed || GWU.rng.random.number();
+        site.setSeed(seed);
+        site.clear();
+        this.seq = site.rng.sequence(site.width * site.height);
+    }
+    getDigger(id) {
+        if (!id)
+            throw new Error('Missing digger!');
+        if (id instanceof RoomDigger)
+            return id;
+        if (typeof id === 'string') {
+            const digger = rooms[id];
+            if (!digger) {
+                throw new Error('Failed to find digger - ' + id);
+            }
+            return digger;
+        }
+        return new ChoiceRoom(id);
+    }
+    async addFirstRoom(site) {
+        const roomSite = this._makeRoomSite(site.width, site.height);
+        let digger = this.getDigger(this.rooms.first || this.rooms.digger || 'DEFAULT');
+        let room = digger.create(roomSite);
+        if (room &&
+            !(await this._attachRoomAtLoc(site, roomSite, room, this.startLoc))) {
+            room = null;
+        }
+        roomSite.free();
+        // Should we add the starting stairs now too?
+        return room;
+    }
+    async addRoom(site) {
+        const roomSite = this._makeRoomSite(site.width, site.height);
+        let digger = this.getDigger(this.rooms.digger || 'DEFAULT');
+        let room = digger.create(roomSite);
+        // attach hall?
+        if (room && this.halls.chance) {
+            let hall$1 = dig(this.halls, roomSite, room.doors);
+            if (hall$1) {
+                room.hall = hall$1;
+            }
+        }
+        // console.log('potential room');
+        // roomSite.dump();
+        if (room) {
+            await this.log.onRoomCandidate(roomSite);
+            if (this._attachRoom(site, roomSite, room)) {
+                await this.log.onRoomSuccess(site, room);
+            }
+            else {
+                await this.log.onRoomFailed(site, room, roomSite, 'Did not fit.');
+                room = null;
+            }
+        }
+        roomSite.free();
+        return room;
+    }
+    _attachRoom(site, roomSite, room) {
+        // console.log('attachRoom');
+        const doorSites = room.hall ? room.hall.doors : room.doors;
+        let i = 0;
+        const len = this.seq.length;
+        // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
+        for (i = 0; i < len; i++) {
+            const x = Math.floor(this.seq[i] / site.height);
+            const y = this.seq[i] % site.height;
+            const dir = site.getDoorDir(x, y);
+            if (dir != GWU.xy.NO_DIRECTION) {
+                const oppDir = (dir + 2) % 4;
+                const door = doorSites[oppDir];
+                if (!door)
+                    continue;
+                const offsetX = x - door[0];
+                const offsetY = y - door[1];
+                if (door[0] != -1 &&
+                    this._roomFitsAt(site, roomSite, room, offsetX, offsetY)) {
+                    // TYPES.Room fits here.
+                    copySite(site, roomSite, offsetX, offsetY);
+                    this._attachDoor(site, room, x, y, oppDir);
+                    // door[0] = -1;
+                    // door[1] = -1;
+                    room.translate(offsetX, offsetY);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    async _attachRoomAtLoc(site, roomSite, room, attachLoc) {
+        const [x, y] = attachLoc;
+        const doorSites = room.hall ? room.hall.doors : room.doors;
+        const dirs = site.rng.sequence(4);
+        // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
+        for (let dir of dirs) {
+            const oppDir = (dir + 2) % 4;
+            const door = doorSites[oppDir];
+            if (!door || door[0] == -1)
+                continue;
+            const offX = x - door[0];
+            const offY = y - door[1];
+            if (this._roomFitsAt(site, roomSite, room, offX, offY)) {
+                // dungeon.debug("attachRoom: ", x, y, oppDir);
+                // TYPES.Room fits here.
+                copySite(site, roomSite, offX, offY);
+                // this._attachDoor(site, room, x, y, oppDir);  // No door on first room!
+                room.translate(offX, offY);
+                // const newDoors = doorSites.map((site) => {
+                //     const x0 = site[0] + offX;
+                //     const y0 = site[1] + offY;
+                //     if (x0 == x && y0 == y) return [-1, -1] as GWU.xy.Loc;
+                //     return [x0, y0] as GWU.xy.Loc;
+                // });
+                return true;
+            }
+        }
+        return false;
+    }
+    _roomFitsAt(map, roomGrid, room, roomToSiteX, roomToSiteY) {
+        let xRoom, yRoom, xSite, ySite, i, j;
+        // console.log('roomFitsAt', roomToSiteX, roomToSiteY);
+        const hall = room.hall || room;
+        const left = Math.min(room.left, hall.left);
+        const top = Math.min(room.top, hall.top);
+        const right = Math.max(room.right, hall.right);
+        const bottom = Math.max(room.bottom, hall.bottom);
+        for (xRoom = left; xRoom <= right; xRoom++) {
+            for (yRoom = top; yRoom <= bottom; yRoom++) {
+                if (roomGrid.isSet(xRoom, yRoom)) {
+                    xSite = xRoom + roomToSiteX;
+                    ySite = yRoom + roomToSiteY;
+                    if (!map.hasXY(xSite, ySite) ||
+                        map.isBoundaryXY(xSite, ySite)) {
+                        return false;
+                    }
+                    for (i = xSite - 1; i <= xSite + 1; i++) {
+                        for (j = ySite - 1; j <= ySite + 1; j++) {
+                            if (!map.isNothing(i, j)) {
+                                // console.log('- NO');
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // console.log('- YES');
+        return true;
+    }
+    _attachDoor(site, room, x, y, dir) {
+        const opts = this.doors;
+        let isDoor = false;
+        if (opts.chance && site.rng.chance(opts.chance)) {
+            isDoor = true;
+        }
+        const tile = isDoor ? opts.tile || DOOR : FLOOR;
+        site.setTile(x, y, tile); // Door site.
+        // most cases...
+        if (!room.hall || room.hall.width == 1 || room.hall.height == 1) {
+            return;
+        }
+        if (dir === GWU.xy.UP || dir === GWU.xy.DOWN) {
+            let didSomething = true;
+            let k = 1;
+            while (didSomething) {
+                didSomething = false;
+                if (site.isNothing(x - k, y)) {
+                    if (site.isSet(x - k, y - 1) && site.isSet(x - k, y + 1)) {
+                        site.setTile(x - k, y, tile);
+                        didSomething = true;
+                    }
+                }
+                if (site.isNothing(x + k, y)) {
+                    if (site.isSet(x + k, y - 1) && site.isSet(x + k, y + 1)) {
+                        site.setTile(x + k, y, tile);
+                        didSomething = true;
+                    }
+                }
+                ++k;
+            }
+        }
+        else {
+            let didSomething = true;
+            let k = 1;
+            while (didSomething) {
+                didSomething = false;
+                if (site.isNothing(x, y - k)) {
+                    if (site.isSet(x - 1, y - k) && site.isSet(x + 1, y - k)) {
+                        site.setTile(x, y - k, tile);
+                        didSomething = true;
+                    }
+                }
+                if (site.isNothing(x, y + k)) {
+                    if (site.isSet(x - 1, y + k) && site.isSet(x + 1, y + k)) {
+                        site.setTile(x, y + k, tile);
+                        didSomething = true;
+                    }
+                }
+                ++k;
+            }
+        }
+    }
+    addLoops(site, opts) {
+        const digger = new LoopDigger(opts);
+        return digger.create(site);
+    }
+    addLakes(site, opts) {
+        const digger = new Lakes(opts);
+        return digger.create(site);
+    }
+    addBridges(site, opts) {
+        const digger = new Bridges(opts);
+        return digger.create(site);
+    }
+    addStairs(site, opts) {
+        const digger = new Stairs(opts);
+        return digger.create(site);
+    }
+    finish(site) {
+        this._removeDiagonalOpenings(site);
+        this._finishWalls(site);
+        this._finishDoors(site);
+    }
+    _removeDiagonalOpenings(site) {
+        let i, j, k, x1, y1;
+        let diagonalCornerRemoved;
+        do {
+            diagonalCornerRemoved = false;
+            for (i = 0; i < site.width - 1; i++) {
+                for (j = 0; j < site.height - 1; j++) {
+                    for (k = 0; k <= 1; k++) {
+                        if (!site.blocksMove(i + k, j) &&
+                            site.blocksMove(i + (1 - k), j) &&
+                            site.blocksDiagonal(i + (1 - k), j) &&
+                            site.blocksMove(i + k, j + 1) &&
+                            site.blocksDiagonal(i + k, j + 1) &&
+                            !site.blocksMove(i + (1 - k), j + 1)) {
+                            if (site.rng.chance(50)) {
+                                x1 = i + (1 - k);
+                                y1 = j;
+                            }
+                            else {
+                                x1 = i + k;
+                                y1 = j + 1;
+                            }
+                            diagonalCornerRemoved = true;
+                            site.setTile(x1, y1, FLOOR); // todo - pick one of the passable tiles around it...
+                        }
+                    }
+                }
+            }
+        } while (diagonalCornerRemoved == true);
+    }
+    _finishDoors(site) {
+        GWU.xy.forRect(site.width, site.height, (x, y) => {
+            if (site.isBoundaryXY(x, y))
+                return;
+            // todo - isDoorway...
+            if (site.isDoor(x, y)) {
+                if (
+                // TODO - isPassable
+                (site.isFloor(x + 1, y) || site.isFloor(x - 1, y)) &&
+                    (site.isFloor(x, y + 1) || site.isFloor(x, y - 1))) {
+                    // If there's passable terrain to the left or right, and there's passable terrain
+                    // above or below, then the door is orphaned and must be removed.
+                    site.setTile(x, y, FLOOR); // todo - take passable neighbor value
+                }
+                else if ((site.blocksPathing(x + 1, y) ? 1 : 0) +
+                    (site.blocksPathing(x - 1, y) ? 1 : 0) +
+                    (site.blocksPathing(x, y + 1) ? 1 : 0) +
+                    (site.blocksPathing(x, y - 1) ? 1 : 0) >=
+                    3) {
+                    // If the door has three or more pathing blocker neighbors in the four cardinal directions,
+                    // then the door is orphaned and must be removed.
+                    site.setTile(x, y, FLOOR); // todo - take passable neighbor
+                }
+            }
+        });
+    }
+    _finishWalls(site) {
+        const boundaryTile = this.boundary ? IMPREGNABLE : WALL;
+        GWU.xy.forRect(site.width, site.height, (x, y) => {
+            if (site.isNothing(x, y)) {
+                if (site.isBoundaryXY(x, y)) {
+                    site.setTile(x, y, boundaryTile);
+                }
+                else {
+                    site.setTile(x, y, WALL);
+                }
+            }
+        });
+    }
+}
+
+class Dungeon {
+    constructor(options = {}) {
+        this.config = {
+            levels: 1,
+            width: 80,
+            height: 34,
+            rooms: { count: 20, digger: 'DEFAULT' },
+            halls: {},
+            loops: {},
+            lakes: {},
+            bridges: {},
+            stairs: {},
+            boundary: true,
+        };
+        this.seeds = [];
+        this.stairLocs = [];
+        GWU.object.setOptions(this.config, options);
+        if (this.config.seed) {
+            GWU.rng.random.seed(this.config.seed);
+        }
+        this.initSeeds();
+        this.initStairLocs();
+    }
+    get levels() {
+        return this.config.levels;
+    }
+    initSeeds() {
+        for (let i = 0; i < this.config.levels; ++i) {
+            this.seeds[i] = GWU.rng.random.number(2 ** 32);
+        }
+    }
+    initStairLocs() {
+        let startLoc = this.config.startLoc || [
+            Math.floor(this.config.width / 2),
+            this.config.height - 2,
+        ];
+        const minDistance = this.config.stairDistance ||
+            Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
+        for (let i = 0; i < this.config.levels; ++i) {
+            const endLoc = GWU.rng.random.matchingLoc(this.config.width, this.config.height, (x, y) => {
+                return (GWU.xy.distanceBetween(startLoc[0], startLoc[1], x, y) >
+                    minDistance);
+            });
+            this.stairLocs.push([
+                [startLoc[0], startLoc[1]],
+                [endLoc[0], endLoc[1]],
+            ]);
+            startLoc = endLoc;
+        }
+    }
+    async getLevel(id, cb) {
+        if (id < 0 || id > this.config.levels)
+            throw new Error('Invalid level id: ' + id);
+        // Generate the level
+        const [startLoc, endLoc] = this.stairLocs[id];
+        const stairOpts = Object.assign({}, this.config.stairs);
+        if (this.config.goesUp) {
+            stairOpts.down = startLoc;
+            stairOpts.up = endLoc;
+            if (id == 0 && this.config.startTile) {
+                stairOpts.downTile = this.config.startTile;
+            }
+            if (id == this.config.levels - 1 && this.config.endTile) {
+                stairOpts.upTile = this.config.endTile;
+            }
+        }
+        else {
+            stairOpts.down = endLoc;
+            stairOpts.up = startLoc;
+            if (id == 0 && this.config.startTile) {
+                stairOpts.upTile = this.config.startTile;
+            }
+            if (id == this.config.levels - 1 && this.config.endTile) {
+                stairOpts.downTile = this.config.endTile;
+            }
+        }
+        const rooms = Object.assign({}, this.config.rooms);
+        if (id === 0 && rooms.entrance) {
+            rooms.first = rooms.entrance;
+        }
+        const levelOpts = {
+            seed: this.seeds[id],
+            loops: this.config.loops,
+            lakes: this.config.lakes,
+            bridges: this.config.bridges,
+            rooms: rooms,
+            stairs: stairOpts,
+            boundary: this.config.boundary,
+            width: this.config.width,
+            height: this.config.height,
+        };
+        return this.makeLevel(id, levelOpts, cb);
+        // TODO - Update startLoc, endLoc
+    }
+    async makeLevel(id, opts, cb) {
+        const digger = new Digger(opts);
+        const result = await digger.create(this.config.width, this.config.height, cb);
+        if (!GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
+            !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)) {
+            this.stairLocs[id] = [digger.startLoc, digger.endLoc];
+        }
+        return result;
+    }
+}
+
+class BuildData {
+    constructor(map, options = {}) {
+        this.map = map;
+        this.originX = -1;
+        this.originY = -1;
+        this.distance25 = -1;
+        this.distance75 = -1;
+        this.machineNumber = 0;
+        this.depth = 0;
+        this.seed = 0;
+        this.site = new MapSite(map);
+        this.interior = GWU.grid.alloc(map.width, map.height);
+        this.occupied = GWU.grid.alloc(map.width, map.height);
+        this.viewMap = GWU.grid.alloc(map.width, map.height);
+        this.distanceMap = GWU.grid.alloc(map.width, map.height);
+        this.candidates = GWU.grid.alloc(map.width, map.height);
+        this.depth = options.depth || 1;
+        this.seed = options.seed || 0;
+    }
+    free() {
+        GWU.grid.free(this.interior);
+        GWU.grid.free(this.occupied);
+        GWU.grid.free(this.viewMap);
+        GWU.grid.free(this.distanceMap);
+        GWU.grid.free(this.candidates);
+    }
+    reset(originX, originY) {
+        this.interior.fill(0);
+        this.occupied.fill(0);
+        this.viewMap.fill(0);
+        this.distanceMap.fill(0);
+        // this.candidates.fill(0);
+        this.originX = originX;
+        this.originY = originY;
+        this.distance25 = 0;
+        this.distance75 = 0;
+        if (this.seed) {
+            this.site.setSeed(this.seed);
+        }
+    }
+    calcDistances(maxSize) {
+        this.distanceMap.fill(0);
+        computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxSize);
+        let qualifyingTileCount = 0;
+        const distances = new Array(100).fill(0);
+        this.interior.forEach((v, x, y) => {
+            if (!v)
+                return;
+            const dist = this.distanceMap[x][y];
+            if (dist < 100) {
+                distances[dist]++; // create a histogram of distances -- poor man's sort function
+                qualifyingTileCount++;
+            }
+        });
+        let distance25 = Math.round(qualifyingTileCount / 4);
+        let distance75 = Math.round((3 * qualifyingTileCount) / 4);
+        for (let i = 0; i < 100; i++) {
+            if (distance25 <= distances[i]) {
+                distance25 = i;
+                break;
+            }
+            else {
+                distance25 -= distances[i];
+            }
+        }
+        for (let i = 0; i < 100; i++) {
+            if (distance75 <= distances[i]) {
+                distance75 = i;
+                break;
+            }
+            else {
+                distance75 -= distances[i];
+            }
+        }
+        this.distance25 = distance25;
+        this.distance75 = distance75;
+    }
+}
+
 class Builder {
     constructor(map, options = {}) {
         this.blueprints = null;
@@ -3910,7 +3974,7 @@ class Builder {
         while (tries < 10) {
             const blueprint = this._pickRandom(requiredMachineFlags);
             if (!blueprint) {
-                await this.log.onError(data, `Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(Flags, requiredMachineFlags)}, depth: ${data.depth}`);
+                await this.log.onBuildError(data, `Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(Flags, requiredMachineFlags)}, depth: ${data.depth}`);
                 return false;
             }
             await this.log.onBlueprintPick(data, blueprint, requiredMachineFlags, data.depth);

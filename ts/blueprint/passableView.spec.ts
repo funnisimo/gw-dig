@@ -42,7 +42,7 @@ describe('inPassableViewOfOrigin', () => {
             loops: false,
             lakes: false,
         });
-        digger.create(map);
+        await digger.create(map);
 
         const vestibule = GWD.blueprint.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',

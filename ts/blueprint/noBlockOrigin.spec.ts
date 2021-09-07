@@ -60,7 +60,7 @@ describe('buildStep - noBlockOrigin', () => {
 
         const map = GWM.map.make(80, 34, { visible: true });
 
-        digger.create(map);
+        await digger.create(map);
         const builder = new GWD.blueprint.Builder(map, {
             seed: 12345,
             // log: true,

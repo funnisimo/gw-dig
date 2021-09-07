@@ -1,12 +1,31 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
+import { DigSite } from './site/digSite';
+import { Room } from './types';
 import { BuildData } from './blueprint/data';
 import { Blueprint } from './blueprint/blueprint';
 import { BuildStep } from './blueprint/buildStep';
 
-export interface BuildLogger {
-    onError(data: BuildData, error: string): Promise<any>;
+export interface Logger {
+    onDigFirstRoom(site: DigSite): Promise<any>;
+    onRoomCandidate(roomSite: DigSite): Promise<any>;
+    onRoomFailed(
+        site: DigSite,
+        room: Room,
+        roomSite: DigSite,
+        error: string
+    ): Promise<any>;
+    onRoomSuccess(site: DigSite, room: Room): Promise<any>;
+
+    onLoopsAdded(site: DigSite): Promise<any>;
+    onLakesAdded(site: DigSite): Promise<any>;
+    onBridgesAdded(site: DigSite): Promise<any>;
+    onStairsAdded(site: DigSite): Promise<any>;
+
+    //
+
+    onBuildError(data: BuildData, error: string): Promise<any>;
 
     onBlueprintPick(
         data: BuildData,
@@ -79,8 +98,17 @@ export interface BuildLogger {
     ): Promise<any>;
 }
 
-export class NullLogger implements BuildLogger {
-    async onError(): Promise<any> {}
+export class NullLogger implements Logger {
+    async onDigFirstRoom(): Promise<any> {}
+    async onRoomCandidate(): Promise<any> {}
+    async onRoomFailed(): Promise<any> {}
+    async onRoomSuccess(): Promise<any> {}
+    async onLoopsAdded(): Promise<any> {}
+    async onLakesAdded(): Promise<any> {}
+    async onBridgesAdded(): Promise<any> {}
+    async onStairsAdded(): Promise<any> {}
+
+    async onBuildError(): Promise<any> {}
     async onBlueprintPick(): Promise<any> {}
     async onBlueprintCandidates(): Promise<any> {}
     async onBlueprintStart(): Promise<any> {}
