@@ -112,7 +112,6 @@ export class Dungeon {
     getLevel(id: number, cb: TYPES.DigFn) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
-        GWU.rng.random.seed(this.seeds[id]);
 
         // Generate the level
         const [startLoc, endLoc] = this.stairLocs[id];
@@ -144,6 +143,7 @@ export class Dungeon {
         }
 
         const levelOpts = {
+            seed: this.seeds[id],
             loops: this.config.loops,
             lakes: this.config.lakes,
             bridges: this.config.bridges,

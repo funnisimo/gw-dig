@@ -17,6 +17,7 @@ export interface DoorOpts {
 
 export interface RoomOptions {
     count: number;
+    fails: number;
     first: string | string[] | Record<string, number> | ROOM.RoomDigger;
     digger: string | string[] | Record<string, number> | ROOM.RoomDigger;
 }
@@ -42,7 +43,7 @@ export class Level {
     public site!: SITE.DigSite;
 
     public seed = 0;
-    public rooms: Partial<RoomOptions> = {};
+    public rooms: Partial<RoomOptions> = { fails: 20 };
     public doors: Partial<DoorOpts> = { chance: 15 };
     public halls: Partial<HALL.HallOptions> = { chance: 15 };
     public loops: Partial<LOOP.LoopOptions> | null = {};
@@ -57,7 +58,7 @@ export class Level {
     public seq!: number[];
 
     constructor(options: Partial<LevelOptions> = {}) {
-        this.seed = options.seed || GWU.rng.random.number();
+        this.seed = options.seed || 0;
         GWU.object.setOptions(this.rooms, options.rooms);
 
         // Doors
@@ -115,8 +116,10 @@ export class Level {
         this.endLoc = options.endLoc || [-1, -1];
     }
 
-    _makeSite(width: number, height: number) {
-        return new SITE.GridSite(width, height);
+    _makeRoomSite(width: number, height: number) {
+        const site = new SITE.GridSite(width, height);
+        site.rng = this.site.rng;
+        return site;
     }
 
     create(width: number, height: number, cb: TYPES.DigFn): boolean;
@@ -164,12 +167,24 @@ export class Level {
         if (!tries) throw new Error('Failed to place first room!');
         site.updateDoorDirs();
 
+        // site.dump();
+        // console.log('- rng.number', site.rng.number());
+
         let fails = 0;
-        while (fails < 20) {
+        let count = 1;
+        const maxFails = this.rooms.fails || 20;
+        while (fails < maxFails) {
             if (this.addRoom(site)) {
                 fails = 0;
                 site.updateDoorDirs();
-                GWU.rng.random.shuffle(this.seq);
+                site.rng.shuffle(this.seq);
+
+                // site.dump();
+                // console.log('- rng.number', site.rng.number());
+
+                if (this.rooms.count && ++count >= this.rooms.count) {
+                    break; // we are done
+                }
             } else {
                 ++fails;
             }
@@ -186,13 +201,11 @@ export class Level {
     }
 
     start(site: SITE.DigSite) {
-        if (this.seed) {
-            GWU.rng.random.seed(this.seed);
-            site.seed = this.seed;
-        }
+        const seed = this.seed || GWU.rng.random.number();
+        site.setSeed(seed);
 
         site.clear();
-        this.seq = GWU.rng.random.sequence(site.width * site.height);
+        this.seq = site.rng.sequence(site.width * site.height);
     }
 
     getDigger(
@@ -211,7 +224,7 @@ export class Level {
     }
 
     addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
-        const roomSite = this._makeSite(site.width, site.height);
+        const roomSite = this._makeRoomSite(site.width, site.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.first || this.rooms.digger || 'DEFAULT'
@@ -230,7 +243,7 @@ export class Level {
     }
 
     addRoom(site: SITE.DigSite): TYPES.Room | null {
-        const roomSite = this._makeSite(site.width, site.height);
+        const roomSite = this._makeRoomSite(site.width, site.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
         );
@@ -248,6 +261,9 @@ export class Level {
                 room.hall = hall;
             }
         }
+
+        // console.log('potential room');
+        // roomSite.dump();
 
         if (room && !this._attachRoom(site, roomSite, room)) {
             room = null;
@@ -307,7 +323,7 @@ export class Level {
     ): boolean {
         const [x, y] = attachLoc;
         const doorSites = room.hall ? room.hall.doors : room.doors;
-        const dirs = GWU.rng.random.sequence(4);
+        const dirs = site.rng.sequence(4);
 
         // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
 
@@ -332,6 +348,7 @@ export class Level {
                 //     if (x0 == x && y0 == y) return [-1, -1] as GWU.xy.Loc;
                 //     return [x0, y0] as GWU.xy.Loc;
                 // });
+
                 return true;
             }
         }
@@ -383,7 +400,7 @@ export class Level {
     }
 
     _attachDoor(
-        map: SITE.DigSite,
+        site: SITE.DigSite,
         room: TYPES.Room,
         x: number,
         y: number,
@@ -392,12 +409,12 @@ export class Level {
         const opts = this.doors;
         let isDoor = false;
 
-        if (opts.chance && GWU.rng.random.chance(opts.chance)) {
+        if (opts.chance && site.rng.chance(opts.chance)) {
             isDoor = true;
         }
 
         const tile = isDoor ? opts.tile || SITE.DOOR : SITE.FLOOR;
-        map.setTile(x, y, tile); // Door site.
+        site.setTile(x, y, tile); // Door site.
 
         // most cases...
         if (!room.hall || room.hall.width == 1 || room.hall.height == 1) {
@@ -410,15 +427,15 @@ export class Level {
             while (didSomething) {
                 didSomething = false;
 
-                if (map.isNothing(x - k, y)) {
-                    if (map.isSet(x - k, y - 1) && map.isSet(x - k, y + 1)) {
-                        map.setTile(x - k, y, tile);
+                if (site.isNothing(x - k, y)) {
+                    if (site.isSet(x - k, y - 1) && site.isSet(x - k, y + 1)) {
+                        site.setTile(x - k, y, tile);
                         didSomething = true;
                     }
                 }
-                if (map.isNothing(x + k, y)) {
-                    if (map.isSet(x + k, y - 1) && map.isSet(x + k, y + 1)) {
-                        map.setTile(x + k, y, tile);
+                if (site.isNothing(x + k, y)) {
+                    if (site.isSet(x + k, y - 1) && site.isSet(x + k, y + 1)) {
+                        site.setTile(x + k, y, tile);
                         didSomething = true;
                     }
                 }
@@ -430,15 +447,15 @@ export class Level {
             while (didSomething) {
                 didSomething = false;
 
-                if (map.isNothing(x, y - k)) {
-                    if (map.isSet(x - 1, y - k) && map.isSet(x + 1, y - k)) {
-                        map.setTile(x, y - k, tile);
+                if (site.isNothing(x, y - k)) {
+                    if (site.isSet(x - 1, y - k) && site.isSet(x + 1, y - k)) {
+                        site.setTile(x, y - k, tile);
                         didSomething = true;
                     }
                 }
-                if (map.isNothing(x, y + k)) {
-                    if (map.isSet(x - 1, y + k) && map.isSet(x + 1, y + k)) {
-                        map.setTile(x, y + k, tile);
+                if (site.isNothing(x, y + k)) {
+                    if (site.isSet(x - 1, y + k) && site.isSet(x + 1, y + k)) {
+                        site.setTile(x, y + k, tile);
                         didSomething = true;
                     }
                 }
@@ -490,7 +507,7 @@ export class Level {
                             site.blocksDiagonal(i + k, j + 1) &&
                             !site.blocksMove(i + (1 - k), j + 1)
                         ) {
-                            if (GWU.rng.random.chance(50)) {
+                            if (site.rng.chance(50)) {
                                 x1 = i + (1 - k);
                                 y1 = j;
                             } else {

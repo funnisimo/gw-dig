@@ -203,10 +203,10 @@
         Cell[Cell["IS_GATE_SITE"] = Fl$2(8)] = "IS_GATE_SITE";
         Cell[Cell["IS_IN_ROOM_MACHINE"] = Fl$2(9)] = "IS_IN_ROOM_MACHINE";
         Cell[Cell["IS_IN_AREA_MACHINE"] = Fl$2(10)] = "IS_IN_AREA_MACHINE";
-        Cell[Cell["IMPREGNABLE"] = Fl$2(12)] = "IMPREGNABLE";
-        // DARKENED = Fl(13), // magical blindness?
-        Cell[Cell["NEEDS_REDRAW"] = Fl$2(14)] = "NEEDS_REDRAW";
-        Cell[Cell["CELL_CHANGED"] = Fl$2(15)] = "CELL_CHANGED";
+        Cell[Cell["IMPREGNABLE"] = Fl$2(11)] = "IMPREGNABLE";
+        Cell[Cell["NEEDS_REDRAW"] = Fl$2(13)] = "NEEDS_REDRAW";
+        Cell[Cell["LIGHT_CHANGED"] = Fl$2(14)] = "LIGHT_CHANGED";
+        Cell[Cell["FOV_CHANGED"] = Fl$2(15)] = "FOV_CHANGED";
         // These are to help memory
         Cell[Cell["HAS_SURFACE"] = Fl$2(16)] = "HAS_SURFACE";
         Cell[Cell["HAS_LIQUID"] = Fl$2(17)] = "HAS_LIQUID";
@@ -222,6 +222,7 @@
         Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl$2(27)] = "IS_CIRCUIT_BREAKER";
         Cell[Cell["IS_POWERED"] = Fl$2(28)] = "IS_POWERED";
         Cell[Cell["COLORS_DANCE"] = Fl$2(30)] = "COLORS_DANCE";
+        Cell[Cell["CHANGED"] = Cell.NEEDS_REDRAW | Cell.LIGHT_CHANGED | Cell.FOV_CHANGED] = "CHANGED";
         Cell[Cell["IS_IN_MACHINE"] = Cell.IS_IN_ROOM_MACHINE | Cell.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
         Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.HAS_ITEM |
             Cell.HAS_DORMANT_MONSTER |
@@ -236,7 +237,7 @@
             Cell.IMPREGNABLE] = "PERMANENT_CELL_FLAGS";
         Cell[Cell["HAS_ANY_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_ACTOR] = "HAS_ANY_ACTOR";
         Cell[Cell["HAS_ANY_OBJECT"] = Cell.HAS_ITEM | Cell.HAS_ANY_ACTOR] = "HAS_ANY_OBJECT";
-        Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
+        Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW | Cell.LIGHT_CHANGED] = "CELL_DEFAULT";
     })(Cell$1 || (Cell$1 = {}));
 
     const Fl$1 = GWU__namespace.flag.fl;
@@ -533,7 +534,8 @@
                 return false;
             return true;
         });
-        return GWU__namespace.rng.random.item(matches) || null;
+        const rng = opts.rng || GWU__namespace.rng.random;
+        return rng.item(matches) || null;
     }
 
     class Item extends Entity {
@@ -675,9 +677,7 @@
                 throw new Error('Failed to find effect: ' + name);
         }
         const ctx = ctx_;
-        if (!ctx.force &&
-            effect.chance &&
-            !GWU__namespace.rng.random.chance(effect.chance, 10000))
+        if (!ctx.force && effect.chance && !map.rng.chance(effect.chance, 10000))
             return false;
         const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
         let didSomething = false;
@@ -724,9 +724,7 @@
                 throw new Error('Failed to find effect: ' + name);
         }
         const ctx = ctx_;
-        if (!ctx.force &&
-            effect.chance &&
-            !GWU__namespace.rng.random.chance(effect.chance, 10000))
+        if (!ctx.force && effect.chance && !map.rng.chance(effect.chance, 10000))
             return false;
         const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
         let didSomething = false;
@@ -1194,7 +1192,7 @@
                                 y2 = j + GWU__namespace.xy.DIRS[dir][1];
                                 if (spawnMap.hasXY(x2, y2) &&
                                     !spawnMap[x2][y2] &&
-                                    GWU__namespace.rng.random.chance(startProb) &&
+                                    map.rng.chance(startProb) &&
                                     cellIsOk(effect, map, x2, y2, false)) {
                                     spawnMap[x2][y2] = t;
                                     madeChange = true;
@@ -1225,7 +1223,7 @@
     //     if (startProb >= 100) {
     //         probDec = probDec || 100;
     //     }
-    //     while (GW.random.chance(startProb)) {
+    //     while (map.rng.chance(startProb)) {
     //         startProb -= probDec;
     //         ++radius;
     //     }
@@ -1235,7 +1233,7 @@
     //         if (!cellIsOk(this, i, j, ctx)) return 0;
     //         // const dist = Math.floor(GWU.utils.distanceBetween(x, y, i, j));
     //         // const prob = startProb - dist * probDec;
-    //         // if (!random.chance(prob)) return 0;
+    //         // if (!map.rng.chance(prob)) return 0;
     //         return 1;
     //     });
     //     // spawnMap[x][y] = 1;
@@ -1264,7 +1262,7 @@
     //         }
     //         x2 = x;
     //         y2 = y;
-    //         const dir = GWU.xy.DIRS[GW.random.number(4)];
+    //         const dir = GWU.xy.DIRS[map.rng.number(4)];
     //         while (madeChange) {
     //             madeChange = false;
     //             x2 = x2 + dir[0];
@@ -1273,7 +1271,7 @@
     //                 spawnMap.hasXY(x2, y2) &&
     //                 !spawnMap[x2][y2] &&
     //                 cellIsOk(this, x2, y2, ctx) &&
-    //                 GW.random.chance(startProb)
+    //                 map.rng.chance(startProb)
     //             ) {
     //                 spawnMap[x2][y2] = 1;
     //                 madeChange = true;
@@ -1328,7 +1326,7 @@
                     if (!(obj instanceof Actor))
                         return;
                     const monst = obj;
-                    const loc = GWU__namespace.rng.random.matchingLocNear(i, j, (x, y) => {
+                    const loc = map.rng.matchingLocNear(i, j, (x, y) => {
                         if (!map.hasXY(x, y))
                             return false;
                         if (blockingMap[x][y])
@@ -1358,7 +1356,7 @@
                 if (!(obj instanceof Item))
                     return;
                 const item = obj;
-                const loc = GWU__namespace.rng.random.matchingLocNear(i, j, (x, y) => {
+                const loc = map.rng.matchingLocNear(i, j, (x, y) => {
                     if (!map.hasXY(x, y))
                         return false;
                     if (blockingMap[x][y])
@@ -1812,12 +1810,14 @@
 
     class MapLayer {
         constructor(map, name = 'layer') {
+            this.changed = false;
             this.map = map;
             this.depth = -1;
             this.properties = {};
             this.name = name;
         }
         copy(_other) { }
+        clear() { }
         setTile(_x, _y, _tile) {
             return false;
         }
@@ -1879,6 +1879,7 @@
                     this.setTile(x, y, get(tile.groundTile));
                 }
             }
+            // if nothing changed... return false
             if (!cell.setTile(tile))
                 return false;
             if (opts.machine) {
@@ -2044,8 +2045,10 @@
     class GasLayer extends TileLayer {
         constructor(map, name = 'gas') {
             super(map, name);
-            this.needsUpdate = false;
             this.volume = GWU__namespace.grid.alloc(map.width, map.height, 0);
+        }
+        clear() {
+            this.volume.fill(0);
         }
         setTile(x, y, tile, opts = {}) {
             if (!opts.volume)
@@ -2059,7 +2062,7 @@
                 return false;
             }
             this.volume[x][y] = opts.volume;
-            this.needsUpdate = true;
+            this.changed = true;
             return true;
         }
         clearTile(x, y) {
@@ -2072,11 +2075,12 @@
         }
         copy(other) {
             this.volume.copy(other.volume);
+            this.changed = other.changed;
         }
         async tick(_dt) {
-            if (!this.needsUpdate)
+            if (!this.changed)
                 return false;
-            this.needsUpdate = false;
+            this.changed = false;
             const startingVolume = this.volume;
             this.volume = GWU__namespace.grid.alloc(this.map.width, this.map.height);
             // dissipate the gas...
@@ -2096,7 +2100,7 @@
                     v = Math.max(0, v - d);
                 }
                 if (v) {
-                    this.needsUpdate = true;
+                    this.changed = true;
                 }
                 else {
                     this.clearTile(x, y);
@@ -2225,7 +2229,7 @@
                 }
             });
             if (alwaysIgnite ||
-                (ignitionChance && GWU__namespace.rng.random.chance(ignitionChance, 10000))) {
+                (ignitionChance && this.map.rng.chance(ignitionChance, 10000))) {
                 // If it ignites...
                 fireIgnited = true;
                 // Count explosive neighbors.
@@ -2339,7 +2343,7 @@
         constructor(groundTile) {
             this.chokeCount = 0;
             this.machineId = 0;
-            this.keyId = 0;
+            // keyId = 0;
             // gasVolume: number = 0;
             // liquidVolume: number = 0;
             this._actor = null;
@@ -2355,10 +2359,13 @@
         copy(other) {
             Object.assign(this.flags, other.flags);
             this.chokeCount = other.chokeCount;
-            this.tiles = other.tiles.slice();
+            this.tiles.length = other.tiles.length;
+            for (let i = 0; i < this.tiles.length; ++i) {
+                this.tiles[i] = other.tiles[i];
+            }
             this._actor = other._actor;
             this._item = other._item;
-            this.keyId = other.keyId;
+            // this.keyId = other.keyId;
             this.machineId = other.machineId;
         }
         hasCellFlag(flag) {
@@ -2426,6 +2433,9 @@
             else {
                 this.flags.cell &= ~Cell$1.NEEDS_REDRAW;
             }
+        }
+        get changed() {
+            return !!(this.flags.cell & Cell$1.CHANGED);
         }
         depthPriority(depth) {
             const tile = this.tiles[depth];
@@ -2509,21 +2519,26 @@
         isStairs() {
             return this.hasTileFlag(Tile$1.T_HAS_STAIRS);
         }
-        // @returns - whether or not the change results in a change to the cell lighting.
+        // @returns - whether or not the change results in a change to the cell tiles.
+        //          - If there is a change to cell lighting, the cell will have the
+        //          - LIGHT_CHANGED flag set.
         setTile(tile) {
             if (!(tile instanceof Tile)) {
                 tile = get(tile);
                 if (!tile)
                     return false;
             }
-            // const current = this.tiles[tile.depth] || TILE.tiles.NULL;
-            // if (current !== tile) {
-            //     this.gasVolume = 0;
-            //     this.liquidVolume = 0;
-            // }
-            // Check priority, etc...
+            const current = this.tiles[tile.depth] || tiles.NULL;
+            if (current === tile)
+                return false;
             this.tiles[tile.depth] = tile;
             this.needsRedraw = true;
+            if (current.light !== tile.light) {
+                this.setCellFlag(Cell$1.LIGHT_CHANGED);
+            }
+            if (current.blocksVision() !== tile.blocksVision()) {
+                this.setCellFlag(Cell$1.FOV_CHANGED);
+            }
             // if (volume) {
             //     if (tile.depth === Depth.GAS) {
             //         this.gasVolume = volume;
@@ -2536,9 +2551,10 @@
         }
         clear() {
             this.tiles = [tiles.NULL];
-            this.needsRedraw = true;
             this.flags.cell = 0;
+            this.needsRedraw = true;
             this.chokeCount = 0;
+            this.machineId = 0;
             this._actor = null;
             this._item = null;
         }
@@ -2582,7 +2598,7 @@
                 const tile = (ctx.tile = this.depthTile(ctx.depth));
                 if (tile && tile.effects) {
                     const ev = tile.effects[event];
-                    didSomething = await this._fire(ev, map, x, y, ctx);
+                    didSomething = await this._activate(ev, map, x, y, ctx);
                 }
             }
             else {
@@ -2592,7 +2608,7 @@
                         continue;
                     const ev = ctx.tile.effects[event];
                     // console.log(' - ', ev);
-                    if (await this._fire(ev, map, x, y, ctx)) {
+                    if (await this._activate(ev, map, x, y, ctx)) {
                         didSomething = true;
                         break;
                     }
@@ -2601,14 +2617,14 @@
             }
             return didSomething;
         }
-        activateSync(event, map, x, y, ctx = {}) {
+        build(event, map, x, y, ctx = {}) {
             ctx.cell = this;
             let didSomething = false;
             if (ctx.depth !== undefined) {
                 const tile = (ctx.tile = this.depthTile(ctx.depth));
                 if (tile && tile.effects) {
                     const ev = tile.effects[event];
-                    didSomething = this._fireSync(ev, map, x, y, ctx);
+                    didSomething = this._build(ev, map, x, y, ctx);
                 }
             }
             else {
@@ -2618,7 +2634,7 @@
                         continue;
                     const ev = ctx.tile.effects[event];
                     // console.log(' - ', ev);
-                    if (this._fireSync(ev, map, x, y, ctx)) {
+                    if (this._build(ev, map, x, y, ctx)) {
                         didSomething = true;
                         break;
                     }
@@ -2627,7 +2643,7 @@
             }
             return didSomething;
         }
-        async _fire(effect, map, x, y, ctx) {
+        async _activate(effect, map, x, y, ctx) {
             if (typeof effect === 'string') {
                 effect = effects[effect];
             }
@@ -2639,7 +2655,7 @@
             }
             return didSomething;
         }
-        _fireSync(effect, map, x, y, ctx) {
+        _build(effect, map, x, y, ctx) {
             if (typeof effect === 'string') {
                 effect = effects[effect];
             }
@@ -2784,6 +2800,9 @@
         putSnapshot(src) {
             this.snapshot.copy(src);
         }
+        get needsRedraw() {
+            return this.hasCellFlag(Cell$1.NEEDS_REDRAW);
+        }
         hasCellFlag(flag) {
             return !!(this.flags.cell & flag);
         }
@@ -2875,17 +2894,29 @@
 
     class Map {
         constructor(width, height, opts = {}) {
-            this.seed = 0;
+            this._seed = 0;
+            this.rng = GWU__namespace.rng.random;
             this.width = width;
             this.height = height;
             this.flags = { map: 0 };
             this.layers = [];
             this.cells = GWU__namespace.grid.make(width, height, () => new Cell());
             this.memory = GWU__namespace.grid.make(width, height, () => new CellMemory());
+            if (opts.seed) {
+                this._seed = opts.seed;
+                this.rng = GWU__namespace.rng.make(opts.seed);
+            }
             this.light = new GWU__namespace.light.LightSystem(this, opts);
             this.fov = new GWU__namespace.fov.FovSystem(this, opts);
             this.properties = {};
             this.initLayers();
+        }
+        get seed() {
+            return this._seed;
+        }
+        set seed(v) {
+            this._seed = v;
+            this.rng = GWU__namespace.rng.make(v);
         }
         cellInfo(x, y, useMemory = false) {
             if (useMemory)
@@ -2944,8 +2975,15 @@
             const mixer = new GWU__namespace.sprite.Mixer();
             for (let x = 0; x < buffer.width; ++x) {
                 for (let y = 0; y < buffer.height; ++y) {
+                    // const cell = this.cell(x, y);
+                    // if (
+                    //     cell.needsRedraw ||
+                    //     this.light.lightChanged(x, y) ||
+                    //     this.fov.fovChanged(x, y)
+                    // ) {
                     this.getAppearanceAt(x, y, mixer);
                     buffer.drawSprite(x, y, mixer);
+                    // }
                 }
             }
         }
@@ -3066,6 +3104,11 @@
         clearCellFlag(x, y, flag) {
             this.cell(x, y).clearCellFlag(flag);
         }
+        clear() {
+            this.light.glowLightChanged = true;
+            this.fov.needsUpdate = true;
+            this.layers.forEach((l) => l.clear());
+        }
         // Skips all the logic checks and just forces a clean cell with the given tile
         fill(tile, boundary) {
             tile = get(tile);
@@ -3121,7 +3164,10 @@
                 l.copy(src.layers[depth]);
             });
             this.flags.map = src.flags.map;
-            this.light.setAmbient(src.light.getAmbient());
+            this.fov.needsUpdate = true;
+            this.light.copy(src.light);
+            this.rng = src.rng;
+            Object.assign(this.properties, src.properties);
         }
         clone() {
             // @ts-ignore
@@ -3135,7 +3181,7 @@
         }
         fireSync(event, x, y, ctx = {}) {
             const cell = this.cell(x, y);
-            return cell.activateSync(event, this, x, y, ctx);
+            return cell.build(event, this, x, y, ctx);
         }
         async fireAll(event, ctx = {}) {
             let didSomething = false;
@@ -3169,7 +3215,7 @@
                         promoteChance = effect.chance || 100 * 100; // 100%
                     }
                     if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                        GWU__namespace.rng.random.chance(promoteChance, 10000)) {
+                        this.rng.chance(promoteChance, 10000)) {
                         willFire[x][y] |= GWU__namespace.flag.fl(tile.depth);
                         // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                     }
@@ -3227,7 +3273,7 @@
                         promoteChance = effect.chance || 100 * 100; // 100%
                     }
                     if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                        GWU__namespace.rng.random.chance(promoteChance, 10000)) {
+                        this.rng.chance(promoteChance, 10000)) {
                         willFire[x][y] |= GWU__namespace.flag.fl(tile.depth);
                         // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                     }
@@ -3282,8 +3328,7 @@
                         continue;
                     if (cell.hasEffect('machine')) {
                         didSomething =
-                            cell.activateSync('machine', this, x, y, ctx) ||
-                                didSomething;
+                            cell.build('machine', this, x, y, ctx) || didSomething;
                     }
                 }
             }
@@ -3329,6 +3374,7 @@
         eachGlowLight(cb) {
             this.cells.forEach((cell, x, y) => {
                 cell.eachGlowLight((light) => cb(x, y, light));
+                cell.clearCellFlag(Cell$1.LIGHT_CHANGED);
             });
         }
         eachDynamicLight(_cb) { }
@@ -3583,18 +3629,36 @@
     // Assumes it is called with respect to a passable (startX, startY), and that the same is not already included in results.
     // Returns 10000 if the area included an area machine.
     function floodFillCount(map, results, passMap, startX, startY) {
-        let count = passMap[startX][startY] == 2 ? 5000 : 1;
-        if (map.cell(startX, startY).flags.cell & Cell$1.IS_IN_AREA_MACHINE) {
-            count = 10000;
+        function getCount(x, y) {
+            let count = passMap[x][y] == 2 ? 5000 : 1;
+            if (map.cell(x, y).flags.cell & Cell$1.IS_IN_AREA_MACHINE) {
+                count = 10000;
+            }
+            return count;
         }
-        results[startX][startY] = 1;
-        for (let dir = 0; dir < 4; dir++) {
-            const newX = startX + GWU__namespace.xy.DIRS[dir][0];
-            const newY = startY + GWU__namespace.xy.DIRS[dir][1];
-            if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                passMap[newX][newY] &&
-                !results[newX][newY]) {
-                count += floodFillCount(map, results, passMap, newX, newY);
+        let count = 0;
+        const todo = [[startX, startY]];
+        const free = [];
+        while (todo.length) {
+            const item = todo.pop();
+            free.push(item);
+            const x = item[0];
+            const y = item[1];
+            if (results[x][y])
+                continue;
+            results[x][y] = 1;
+            count += getCount(x, y);
+            for (let dir = 0; dir < 4; dir++) {
+                const newX = x + GWU__namespace.xy.DIRS[dir][0];
+                const newY = y + GWU__namespace.xy.DIRS[dir][1];
+                if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
+                    passMap[newX][newY] &&
+                    !results[newX][newY]) {
+                    const item = free.pop() || [-1, -1];
+                    item[0] = newX;
+                    item[1] = newY;
+                    todo.push(item);
+                }
             }
         }
         return Math.min(count, 10000);
@@ -3604,7 +3668,7 @@
     // TODO = Move loopiness to Map
     function updateLoopiness(map) {
         map.eachCell(resetLoopiness);
-        map.eachCell(checkLoopiness);
+        checkLoopiness(map);
         cleanLoopiness(map);
     }
     function resetLoopiness(cell, _x, _y, _map) {
@@ -3618,75 +3682,87 @@
             // passMap[i][j] = true;
         }
     }
-    function checkLoopiness(cell, x, y, map) {
+    function checkLoopiness(map) {
         let inString;
         let newX, newY, dir, sdir;
         let numStrings, maxStringLength, currentStringLength;
-        if (!cell || !(cell.flags.cell & Cell$1.IS_IN_LOOP)) {
-            return false;
-        }
-        // find an unloopy neighbor to start on
-        for (sdir = 0; sdir < 8; sdir++) {
-            newX = x + GWU__namespace.xy.CLOCK_DIRS[sdir][0];
-            newY = y + GWU__namespace.xy.CLOCK_DIRS[sdir][1];
-            if (!map.hasXY(newX, newY))
-                continue;
-            const cell = map.get(newX, newY);
-            if (!cell || !(cell.flags.cell & Cell$1.IS_IN_LOOP)) {
-                break;
-            }
-        }
-        if (sdir == 8) {
-            // no unloopy neighbors
-            return false; // leave cell loopy
-        }
-        // starting on this unloopy neighbor,
-        // work clockwise and count up:
-        // (a) the number of strings of loopy neighbors, and
-        // (b) the length of the longest such string.
-        numStrings = maxStringLength = currentStringLength = 0;
-        inString = false;
-        for (dir = sdir; dir < sdir + 8; dir++) {
-            newX = x + GWU__namespace.xy.CLOCK_DIRS[dir % 8][0];
-            newY = y + GWU__namespace.xy.CLOCK_DIRS[dir % 8][1];
-            if (!map.hasXY(newX, newY))
-                continue;
-            const newCell = map.get(newX, newY);
-            if (newCell && newCell.flags.cell & Cell$1.IS_IN_LOOP) {
-                currentStringLength++;
-                if (!inString) {
-                    if (numStrings > 0) {
-                        return false; // more than one string here; leave loopy
-                    }
-                    numStrings++;
-                    inString = true;
+        const todo = GWU__namespace.grid.alloc(map.width, map.height, 1);
+        let tryAgain = true;
+        while (tryAgain) {
+            tryAgain = false;
+            todo.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                const cell = map.cell(x, y);
+                todo[x][y] = 0;
+                if (!cell.hasCellFlag(Cell$1.IS_IN_LOOP)) {
+                    return;
                 }
-            }
-            else if (inString) {
-                if (currentStringLength > maxStringLength) {
+                // find an unloopy neighbor to start on
+                for (sdir = 0; sdir < 8; sdir++) {
+                    newX = x + GWU__namespace.xy.CLOCK_DIRS[sdir][0];
+                    newY = y + GWU__namespace.xy.CLOCK_DIRS[sdir][1];
+                    if (!map.hasXY(newX, newY))
+                        continue;
+                    const cell = map.cell(newX, newY);
+                    if (!cell.hasCellFlag(Cell$1.IS_IN_LOOP)) {
+                        break;
+                    }
+                }
+                if (sdir == 8) {
+                    // no unloopy neighbors
+                    return; // leave cell loopy
+                }
+                // starting on this unloopy neighbor,
+                // work clockwise and count up:
+                // (a) the number of strings of loopy neighbors, and
+                // (b) the length of the longest such string.
+                numStrings = maxStringLength = currentStringLength = 0;
+                inString = false;
+                for (dir = sdir; dir < sdir + 8; dir++) {
+                    newX = x + GWU__namespace.xy.CLOCK_DIRS[dir % 8][0];
+                    newY = y + GWU__namespace.xy.CLOCK_DIRS[dir % 8][1];
+                    if (!map.hasXY(newX, newY))
+                        continue;
+                    const newCell = map.cell(newX, newY);
+                    if (newCell.hasCellFlag(Cell$1.IS_IN_LOOP)) {
+                        currentStringLength++;
+                        if (!inString) {
+                            numStrings++;
+                            inString = true;
+                            if (numStrings > 1) {
+                                break; // more than one string here; leave loopy
+                            }
+                        }
+                    }
+                    else if (inString) {
+                        if (currentStringLength > maxStringLength) {
+                            maxStringLength = currentStringLength;
+                        }
+                        currentStringLength = 0;
+                        inString = false;
+                    }
+                }
+                if (inString && currentStringLength > maxStringLength) {
                     maxStringLength = currentStringLength;
                 }
-                currentStringLength = 0;
-                inString = false;
-            }
-        }
-        if (inString && currentStringLength > maxStringLength) {
-            maxStringLength = currentStringLength;
-        }
-        if (numStrings == 1 && maxStringLength <= 4) {
-            cell.flags.cell &= ~Cell$1.IS_IN_LOOP;
-            for (dir = 0; dir < 8; dir++) {
-                const newX = x + GWU__namespace.xy.CLOCK_DIRS[dir][0];
-                const newY = y + GWU__namespace.xy.CLOCK_DIRS[dir][1];
-                if (map.hasXY(newX, newY)) {
-                    const newCell = map.cell(newX, newY);
-                    checkLoopiness(newCell, newX, newY, map);
+                if (numStrings == 1 && maxStringLength <= 4) {
+                    cell.clearCellFlag(Cell$1.IS_IN_LOOP);
+                    // console.log(x, y, numStrings, maxStringLength);
+                    // map.dump((c) =>
+                    //     c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? '*' : ' '
+                    // );
+                    for (dir = 0; dir < 8; dir++) {
+                        newX = x + GWU__namespace.xy.CLOCK_DIRS[dir][0];
+                        newY = y + GWU__namespace.xy.CLOCK_DIRS[dir][1];
+                        if (map.hasXY(newX, newY) &&
+                            map.cell(newX, newY).hasCellFlag(Cell$1.IS_IN_LOOP)) {
+                            todo[newX][newY] = 1;
+                            tryAgain = true;
+                        }
+                    }
                 }
-            }
-            return true;
-        }
-        else {
-            return false;
+            });
         }
     }
     function fillInnerLoopGrid(map, grid) {
@@ -3741,6 +3817,107 @@
     ////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////
 
+    class Snapshot {
+        constructor(map) {
+            this.map = new Map(map.width, map.height);
+            this.version = 0;
+        }
+    }
+    class SnapshotManager {
+        constructor(map) {
+            this.version = 0;
+            this.layerVersion = [];
+            this.lightVersion = 0;
+            this.fovVersion = 0;
+            this.free = [];
+            this.map = map;
+            this.cellVersion = GWU__namespace.grid.make(map.width, map.height);
+            this.layerVersion = map.layers.map(() => 1);
+        }
+        takeNew() {
+            ++this.version;
+            const snap = this.free.length
+                ? this.free.pop()
+                : new Snapshot(this.map);
+            snap.map.flags.map = this.map.flags.map;
+            this.cellVersion.update((v, x, y) => {
+                const srcCell = this.map.cell(x, y);
+                if (srcCell.changed) {
+                    v = this.version;
+                }
+                if (v !== snap.version) {
+                    const destCell = snap.map.cell(x, y);
+                    destCell.copy(srcCell);
+                }
+                return v;
+            });
+            // systems
+            if (this.map.light.changed) {
+                this.lightVersion = this.version;
+                this.map.light.changed = false;
+            }
+            if (snap.version !== this.lightVersion) {
+                snap.map.light.copy(this.map.light);
+            }
+            if (this.map.fov.changed) {
+                this.fovVersion = this.version;
+                this.map.fov.changed = false;
+            }
+            if (snap.version !== this.fovVersion) {
+                snap.map.fov.copy(this.map.fov);
+            }
+            // layers
+            this.map.layers.forEach((layer, index) => {
+                const snapLayer = snap.map.layers[index];
+                if (layer.changed) {
+                    this.layerVersion[index] = this.version;
+                }
+                if (this.layerVersion[index] !== snap.version) {
+                    snapLayer.copy(layer);
+                }
+            });
+            snap.version = this.version;
+            return snap;
+        }
+        revertMapTo(snap) {
+            this.cellVersion.update((v, x, y) => {
+                if (v < snap.version)
+                    return v;
+                const destCell = this.map.cell(x, y);
+                if (v > snap.version || destCell.changed) {
+                    const srcCell = snap.map.cell(x, y);
+                    destCell.copy(srcCell);
+                    return snap.version;
+                }
+                return v;
+            });
+            // systems
+            if (snap.version < this.lightVersion || this.map.light.changed) {
+                this.map.light.copy(snap.map.light);
+                this.lightVersion = snap.version;
+            }
+            if (snap.version < this.fovVersion || this.map.fov.changed) {
+                this.map.fov.copy(snap.map.fov);
+                this.fovVersion = snap.version;
+            }
+            // layers
+            this.layerVersion.forEach((v, index) => {
+                if (v < snap.version)
+                    return;
+                const destLayer = this.map.layers[index];
+                if (v > snap.version || destLayer.changed) {
+                    const srcLayer = snap.map.layers[index];
+                    destLayer.copy(srcLayer);
+                    this.layerVersion[index] = snap.version;
+                }
+            });
+            this.version = snap.version;
+        }
+        release(snap) {
+            this.free.push(snap);
+        }
+    }
+
     var index = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Cell: Cell,
@@ -3755,7 +3932,40 @@
         checkLoopiness: checkLoopiness,
         fillInnerLoopGrid: fillInnerLoopGrid,
         cleanLoopiness: cleanLoopiness,
-        CellMemory: CellMemory
+        CellMemory: CellMemory,
+        Snapshot: Snapshot,
+        SnapshotManager: SnapshotManager
+    });
+
+    function getCellPathCost(map, x, y) {
+        const cell = map.cell(x, y);
+        if (cell.blocksMove())
+            return GWU__namespace.path.OBSTRUCTION;
+        if (cell.blocksPathing())
+            return GWU__namespace.path.FORBIDDEN;
+        if (cell.hasActor())
+            return 10;
+        return 1;
+    }
+    function fillCostMap(map, costMap) {
+        costMap.update((_v, x, y) => getCellPathCost(map, x, y));
+    }
+    function getPathBetween(map, x0, y0, x1, y1, options = {}) {
+        const distanceMap = GWU__namespace.grid.alloc(map.width, map.height);
+        const costMap = GWU__namespace.grid.alloc(map.width, map.height);
+        fillCostMap(map, costMap);
+        GWU__namespace.path.calculateDistances(distanceMap, x0, y0, costMap, options.eightWays, GWU__namespace.xy.straightDistanceBetween(x0, y0, x1, y1) + 1);
+        const path = GWU__namespace.path.getPath(distanceMap, x1, y1, (x, y) => map.cell(x, y).blocksMove(), options.eightWays);
+        GWU__namespace.grid.free(costMap);
+        GWU__namespace.grid.free(distanceMap);
+        return path;
+    }
+
+    var path = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        getCellPathCost: getCellPathCost,
+        fillCostMap: fillCostMap,
+        getPathBetween: getPathBetween
     });
 
     exports.actor = index$5;
@@ -3765,6 +3975,7 @@
     exports.item = index$4;
     exports.layer = index$1;
     exports.map = index;
+    exports.path = path;
     exports.tile = index$2;
 
     Object.defineProperty(exports, '__esModule', { value: true });

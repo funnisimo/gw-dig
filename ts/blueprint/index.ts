@@ -9,5 +9,6 @@ export {
     install,
     random,
     blueprints,
+    make,
 } from './blueprint';
 export * from './consoleLogger';

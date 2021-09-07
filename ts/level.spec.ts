@@ -1,4 +1,5 @@
 import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
 import * as Dig from './index';
 import { Level } from './level';
 
@@ -137,5 +138,38 @@ describe('Level', () => {
                 level._roomFitsAt(site, roomSite, room, -44, -29)
             ).toBeTruthy();
         });
+    });
+
+    test('multiple calls with map', () => {
+        Dig.room.install('ENTRANCE', new Dig.room.BrogueEntrance());
+        Dig.room.install(
+            'ROOM',
+            new Dig.room.Rectangular({ width: '4-10', height: '4-10' })
+        );
+
+        const map = GWM.map.make(80, 34, { visible: true });
+
+        const level = new Dig.Level({
+            seed: 12345,
+            rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+            doors: { chance: 0 },
+            loops: false,
+            lakes: false,
+        });
+        level.create(map);
+
+        let lines: string[] = [];
+        map.dump(undefined, (line: string) => {
+            lines.push(line);
+        });
+        map.clear();
+
+        level.create(map);
+        let lines2: string[] = [];
+        map.dump(undefined, (line: string) => {
+            lines2.push(line);
+        });
+
+        expect(lines).toEqual(lines2);
     });
 });

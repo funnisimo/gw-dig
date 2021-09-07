@@ -19,34 +19,33 @@ describe('Hall', () => {
         test('number', () => {
             expect(HALL.pickWidth({})).toEqual(1);
             expect(HALL.pickWidth(1)).toEqual(1);
-            expect(HALL.pickWidth({ width: 0 })).toEqual(1);
-            expect(HALL.pickWidth({ width: 1 })).toEqual(1);
-            expect(HALL.pickWidth({ width: 2 })).toEqual(2);
-            expect(HALL.pickWidth({ width: 4 })).toEqual(3);
+            expect(HALL.pickWidth(0)).toEqual(1);
+            expect(HALL.pickWidth(1)).toEqual(1);
+            expect(HALL.pickWidth(2)).toEqual(2);
+            expect(HALL.pickWidth(4)).toEqual(3);
         });
 
         test('array', () => {
-            expect(
-                UTILS.results(() => HALL.pickWidth({ width: [70, 30] }))
-            ).toEqual([1, 2]);
+            expect(UTILS.results(() => HALL.pickWidth([70, 30]))).toEqual([
+                1,
+                2,
+            ]);
 
-            expect(
-                UTILS.results(() => HALL.pickWidth({ width: [50, 30, 20] }))
-            ).toEqual([1, 2, 3]);
+            expect(UTILS.results(() => HALL.pickWidth([50, 30, 20]))).toEqual([
+                1,
+                2,
+                3,
+            ]);
         });
 
         test('object', () => {
             expect(
-                UTILS.results(() =>
-                    HALL.pickWidth({ width: { 0: 70, 2: 30, 4: 20 } })
-                )
+                UTILS.results(() => HALL.pickWidth({ 0: 70, 2: 30, 4: 20 }))
             ).toEqual([1, 2, 3]);
 
             expect(
                 UTILS.results(() =>
-                    HALL.pickWidth({
-                        width: { 0: 50, 1: 30, 2: 20, 5: 10 },
-                    })
+                    HALL.pickWidth({ 0: 50, 1: 30, 2: 20, 5: 10 })
                 )
             ).toEqual([1, 2, 3]);
         });

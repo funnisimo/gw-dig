@@ -48,6 +48,8 @@ export enum StepFlags {
     BF_REPEAT_UNTIL_NO_PROGRESS = Fl(23), // keep trying to build this feature set until no changes are made
     BF_IMPREGNABLE = Fl(24), // this feature's location will be immune to tunneling
 
+    BF_NO_BLOCK_ORIGIN = Fl(25), // Treat as blocking, but do not block the path to the origin
+
     // TODO - BF_ALLOW_IN_HALLWAY instead?
     BF_NOT_IN_HALLWAY = Fl(27), // the feature location must have a passableArcCount of <= 1
 
@@ -66,7 +68,7 @@ export class BuildStep {
     public horde: any | null = null;
     public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
-    public next: null;
+    // public next: null = null;
     public id = 'n/a';
 
     constructor(cfg: Partial<StepOptions> = {}) {
@@ -96,6 +98,11 @@ export class BuildStep {
                 'Cannot have count > 1 for step with BF_BUILD_AT_ORIGIN.'
             );
         }
+        if (this.buildAtOrigin && this.repeatUntilNoProgress) {
+            throw new Error(
+                'Cannot have BF_BUILD_AT_ORIGIN and BF_REPEAT_UNTIL_NO_PROGRESS together in a build step.'
+            );
+        }
     }
 
     get allowBoundary(): boolean {
@@ -123,7 +130,14 @@ export class BuildStep {
     }
 
     get treatAsBlocking(): boolean {
-        return !!(this.flags & StepFlags.BF_TREAT_AS_BLOCKING);
+        return !!(
+            this.flags &
+            (StepFlags.BF_TREAT_AS_BLOCKING | StepFlags.BF_NO_BLOCK_ORIGIN)
+        );
+    }
+
+    get noBlockOrigin(): boolean {
+        return !!(this.flags & StepFlags.BF_NO_BLOCK_ORIGIN);
     }
 
     get adoptItem(): boolean {
@@ -294,6 +308,21 @@ export function cellIsCandidate(
     ) {
         return false;
     }
+
+    // if (buildStep.noBlockOrigin) {
+    //     let ok = true;
+    //     GWU.xy.eachNeighbor(
+    //         x,
+    //         y,
+    //         (nx, ny) => {
+    //             if (nx === builder.originX && ny === builder.originY) {
+    //                 ok = false;
+    //             }
+    //         },
+    //         true
+    //     );
+    //     if (!ok) return false;
+    // }
 
     // No building along the perimeter of the level if it's prohibited.
     if (
@@ -501,7 +530,7 @@ export function makePersonalSpace(
 //         } else {
 //             // Pick our candidate location randomly, and also strike it from
 //             // the candidates map so that subsequent instances of this same feature can't choose it.
-//             [x, y] = GWU.rng.random.matchingLoc(
+//             [x, y] = site.rng.matchingLoc(
 //                 candidates.width,
 //                 candidates.height,
 //                 (x, y) => candidates[x][y] > 0

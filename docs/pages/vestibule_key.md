@@ -84,6 +84,8 @@ SHOW(canvas.node);
 // canvas.render();
 const buffer = canvas.buffer;
 
+let elapsed = 0;
+
 async function buildMap() {
     buffer.blackOut();
     buffer.drawText(0, 0, 'Building Level', 'yellow');
@@ -94,11 +96,7 @@ async function buildMap() {
     level.create(map);
     await builder.build('ROOM');
 
-    let elapsed = Date.now() - start;
-
-    map.drawInto(buffer);
-    buffer.drawText(0, 0, 'Elapsed: ' + Math.floor(elapsed), 'yellow');
-    buffer.render();
+    elapsed = Date.now() - start;
 }
 
 let carried = null;
@@ -127,8 +125,9 @@ LOOP.run(
             await map.tick();
         },
         draw: () => {
-            //            map.drawInto(canvas);
-            //            canvas.render();
+            map.drawInto(buffer);
+            buffer.drawText(0, 0, 'Elapsed: ' + Math.floor(elapsed), 'yellow');
+            buffer.render();
         },
     },
     200

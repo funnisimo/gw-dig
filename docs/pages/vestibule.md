@@ -2,67 +2,13 @@
 
 Vestibules are built at the origin site of a machine. They allow you to place interesting things at the entrance. For example, some welcoming carpet...
 
+First lets install some things that we will use over and over in these examples...
+
 ```js
-const map = GWM.map.make(80, 34, { visible: true });
+// TILES
 GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
-GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
-GWD.room.install(
-    'ROOM',
-    new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
-);
 
-const level = new GWD.Level({
-    seed: 12345,
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
-    doors: { chance: 0 },
-    loops: false,
-    lakes: false,
-});
-level.create(map);
-
-GWD.blueprint.install('VESTIBULE', {
-    flags: 'BP_VESTIBULE',
-    size: '5-10',
-    steps: [
-        { tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' },
-        { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
-    ],
-});
-
-const blue = GWD.blueprint.install('ROOM', {
-    flags: 'BP_ROOM',
-    size: '10-100',
-    steps: [{ flags: 'BF_BUILD_VESTIBULE' }],
-});
-
-const builder = new GWD.blueprint.Builder(map);
-
-const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
-SHOW(canvas.node);
-
-builder.build(blue).then(() => {
-    map.drawInto(canvas);
-    canvas.render();
-});
-```
-
-### Vestibule with lever
-
-You can also build tiles outside the vestibule's interior area with the 'BF_BUILD_ANYWHERE_ON_LEVEL' flag.
-
-```js
-const map = GWM.map.make(80, 34, { visible: true });
-
-const portcullis = GWM.tile.install('PORTCULLIS_CLOSED', {
-    extends: 'WALL',
-    priority: '+1',
-    fg: 0x800,
-    bg: GWM.tile.tiles.FLOOR.sprite.bg,
-    flags:
-        '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
-});
-
-const wallLever = GWM.tile.install('WALL_LEVER', {
+GWM.tile.install('WALL_LEVER', {
     extends: 'WALL',
     priority: '+10',
     fg: 0x800,
@@ -70,62 +16,7 @@ const wallLever = GWM.tile.install('WALL_LEVER', {
     flags: 'L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
 });
 
-GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
-GWD.room.install(
-    'ROOM',
-    new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
-);
-
-const level = new GWD.Level({
-    seed: 12345,
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
-    doors: { chance: 0 },
-    loops: false,
-    lakes: false,
-});
-level.create(map);
-
-GWM.map.analyze(map);
-
-GWD.blueprint.install('VESTIBULE', {
-    flags: 'BP_VESTIBULE',
-    size: 1,
-    steps: [
-        {
-            tile: 'PORTCULLIS_CLOSED',
-            flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
-        },
-        {
-            tile: 'WALL_LEVER',
-            flags:
-                'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL, BF_NOT_IN_HALLWAYS',
-        },
-    ],
-});
-
-const blue = GWD.blueprint.install('ROOM', {
-    flags: 'BP_ROOM',
-    size: '10-100',
-    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
-});
-
-const builder = new GWD.blueprint.Builder(map);
-
-const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
-SHOW(canvas.node);
-
-builder.build(blue).then(() => {
-    map.drawInto(canvas);
-    canvas.render();
-});
-```
-
-### Throwing Tutorial
-
-Brogue has a (now removed?) throwing tutorial that has a pressure plate in the middle of a hole. When you throw something on the pressure plate, it opens the door. Lets replicate that.
-
-```js
-const open = GWM.tile.install('PORTCULLIS_OPEN', {
+GWM.tile.install('PORTCULLIS_OPEN', {
     extends: 'FLOOR',
     priority: '+1',
     effects: {
@@ -137,7 +28,7 @@ const open = GWM.tile.install('PORTCULLIS_OPEN', {
     },
 });
 
-const closed = GWM.tile.install('PORTCULLIS_CLOSED', {
+GWM.tile.install('PORTCULLIS_CLOSED', {
     extends: 'WALL',
     priority: '+1',
     fg: 0x0f0,
@@ -153,7 +44,7 @@ const closed = GWM.tile.install('PORTCULLIS_CLOSED', {
     },
 });
 
-const plate = GWM.tile.install('PRESSURE_PLATE', {
+GWM.tile.install('PRESSURE_PLATE', {
     extends: 'FLOOR',
     priority: '+10',
     ch: '^',
@@ -168,7 +59,7 @@ const plate = GWM.tile.install('PRESSURE_PLATE', {
     },
 });
 
-const depressed = GWM.tile.install('PRESSURE_PLATE_DEPRESSED', {
+GWM.tile.install('PRESSURE_PLATE_DEPRESSED', {
     extends: 'FLOOR',
     priority: '+10',
     ch: 'v',
@@ -178,7 +69,7 @@ const depressed = GWM.tile.install('PRESSURE_PLATE_DEPRESSED', {
     },
 });
 
-const chasm = GWM.tile.install('CHASM', {
+GWM.tile.install('CHASM', {
     extends: 'FLOOR',
     priority: '+2',
     ch: ' ',
@@ -186,7 +77,7 @@ const chasm = GWM.tile.install('CHASM', {
     flags: 'T_AUTO_DESCENT',
 });
 
-const edge = GWM.tile.install('CHASM_EDGE', {
+GWM.tile.install('CHASM_EDGE', {
     extends: 'FLOOR',
     priority: '+1',
     ch: ':',
@@ -194,6 +85,7 @@ const edge = GWM.tile.install('CHASM_EDGE', {
     flavor: 'a chasm edge',
 });
 
+// EFFECTS
 GWM.effect.install('CHASM_EDGE', { tile: 'CHASM_EDGE,100' });
 GWM.effect.install('CHASM_MEDIUM', {
     tile: 'CHASM,150,50',
@@ -205,13 +97,139 @@ GWM.effect.install('HOLE_WITH_PLATE', {
     next: 'CHASM_MEDIUM',
 });
 
+// DIGGER ROOMS
 GWD.room.install('ENTRANCE', new GWD.room.BrogueEntrance());
 GWD.room.install(
     'ROOM',
     new GWD.room.Rectangular({ width: '4-10', height: '4-10' })
 );
+```
 
-GWD.blueprint.install('VESTIBULE', {
+# Carpet outside room
+
+Now lets build a room with a door and some carpet outside the room...
+
+```js
+const map = GWM.map.make(80, 34, {
+    visible: true,
+    // seed: 12345
+});
+
+const level = new GWD.Level({
+    // seed: 12345,
+    rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+});
+level.create(map);
+
+const vestibule = GWD.blueprint.make({
+    id: 'VESTIBULE',
+    flags: 'BP_VESTIBULE',
+    size: '5-10',
+    steps: [
+        { tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' },
+        { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
+    ],
+});
+
+const room = GWD.blueprint.make({
+    id: 'ROOM',
+    flags: 'BP_ROOM',
+    size: '10-100',
+    steps: [{ flags: 'BF_BUILD_VESTIBULE' }],
+});
+
+const builder = new GWD.blueprint.Builder(map, {
+    // seed: 12345,
+    blueprints: [vestibule, room],
+});
+
+const canvas = GWU.canvas.make({
+    font: 'monospace',
+    width: 80,
+    height: 34,
+    loop: LOOP,
+});
+SHOW(canvas.node);
+
+async function buildMap() {
+    level.create(map);
+    await builder.build(room);
+}
+
+LOOP.run({
+    start: buildMap,
+    Enter: buildMap,
+    draw() {
+        map.drawInto(canvas);
+        canvas.render();
+    },
+});
+```
+
+### Vestibule with lever
+
+You can also build tiles outside the vestibule's interior area with the 'BF_BUILD_ANYWHERE_ON_LEVEL' flag.
+
+```js
+const map = GWM.map.make(80, 34, { visible: true });
+
+const level = new GWD.Level({
+    seed: 12345,
+    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+});
+level.create(map);
+
+const vestibule = GWD.blueprint.make({
+    id: 'VESTIBULE',
+    flags: 'BP_VESTIBULE',
+    size: 1,
+    steps: [
+        {
+            tile: 'PORTCULLIS_CLOSED',
+            flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+        },
+        {
+            tile: 'WALL_LEVER',
+            flags:
+                'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL, BF_NOT_IN_HALLWAYS',
+        },
+    ],
+});
+
+const room = GWD.blueprint.make({
+    id: 'ROOM',
+    flags: 'BP_ROOM',
+    size: '10-100',
+    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+});
+
+const builder = new GWD.blueprint.Builder(map, {
+    seed: 12345,
+    blueprints: { vestibule, room },
+});
+
+const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
+SHOW(canvas.node);
+
+builder.build(room).then(() => {
+    map.drawInto(canvas);
+    canvas.render();
+});
+```
+
+### Throwing Tutorial
+
+Brogue has a (now removed?) throwing tutorial that has a pressure plate in the middle of a hole. When you throw something on the pressure plate, it opens the door. Lets replicate that.
+
+```js
+const vestibule = GWD.blueprint.make({
+    id: 'VESTIBULE',
     flags: 'BP_VESTIBULE',
     size: '40-200',
     steps: [
@@ -228,7 +246,8 @@ GWD.blueprint.install('VESTIBULE', {
     ],
 });
 
-const blue = GWD.blueprint.install('ROOM', {
+const room = GWD.blueprint.make({
+    id: 'ROOM',
     flags: 'BP_ROOM',
     size: '10-100',
     steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
@@ -245,7 +264,10 @@ const level = new GWD.Level({
 });
 level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, { log: true });
+const builder = new GWD.blueprint.Builder(map, {
+    seed: 12345,
+    blueprints: { room, vestibule },
+});
 
 const canvas = GWU.canvas.make({
     font: 'monospace',
@@ -258,7 +280,7 @@ SHOW(canvas.node);
 LOOP.run(
     {
         start: async () => {
-            await builder.build(blue);
+            await builder.build(room);
         },
         click: async (e) => {
             await map.fire('enter', e.x, e.y);

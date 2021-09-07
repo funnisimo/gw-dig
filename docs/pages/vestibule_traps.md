@@ -27,7 +27,8 @@ const level = new GWD.Level({
     lakes: false,
 });
 
-GWD.blueprint.install('VESTIBULE', {
+const vestibule = GWD.blueprint.make({
+    id: 'VESTIBULE',
     flags: 'BP_VESTIBULE, BP_NOT_IN_HALLWAY',
     size: '10-40',
     steps: [
@@ -42,7 +43,8 @@ GWD.blueprint.install('VESTIBULE', {
     ],
 });
 
-const blue = GWD.blueprint.install('ROOM', {
+const room = GWD.blueprint.make({
+    id: 'ROOM',
     flags: 'BP_ROOM',
     size: '10-100',
     steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
@@ -57,9 +59,12 @@ const canvas = GWU.canvas.make({
 SHOW(canvas.node);
 
 level.create(map);
-const builder = new GWD.blueprint.Builder(map);
+const builder = new GWD.blueprint.Builder(map, {
+    seed: 12345,
+    blueprints: [vestibule, room],
+});
 
-builder.build(blue).then(() => {
+builder.build(room).then(() => {
     map.drawInto(canvas);
     canvas.render();
 });

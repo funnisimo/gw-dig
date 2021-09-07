@@ -69,7 +69,7 @@ export class LoopDigger {
         }
 
         let count = 0;
-        const seq = GWU.rng.random.sequence(site.width * site.height);
+        const seq = site.rng.sequence(site.width * site.height);
 
         for (i = 0; i < seq.length; i++) {
             x = Math.floor(seq[i] / site.height);
@@ -161,7 +161,7 @@ export class LoopDigger {
                                 endY += dir[1];
                             }
                             // TODO - Door is optional
-                            const tile = GWU.rng.random.chance(
+                            const tile = site.rng.chance(
                                 this.options.doorChance
                             )
                                 ? SITE.DOOR

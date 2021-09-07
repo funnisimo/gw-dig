@@ -2,6 +2,11 @@ import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 import * as SITE from '../site';
 
+export interface DataOptions {
+    depth: number;
+    seed: number;
+}
+
 export class BuildData {
     public site: SITE.MapSite;
     public interior: GWU.grid.NumGrid;
@@ -15,15 +20,17 @@ export class BuildData {
     public distance75: number = -1;
     public machineNumber = 0;
     public depth = 0;
+    public seed = 0;
 
-    constructor(public map: GWM.map.Map, depth: number) {
+    constructor(public map: GWM.map.Map, options: Partial<DataOptions> = {}) {
         this.site = new SITE.MapSite(map);
         this.interior = GWU.grid.alloc(map.width, map.height);
         this.occupied = GWU.grid.alloc(map.width, map.height);
         this.viewMap = GWU.grid.alloc(map.width, map.height);
         this.distanceMap = GWU.grid.alloc(map.width, map.height);
         this.candidates = GWU.grid.alloc(map.width, map.height);
-        this.depth = depth;
+        this.depth = options.depth || 1;
+        this.seed = options.seed || 0;
     }
 
     free() {
@@ -45,6 +52,10 @@ export class BuildData {
         this.originY = originY;
         this.distance25 = 0;
         this.distance75 = 0;
+
+        if (this.seed) {
+            this.site.setSeed(this.seed);
+        }
     }
 
     calcDistances(maxSize: number) {

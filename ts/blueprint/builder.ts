@@ -5,32 +5,30 @@ import * as SITE from '../site';
 import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 
-import { BuildData } from './data';
+import { BuildData, DataOptions } from './data';
 import { NullLogger, BuildLogger } from './logger';
 import { ConsoleLogger } from './consoleLogger';
+import { DisruptOptions } from '../site';
 
 export type BlueType = BLUE.Blueprint | string;
 
-export interface BuilderOptions {
-    blueprints?: BlueType[] | { [key: string]: BlueType };
-    depth?: number;
-    log?: BuildLogger | boolean;
+export interface BuilderOptions extends DataOptions {
+    blueprints: BlueType[] | { [key: string]: BlueType };
+    log: BuildLogger | boolean;
 }
 
 export class Builder {
     data: BuildData;
-    blueprints: BLUE.Blueprint[];
+    blueprints: BLUE.Blueprint[] | null = null;
     log: BuildLogger;
 
-    constructor(map: GWM.map.Map, options: BuilderOptions = {}) {
-        this.data = new BuildData(map, options.depth || 1);
+    constructor(map: GWM.map.Map, options: Partial<BuilderOptions> = {}) {
+        this.data = new BuildData(map, options);
         if (options.blueprints) {
             if (!Array.isArray(options.blueprints)) {
                 options.blueprints = Object.values(options.blueprints);
             }
             this.blueprints = options.blueprints.map((v) => BLUE.get(v));
-        } else {
-            this.blueprints = Object.values(BLUE.blueprints);
         }
         if (options.log === true) {
             this.log = new ConsoleLogger();
@@ -40,13 +38,14 @@ export class Builder {
     }
 
     _pickRandom(requiredFlags: number): BLUE.Blueprint | null {
-        const weights = this.blueprints.map((b) => {
+        const blueprints = this.blueprints || Object.values(BLUE.blueprints);
+        const weights = blueprints.map((b) => {
             if (!b.qualifies(requiredFlags)) return 0;
             return b.frequency(this.data.depth);
         });
 
-        const index = GWU.rng.random.weighted(weights) as number;
-        return this.blueprints[index] || null;
+        const index = this.data.map.rng.weighted(weights) as number;
+        return blueprints[index] || null;
     }
 
     async buildRandom(
@@ -166,7 +165,7 @@ export class Builder {
         }
 
         // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
-        const levelBackup = data.site.backup();
+        const snapshot = data.site.snapshot();
         data.machineNumber = data.site.nextMachineId(); // Reserve this machine number, starting with 1.
 
         // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
@@ -179,7 +178,7 @@ export class Builder {
         // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
         // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
 
-        const components = blueprint.pickComponents();
+        const components = blueprint.pickComponents(data.site.rng);
 
         // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
 
@@ -191,12 +190,12 @@ export class Builder {
             if (!(await this._buildStep(blueprint, component, adoptedItem))) {
                 // failure! abort!
                 // Restore the map to how it was before we touched it.
-                data.site.restore(levelBackup);
                 await this.log.onBlueprintFail(
                     data,
                     blueprint,
                     `Failed to build step ${index + 1}.`
                 );
+                snapshot.restore();
                 // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
                 return false;
             }
@@ -216,6 +215,8 @@ export class Builder {
         // }
 
         await this.log.onBlueprintSuccess(data, blueprint);
+
+        snapshot.cancel();
 
         // console.log('Built a machine from blueprint:', originX, originY);
         return true;
@@ -323,105 +324,115 @@ export class Builder {
 
         // If we are just building a vestibule, then we can exit here...
         if (!buildStep.buildsInstances) {
+            await this.log.onStepSuccess(data, blueprint, buildStep);
             return true;
         }
 
         const candidates = GWU.grid.alloc(site.width, site.height);
 
-        if (buildStep.buildAtOrigin) {
-            candidates[data.originX][data.originY] = 1;
-            qualifyingTileCount = 1;
-            wantCount = 1;
-        } else {
-            qualifyingTileCount = buildStep.markCandidates(
-                data,
-                blueprint,
-                candidates,
-                distanceBound
-            );
+        let didSomething = false;
 
-            if (buildStep.generateEverywhere) {
-                wantCount = qualifyingTileCount;
+        do {
+            didSomething = false;
+
+            if (buildStep.buildAtOrigin) {
+                candidates[data.originX][data.originY] = 1;
+                qualifyingTileCount = 1;
+                wantCount = 1;
             } else {
-                wantCount = buildStep.count.value();
-            }
+                qualifyingTileCount = buildStep.markCandidates(
+                    data,
+                    blueprint,
+                    candidates,
+                    distanceBound
+                );
 
-            await this.log.onStepCandidates(
-                data,
-                blueprint,
-                buildStep,
-                candidates,
-                wantCount
-            );
+                if (
+                    buildStep.generateEverywhere ||
+                    buildStep.repeatUntilNoProgress
+                ) {
+                    wantCount = qualifyingTileCount;
+                } else {
+                    wantCount = buildStep.count.value(site.rng);
+                }
 
-            if (
-                !qualifyingTileCount ||
-                qualifyingTileCount < buildStep.count.lo
-            ) {
-                await this.log.onStepFail(
+                await this.log.onStepCandidates(
                     data,
                     blueprint,
                     buildStep,
-                    `Blueprint ${blueprint.id}, step ${blueprint.steps.indexOf(
-                        buildStep
-                    )} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
-                );
-                return false;
-            }
-        }
-
-        let x = 0,
-            y = 0;
-
-        let success = true;
-
-        while (
-            qualifyingTileCount > 0 &&
-            (buildStep.generateEverywhere ||
-                builtCount < wantCount ||
-                buildStep.repeatUntilNoProgress)
-        ) {
-            success = true;
-            // Find a location for the feature.
-            if (buildStep.buildAtOrigin) {
-                // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-                x = data.originX;
-                y = data.originY;
-            } else {
-                // Pick our candidate location randomly, and also strike it from
-                // the candidates map so that subsequent instances of this same feature can't choose it.
-                [x, y] = GWU.rng.random.matchingLoc(
-                    candidates.width,
-                    candidates.height,
-                    (x, y) => candidates[x][y] > 0
-                );
-            }
-            // Don't waste time trying the same place again whether or not this attempt succeeds.
-            candidates[x][y] = 0;
-            qualifyingTileCount--;
-
-            success = await this._buildStepInstance(
-                blueprint,
-                buildStep,
-                x,
-                y,
-                adoptedItem
-            );
-
-            if (success) {
-                // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                qualifyingTileCount -= STEP.makePersonalSpace(
-                    data,
-                    x,
-                    y,
                     candidates,
-                    buildStep.pad
+                    wantCount
                 );
-                builtCount++; // we've placed an instance
+
+                if (
+                    !qualifyingTileCount ||
+                    qualifyingTileCount < buildStep.count.lo
+                ) {
+                    await this.log.onStepFail(
+                        data,
+                        blueprint,
+                        buildStep,
+                        `Blueprint ${
+                            blueprint.id
+                        }, step ${blueprint.steps.indexOf(
+                            buildStep
+                        )} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
+                    );
+                    return false;
+                }
             }
 
-            // Finished with this instance!
-        }
+            let x = 0,
+                y = 0;
+
+            while (qualifyingTileCount > 0 && builtCount < wantCount) {
+                // Find a location for the feature.
+                if (buildStep.buildAtOrigin) {
+                    // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+                    x = data.originX;
+                    y = data.originY;
+                } else {
+                    // Pick our candidate location randomly, and also strike it from
+                    // the candidates map so that subsequent instances of this same feature can't choose it.
+                    [x, y] = this.data.map.rng.matchingLoc(
+                        candidates.width,
+                        candidates.height,
+                        (x, y) => candidates[x][y] > 0
+                    );
+                }
+                // Don't waste time trying the same place again whether or not this attempt succeeds.
+                candidates[x][y] = 0;
+                qualifyingTileCount--;
+
+                const snapshot = data.site.snapshot();
+
+                if (
+                    await this._buildStepInstance(
+                        blueprint,
+                        buildStep,
+                        x,
+                        y,
+                        adoptedItem
+                    )
+                ) {
+                    // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+                    qualifyingTileCount -= STEP.makePersonalSpace(
+                        data,
+                        x,
+                        y,
+                        candidates,
+                        buildStep.pad
+                    );
+                    builtCount++; // we've placed an instance
+                    didSomething = true;
+                    snapshot.cancel(); // This snapshot is useless b/c we made changes...
+                } else {
+                    snapshot.restore(); // need to undo any changes...
+                }
+
+                // Finished with this instance!
+            }
+        } while (didSomething && buildStep.repeatUntilNoProgress);
 
         GWU.grid.free(candidates);
 
@@ -430,23 +441,18 @@ export class Builder {
             !buildStep.generateEverywhere &&
             !buildStep.repeatUntilNoProgress
         ) {
-            success = false;
             await this.log.onStepFail(
                 data,
                 blueprint,
                 buildStep,
                 `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`
             );
+            return false;
         }
 
-        //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
-        //DEBUG logBuffer(candidates);
+        await this.log.onStepSuccess(data, blueprint, buildStep);
 
-        if (success) {
-            await this.log.onStepSuccess(data, blueprint, buildStep);
-        }
-
-        return success;
+        return true;
     }
 
     async _buildStepInstance(
@@ -464,7 +470,16 @@ export class Builder {
 
         if (success && buildStep.treatAsBlocking) {
             // Yes, check for blocking.
-            if (SITE.siteDisruptedByXY(site, x, y)) {
+            const options: Partial<DisruptOptions> = {
+                machine: site.machineCount,
+            };
+            if (buildStep.noBlockOrigin) {
+                options.updateWalkable = (g) => {
+                    g[data.originX][data.originY] = 1;
+                    return true;
+                };
+            }
+            if (SITE.siteDisruptedByXY(site, x, y, options)) {
                 await this.log.onStepInstanceFail(
                     data,
                     blueprint,

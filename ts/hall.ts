@@ -21,43 +21,40 @@ export function isDoorLoc(
     return true;
 }
 
-export function pickWidth(
-    opts: number | { width?: GWU.range.RangeBase | { [key: number]: number } }
-): number {
-    if (typeof opts === 'number') opts = { width: opts };
-    opts.width = opts.width || 1;
-    return GWU.clamp(_pickWidth(opts.width), 1, 3);
+export type WidthBase = number | string | number[] | { [key: number]: number };
+
+export function pickWidth(width: WidthBase, rng?: GWU.rng.Random): number {
+    return GWU.clamp(_pickWidth(width, rng), 1, 3);
 }
 
-function _pickWidth(
-    width: GWU.range.RangeBase | { [key: number]: number }
-): number {
+function _pickWidth(width: WidthBase, rng?: GWU.rng.Random): number {
     if (!width) return 1;
     if (typeof width === 'number') return width;
-    if (width === undefined) return 1;
 
-    if (typeof width === 'number') return width;
-    else if (Array.isArray(width)) {
-        width = GWU.rng.random.weighted(width) + 1;
+    rng = rng ?? GWU.rng.random;
+
+    if (Array.isArray(width)) {
+        width = rng.weighted(width) + 1;
     } else if (typeof width === 'string') {
-        width = GWU.range.make(width).value();
+        width = GWU.range.make(width).value(rng);
     } else if (width instanceof GWU.range.Range) {
-        width = width.value();
+        width = width.value(rng);
     } else {
         const weights = width as GWU.types.WeightedObject;
-        width = Number.parseInt(GWU.rng.random.weighted(weights) as string);
+        width = Number.parseInt(rng.weighted(weights) as string);
     }
     return width;
 }
 
 export function pickLength(
     dir: number,
-    lengths: [GWU.range.Range, GWU.range.Range]
+    lengths: [GWU.range.Range, GWU.range.Range],
+    rng?: GWU.rng.Random
 ): number {
     if (dir == GWU.xy.UP || dir == GWU.xy.DOWN) {
-        return lengths[1].value();
+        return lengths[1].value(rng);
     } else {
-        return lengths[0].value();
+        return lengths[0].value(rng);
     }
 }
 
@@ -69,7 +66,7 @@ export function pickHallDirection(
     // Pick a direction.
     let dir: number = GWU.xy.NO_DIRECTION;
     if (dir == GWU.xy.NO_DIRECTION) {
-        const dirs = GWU.rng.random.sequence(4);
+        const dirs = site.rng.sequence(4);
         for (let i = 0; i < 4; i++) {
             dir = dirs[i];
             const length = lengths[(i + 1) % 2].hi; // biggest measurement
@@ -95,7 +92,7 @@ export function pickHallExits(
     obliqueChance: number
 ) {
     let newX: number, newY: number;
-    const allowObliqueHallwayExit = GWU.rng.random.chance(obliqueChance);
+    const allowObliqueHallwayExit = site.rng.chance(obliqueChance);
     const hallDoors: GWU.xy.Loc[] = [
         // [-1, -1],
         // [-1, -1],
@@ -246,7 +243,7 @@ export interface HallOptions {
 }
 
 export interface HallConfig {
-    width: GWU.range.Range;
+    width: WidthBase;
     length: [GWU.range.Range, GWU.range.Range];
     tile: number;
     obliqueChance: number;
@@ -255,7 +252,7 @@ export interface HallConfig {
 
 export class HallDigger {
     public config: HallConfig = {
-        width: GWU.range.make(1),
+        width: 1,
         length: [GWU.range.make('2-15'), GWU.range.make('2-9')],
         tile: SITE.FLOOR,
         obliqueChance: 15,
@@ -268,7 +265,7 @@ export class HallDigger {
 
     _setOptions(options: Partial<HallOptions> = {}) {
         if (options.width) {
-            this.config.width = GWU.range.make(options.width);
+            this.config.width = options.width;
         }
         if (options.length) {
             if (typeof options.length === 'number') {
@@ -287,14 +284,14 @@ export class HallDigger {
     create(site: SITE.DigSite, doors: GWU.xy.Loc[] = []): TYPES.Hall | null {
         doors = doors || SITE.chooseRandomDoorSites(site);
 
-        if (!GWU.rng.random.chance(this.config.chance)) return null;
+        if (!site.rng.chance(this.config.chance)) return null;
 
         const dir = pickHallDirection(site, doors, this.config.length);
         if (dir === GWU.xy.NO_DIRECTION) return null;
         if (!doors[dir]) return null;
 
-        const width = this.config.width.value();
-        const length = pickLength(dir, this.config.length);
+        const width = pickWidth(this.config.width, site.rng);
+        const length = pickLength(dir, this.config.length, site.rng);
         const doorLoc = doors[dir];
 
         if (width == 1) {

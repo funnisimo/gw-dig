@@ -18,9 +18,11 @@ declare const TILEMAP: {
 interface DigSite {
     readonly width: number;
     readonly height: number;
-    seed: number;
+    readonly rng: GWU.rng.Random;
     free(): void;
     clear(): void;
+    dump(): void;
+    setSeed(seed: number): void;
     hasXY: GWU.xy.XYMatchFunc;
     isBoundaryXY: GWU.xy.XYMatchFunc;
     isSet: GWU.xy.XYMatchFunc;
@@ -49,13 +51,54 @@ interface DigSite {
     updateDoorDirs(): void;
     getDoorDir(x: number, y: number): number;
 }
+
+interface Snapshot {
+    restore(): void;
+    cancel(): void;
+}
+interface BuildSite extends DigSite {
+    getChokeCount(x: number, y: number): number;
+    setChokeCount(x: number, y: number, count: number): void;
+    isOccupied: GWU.xy.XYMatchFunc;
+    hasItem: GWU.xy.XYMatchFunc;
+    hasActor: GWU.xy.XYMatchFunc;
+    hasCellFlag(x: number, y: number, flag: number): boolean;
+    setCellFlag(x: number, y: number, flag: number): void;
+    clearCellFlag(x: number, y: number, flag: number): void;
+    makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
+    addItem(x: number, y: number, item: GWM.item.Item): boolean;
+    analyze(): void;
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    snapshot(): Snapshot;
+    nextMachineId(): number;
+    setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
+}
+
+declare function directionOfDoorSite(site: DigSite, x: number, y: number): number;
+declare function chooseRandomDoorSites(site: DigSite): GWU.xy.Loc[];
+declare function copySite(dest: DigSite, source: DigSite, offsetX?: number, offsetY?: number): void;
+declare function fillCostGrid(source: DigSite, costGrid: GWU.grid.NumGrid): void;
+interface DisruptOptions {
+    offsetX: number;
+    offsetY: number;
+    machine: number;
+    updateWalkable: (grid: GWU.grid.NumGrid) => boolean;
+}
+declare function siteDisruptedByXY(site: DigSite, x: number, y: number, options?: Partial<DisruptOptions>): boolean;
+declare function siteDisruptedBy(site: DigSite, blockingGrid: GWU.grid.NumGrid, options?: Partial<DisruptOptions>): boolean;
+declare function siteDisruptedSize(site: DigSite, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
+declare function computeDistanceMap(site: DigSite, distanceMap: GWU.grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
+declare function clearInteriorFlag(site: BuildSite, machine: number): void;
+
 declare class GridSite implements DigSite {
     tiles: GWU.grid.NumGrid;
     doors: GWU.grid.NumGrid;
-    seed: number;
+    rng: GWU.rng.Random;
     constructor(width: number, height: number);
     free(): void;
     clear(): void;
+    dump(): void;
+    setSeed(seed: number): void;
     get width(): number;
     get height(): number;
     hasXY(x: number, y: number): boolean;
@@ -87,34 +130,28 @@ declare class GridSite implements DigSite {
     getDoorDir(x: number, y: number): number;
 }
 
-interface BuildSite extends DigSite {
-    getChokeCount(x: number, y: number): number;
-    setChokeCount(x: number, y: number, count: number): void;
-    isOccupied: GWU.xy.XYMatchFunc;
-    hasItem: GWU.xy.XYMatchFunc;
-    hasActor: GWU.xy.XYMatchFunc;
-    hasCellFlag(x: number, y: number, flag: number): boolean;
-    setCellFlag(x: number, y: number, flag: number): void;
-    clearCellFlag(x: number, y: number, flag: number): void;
-    makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
-    addItem(x: number, y: number, item: GWM.item.Item): boolean;
-    analyze(): void;
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
-    backup(): any;
-    restore(backup: any): void;
-    nextMachineId(): number;
-    setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
+declare class MapSnapshot implements Snapshot {
+    site: MapSite;
+    snapshot: GWM.map.Snapshot;
+    machineCount: number;
+    needsAnalysis: boolean;
+    isUsed: boolean;
+    constructor(site: MapSite, snap: GWM.map.Snapshot);
+    restore(): void;
+    cancel(): void;
 }
 declare class MapSite implements BuildSite {
     map: GWM.map.Map;
     machineCount: number;
     needsAnalysis: boolean;
     doors: GWU.grid.NumGrid;
+    snapshots: GWM.map.SnapshotManager;
     constructor(map: GWM.map.Map);
-    get seed(): number;
-    set seed(v: number);
+    get rng(): GWU.rng.Random;
+    setSeed(seed: number): void;
     get width(): number;
     get height(): number;
+    dump(): void;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
     hasCellFlag(x: number, y: number, flag: number): boolean;
@@ -148,8 +185,7 @@ declare class MapSite implements BuildSite {
     isAnyLiquid(x: number, y: number): boolean;
     isOccupied(x: number, y: number): boolean;
     isPassable(x: number, y: number): boolean;
-    backup(): MapSite;
-    restore(backup: MapSite): void;
+    snapshot(): MapSnapshot;
     free(): void;
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
@@ -161,21 +197,6 @@ declare class MapSite implements BuildSite {
     updateDoorDirs(): void;
     getDoorDir(x: number, y: number): number;
 }
-
-declare function directionOfDoorSite(site: DigSite, x: number, y: number): number;
-declare function chooseRandomDoorSites(site: DigSite): GWU.xy.Loc[];
-declare function copySite(dest: DigSite, source: DigSite, offsetX?: number, offsetY?: number): void;
-declare function fillCostGrid(source: DigSite, costGrid: GWU.grid.NumGrid): void;
-interface DisruptOptions {
-    offsetX: number;
-    offsetY: number;
-    machine: number;
-}
-declare function siteDisruptedByXY(site: DigSite, x: number, y: number, options?: Partial<DisruptOptions>): boolean;
-declare function siteDisruptedBy(site: DigSite, blockingGrid: GWU.grid.NumGrid, options?: Partial<DisruptOptions>): boolean;
-declare function siteDisruptedSize(site: DigSite, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
-declare function computeDistanceMap(site: DigSite, distanceMap: GWU.grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
-declare function clearInteriorFlag(site: BuildSite, machine: number): void;
 
 declare const index_d$1_NOTHING: typeof NOTHING;
 declare const index_d$1_FLOOR: typeof FLOOR;
@@ -190,11 +211,8 @@ declare const index_d$1_DOWN_STAIRS: typeof DOWN_STAIRS;
 declare const index_d$1_IMPREGNABLE: typeof IMPREGNABLE;
 declare const index_d$1_TILEMAP: typeof TILEMAP;
 type index_d$1_DigSite = DigSite;
-type index_d$1_GridSite = GridSite;
-declare const index_d$1_GridSite: typeof GridSite;
+type index_d$1_Snapshot = Snapshot;
 type index_d$1_BuildSite = BuildSite;
-type index_d$1_MapSite = MapSite;
-declare const index_d$1_MapSite: typeof MapSite;
 declare const index_d$1_directionOfDoorSite: typeof directionOfDoorSite;
 declare const index_d$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
 declare const index_d$1_copySite: typeof copySite;
@@ -205,6 +223,12 @@ declare const index_d$1_siteDisruptedBy: typeof siteDisruptedBy;
 declare const index_d$1_siteDisruptedSize: typeof siteDisruptedSize;
 declare const index_d$1_computeDistanceMap: typeof computeDistanceMap;
 declare const index_d$1_clearInteriorFlag: typeof clearInteriorFlag;
+type index_d$1_GridSite = GridSite;
+declare const index_d$1_GridSite: typeof GridSite;
+type index_d$1_MapSnapshot = MapSnapshot;
+declare const index_d$1_MapSnapshot: typeof MapSnapshot;
+type index_d$1_MapSite = MapSite;
+declare const index_d$1_MapSite: typeof MapSite;
 declare namespace index_d$1 {
   export {
     index_d$1_NOTHING as NOTHING,
@@ -220,9 +244,8 @@ declare namespace index_d$1 {
     index_d$1_IMPREGNABLE as IMPREGNABLE,
     index_d$1_TILEMAP as TILEMAP,
     index_d$1_DigSite as DigSite,
-    index_d$1_GridSite as GridSite,
+    index_d$1_Snapshot as Snapshot,
     index_d$1_BuildSite as BuildSite,
-    index_d$1_MapSite as MapSite,
     index_d$1_directionOfDoorSite as directionOfDoorSite,
     index_d$1_chooseRandomDoorSites as chooseRandomDoorSites,
     index_d$1_copySite as copySite,
@@ -233,6 +256,9 @@ declare namespace index_d$1 {
     index_d$1_siteDisruptedSize as siteDisruptedSize,
     index_d$1_computeDistanceMap as computeDistanceMap,
     index_d$1_clearInteriorFlag as clearInteriorFlag,
+    index_d$1_GridSite as GridSite,
+    index_d$1_MapSnapshot as MapSnapshot,
+    index_d$1_MapSite as MapSite,
   };
 }
 
@@ -267,7 +293,7 @@ declare abstract class RoomDigger {
 }
 declare var rooms: Record<string, RoomDigger>;
 declare class ChoiceRoom extends RoomDigger {
-    randomRoom: () => any;
+    randomRoom: (rng: GWU.rng.Random) => string;
     constructor(config?: RoomConfig);
     _setOptions(config: RoomConfig, expected?: RoomConfig): void;
     carve(site: DigSite): Room;
@@ -374,12 +400,11 @@ declare namespace room_d {
 }
 
 declare function isDoorLoc(site: DigSite, loc: GWU.xy.Loc, dir: GWU.xy.Loc): boolean;
-declare function pickWidth(opts: number | {
-    width?: GWU.range.RangeBase | {
-        [key: number]: number;
-    };
-}): number;
-declare function pickLength(dir: number, lengths: [GWU.range.Range, GWU.range.Range]): number;
+declare type WidthBase = number | string | number[] | {
+    [key: number]: number;
+};
+declare function pickWidth(width: WidthBase, rng?: GWU.rng.Random): number;
+declare function pickLength(dir: number, lengths: [GWU.range.Range, GWU.range.Range], rng?: GWU.rng.Random): number;
 declare function pickHallDirection(site: DigSite, doors: GWU.xy.Loc[], lengths: [GWU.range.Range, GWU.range.Range]): number;
 declare function pickHallExits(site: DigSite, x: number, y: number, dir: number, obliqueChance: number): GWU.types.Loc[];
 interface HallOptions {
@@ -390,7 +415,7 @@ interface HallOptions {
     chance: number;
 }
 interface HallConfig {
-    width: GWU.range.Range;
+    width: WidthBase;
     length: [GWU.range.Range, GWU.range.Range];
     tile: number;
     obliqueChance: number;
@@ -410,6 +435,7 @@ declare var halls: Record<string, HallDigger>;
 declare function install$1(id: string, hall: HallDigger): HallDigger;
 
 declare const hall_d_isDoorLoc: typeof isDoorLoc;
+type hall_d_WidthBase = WidthBase;
 declare const hall_d_pickWidth: typeof pickWidth;
 declare const hall_d_pickLength: typeof pickLength;
 declare const hall_d_pickHallDirection: typeof pickHallDirection;
@@ -423,6 +449,7 @@ declare const hall_d_halls: typeof halls;
 declare namespace hall_d {
   export {
     hall_d_isDoorLoc as isDoorLoc,
+    hall_d_WidthBase as WidthBase,
     hall_d_pickWidth as pickWidth,
     hall_d_pickLength as pickLength,
     hall_d_pickHallDirection as pickHallDirection,
@@ -551,6 +578,7 @@ interface DoorOpts {
 }
 interface RoomOptions {
     count: number;
+    fails: number;
     first: string | string[] | Record<string, number> | RoomDigger;
     digger: string | string[] | Record<string, number> | RoomDigger;
 }
@@ -582,7 +610,7 @@ declare class Level {
     endLoc: GWU.xy.Loc;
     seq: number[];
     constructor(options?: Partial<LevelOptions>);
-    _makeSite(width: number, height: number): GridSite;
+    _makeRoomSite(width: number, height: number): GridSite;
     create(width: number, height: number, cb: DigFn): boolean;
     create(map: GWM.map.Map): boolean;
     _create(site: DigSite): boolean;
@@ -593,7 +621,7 @@ declare class Level {
     _attachRoom(site: DigSite, roomSite: DigSite, room: Room): boolean;
     _attachRoomAtLoc(site: DigSite, roomSite: DigSite, room: Room, attachLoc: GWU.xy.Loc): boolean;
     _roomFitsAt(map: DigSite, roomGrid: DigSite, room: Room, roomToSiteX: number, roomToSiteY: number): boolean;
-    _attachDoor(map: DigSite, room: Room, x: number, y: number, dir: number): void;
+    _attachDoor(site: DigSite, room: Room, x: number, y: number, dir: number): void;
     addLoops(site: DigSite, opts: Partial<LoopOptions>): number;
     addLakes(site: DigSite, opts: Partial<LakeOpts>): number;
     addBridges(site: DigSite, opts: Partial<BridgeOpts>): number;
@@ -640,6 +668,10 @@ declare class Dungeon {
     makeLevel(id: number, opts: Partial<LevelOptions>, cb: DigFn): boolean;
 }
 
+interface DataOptions {
+    depth: number;
+    seed: number;
+}
 declare class BuildData {
     map: GWM.map.Map;
     site: MapSite;
@@ -654,7 +686,8 @@ declare class BuildData {
     distance75: number;
     machineNumber: number;
     depth: number;
-    constructor(map: GWM.map.Map, depth: number);
+    seed: number;
+    constructor(map: GWM.map.Map, options?: Partial<DataOptions>);
     free(): void;
     reset(originX: number, originY: number): void;
     calcDistances(maxSize: number): void;
@@ -694,6 +727,7 @@ declare enum StepFlags {
     BF_BUILD_ANYWHERE_ON_LEVEL,
     BF_REPEAT_UNTIL_NO_PROGRESS,
     BF_IMPREGNABLE,
+    BF_NO_BLOCK_ORIGIN,
     BF_NOT_IN_HALLWAY,
     BF_ALLOW_BOUNDARY,
     BF_SKELETON_KEY,
@@ -708,7 +742,6 @@ declare class BuildStep {
     horde: any | null;
     effect: GWM.effect.EffectInfo | null;
     chance: number;
-    next: null;
     id: string;
     constructor(cfg?: Partial<StepOptions>);
     get allowBoundary(): boolean;
@@ -718,6 +751,7 @@ declare class BuildStep {
     get repeatUntilNoProgress(): boolean;
     get permitBlocking(): boolean;
     get treatAsBlocking(): boolean;
+    get noBlockOrigin(): boolean;
     get adoptItem(): boolean;
     get itemIsKey(): boolean;
     get keyIsDisposable(): boolean;
@@ -753,6 +787,7 @@ declare enum Flags {
     BP_NOT_IN_HALLWAY
 }
 interface BlueprintOptions {
+    id: string;
     tags: string | string[];
     frequency: GWU.frequency.FrequencyConfig;
     size: string | number[] | number;
@@ -783,12 +818,13 @@ declare class Blueprint {
     get noInteriorFlag(): boolean;
     get notInHallway(): boolean;
     qualifies(requiredFlags: number, tags?: string | string[]): boolean;
-    pickComponents(): BuildStep[];
+    pickComponents(rng: GWU.rng.Random): BuildStep[];
     fillInterior(builder: BuildData): number;
 }
 declare const blueprints: Record<string, Blueprint>;
 declare function install(id: string, blueprint: Blueprint | Partial<BlueprintOptions>): Blueprint;
-declare function random(requiredFlags: number, depth: number): Blueprint;
+declare function random(requiredFlags: number, depth: number, rng?: GWU.rng.Random): Blueprint;
+declare function make(config: Partial<BlueprintOptions>): Blueprint;
 
 interface BuildLogger {
     onError(data: BuildData, error: string): Promise<any>;
@@ -822,18 +858,17 @@ declare class NullLogger implements BuildLogger {
 }
 
 declare type BlueType = Blueprint | string;
-interface BuilderOptions {
-    blueprints?: BlueType[] | {
+interface BuilderOptions extends DataOptions {
+    blueprints: BlueType[] | {
         [key: string]: BlueType;
     };
-    depth?: number;
-    log?: BuildLogger | boolean;
+    log: BuildLogger | boolean;
 }
 declare class Builder {
     data: BuildData;
-    blueprints: Blueprint[];
+    blueprints: Blueprint[] | null;
     log: BuildLogger;
-    constructor(map: GWM.map.Map, options?: BuilderOptions);
+    constructor(map: GWM.map.Map, options?: Partial<BuilderOptions>);
     _pickRandom(requiredFlags: number): Blueprint | null;
     buildRandom(requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
     build(blueprint: Blueprint | string, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
@@ -869,6 +904,8 @@ type index_d_BlueprintOptions = BlueprintOptions;
 declare const index_d_install: typeof install;
 declare const index_d_random: typeof random;
 declare const index_d_blueprints: typeof blueprints;
+declare const index_d_make: typeof make;
+type index_d_DataOptions = DataOptions;
 type index_d_BuildData = BuildData;
 declare const index_d_BuildData: typeof BuildData;
 type index_d_BuildLogger = BuildLogger;
@@ -897,6 +934,8 @@ declare namespace index_d {
     index_d_install as install,
     index_d_random as random,
     index_d_blueprints as blueprints,
+    index_d_make as make,
+    index_d_DataOptions as DataOptions,
     index_d_BuildData as BuildData,
     index_d_BuildLogger as BuildLogger,
     index_d_NullLogger as NullLogger,

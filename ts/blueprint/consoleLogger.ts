@@ -33,7 +33,7 @@ export class ConsoleLogger implements BuildLogger {
     }
 
     async onBlueprintStart(data: BuildData, blueprint: Blueprint) {
-        console.log(
+        console.group(
             `onBlueprintStart - ${blueprint.id} @ ${data.originX},${
                 data.originY
             } : stepCount: ${
@@ -46,8 +46,9 @@ export class ConsoleLogger implements BuildLogger {
     }
 
     async onBlueprintInterior(data: BuildData, blueprint: Blueprint) {
-        console.log(`onBlueprintInterior - ${blueprint.id}`);
+        console.group(`onBlueprintInterior - ${blueprint.id}`);
         data.interior.dump();
+        console.groupEnd();
     }
 
     async onBlueprintFail(
@@ -58,16 +59,18 @@ export class ConsoleLogger implements BuildLogger {
         console.log(
             `onBlueprintFail - ${blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`
         );
+        console.groupEnd();
     }
 
     async onBlueprintSuccess(data: BuildData, blueprint: Blueprint) {
         console.log(
             `onBlueprintSuccess - ${blueprint.id} @ ${data.originX},${data.originY}`
         );
+        console.groupEnd();
     }
 
     async onStepStart(data: BuildData, blueprint: Blueprint, step: BuildStep) {
-        console.log(
+        console.group(
             `onStepStart - ${blueprint.id}[${
                 blueprint.steps.indexOf(step) + 1
             }/${blueprint.steps.length}] @ ${data.originX},${
@@ -133,6 +136,7 @@ export class ConsoleLogger implements BuildLogger {
                 step.flags
             )}`
         );
+        console.groupEnd();
     }
 
     async onStepFail(
@@ -148,5 +152,6 @@ export class ConsoleLogger implements BuildLogger {
                 data.originY
             } : error : ${error}`
         );
+        console.groupEnd();
     }
 }

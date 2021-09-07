@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gw-utils'), require('gw-map')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'gw-utils', 'gw-map'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GWD = {}, global.GWU, global.GWM));
-}(this, (function (exports, GWU, GWM) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gw-map'), require('gw-utils')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'gw-map', 'gw-utils'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GWD = {}, global.GWM, global.GWU));
+}(this, (function (exports, GWM, GWU) { 'use strict';
 
     function _interopNamespace(e) {
         if (e && e.__esModule) return e;
@@ -24,8 +24,33 @@
         return Object.freeze(n);
     }
 
-    var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
     var GWM__namespace = /*#__PURE__*/_interopNamespace(GWM);
+    var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
+
+    var _a, _b;
+    const NOTHING = GWM__namespace.tile.get('NULL').index;
+    const FLOOR = GWM__namespace.tile.get('FLOOR').index;
+    const DOOR = GWM__namespace.tile.get('DOOR').index;
+    const SECRET_DOOR = (_b = (_a = GWM__namespace.tile.get('DOOR_SECRET')) === null || _a === void 0 ? void 0 : _a.index) !== null && _b !== void 0 ? _b : -1;
+    const WALL = GWM__namespace.tile.get('WALL').index;
+    const DEEP = GWM__namespace.tile.get('LAKE').index;
+    const SHALLOW = GWM__namespace.tile.get('SHALLOW').index;
+    const BRIDGE = GWM__namespace.tile.get('BRIDGE').index;
+    const UP_STAIRS = GWM__namespace.tile.get('UP_STAIRS').index;
+    const DOWN_STAIRS = GWM__namespace.tile.get('DOWN_STAIRS').index;
+    const IMPREGNABLE = GWM__namespace.tile.get('IMPREGNABLE').index;
+    const TILEMAP = {
+        [NOTHING]: 'NULL',
+        [FLOOR]: 'FLOOR',
+        [DOOR]: 'DOOR',
+        [WALL]: 'WALL',
+        [IMPREGNABLE]: 'IMPREGNABLE',
+        [DEEP]: 'LAKE',
+        [SHALLOW]: 'SHALLOW',
+        [BRIDGE]: 'BRIDGE',
+        [UP_STAIRS]: 'UP_STAIRS',
+        [DOWN_STAIRS]: 'DOWN_STAIRS',
+    };
 
     // import * as TYPES from './types';
     const DIRS$1 = GWU__namespace.xy.DIRS;
@@ -218,7 +243,7 @@
         let doorSites = [];
         // Pick four doors, one in each direction, and store them in doorSites[dir].
         for (dir = 0; dir < 4; dir++) {
-            const loc = GWU__namespace.rng.random.item(DOORS[dir]) || [-1, -1];
+            const loc = site.rng.item(DOORS[dir]) || [-1, -1];
             doorSites[dir] = [loc[0], loc[1]];
         }
         // GWU.grid.free(grid);
@@ -268,7 +293,7 @@
     //     room: TYPES.Room,
     //     opts: TYPES.DigInfo
     // ): boolean | GWU.xy.Loc[] {
-    //     const doorIndexes = GWU.rng.random.sequence(mapDoors.length);
+    //     const doorIndexes = site.rng.sequence(mapDoors.length);
     //     // console.log('attachRoomAtMapDoor', mapDoors.join(', '));
     //     // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
     //     for (let i = 0; i < doorIndexes.length; i++) {
@@ -292,7 +317,7 @@
     //     opts: TYPES.DigInfo
     // ): boolean | GWU.xy.Loc[] {
     //     const doorSites = room.hall ? room.hall.doors : room.doors;
-    //     const dirs = GWU.rng.random.sequence(4);
+    //     const dirs = site.rng.sequence(4);
     //     // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
     //     for (let dir of dirs) {
     //         const oppDir = (dir + 2) % 4;
@@ -359,9 +384,9 @@
         let disrupts = false;
         // Get all walkable locations after lake added
         GWU__namespace.xy.forRect(site.width, site.height, (i, j) => {
-            const lakeX = i + options.offsetX;
-            const lakeY = j + options.offsetY;
-            if (blockingGrid.get(lakeX, lakeY)) {
+            const blockingX = i + options.offsetX;
+            const blockingY = j + options.offsetY;
+            if (blockingGrid.get(blockingX, blockingY)) {
                 if (site.isStairs(i, j)) {
                     disrupts = true;
                 }
@@ -372,6 +397,11 @@
                 walkableGrid[i][j] = 1;
             }
         });
+        if (options.updateWalkable) {
+            if (!options.updateWalkable(walkableGrid)) {
+                return true;
+            }
+        }
         let first = true;
         for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
             for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
@@ -449,33 +479,9 @@
         }
     }
 
-    var _a, _b;
-    const NOTHING = GWM__namespace.tile.get('NULL').index;
-    const FLOOR = GWM__namespace.tile.get('FLOOR').index;
-    const DOOR = GWM__namespace.tile.get('DOOR').index;
-    const SECRET_DOOR = (_b = (_a = GWM__namespace.tile.get('DOOR_SECRET')) === null || _a === void 0 ? void 0 : _a.index) !== null && _b !== void 0 ? _b : -1;
-    const WALL = GWM__namespace.tile.get('WALL').index;
-    const DEEP = GWM__namespace.tile.get('LAKE').index;
-    const SHALLOW = GWM__namespace.tile.get('SHALLOW').index;
-    const BRIDGE = GWM__namespace.tile.get('BRIDGE').index;
-    const UP_STAIRS = GWM__namespace.tile.get('UP_STAIRS').index;
-    const DOWN_STAIRS = GWM__namespace.tile.get('DOWN_STAIRS').index;
-    const IMPREGNABLE = GWM__namespace.tile.get('IMPREGNABLE').index;
-    const TILEMAP = {
-        [NOTHING]: 'NULL',
-        [FLOOR]: 'FLOOR',
-        [DOOR]: 'DOOR',
-        [WALL]: 'WALL',
-        [IMPREGNABLE]: 'IMPREGNABLE',
-        [DEEP]: 'LAKE',
-        [SHALLOW]: 'SHALLOW',
-        [BRIDGE]: 'BRIDGE',
-        [UP_STAIRS]: 'UP_STAIRS',
-        [DOWN_STAIRS]: 'DOWN_STAIRS',
-    };
     class GridSite {
         constructor(width, height) {
-            this.seed = 0;
+            this.rng = GWU__namespace.rng.random;
             this.tiles = GWU__namespace.grid.alloc(width, height);
             this.doors = GWU__namespace.grid.alloc(width, height);
         }
@@ -486,6 +492,12 @@
         clear() {
             this.tiles.fill(0);
             this.doors.fill(0);
+        }
+        dump() {
+            this.tiles.dump();
+        }
+        setSeed(seed) {
+            this.rng.seed(seed);
         }
         get width() {
             return this.tiles.width;
@@ -614,24 +626,55 @@
     }
 
     const Flags$1 = GWM__namespace.flags.Cell;
+    class MapSnapshot {
+        constructor(site, snap) {
+            this.machineCount = 0;
+            this.needsAnalysis = true;
+            this.isUsed = false;
+            this.site = site;
+            this.snapshot = snap;
+            this.machineCount = this.site.machineCount;
+            this.needsAnalysis = this.site.needsAnalysis;
+            this.isUsed = true;
+        }
+        restore() {
+            this.site.snapshots.revertMapTo(this.snapshot);
+            this.site.machineCount = this.machineCount;
+            this.site.needsAnalysis = this.needsAnalysis;
+            this.cancel();
+        }
+        cancel() {
+            this.site.snapshots.release(this.snapshot);
+        }
+    }
     class MapSite {
         constructor(map) {
             this.machineCount = 0;
             this.needsAnalysis = true;
             this.map = map;
             this.doors = GWU__namespace.grid.alloc(map.width, map.height);
+            this.snapshots = new GWM__namespace.map.SnapshotManager(map);
         }
-        get seed() {
-            return this.map.seed;
+        get rng() {
+            return this.map.rng;
         }
-        set seed(v) {
-            this.map.seed = v;
+        // get seed() {
+        //     return this.map.seed;
+        // }
+        // set seed(v: number) {
+        //     this.map.seed = v;
+        // }
+        setSeed(seed) {
+            this.map.seed = seed;
         }
         get width() {
             return this.map.width;
         }
         get height() {
             return this.map.height;
+        }
+        dump() {
+            this.map.dump();
         }
         hasXY(x, y) {
             return this.map.hasXY(x, y);
@@ -672,6 +715,10 @@
             return this.map.cellInfo(x, y).hasItem();
         }
         makeRandomItem(tags) {
+            if (typeof tags === 'string') {
+                tags = { tags };
+            }
+            tags.rng = this.rng;
             return GWM__namespace.item.makeRandom(tags);
         }
         addItem(x, y, item) {
@@ -776,16 +823,8 @@
         // tileBlocksMove(tile: number): boolean {
         //     return GWM.tile.get(tile).blocksMove();
         // }
-        backup() {
-            const site = new MapSite(this.map.clone());
-            site.machineCount = this.machineCount;
-            site.needsAnalysis = this.needsAnalysis;
-            return site;
-        }
-        restore(backup) {
-            this.map.copy(backup.map);
-            this.machineCount = backup.machineCount;
-            this.needsAnalysis = backup.needsAnalysis;
+        snapshot() {
+            return new MapSnapshot(this, this.snapshots.takeNew());
         }
         free() {
             GWU__namespace.grid.free(this.doors);
@@ -804,7 +843,7 @@
         }
         buildEffect(effect, x, y) {
             this.needsAnalysis = true;
-            return GWM__namespace.effect.fireSync(effect, this.map, x, y);
+            return GWM__namespace.effect.fireSync(effect, this.map, x, y, { rng: this.rng });
         }
         nextMachineId() {
             return ++this.machineCount;
@@ -846,8 +885,6 @@
         DOWN_STAIRS: DOWN_STAIRS,
         IMPREGNABLE: IMPREGNABLE,
         TILEMAP: TILEMAP,
-        GridSite: GridSite,
-        MapSite: MapSite,
         directionOfDoorSite: directionOfDoorSite,
         chooseRandomDoorSites: chooseRandomDoorSites,
         copySite: copySite,
@@ -856,7 +893,10 @@
         siteDisruptedBy: siteDisruptedBy,
         siteDisruptedSize: siteDisruptedSize,
         computeDistanceMap: computeDistanceMap,
-        clearInteriorFlag: clearInteriorFlag
+        clearInteriorFlag: clearInteriorFlag,
+        GridSite: GridSite,
+        MapSnapshot: MapSnapshot,
+        MapSite: MapSite
     });
 
     class Hall extends GWU__namespace.xy.Bounds {
@@ -989,17 +1029,17 @@
         _setOptions(config, expected = {}) {
             const choices = config.choices || expected.choices;
             if (Array.isArray(choices)) {
-                this.randomRoom = GWU__namespace.rng.random.item.bind(GWU__namespace.rng.random, choices);
+                this.randomRoom = (rng) => rng.item(choices);
             }
             else if (typeof choices == 'object') {
-                this.randomRoom = GWU__namespace.rng.random.weighted.bind(GWU__namespace.rng.random, choices);
+                this.randomRoom = (rng) => rng.weighted(choices);
             }
             else {
                 throw new Error('Expected choices to be either array of room ids or weighted map - ex: { ROOM_ID: weight }');
             }
         }
         carve(site) {
-            let id = this.randomRoom();
+            let id = this.randomRoom(site.rng);
             const room = rooms[id];
             if (!room) {
                 GWU__namespace.ERROR('Missing room digger choice: ' + id);
@@ -1021,8 +1061,8 @@
             });
         }
         carve(site) {
-            const width = this.options.width.value();
-            const height = this.options.height.value();
+            const width = this.options.width.value(site.rng);
+            const height = this.options.height.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const blobGrid = GWU__namespace.grid.alloc(site.width, site.height, 0);
             const minWidth = Math.floor(0.5 * width); // 6
@@ -1030,6 +1070,7 @@
             const minHeight = Math.floor(0.5 * height); // 4
             const maxHeight = height;
             const blob = new GWU__namespace.blob.Blob({
+                rng: site.rng,
                 rounds: 5,
                 minWidth: minWidth,
                 minHeight: minHeight,
@@ -1068,8 +1109,8 @@
             });
         }
         carve(site) {
-            const width = this.options.width.value();
-            const height = this.options.height.value();
+            const width = this.options.width.value(site.rng);
+            const height = this.options.height.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const roomWidth = Math.floor(0.4 * width); // 8
             const roomHeight = height;
@@ -1097,19 +1138,18 @@
             super(config, { width: 12, height: 20 });
         }
         carve(site) {
-            const width = this.options.width.value();
-            const height = this.options.height.value();
+            const width = this.options.width.value(site.rng);
+            const height = this.options.height.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const roomWidth = width;
-            const roomWidth2 = Math.max(3, Math.floor((width * GWU__namespace.rng.random.range(25, 75)) / 100)); // [4,20]
-            const roomHeight = Math.max(3, Math.floor((height * GWU__namespace.rng.random.range(25, 75)) / 100)); // [2,5]
+            const roomWidth2 = Math.max(3, Math.floor((width * site.rng.range(25, 75)) / 100)); // [4,20]
+            const roomHeight = Math.max(3, Math.floor((height * site.rng.range(25, 75)) / 100)); // [2,5]
             const roomHeight2 = height;
             const roomX = Math.floor((site.width - roomWidth) / 2);
-            const roomX2 = roomX +
-                GWU__namespace.rng.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
+            const roomX2 = roomX + site.rng.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
             const roomY2 = Math.floor((site.height - roomHeight2) / 2);
             const roomY = roomY2 +
-                GWU__namespace.rng.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
+                site.rng.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
             GWU__namespace.xy.forRect(roomX, roomY, roomWidth, roomHeight, (x, y) => site.setTile(x, y, tile));
             GWU__namespace.xy.forRect(roomX2, roomY2, roomWidth2, roomHeight2, (x, y) => site.setTile(x, y, tile));
             return new Room(roomX, roomY2, Math.max(roomWidth, roomWidth2), Math.max(roomHeight, roomHeight2));
@@ -1125,14 +1165,14 @@
             super(config, { width: 7, height: 7 });
         }
         carve(site) {
-            const width = this.options.width.value();
-            const height = this.options.height.value();
+            const width = this.options.width.value(site.rng);
+            const height = this.options.height.value(site.rng);
             const tile = this.options.tile || FLOOR;
-            let minorWidth = Math.max(3, Math.floor((width * GWU__namespace.rng.random.range(25, 50)) / 100)); // [2,4]
+            let minorWidth = Math.max(3, Math.floor((width * site.rng.range(25, 50)) / 100)); // [2,4]
             // if (height % 2 == 0 && minorWidth > 2) {
             //     minorWidth -= 1;
             // }
-            let minorHeight = Math.max(3, Math.floor((height * GWU__namespace.rng.random.range(25, 50)) / 100)); // [2,3]?
+            let minorHeight = Math.max(3, Math.floor((height * site.rng.range(25, 50)) / 100)); // [2,3]?
             // if (width % 2 == 0 && minorHeight > 2) {
             //     minorHeight -= 1;
             // }
@@ -1158,8 +1198,8 @@
             });
         }
         carve(site) {
-            const width = this.options.width.value();
-            const height = this.options.height.value();
+            const width = this.options.width.value(site.rng);
+            const height = this.options.height.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const x = Math.floor((site.width - width) / 2);
             const y = Math.floor((site.height - height) / 2);
@@ -1179,7 +1219,7 @@
             });
         }
         carve(site) {
-            const radius = this.options.radius.value();
+            const radius = this.options.radius.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const x = Math.floor(site.width / 2);
             const y = Math.floor(site.height / 2);
@@ -1204,16 +1244,16 @@
             });
         }
         carve(site) {
-            const radius = this.options.radius.value();
-            const ringMinWidth = this.options.ringMinWidth.value();
-            const holeMinSize = this.options.holeMinSize.value();
+            const radius = this.options.radius.value(site.rng);
+            const ringMinWidth = this.options.ringMinWidth.value(site.rng);
+            const holeMinSize = this.options.holeMinSize.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const x = Math.floor(site.width / 2);
             const y = Math.floor(site.height / 2);
             GWU__namespace.xy.forCircle(x, y, radius, (x, y) => site.setTile(x, y, tile));
             if (radius > ringMinWidth + holeMinSize &&
-                GWU__namespace.rng.random.chance(this.options.holeChance.value())) {
-                GWU__namespace.xy.forCircle(x, y, GWU__namespace.rng.random.range(holeMinSize, radius - holeMinSize), (x, y) => site.setTile(x, y, 0));
+                site.rng.chance(this.options.holeChance.value(site.rng))) {
+                GWU__namespace.xy.forCircle(x, y, site.rng.range(holeMinSize, radius - holeMinSize), (x, y) => site.setTile(x, y, 0));
             }
             return new Room(x - radius, y - radius, radius * 2 + 1, radius * 2 + 1);
         }
@@ -1233,9 +1273,9 @@
         }
         carve(site) {
             let i, x, y;
-            let chunkCount = this.options.count.value();
-            const width = this.options.width.value();
-            const height = this.options.height.value();
+            let chunkCount = this.options.count.value(site.rng);
+            const width = this.options.width.value(site.rng);
+            const height = this.options.height.value(site.rng);
             const tile = this.options.tile || FLOOR;
             const minX = Math.floor(site.width / 2) - Math.floor(width / 2);
             const maxX = Math.floor(site.width / 2) + Math.floor(width / 2);
@@ -1251,8 +1291,8 @@
             top -= 2;
             bottom += 2;
             for (i = 0; i < chunkCount;) {
-                x = GWU__namespace.rng.random.range(minX, maxX);
-                y = GWU__namespace.rng.random.range(minY, maxY);
+                x = site.rng.range(minX, maxX);
+                y = site.rng.range(minY, maxY);
                 if (site.isSet(x, y)) {
                     if (x - 2 < minX)
                         continue;
@@ -1325,49 +1365,43 @@
             return false; // must have floor in opposite direction
         return true;
     }
-    function pickWidth(opts) {
-        if (typeof opts === 'number')
-            opts = { width: opts };
-        opts.width = opts.width || 1;
-        return GWU__namespace.clamp(_pickWidth(opts.width), 1, 3);
+    function pickWidth(width, rng) {
+        return GWU__namespace.clamp(_pickWidth(width, rng), 1, 3);
     }
-    function _pickWidth(width) {
+    function _pickWidth(width, rng) {
         if (!width)
             return 1;
         if (typeof width === 'number')
             return width;
-        if (width === undefined)
-            return 1;
-        if (typeof width === 'number')
-            return width;
-        else if (Array.isArray(width)) {
-            width = GWU__namespace.rng.random.weighted(width) + 1;
+        rng = rng !== null && rng !== void 0 ? rng : GWU__namespace.rng.random;
+        if (Array.isArray(width)) {
+            width = rng.weighted(width) + 1;
         }
         else if (typeof width === 'string') {
-            width = GWU__namespace.range.make(width).value();
+            width = GWU__namespace.range.make(width).value(rng);
         }
         else if (width instanceof GWU__namespace.range.Range) {
-            width = width.value();
+            width = width.value(rng);
         }
         else {
             const weights = width;
-            width = Number.parseInt(GWU__namespace.rng.random.weighted(weights));
+            width = Number.parseInt(rng.weighted(weights));
         }
         return width;
     }
-    function pickLength(dir, lengths) {
+    function pickLength(dir, lengths, rng) {
         if (dir == GWU__namespace.xy.UP || dir == GWU__namespace.xy.DOWN) {
-            return lengths[1].value();
+            return lengths[1].value(rng);
         }
         else {
-            return lengths[0].value();
+            return lengths[0].value(rng);
         }
     }
     function pickHallDirection(site, doors, lengths) {
         // Pick a direction.
         let dir = GWU__namespace.xy.NO_DIRECTION;
         if (dir == GWU__namespace.xy.NO_DIRECTION) {
-            const dirs = GWU__namespace.rng.random.sequence(4);
+            const dirs = site.rng.sequence(4);
             for (let i = 0; i < 4; i++) {
                 dir = dirs[i];
                 const length = lengths[(i + 1) % 2].hi; // biggest measurement
@@ -1386,7 +1420,7 @@
     }
     function pickHallExits(site, x, y, dir, obliqueChance) {
         let newX, newY;
-        const allowObliqueHallwayExit = GWU__namespace.rng.random.chance(obliqueChance);
+        const allowObliqueHallwayExit = site.rng.chance(obliqueChance);
         const hallDoors = [
         // [-1, -1],
         // [-1, -1],
@@ -1408,7 +1442,7 @@
     class HallDigger {
         constructor(options = {}) {
             this.config = {
-                width: GWU__namespace.range.make(1),
+                width: 1,
                 length: [GWU__namespace.range.make('2-15'), GWU__namespace.range.make('2-9')],
                 tile: FLOOR,
                 obliqueChance: 15,
@@ -1418,7 +1452,7 @@
         }
         _setOptions(options = {}) {
             if (options.width) {
-                this.config.width = GWU__namespace.range.make(options.width);
+                this.config.width = options.width;
             }
             if (options.length) {
                 if (typeof options.length === 'number') {
@@ -1435,15 +1469,15 @@
         }
         create(site, doors = []) {
             doors = doors || chooseRandomDoorSites(site);
-            if (!GWU__namespace.rng.random.chance(this.config.chance))
+            if (!site.rng.chance(this.config.chance))
                 return null;
             const dir = pickHallDirection(site, doors, this.config.length);
             if (dir === GWU__namespace.xy.NO_DIRECTION)
                 return null;
             if (!doors[dir])
                 return null;
-            const width = this.config.width.value();
-            const length = pickLength(dir, this.config.length);
+            const width = pickWidth(this.config.width, site.rng);
+            const length = pickLength(dir, this.config.length, site.rng);
             const doorLoc = doors[dir];
             if (width == 1) {
                 return this.dig(site, dir, doorLoc, length);
@@ -1554,7 +1588,7 @@
             tries = this.options.tries || 20;
             maxCount = this.options.count || 1;
             canDisrupt = this.options.canDisrupt || false;
-            const hasWreath = GWU__namespace.rng.random.chance(this.options.wreathChance)
+            const hasWreath = site.rng.chance(this.options.wreathChance)
                 ? true
                 : false;
             const wreathTile = this.options.wreathTile || SHALLOW;
@@ -1569,6 +1603,7 @@
                 const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
                     maxCount) + lakeMinSize;
                 const blob = new GWU__namespace.blob.Blob({
+                    rng: site.rng,
                     rounds: 5,
                     minWidth: 4,
                     minHeight: 4,
@@ -1584,8 +1619,8 @@
                 for (k = 0; k < tries && !success; k++) {
                     // placement attempts
                     // propose a position for the top-left of the lakeGrid in the dungeon
-                    x = GWU__namespace.rng.random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
-                    y = GWU__namespace.rng.random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
+                    x = site.rng.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
+                    y = site.rng.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
                     if (canDisrupt || !this.isDisruptedBy(site, lakeGrid, -x, -y)) {
                         // level with lake is completely connected
                         //   dungeon.debug("Placed a lake!", x, y);
@@ -1688,7 +1723,7 @@
                 [0, 1],
             ];
             costGrid.update((_v, x, y) => site.isPassable(x, y) ? 1 : GWU__namespace.path.OBSTRUCTION);
-            const seq = GWU__namespace.rng.random.sequence(site.width * site.height);
+            const seq = site.rng.sequence(site.width * site.height);
             for (i = 0; i < seq.length; i++) {
                 x = Math.floor(seq[i] / site.height);
                 y = seq[i] % site.height;
@@ -1801,26 +1836,26 @@
             if (this.options.start && typeof this.options.start !== 'string') {
                 let start = this.options.start;
                 if (start === true) {
-                    start = GWU__namespace.rng.random.matchingLoc(site.width, site.height, isValidLoc);
+                    start = site.rng.matchingLoc(site.width, site.height, isValidLoc);
                 }
                 else {
-                    start = GWU__namespace.rng.random.matchingLocNear(GWU__namespace.xy.x(start), GWU__namespace.xy.y(start), isValidLoc);
+                    start = site.rng.matchingLocNear(GWU__namespace.xy.x(start), GWU__namespace.xy.y(start), isValidLoc);
                 }
                 locations.start = start;
             }
             if (Array.isArray(this.options.up) &&
                 Array.isArray(this.options.down)) {
                 const up = this.options.up;
-                upLoc = GWU__namespace.rng.random.matchingLocNear(GWU__namespace.xy.x(up), GWU__namespace.xy.y(up), isValidLoc);
+                upLoc = site.rng.matchingLocNear(GWU__namespace.xy.x(up), GWU__namespace.xy.y(up), isValidLoc);
                 const down = this.options.down;
-                downLoc = GWU__namespace.rng.random.matchingLocNear(GWU__namespace.xy.x(down), GWU__namespace.xy.y(down), isValidLoc);
+                downLoc = site.rng.matchingLocNear(GWU__namespace.xy.x(down), GWU__namespace.xy.y(down), isValidLoc);
             }
             else if (Array.isArray(this.options.up) &&
                 !Array.isArray(this.options.down)) {
                 const up = this.options.up;
-                upLoc = GWU__namespace.rng.random.matchingLocNear(GWU__namespace.xy.x(up), GWU__namespace.xy.y(up), isValidLoc);
+                upLoc = site.rng.matchingLocNear(GWU__namespace.xy.x(up), GWU__namespace.xy.y(up), isValidLoc);
                 if (needDown) {
-                    downLoc = GWU__namespace.rng.random.matchingLoc(site.width, site.height, (x, y) => {
+                    downLoc = site.rng.matchingLoc(site.width, site.height, (x, y) => {
                         if (
                         // @ts-ignore
                         GWU__namespace.xy.distanceBetween(x, y, upLoc[0], upLoc[1]) <
@@ -1833,9 +1868,9 @@
             else if (Array.isArray(this.options.down) &&
                 !Array.isArray(this.options.up)) {
                 const down = this.options.down;
-                downLoc = GWU__namespace.rng.random.matchingLocNear(GWU__namespace.xy.x(down), GWU__namespace.xy.y(down), isValidLoc);
+                downLoc = site.rng.matchingLocNear(GWU__namespace.xy.x(down), GWU__namespace.xy.y(down), isValidLoc);
                 if (needUp) {
-                    upLoc = GWU__namespace.rng.random.matchingLoc(site.width, site.height, (x, y) => {
+                    upLoc = site.rng.matchingLoc(site.width, site.height, (x, y) => {
                         if (GWU__namespace.xy.distanceBetween(x, y, downLoc[0], downLoc[1]) < minDistance)
                             return false;
                         return isValidLoc(x, y);
@@ -1843,9 +1878,9 @@
                 }
             }
             else if (needUp) {
-                upLoc = GWU__namespace.rng.random.matchingLoc(site.width, site.height, isValidLoc);
+                upLoc = site.rng.matchingLoc(site.width, site.height, isValidLoc);
                 if (needDown) {
-                    downLoc = GWU__namespace.rng.random.matchingLoc(site.width, site.height, (x, y) => {
+                    downLoc = site.rng.matchingLoc(site.width, site.height, (x, y) => {
                         if (
                         // @ts-ignore
                         GWU__namespace.xy.distanceBetween(x, y, upLoc[0], upLoc[1]) <
@@ -1856,7 +1891,7 @@
                 }
             }
             else if (needDown) {
-                downLoc = GWU__namespace.rng.random.matchingLoc(site.width, site.height, isValidLoc);
+                downLoc = site.rng.matchingLoc(site.width, site.height, isValidLoc);
             }
             if (upLoc) {
                 locations.up = upLoc.slice();
@@ -1903,7 +1938,7 @@
             return count == 1;
         }
         setupStairs(site, x, y, tile) {
-            const indexes = GWU__namespace.rng.random.sequence(4);
+            const indexes = site.rng.sequence(4);
             let dir = null;
             for (let i = 0; i < indexes.length; ++i) {
                 dir = GWU__namespace.xy.DIRS[i];
@@ -1993,7 +2028,7 @@
                 return false;
             }
             let count = 0;
-            const seq = GWU__namespace.rng.random.sequence(site.width * site.height);
+            const seq = site.rng.sequence(site.width * site.height);
             for (i = 0; i < seq.length; i++) {
                 x = Math.floor(seq[i] / site.height);
                 y = seq[i] % site.height;
@@ -2063,7 +2098,7 @@
                                     endY += dir[1];
                                 }
                                 // TODO - Door is optional
-                                const tile = GWU__namespace.rng.random.chance(this.options.doorChance)
+                                const tile = site.rng.chance(this.options.doorChance)
                                     ? DOOR
                                     : FLOOR;
                                 site.setTile(x, y, tile); // then turn the tile into a doorway.
@@ -2095,7 +2130,7 @@
         constructor(options = {}) {
             var _a, _b;
             this.seed = 0;
-            this.rooms = {};
+            this.rooms = { fails: 20 };
             this.doors = { chance: 15 };
             this.halls = { chance: 15 };
             this.loops = {};
@@ -2105,7 +2140,7 @@
             this.boundary = true;
             this.startLoc = [-1, -1];
             this.endLoc = [-1, -1];
-            this.seed = options.seed || GWU__namespace.rng.random.number();
+            this.seed = options.seed || 0;
             GWU__namespace.object.setOptions(this.rooms, options.rooms);
             // Doors
             if (options.doors === false) {
@@ -2165,8 +2200,10 @@
             this.startLoc = options.startLoc || [-1, -1];
             this.endLoc = options.endLoc || [-1, -1];
         }
-        _makeSite(width, height) {
-            return new GridSite(width, height);
+        _makeRoomSite(width, height) {
+            const site = new GridSite(width, height);
+            site.rng = this.site.rng;
+            return site;
         }
         create(...args) {
             if (args.length == 1 && args[0] instanceof GWM__namespace.map.Map) {
@@ -2206,12 +2243,21 @@
             if (!tries)
                 throw new Error('Failed to place first room!');
             site.updateDoorDirs();
+            // site.dump();
+            // console.log('- rng.number', site.rng.number());
             let fails = 0;
-            while (fails < 20) {
+            let count = 1;
+            const maxFails = this.rooms.fails || 20;
+            while (fails < maxFails) {
                 if (this.addRoom(site)) {
                     fails = 0;
                     site.updateDoorDirs();
-                    GWU__namespace.rng.random.shuffle(this.seq);
+                    site.rng.shuffle(this.seq);
+                    // site.dump();
+                    // console.log('- rng.number', site.rng.number());
+                    if (this.rooms.count && ++count >= this.rooms.count) {
+                        break; // we are done
+                    }
                 }
                 else {
                     ++fails;
@@ -2229,12 +2275,10 @@
             return true;
         }
         start(site) {
-            if (this.seed) {
-                GWU__namespace.rng.random.seed(this.seed);
-                site.seed = this.seed;
-            }
+            const seed = this.seed || GWU__namespace.rng.random.number();
+            site.setSeed(seed);
             site.clear();
-            this.seq = GWU__namespace.rng.random.sequence(site.width * site.height);
+            this.seq = site.rng.sequence(site.width * site.height);
         }
         getDigger(id) {
             if (!id)
@@ -2251,7 +2295,7 @@
             return new ChoiceRoom(id);
         }
         addFirstRoom(site) {
-            const roomSite = this._makeSite(site.width, site.height);
+            const roomSite = this._makeRoomSite(site.width, site.height);
             let digger = this.getDigger(this.rooms.first || this.rooms.digger || 'DEFAULT');
             let room = digger.create(roomSite);
             if (room &&
@@ -2263,7 +2307,7 @@
             return room;
         }
         addRoom(site) {
-            const roomSite = this._makeSite(site.width, site.height);
+            const roomSite = this._makeRoomSite(site.width, site.height);
             let digger = this.getDigger(this.rooms.digger || 'DEFAULT');
             let room = digger.create(roomSite);
             // attach hall?
@@ -2273,6 +2317,8 @@
                     room.hall = hall$1;
                 }
             }
+            // console.log('potential room');
+            // roomSite.dump();
             if (room && !this._attachRoom(site, roomSite, room)) {
                 room = null;
             }
@@ -2313,7 +2359,7 @@
         _attachRoomAtLoc(site, roomSite, room, attachLoc) {
             const [x, y] = attachLoc;
             const doorSites = room.hall ? room.hall.doors : room.doors;
-            const dirs = GWU__namespace.rng.random.sequence(4);
+            const dirs = site.rng.sequence(4);
             // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
             for (let dir of dirs) {
                 const oppDir = (dir + 2) % 4;
@@ -2370,14 +2416,14 @@
             // console.log('- YES');
             return true;
         }
-        _attachDoor(map, room, x, y, dir) {
+        _attachDoor(site, room, x, y, dir) {
             const opts = this.doors;
             let isDoor = false;
-            if (opts.chance && GWU__namespace.rng.random.chance(opts.chance)) {
+            if (opts.chance && site.rng.chance(opts.chance)) {
                 isDoor = true;
             }
             const tile = isDoor ? opts.tile || DOOR : FLOOR;
-            map.setTile(x, y, tile); // Door site.
+            site.setTile(x, y, tile); // Door site.
             // most cases...
             if (!room.hall || room.hall.width == 1 || room.hall.height == 1) {
                 return;
@@ -2387,15 +2433,15 @@
                 let k = 1;
                 while (didSomething) {
                     didSomething = false;
-                    if (map.isNothing(x - k, y)) {
-                        if (map.isSet(x - k, y - 1) && map.isSet(x - k, y + 1)) {
-                            map.setTile(x - k, y, tile);
+                    if (site.isNothing(x - k, y)) {
+                        if (site.isSet(x - k, y - 1) && site.isSet(x - k, y + 1)) {
+                            site.setTile(x - k, y, tile);
                             didSomething = true;
                         }
                     }
-                    if (map.isNothing(x + k, y)) {
-                        if (map.isSet(x + k, y - 1) && map.isSet(x + k, y + 1)) {
-                            map.setTile(x + k, y, tile);
+                    if (site.isNothing(x + k, y)) {
+                        if (site.isSet(x + k, y - 1) && site.isSet(x + k, y + 1)) {
+                            site.setTile(x + k, y, tile);
                             didSomething = true;
                         }
                     }
@@ -2407,15 +2453,15 @@
                 let k = 1;
                 while (didSomething) {
                     didSomething = false;
-                    if (map.isNothing(x, y - k)) {
-                        if (map.isSet(x - 1, y - k) && map.isSet(x + 1, y - k)) {
-                            map.setTile(x, y - k, tile);
+                    if (site.isNothing(x, y - k)) {
+                        if (site.isSet(x - 1, y - k) && site.isSet(x + 1, y - k)) {
+                            site.setTile(x, y - k, tile);
                             didSomething = true;
                         }
                     }
-                    if (map.isNothing(x, y + k)) {
-                        if (map.isSet(x - 1, y + k) && map.isSet(x + 1, y + k)) {
-                            map.setTile(x, y + k, tile);
+                    if (site.isNothing(x, y + k)) {
+                        if (site.isSet(x - 1, y + k) && site.isSet(x + 1, y + k)) {
+                            site.setTile(x, y + k, tile);
                             didSomething = true;
                         }
                     }
@@ -2458,7 +2504,7 @@
                                 site.blocksMove(i + k, j + 1) &&
                                 site.blocksDiagonal(i + k, j + 1) &&
                                 !site.blocksMove(i + (1 - k), j + 1)) {
-                                if (GWU__namespace.rng.random.chance(50)) {
+                                if (site.rng.chance(50)) {
                                     x1 = i + (1 - k);
                                     y1 = j;
                                 }
@@ -2568,7 +2614,6 @@
         getLevel(id, cb) {
             if (id < 0 || id > this.config.levels)
                 throw new Error('Invalid level id: ' + id);
-            GWU__namespace.rng.random.seed(this.seeds[id]);
             // Generate the level
             const [startLoc, endLoc] = this.stairLocs[id];
             const stairOpts = Object.assign({}, this.config.stairs);
@@ -2597,6 +2642,7 @@
                 rooms.first = rooms.entrance;
             }
             const levelOpts = {
+                seed: this.seeds[id],
                 loops: this.config.loops,
                 lakes: this.config.lakes,
                 bridges: this.config.bridges,
@@ -2621,7 +2667,7 @@
     }
 
     class BuildData {
-        constructor(map, depth) {
+        constructor(map, options = {}) {
             this.map = map;
             this.originX = -1;
             this.originY = -1;
@@ -2629,13 +2675,15 @@
             this.distance75 = -1;
             this.machineNumber = 0;
             this.depth = 0;
+            this.seed = 0;
             this.site = new MapSite(map);
             this.interior = GWU__namespace.grid.alloc(map.width, map.height);
             this.occupied = GWU__namespace.grid.alloc(map.width, map.height);
             this.viewMap = GWU__namespace.grid.alloc(map.width, map.height);
             this.distanceMap = GWU__namespace.grid.alloc(map.width, map.height);
             this.candidates = GWU__namespace.grid.alloc(map.width, map.height);
-            this.depth = depth;
+            this.depth = options.depth || 1;
+            this.seed = options.seed || 0;
         }
         free() {
             GWU__namespace.grid.free(this.interior);
@@ -2654,6 +2702,9 @@
             this.originY = originY;
             this.distance25 = 0;
             this.distance75 = 0;
+            if (this.seed) {
+                this.site.setSeed(this.seed);
+            }
         }
         calcDistances(maxSize) {
             this.distanceMap.fill(0);
@@ -2737,6 +2788,7 @@
         StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
         StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
         StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
+        StepFlags[StepFlags["BF_NO_BLOCK_ORIGIN"] = Fl$1(25)] = "BF_NO_BLOCK_ORIGIN";
         // TODO - BF_ALLOW_IN_HALLWAY instead?
         StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
         StepFlags[StepFlags["BF_ALLOW_BOUNDARY"] = Fl$1(28)] = "BF_ALLOW_BOUNDARY";
@@ -2753,6 +2805,7 @@
             this.horde = null;
             this.effect = null;
             this.chance = 0;
+            // public next: null = null;
             this.id = 'n/a';
             this.tile = (_a = cfg.tile) !== null && _a !== void 0 ? _a : -1;
             if (cfg.flags) {
@@ -2772,6 +2825,9 @@
             }
             if (this.buildAtOrigin && this.count.hi > 1) {
                 throw new Error('Cannot have count > 1 for step with BF_BUILD_AT_ORIGIN.');
+            }
+            if (this.buildAtOrigin && this.repeatUntilNoProgress) {
+                throw new Error('Cannot have BF_BUILD_AT_ORIGIN and BF_REPEAT_UNTIL_NO_PROGRESS together in a build step.');
             }
         }
         get allowBoundary() {
@@ -2793,7 +2849,11 @@
             return !!(this.flags & StepFlags.BF_PERMIT_BLOCKING);
         }
         get treatAsBlocking() {
-            return !!(this.flags & StepFlags.BF_TREAT_AS_BLOCKING);
+            return !!(this.flags &
+                (StepFlags.BF_TREAT_AS_BLOCKING | StepFlags.BF_NO_BLOCK_ORIGIN));
+        }
+        get noBlockOrigin() {
+            return !!(this.flags & StepFlags.BF_NO_BLOCK_ORIGIN);
         }
         get adoptItem() {
             return !!(this.flags & StepFlags.BF_ADOPT_ITEM);
@@ -2920,6 +2980,20 @@
             GWU__namespace.xy.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
             return false;
         }
+        // if (buildStep.noBlockOrigin) {
+        //     let ok = true;
+        //     GWU.xy.eachNeighbor(
+        //         x,
+        //         y,
+        //         (nx, ny) => {
+        //             if (nx === builder.originX && ny === builder.originY) {
+        //                 ok = false;
+        //             }
+        //         },
+        //         true
+        //     );
+        //     if (!ok) return false;
+        // }
         // No building along the perimeter of the level if it's prohibited.
         if ((x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1) &&
             !buildStep.allowBoundary) {
@@ -3077,7 +3151,7 @@
     //         } else {
     //             // Pick our candidate location randomly, and also strike it from
     //             // the candidates map so that subsequent instances of this same feature can't choose it.
-    //             [x, y] = GWU.rng.random.matchingLoc(
+    //             [x, y] = site.rng.matchingLoc(
     //                 candidates.width,
     //                 candidates.height,
     //                 (x, y) => candidates[x][y] > 0
@@ -3265,6 +3339,9 @@
                     throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.');
                 }
             }
+            if (opts.id) {
+                this.id = opts.id;
+            }
         }
         get isRoom() {
             return !!(this.flags & Flags.BP_ROOM);
@@ -3331,7 +3408,7 @@
             }
             return true;
         }
-        pickComponents() {
+        pickComponents(rng) {
             const alternativeFlags = [
                 StepFlags.BF_ALTERNATIVE,
                 StepFlags.BF_ALTERNATIVE_2,
@@ -3346,7 +3423,7 @@
                     }
                 }
                 if (totalFreq > 0) {
-                    let randIndex = GWU__namespace.rng.random.range(1, totalFreq);
+                    let randIndex = rng.range(1, totalFreq);
                     for (let i = 0; i < keepFeature.length; i++) {
                         if (this.steps[i].flags & alternativeFlags[j]) {
                             if (randIndex == 1) {
@@ -3388,7 +3465,7 @@
                 // If not, try again. If we've tried too many times already, abort.
                 let distanceMap = builder.distanceMap;
                 computeDistanceMap(site, distanceMap, builder.originX, builder.originY, this.size.hi);
-                const seq = GWU__namespace.rng.random.sequence(site.width * site.height);
+                const seq = site.rng.sequence(site.width * site.height);
                 let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
                 let goalSize = this.size.value(); // Keeps track of the goal size.
                 for (let k = 0; k < 1000 && qualifyingTileCount < goalSize; k++) {
@@ -3447,7 +3524,7 @@
     function pickCandidateLoc(buildData, _blueprint) {
         const site = buildData.site;
         const candidates = buildData.candidates;
-        const randSite = GWU__namespace.rng.random.matchingLoc(site.width, site.height, (x, y) => candidates[x][y] == 1);
+        const randSite = site.rng.matchingLoc(site.width, site.height, (x, y) => candidates[x][y] == 1);
         if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
             // If no suitable sites, abort.
             return null;
@@ -3538,10 +3615,10 @@
                 return roomSize;
         }
         let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-        const wantSize = blueprint.size.value(); // Keeps track of the goal size.
+        const wantSize = blueprint.size.value(site.rng); // Keeps track of the goal size.
         const distMap = builder.distanceMap;
         computeDistanceMap(site, distMap, builder.originX, builder.originY, blueprint.size.hi);
-        const cells = GWU__namespace.rng.random.sequence(site.width * site.height);
+        const cells = site.rng.sequence(site.width * site.height);
         success = true;
         for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
             for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
@@ -3757,14 +3834,19 @@
         blueprint.id = id;
         return blueprint;
     }
-    function random(requiredFlags, depth) {
+    function random(requiredFlags, depth, rng) {
         const matches = Object.values(blueprints).filter((b) => b.qualifies(requiredFlags) && b.frequency(depth));
-        return GWU__namespace.rng.random.item(matches);
+        rng = rng || GWU__namespace.rng.random;
+        return rng.item(matches);
     }
     function get(id) {
         if (id instanceof Blueprint)
             return id;
         return blueprints[id];
+    }
+    function make(config) {
+        // if (!config.id) throw new Error('id is required to make Blueprint.');
+        return new Blueprint(config);
     }
 
     class ConsoleLogger {
@@ -3781,20 +3863,23 @@
             console.groupEnd();
         }
         async onBlueprintStart(data, blueprint) {
-            console.log(`onBlueprintStart - ${blueprint.id} @ ${data.originX},${data.originY} : stepCount: ${blueprint.steps.length}, size: [${blueprint.size.toString()}], flags: ${GWU__namespace.flag.toString(Flags, blueprint.flags)}`);
+            console.group(`onBlueprintStart - ${blueprint.id} @ ${data.originX},${data.originY} : stepCount: ${blueprint.steps.length}, size: [${blueprint.size.toString()}], flags: ${GWU__namespace.flag.toString(Flags, blueprint.flags)}`);
         }
         async onBlueprintInterior(data, blueprint) {
-            console.log(`onBlueprintInterior - ${blueprint.id}`);
+            console.group(`onBlueprintInterior - ${blueprint.id}`);
             data.interior.dump();
+            console.groupEnd();
         }
         async onBlueprintFail(data, blueprint, error) {
             console.log(`onBlueprintFail - ${blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`);
+            console.groupEnd();
         }
         async onBlueprintSuccess(data, blueprint) {
             console.log(`onBlueprintSuccess - ${blueprint.id} @ ${data.originX},${data.originY}`);
+            console.groupEnd();
         }
         async onStepStart(data, blueprint, step) {
-            console.log(`onStepStart - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
+            console.group(`onStepStart - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
         }
         async onStepCandidates(data, blueprint, step, candidates, wantCount) {
             const haveCount = candidates.count((v) => v == 1);
@@ -3809,23 +3894,23 @@
         }
         async onStepSuccess(data, blueprint, step) {
             console.log(`onStepSuccess - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
+            console.groupEnd();
         }
         async onStepFail(data, blueprint, step, error) {
             console.log(`onStepFail - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : error : ${error}`);
+            console.groupEnd();
         }
     }
 
     class Builder {
         constructor(map, options = {}) {
-            this.data = new BuildData(map, options.depth || 1);
+            this.blueprints = null;
+            this.data = new BuildData(map, options);
             if (options.blueprints) {
                 if (!Array.isArray(options.blueprints)) {
                     options.blueprints = Object.values(options.blueprints);
                 }
                 this.blueprints = options.blueprints.map((v) => get(v));
-            }
-            else {
-                this.blueprints = Object.values(blueprints);
             }
             if (options.log === true) {
                 this.log = new ConsoleLogger();
@@ -3835,13 +3920,14 @@
             }
         }
         _pickRandom(requiredFlags) {
-            const weights = this.blueprints.map((b) => {
+            const blueprints$1 = this.blueprints || Object.values(blueprints);
+            const weights = blueprints$1.map((b) => {
                 if (!b.qualifies(requiredFlags))
                     return 0;
                 return b.frequency(this.data.depth);
             });
-            const index = GWU__namespace.rng.random.weighted(weights);
-            return this.blueprints[index] || null;
+            const index = this.data.map.rng.weighted(weights);
+            return blueprints$1[index] || null;
         }
         async buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
             const data = this.data;
@@ -3910,7 +3996,7 @@
                 return false;
             }
             // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
-            const levelBackup = data.site.backup();
+            const snapshot = data.site.snapshot();
             data.machineNumber = data.site.nextMachineId(); // Reserve this machine number, starting with 1.
             // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
             prepareInterior(data, blueprint);
@@ -3919,7 +4005,7 @@
             data.calcDistances(blueprint.size.hi);
             // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
             // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
-            const components = blueprint.pickComponents();
+            const components = blueprint.pickComponents(data.site.rng);
             // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
             // Now tick through the features and build them.
             for (let index = 0; index < components.length; index++) {
@@ -3928,8 +4014,8 @@
                 if (!(await this._buildStep(blueprint, component, adoptedItem))) {
                     // failure! abort!
                     // Restore the map to how it was before we touched it.
-                    data.site.restore(levelBackup);
                     await this.log.onBlueprintFail(data, blueprint, `Failed to build step ${index + 1}.`);
+                    snapshot.restore();
                     // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
                     return false;
                 }
@@ -3946,6 +4032,7 @@
             // 	torchBearer->carriedItem = torch;
             // }
             await this.log.onBlueprintSuccess(data, blueprint);
+            snapshot.cancel();
             // console.log('Built a machine from blueprint:', originX, originY);
             return true;
         }
@@ -4014,71 +4101,73 @@
             }
             // If we are just building a vestibule, then we can exit here...
             if (!buildStep.buildsInstances) {
+                await this.log.onStepSuccess(data, blueprint, buildStep);
                 return true;
             }
             const candidates = GWU__namespace.grid.alloc(site.width, site.height);
-            if (buildStep.buildAtOrigin) {
-                candidates[data.originX][data.originY] = 1;
-                qualifyingTileCount = 1;
-                wantCount = 1;
-            }
-            else {
-                qualifyingTileCount = buildStep.markCandidates(data, blueprint, candidates, distanceBound);
-                if (buildStep.generateEverywhere) {
-                    wantCount = qualifyingTileCount;
-                }
-                else {
-                    wantCount = buildStep.count.value();
-                }
-                await this.log.onStepCandidates(data, blueprint, buildStep, candidates, wantCount);
-                if (!qualifyingTileCount ||
-                    qualifyingTileCount < buildStep.count.lo) {
-                    await this.log.onStepFail(data, blueprint, buildStep, `Blueprint ${blueprint.id}, step ${blueprint.steps.indexOf(buildStep)} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`);
-                    return false;
-                }
-            }
-            let x = 0, y = 0;
-            let success = true;
-            while (qualifyingTileCount > 0 &&
-                (buildStep.generateEverywhere ||
-                    builtCount < wantCount ||
-                    buildStep.repeatUntilNoProgress)) {
-                success = true;
-                // Find a location for the feature.
+            let didSomething = false;
+            do {
+                didSomething = false;
                 if (buildStep.buildAtOrigin) {
-                    // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-                    x = data.originX;
-                    y = data.originY;
+                    candidates[data.originX][data.originY] = 1;
+                    qualifyingTileCount = 1;
+                    wantCount = 1;
                 }
                 else {
-                    // Pick our candidate location randomly, and also strike it from
-                    // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = GWU__namespace.rng.random.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+                    qualifyingTileCount = buildStep.markCandidates(data, blueprint, candidates, distanceBound);
+                    if (buildStep.generateEverywhere ||
+                        buildStep.repeatUntilNoProgress) {
+                        wantCount = qualifyingTileCount;
+                    }
+                    else {
+                        wantCount = buildStep.count.value(site.rng);
+                    }
+                    await this.log.onStepCandidates(data, blueprint, buildStep, candidates, wantCount);
+                    if (!qualifyingTileCount ||
+                        qualifyingTileCount < buildStep.count.lo) {
+                        await this.log.onStepFail(data, blueprint, buildStep, `Blueprint ${blueprint.id}, step ${blueprint.steps.indexOf(buildStep)} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`);
+                        return false;
+                    }
                 }
-                // Don't waste time trying the same place again whether or not this attempt succeeds.
-                candidates[x][y] = 0;
-                qualifyingTileCount--;
-                success = await this._buildStepInstance(blueprint, buildStep, x, y, adoptedItem);
-                if (success) {
-                    // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                    qualifyingTileCount -= makePersonalSpace(data, x, y, candidates, buildStep.pad);
-                    builtCount++; // we've placed an instance
+                let x = 0, y = 0;
+                while (qualifyingTileCount > 0 && builtCount < wantCount) {
+                    // Find a location for the feature.
+                    if (buildStep.buildAtOrigin) {
+                        // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+                        x = data.originX;
+                        y = data.originY;
+                    }
+                    else {
+                        // Pick our candidate location randomly, and also strike it from
+                        // the candidates map so that subsequent instances of this same feature can't choose it.
+                        [x, y] = this.data.map.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+                    }
+                    // Don't waste time trying the same place again whether or not this attempt succeeds.
+                    candidates[x][y] = 0;
+                    qualifyingTileCount--;
+                    const snapshot = data.site.snapshot();
+                    if (await this._buildStepInstance(blueprint, buildStep, x, y, adoptedItem)) {
+                        // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+                        qualifyingTileCount -= makePersonalSpace(data, x, y, candidates, buildStep.pad);
+                        builtCount++; // we've placed an instance
+                        didSomething = true;
+                        snapshot.cancel(); // This snapshot is useless b/c we made changes...
+                    }
+                    else {
+                        snapshot.restore(); // need to undo any changes...
+                    }
+                    // Finished with this instance!
                 }
-                // Finished with this instance!
-            }
+            } while (didSomething && buildStep.repeatUntilNoProgress);
             GWU__namespace.grid.free(candidates);
             if (!buildStep.count.contains(builtCount) &&
                 !buildStep.generateEverywhere &&
                 !buildStep.repeatUntilNoProgress) {
-                success = false;
                 await this.log.onStepFail(data, blueprint, buildStep, `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`);
+                return false;
             }
-            //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
-            //DEBUG logBuffer(candidates);
-            if (success) {
-                await this.log.onStepSuccess(data, blueprint, buildStep);
-            }
-            return success;
+            await this.log.onStepSuccess(data, blueprint, buildStep);
+            return true;
         }
         async _buildStepInstance(blueprint, buildStep, x, y, adoptedItem = null) {
             let success = true;
@@ -4087,7 +4176,16 @@
             const site = data.site;
             if (success && buildStep.treatAsBlocking) {
                 // Yes, check for blocking.
-                if (siteDisruptedByXY(site, x, y)) {
+                const options = {
+                    machine: site.machineCount,
+                };
+                if (buildStep.noBlockOrigin) {
+                    options.updateWalkable = (g) => {
+                        g[data.originX][data.originY] = 1;
+                        return true;
+                    };
+                }
+                if (siteDisruptedByXY(site, x, y, options)) {
                     await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'instance blocks map');
                     success = false;
                 }
@@ -4193,6 +4291,7 @@
         install: install,
         random: random,
         blueprints: blueprints,
+        make: make,
         BuildData: BuildData,
         NullLogger: NullLogger,
         get StepFlags () { return StepFlags; },

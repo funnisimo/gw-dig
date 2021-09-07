@@ -32,6 +32,7 @@ export enum Flags {
 }
 
 export interface BlueprintOptions {
+    id: string;
     tags: string | string[];
     frequency: GWU.frequency.FrequencyConfig;
     size: string | number[] | number;
@@ -77,6 +78,9 @@ export class Blueprint {
                     'Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.'
                 );
             }
+        }
+        if (opts.id) {
+            this.id = opts.id;
         }
     }
 
@@ -149,7 +153,7 @@ export class Blueprint {
         return true;
     }
 
-    pickComponents() {
+    pickComponents(rng: GWU.rng.Random) {
         const alternativeFlags = [
             STEP.StepFlags.BF_ALTERNATIVE,
             STEP.StepFlags.BF_ALTERNATIVE_2,
@@ -166,7 +170,7 @@ export class Blueprint {
                 }
             }
             if (totalFreq > 0) {
-                let randIndex = GWU.rng.random.range(1, totalFreq);
+                let randIndex = rng.range(1, totalFreq);
                 for (let i = 0; i < keepFeature.length; i++) {
                     if (this.steps[i].flags & alternativeFlags[j]) {
                         if (randIndex == 1) {
@@ -223,7 +227,7 @@ export class Blueprint {
                 this.size.hi
             );
 
-            const seq = GWU.rng.random.sequence(site.width * site.height);
+            const seq = site.rng.sequence(site.width * site.height);
             let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
             let goalSize = this.size.value(); // Keeps track of the goal size.
 
@@ -425,7 +429,7 @@ export function pickCandidateLoc(
     const site = buildData.site;
     const candidates = buildData.candidates;
 
-    const randSite = GWU.rng.random.matchingLoc(
+    const randSite = site.rng.matchingLoc(
         site.width,
         site.height,
         (x, y) => candidates[x][y] == 1
@@ -544,7 +548,7 @@ export function computeVestibuleInterior(
     }
 
     let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-    const wantSize = blueprint.size.value(); // Keeps track of the goal size.
+    const wantSize = blueprint.size.value(site.rng); // Keeps track of the goal size.
 
     const distMap = builder.distanceMap;
     SITE.computeDistanceMap(
@@ -555,7 +559,7 @@ export function computeVestibuleInterior(
         blueprint.size.hi
     );
 
-    const cells = GWU.rng.random.sequence(site.width * site.height);
+    const cells = site.rng.sequence(site.width * site.height);
     success = true;
     for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
         for (
@@ -817,14 +821,24 @@ export function install(
     return blueprint;
 }
 
-export function random(requiredFlags: number, depth: number): Blueprint {
+export function random(
+    requiredFlags: number,
+    depth: number,
+    rng?: GWU.rng.Random
+): Blueprint {
     const matches = Object.values(blueprints).filter(
         (b) => b.qualifies(requiredFlags) && b.frequency(depth)
     );
-    return GWU.rng.random.item(matches);
+    rng = rng || GWU.rng.random;
+    return rng.item(matches);
 }
 
 export function get(id: string | Blueprint): Blueprint {
     if (id instanceof Blueprint) return id;
     return blueprints[id];
+}
+
+export function make(config: Partial<BlueprintOptions>): Blueprint {
+    // if (!config.id) throw new Error('id is required to make Blueprint.');
+    return new Blueprint(config);
 }

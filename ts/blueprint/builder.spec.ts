@@ -5,7 +5,18 @@ import * as ROOM from '../room';
 import { Level } from '../level';
 
 describe('Builder', () => {
-    test('Build Vestiblue', async () => {
+    test('seeding map', async () => {
+        const map = GWM.map.make(80, 34, { visible: true, seed: 23456 });
+        expect(map.seed).toEqual(23456);
+
+        const builder = new BLUE.Builder(map, { seed: 12345 });
+        expect(map.seed).toEqual(23456);
+
+        builder.data.reset(0, 0);
+        expect(map.seed).toEqual(12345);
+    });
+
+    test.only('Build Vestiblue', async () => {
         const map = GWM.map.make(80, 34, { visible: true });
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
         ROOM.install('ENTRANCE', new ROOM.BrogueEntrance());
@@ -23,7 +34,7 @@ describe('Builder', () => {
         });
         level.create(map);
 
-        GWM.map.analyze(map);
+        // GWM.map.analyze(map);
 
         BLUE.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',
@@ -47,15 +58,15 @@ describe('Builder', () => {
 
         const builder = new BLUE.Builder(map);
 
-        const result = await builder.build(blue, 57, 7);
+        const result = await builder.build(blue, 61, 8);
 
         // map.dump();
 
         expect(result).toBeTruthy();
 
-        expect(map.hasTile(57, 7, 'DOOR')).toBeTruthy();
+        expect(map.hasTile(61, 8, 'DOOR')).toBeTruthy();
 
-        expect(map.cell(57, 7).chokeCount).toEqual(36);
+        expect(map.cell(61, 8).chokeCount).toEqual(45);
     });
 
     test('Vestibule with Wall Lever', async () => {
