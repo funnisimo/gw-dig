@@ -470,6 +470,13 @@ class GridSite {
     dump() {
         this.tiles.dump();
     }
+    drawInto(buffer) {
+        buffer.blackOut();
+        this.tiles.forEach((t, x, y) => {
+            const tile = GWM.tile.get(t);
+            buffer.drawSprite(x, y, tile.sprite);
+        });
+    }
     setSeed(seed) {
         this.rng.seed(seed);
     }
@@ -649,6 +656,9 @@ class MapSite {
     }
     dump() {
         this.map.dump();
+    }
+    drawInto(buffer) {
+        this.map.drawInto(buffer);
     }
     hasXY(x, y) {
         return this.map.hasXY(x, y);
@@ -3218,8 +3228,8 @@ class ConsoleLogger {
         site.dump();
         console.groupEnd();
     }
-    async onRoomCandidate(roomSite) {
-        console.group('room candidate');
+    async onRoomCandidate(room, roomSite) {
+        console.group('room candidate: ' + room.toString());
         roomSite.dump();
         console.groupEnd();
     }
@@ -3508,7 +3518,7 @@ class Digger {
         // console.log('potential room');
         // roomSite.dump();
         if (room) {
-            await this.log.onRoomCandidate(roomSite);
+            await this.log.onRoomCandidate(room, roomSite);
             if (this._attachRoom(site, roomSite, room)) {
                 await this.log.onRoomSuccess(site, room);
             }
@@ -4340,10 +4350,72 @@ var index$1 = /*#__PURE__*/Object.freeze({
     Builder: Builder
 });
 
+class Visualizer {
+    constructor(dest, io) {
+        this.dest = dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
+        this.io = io || GWU.loop;
+    }
+    async onDigFirstRoom(site) {
+        site.drawInto(this.dest);
+        this.dest.drawText(0, 0, 'First Room', 'yellow');
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onRoomCandidate(room, roomSite) {
+        roomSite.drawInto(this.dest);
+        this.dest.drawText(0, 0, 'Room Candidate', 'yellow');
+        if (room.doors) {
+            room.doors.forEach((loc) => {
+                if (!loc || loc[0] < 0)
+                    return;
+                this.dest.drawSprite(loc[0], loc[1], GWM.tile.tiles.DOOR.sprite);
+            });
+        }
+        if (room.hall && room.hall.doors) {
+            room.hall.doors.forEach((loc) => {
+                if (!loc || loc[0] < 0)
+                    return;
+                this.dest.drawSprite(loc[0], loc[1], GWM.tile.tiles.DOOR.sprite);
+            });
+        }
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onRoomFailed(_site, _room, _roomSite, error) {
+        this.dest.drawText(0, 0, error, 'red');
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onRoomSuccess(site, room) {
+        site.drawInto(this.dest);
+        this.dest.drawText(0, 0, 'Room: ' + room.toString(), 'yellow');
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onLoopsAdded(_site) { }
+    async onLakesAdded(_site) { }
+    async onBridgesAdded(_site) { }
+    async onStairsAdded(_site) { }
+    async onBuildError(_data, _error) { }
+    async onBlueprintPick(_data, _blueprint, _flags, _depth) { }
+    async onBlueprintCandidates(_data, _blueprint) { }
+    async onBlueprintStart(_data, _blueprint, _adoptedItem) { }
+    async onBlueprintInterior(_data, _blueprint) { }
+    async onBlueprintFail(_data, _blueprint, _error) { }
+    async onBlueprintSuccess(_data, _blueprint) { }
+    async onStepStart(_data, _blueprint, _step, _item) { }
+    async onStepCandidates(_data, _blueprint, _step, _candidates, _wantCount) { }
+    async onStepInstanceSuccess(_data, _blueprint, _step, _x, _y) { }
+    async onStepInstanceFail(_data, _blueprint, _step, _x, _y, _error) { }
+    async onStepSuccess(_data, _blueprint, _step) { }
+    async onStepFail(_data, _blueprint, _step, _error) { }
+}
+
 var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
     NullLogger: NullLogger,
-    ConsoleLogger: ConsoleLogger
+    ConsoleLogger: ConsoleLogger,
+    Visualizer: Visualizer
 });
 
 export { Digger, Dungeon, Hall, Room, index$1 as blueprint, bridge, hall, lake, index as log, loop, makeHall, room, index$2 as site, stairs };

@@ -25,6 +25,13 @@ export class GridSite implements DIG.DigSite {
     dump() {
         this.tiles.dump();
     }
+    drawInto(buffer: GWU.canvas.Buffer): void {
+        buffer.blackOut();
+        this.tiles.forEach((t, x, y) => {
+            const tile = GWM.tile.get(t);
+            buffer.drawSprite(x, y, tile.sprite);
+        });
+    }
 
     setSeed(seed: number) {
         this.rng.seed(seed);

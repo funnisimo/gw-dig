@@ -22,6 +22,7 @@ interface DigSite {
     free(): void;
     clear(): void;
     dump(): void;
+    drawInto(buffer: GWU.canvas.Buffer): void;
     setSeed(seed: number): void;
     hasXY: GWU.xy.XYMatchFunc;
     isBoundaryXY: GWU.xy.XYMatchFunc;
@@ -98,6 +99,7 @@ declare class GridSite implements DigSite {
     free(): void;
     clear(): void;
     dump(): void;
+    drawInto(buffer: GWU.canvas.Buffer): void;
     setSeed(seed: number): void;
     get width(): number;
     get height(): number;
@@ -152,6 +154,7 @@ declare class MapSite implements BuildSite {
     get width(): number;
     get height(): number;
     dump(): void;
+    drawInto(buffer: GWU.canvas.Buffer): void;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
     hasCellFlag(x: number, y: number, flag: number): boolean;
@@ -732,7 +735,7 @@ declare function make(config: Partial<BlueprintOptions>): Blueprint;
 
 interface Logger {
     onDigFirstRoom(site: DigSite): Promise<any>;
-    onRoomCandidate(roomSite: DigSite): Promise<any>;
+    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
     onRoomFailed(site: DigSite, room: Room, roomSite: DigSite, error: string): Promise<any>;
     onRoomSuccess(site: DigSite, room: Room): Promise<any>;
     onLoopsAdded(site: DigSite): Promise<any>;
@@ -949,7 +952,7 @@ declare namespace index_d$1 {
 
 declare class ConsoleLogger implements Logger {
     onDigFirstRoom(site: DigSite): Promise<void>;
-    onRoomCandidate(roomSite: DigSite): Promise<any>;
+    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
     onRoomFailed(_site: DigSite, _room: Room, _roomSite: DigSite, error: string): Promise<any>;
     onRoomSuccess(site: DigSite, room: Room): Promise<any>;
     onLoopsAdded(_site: DigSite): Promise<any>;
@@ -971,16 +974,46 @@ declare class ConsoleLogger implements Logger {
     onStepFail(data: BuildData, blueprint: Blueprint, step: BuildStep, error: string): Promise<void>;
 }
 
+declare class Visualizer implements Logger {
+    dest: GWU.canvas.Buffer;
+    io: GWU.io.Loop;
+    constructor(dest: GWU.canvas.Canvas | GWU.canvas.Buffer, io?: GWU.io.Loop);
+    onDigFirstRoom(site: DigSite): Promise<any>;
+    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
+    onRoomFailed(_site: DigSite, _room: Room, _roomSite: DigSite, error: string): Promise<any>;
+    onRoomSuccess(site: DigSite, room: Room): Promise<any>;
+    onLoopsAdded(_site: DigSite): Promise<any>;
+    onLakesAdded(_site: DigSite): Promise<any>;
+    onBridgesAdded(_site: DigSite): Promise<any>;
+    onStairsAdded(_site: DigSite): Promise<any>;
+    onBuildError(_data: BuildData, _error: string): Promise<any>;
+    onBlueprintPick(_data: BuildData, _blueprint: Blueprint, _flags: number, _depth: number): Promise<any>;
+    onBlueprintCandidates(_data: BuildData, _blueprint: Blueprint): Promise<any>;
+    onBlueprintStart(_data: BuildData, _blueprint: Blueprint, _adoptedItem: GWM.item.Item | null): Promise<any>;
+    onBlueprintInterior(_data: BuildData, _blueprint: Blueprint): Promise<any>;
+    onBlueprintFail(_data: BuildData, _blueprint: Blueprint, _error: string): Promise<any>;
+    onBlueprintSuccess(_data: BuildData, _blueprint: Blueprint): Promise<any>;
+    onStepStart(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, _item: GWM.item.Item | null): Promise<any>;
+    onStepCandidates(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, _candidates: GWU.grid.NumGrid, _wantCount: number): Promise<any>;
+    onStepInstanceSuccess(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, _x: number, _y: number): Promise<any>;
+    onStepInstanceFail(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, _x: number, _y: number, _error: string): Promise<any>;
+    onStepSuccess(_data: BuildData, _blueprint: Blueprint, _step: BuildStep): Promise<any>;
+    onStepFail(_data: BuildData, _blueprint: Blueprint, _step: BuildStep, _error: string): Promise<any>;
+}
+
 type index_d_Logger = Logger;
 type index_d_NullLogger = NullLogger;
 declare const index_d_NullLogger: typeof NullLogger;
 type index_d_ConsoleLogger = ConsoleLogger;
 declare const index_d_ConsoleLogger: typeof ConsoleLogger;
+type index_d_Visualizer = Visualizer;
+declare const index_d_Visualizer: typeof Visualizer;
 declare namespace index_d {
   export {
     index_d_Logger as Logger,
     index_d_NullLogger as NullLogger,
     index_d_ConsoleLogger as ConsoleLogger,
+    index_d_Visualizer as Visualizer,
   };
 }
 

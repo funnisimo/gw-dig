@@ -64,13 +64,6 @@ Now, lets generate a new dungeon...
 
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
-const digger = new GWD.Digger({
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
-    doors: { chance: 0 },
-    loops: false,
-    lakes: false,
-});
-const builder = new GWD.blueprint.Builder(map);
 
 const canvas = GWU.canvas.make({
     font: 'monospace',
@@ -84,12 +77,24 @@ SHOW(canvas.node);
 // canvas.render();
 const buffer = canvas.buffer;
 
+const digger = new GWD.Digger({
+    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+    log: new GWD.log.Visualizer(canvas, LOOP),
+});
+
 let elapsed = 0;
+
+const builder = new GWD.blueprint.Builder(map, {});
 
 async function buildMap() {
     buffer.blackOut();
     buffer.drawText(0, 0, 'Building Level', 'yellow');
     buffer.render();
+
+    await LOOP.nextKeyPress();
 
     let start = Date.now();
 
@@ -100,6 +105,7 @@ async function buildMap() {
 }
 
 let carried = null;
+let draw = false;
 
 LOOP.run(
     {
@@ -118,14 +124,24 @@ LOOP.run(
             if (carried.isDestroyed) {
                 carried = null;
             }
+            draw = true;
         },
         tick: async (e) => {
             await map.tick();
+            draw = true;
         },
         draw: () => {
-            map.drawInto(buffer);
-            buffer.drawText(0, 0, 'Elapsed: ' + Math.floor(elapsed), 'yellow');
-            buffer.render();
+            if (draw) {
+                draw = false;
+                map.drawInto(buffer);
+                buffer.drawText(
+                    0,
+                    0,
+                    'Elapsed: ' + Math.floor(elapsed),
+                    'yellow'
+                );
+                buffer.render();
+            }
         },
     },
     200

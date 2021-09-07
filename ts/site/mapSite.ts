@@ -69,6 +69,9 @@ export class MapSite implements BUILD.BuildSite {
     dump() {
         this.map.dump();
     }
+    drawInto(buffer: GWU.canvas.Buffer): void {
+        this.map.drawInto(buffer);
+    }
 
     hasXY(x: number, y: number): boolean {
         return this.map.hasXY(x, y);

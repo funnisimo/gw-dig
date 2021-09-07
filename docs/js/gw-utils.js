@@ -4193,7 +4193,7 @@ void main() {
             return this;
         }
         copy(other) {
-            this.ch = other.ch;
+            this.ch = other.ch || 0;
             this.fg.copy(other.fg);
             this.bg.copy(other.bg);
             return this._changed();

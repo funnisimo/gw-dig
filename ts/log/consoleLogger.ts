@@ -13,8 +13,8 @@ export class ConsoleLogger implements Logger {
         console.groupEnd();
     }
 
-    async onRoomCandidate(roomSite: DigSite): Promise<any> {
-        console.group('room candidate');
+    async onRoomCandidate(room: Room, roomSite: DigSite): Promise<any> {
+        console.group('room candidate: ' + room.toString());
         roomSite.dump();
         console.groupEnd();
     }

@@ -9,7 +9,7 @@ import { BuildStep } from '../blueprint/buildStep';
 
 export interface Logger {
     onDigFirstRoom(site: DigSite): Promise<any>;
-    onRoomCandidate(roomSite: DigSite): Promise<any>;
+    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
     onRoomFailed(
         site: DigSite,
         room: Room,

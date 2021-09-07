@@ -298,7 +298,7 @@ export class Digger {
         // roomSite.dump();
 
         if (room) {
-            await this.log.onRoomCandidate(roomSite);
+            await this.log.onRoomCandidate(room, roomSite);
 
             if (this._attachRoom(site, roomSite, room)) {
                 await this.log.onRoomSuccess(site, room);
