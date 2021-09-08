@@ -1,6 +1,8 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 import * as GWD from '..';
+import { BuildData } from '.';
+import { MapSite } from '../site';
 
 describe('inPassableViewOfOrigin', () => {
     let candidates: GWU.grid.NumGrid;
@@ -51,12 +53,12 @@ describe('inPassableViewOfOrigin', () => {
                 {
                     tile: 'PORTCULLIS_CLOSED',
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'WALL_LEVER',
                     flags:
-                        'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL, BF_NOT_IN_HALLWAYS',
+                        'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAYS',
                 },
             ],
         });
@@ -69,11 +71,11 @@ describe('inPassableViewOfOrigin', () => {
 
         // map.dump();
 
-        const builder = new GWD.blueprint.Builder(map);
+        const builder = new GWD.blueprint.Builder();
 
-        expect(await builder.build(room, 73, 14)).toBeTruthy();
+        expect(await builder.build(map, room, 73, 14)).toBeTruthy();
 
-        const data = builder.data;
+        const data = new BuildData(new MapSite(map), vestibule);
         data.originX = 73;
         data.originY = 14;
         vestibule.fillInterior(data);
@@ -84,7 +86,7 @@ describe('inPassableViewOfOrigin', () => {
         candidates = GWU.grid.alloc(map.width, map.height);
 
         const leverStep = vestibule.steps[1];
-        leverStep.markCandidates(builder.data, vestibule, candidates);
+        leverStep.markCandidates(data, candidates);
 
         // data.interior.dump();
         // candidates.dump();

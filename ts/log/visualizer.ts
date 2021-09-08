@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
-import { BuildData, Blueprint, BuildStep } from '../blueprint';
+import { BuildData, BuildStep } from '../blueprint';
 import { DigSite } from '../site';
 import { Room } from '../types';
 import { Logger } from './logger';
@@ -69,71 +69,47 @@ export class Visualizer implements Logger {
     async onBridgesAdded(_site: DigSite): Promise<any> {}
     async onStairsAdded(_site: DigSite): Promise<any> {}
 
-    async onBuildError(_data: BuildData, _error: string): Promise<any> {}
+    async onBuildError(_error: string): Promise<any> {}
     async onBlueprintPick(
         _data: BuildData,
-        _blueprint: Blueprint,
         _flags: number,
         _depth: number
     ): Promise<any> {}
-    async onBlueprintCandidates(
-        _data: BuildData,
-        _blueprint: Blueprint
-    ): Promise<any> {}
+    async onBlueprintCandidates(_data: BuildData): Promise<any> {}
     async onBlueprintStart(
         _data: BuildData,
-        _blueprint: Blueprint,
         _adoptedItem: GWM.item.Item | null
     ): Promise<any> {}
-    async onBlueprintInterior(
-        _data: BuildData,
-        _blueprint: Blueprint
-    ): Promise<any> {}
-    async onBlueprintFail(
-        _data: BuildData,
-        _blueprint: Blueprint,
-        _error: string
-    ): Promise<any> {}
-    async onBlueprintSuccess(
-        _data: BuildData,
-        _blueprint: Blueprint
-    ): Promise<any> {}
+    async onBlueprintInterior(_data: BuildData): Promise<any> {}
+    async onBlueprintFail(_data: BuildData, _error: string): Promise<any> {}
+    async onBlueprintSuccess(_data: BuildData): Promise<any> {}
     async onStepStart(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         _item: GWM.item.Item | null
     ): Promise<any> {}
     async onStepCandidates(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         _candidates: GWU.grid.NumGrid,
         _wantCount: number
     ): Promise<any> {}
     async onStepInstanceSuccess(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         _x: number,
         _y: number
     ): Promise<any> {}
     async onStepInstanceFail(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         _x: number,
         _y: number,
         _error: string
     ): Promise<any> {}
-    async onStepSuccess(
-        _data: BuildData,
-        _blueprint: Blueprint,
-        _step: BuildStep
-    ): Promise<any> {}
+    async onStepSuccess(_data: BuildData, _step: BuildStep): Promise<any> {}
     async onStepFail(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         _error: string
     ): Promise<any> {}

@@ -27,7 +27,7 @@ describe('Builder', () => {
         });
         digger.create(map);
 
-        builder = new BLUE.Builder(map);
+        builder = new BLUE.Builder();
     });
 
     test('Build Item', async () => {
@@ -41,10 +41,10 @@ describe('Builder', () => {
         const blue = BLUE.install('ROOM', {
             flags: 'BP_ROOM',
             size: '10-100',
-            steps: [{ item: 'SHOVEL', flags: 'BF_FAR_FROM_ORIGIN' }],
+            steps: [{ item: 'SHOVEL', flags: 'BS_FAR_FROM_ORIGIN' }],
         });
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 

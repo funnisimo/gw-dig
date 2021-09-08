@@ -41,12 +41,12 @@ describe('buildStep - noBlockOrigin', () => {
                 {
                     tile: 'DOOR',
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'TRAP',
                     flags:
-                        'BF_REPEAT_UNTIL_NO_PROGRESS, BF_TREAT_AS_BLOCKING, BF_NO_BLOCK_ORIGIN',
+                        'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
                 },
             ],
         });
@@ -55,19 +55,19 @@ describe('buildStep - noBlockOrigin', () => {
             id: 'ROOM',
             flags: 'BP_ROOM',
             size: '10-100',
-            steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+            steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
 
         await digger.create(map);
-        const builder = new GWD.blueprint.Builder(map, {
-            seed: 12345,
+        const builder = new GWD.blueprint.Builder({
             // log: true,
             blueprints: [vestibule, room],
         });
 
-        const result = await builder.build(room);
+        map.seed = 12345;
+        const result = await builder.build(map, room);
 
         // map.dump();
         expect(result).toBeTruthy();

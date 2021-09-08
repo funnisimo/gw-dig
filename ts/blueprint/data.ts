@@ -1,36 +1,31 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
 import * as SITE from '../site';
-
-export interface DataOptions {
-    depth: number;
-    seed: number;
-}
+import { Blueprint } from './blueprint';
 
 export class BuildData {
-    public site: SITE.MapSite;
-    public interior: GWU.grid.NumGrid;
-    public occupied: GWU.grid.NumGrid;
-    public candidates: GWU.grid.NumGrid;
-    public viewMap: GWU.grid.NumGrid;
-    public distanceMap: GWU.grid.NumGrid;
-    public originX: number = -1;
-    public originY: number = -1;
-    public distance25: number = -1;
-    public distance75: number = -1;
-    public machineNumber = 0;
-    public depth = 0;
-    public seed = 0;
+    site: SITE.BuildSite;
+    blueprint: Blueprint;
+    interior: GWU.grid.NumGrid;
+    occupied: GWU.grid.NumGrid;
+    candidates: GWU.grid.NumGrid;
+    viewMap: GWU.grid.NumGrid;
+    distanceMap: GWU.grid.NumGrid;
+    originX: number = -1;
+    originY: number = -1;
+    distance25: number = -1;
+    distance75: number = -1;
+    machineNumber = 0;
+    depth = 0;
+    seed = 0;
 
-    constructor(public map: GWM.map.Map, options: Partial<DataOptions> = {}) {
-        this.site = new SITE.MapSite(map);
-        this.interior = GWU.grid.alloc(map.width, map.height);
-        this.occupied = GWU.grid.alloc(map.width, map.height);
-        this.viewMap = GWU.grid.alloc(map.width, map.height);
-        this.distanceMap = GWU.grid.alloc(map.width, map.height);
-        this.candidates = GWU.grid.alloc(map.width, map.height);
-        this.depth = options.depth || 1;
-        this.seed = options.seed || 0;
+    constructor(site: SITE.BuildSite, blueprint: Blueprint) {
+        this.site = site;
+        this.blueprint = blueprint;
+        this.interior = GWU.grid.alloc(site.width, site.height);
+        this.occupied = GWU.grid.alloc(site.width, site.height);
+        this.viewMap = GWU.grid.alloc(site.width, site.height);
+        this.distanceMap = GWU.grid.alloc(site.width, site.height);
+        this.candidates = GWU.grid.alloc(site.width, site.height);
     }
 
     free() {
@@ -39,6 +34,10 @@ export class BuildData {
         GWU.grid.free(this.viewMap);
         GWU.grid.free(this.distanceMap);
         GWU.grid.free(this.candidates);
+    }
+
+    get rng(): GWU.rng.Random {
+        return this.site.rng;
     }
 
     reset(originX: number, originY: number) {

@@ -49,6 +49,9 @@ export class MapSite implements BUILD.BuildSite {
     get rng(): GWU.rng.Random {
         return this.map.rng;
     }
+    get depth(): number {
+        return this.map.properties.depth || 0;
+    }
     // get seed() {
     //     return this.map.seed;
     // }
@@ -66,6 +69,9 @@ export class MapSite implements BUILD.BuildSite {
         return this.map.height;
     }
 
+    free() {
+        GWU.grid.free(this.doors);
+    }
     dump() {
         this.map.dump();
     }
@@ -245,10 +251,6 @@ export class MapSite implements BUILD.BuildSite {
 
     snapshot(): MapSnapshot {
         return new MapSnapshot(this, this.snapshots.takeNew());
-    }
-
-    free() {
-        GWU.grid.free(this.doors);
     }
 
     getChokeCount(x: number, y: number): number {

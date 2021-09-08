@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import { Room } from '../types';
 import { DigSite } from '../site/digSite';
-import { Blueprint, Flags } from '../blueprint/blueprint';
+import { Flags } from '../blueprint/blueprint';
 import { Logger } from './logger';
 import { BuildData } from '../blueprint/data';
 import { BuildStep, StepFlags } from '../blueprint/buildStep';
@@ -49,19 +49,14 @@ export class ConsoleLogger implements Logger {
 
     //
 
-    async onBuildError(_data: BuildData, error: string) {
+    async onBuildError(error: string) {
         console.log(`onBuildError - error: ${error}`);
     }
 
-    async onBlueprintPick(
-        _data: BuildData,
-        blueprint: Blueprint,
-        flags: number,
-        depth: number
-    ) {
+    async onBlueprintPick(data: BuildData, flags: number, depth: number) {
         console.log(
             `onBlueprintPick - ${
-                blueprint.id
+                data.blueprint.id
             }, depth = ${depth}, matchingFlags = ${GWU.flag.toString(
                 Flags,
                 flags
@@ -69,55 +64,51 @@ export class ConsoleLogger implements Logger {
         );
     }
 
-    async onBlueprintCandidates(data: BuildData, blueprint: Blueprint) {
-        const label = `onBlueprintCandidates - ${blueprint.id}`;
+    async onBlueprintCandidates(data: BuildData) {
+        const label = `onBlueprintCandidates - ${data.blueprint.id}`;
         console.group(label);
         data.candidates.dump();
         console.groupEnd();
     }
 
-    async onBlueprintStart(data: BuildData, blueprint: Blueprint) {
+    async onBlueprintStart(data: BuildData) {
         console.group(
-            `onBlueprintStart - ${blueprint.id} @ ${data.originX},${
+            `onBlueprintStart - ${data.blueprint.id} @ ${data.originX},${
                 data.originY
             } : stepCount: ${
-                blueprint.steps.length
-            }, size: [${blueprint.size.toString()}], flags: ${GWU.flag.toString(
+                data.blueprint.steps.length
+            }, size: [${data.blueprint.size.toString()}], flags: ${GWU.flag.toString(
                 Flags,
-                blueprint.flags
+                data.blueprint.flags
             )}`
         );
     }
 
-    async onBlueprintInterior(data: BuildData, blueprint: Blueprint) {
-        console.group(`onBlueprintInterior - ${blueprint.id}`);
+    async onBlueprintInterior(data: BuildData) {
+        console.group(`onBlueprintInterior - ${data.blueprint.id}`);
         data.interior.dump();
         console.groupEnd();
     }
 
-    async onBlueprintFail(
-        data: BuildData,
-        blueprint: Blueprint,
-        error: string
-    ) {
+    async onBlueprintFail(data: BuildData, error: string) {
         console.log(
-            `onBlueprintFail - ${blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`
+            `onBlueprintFail - ${data.blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`
         );
         console.groupEnd();
     }
 
-    async onBlueprintSuccess(data: BuildData, blueprint: Blueprint) {
+    async onBlueprintSuccess(data: BuildData) {
         console.log(
-            `onBlueprintSuccess - ${blueprint.id} @ ${data.originX},${data.originY}`
+            `onBlueprintSuccess - ${data.blueprint.id} @ ${data.originX},${data.originY}`
         );
         console.groupEnd();
     }
 
-    async onStepStart(data: BuildData, blueprint: Blueprint, step: BuildStep) {
+    async onStepStart(data: BuildData, step: BuildStep) {
         console.group(
-            `onStepStart - ${blueprint.id}[${
-                blueprint.steps.indexOf(step) + 1
-            }/${blueprint.steps.length}] @ ${data.originX},${
+            `onStepStart - ${data.blueprint.id}[${
+                data.blueprint.steps.indexOf(step) + 1
+            }/${data.blueprint.steps.length}] @ ${data.originX},${
                 data.originY
             } : count: [${step.count.toString()}], flags: ${GWU.flag.toString(
                 StepFlags,
@@ -128,16 +119,15 @@ export class ConsoleLogger implements Logger {
 
     async onStepCandidates(
         data: BuildData,
-        blueprint: Blueprint,
         step: BuildStep,
         candidates: GWU.grid.NumGrid,
         wantCount: number
     ) {
         const haveCount = candidates.count((v) => v == 1);
         console.log(
-            `onStepCandidates - ${blueprint.id}[${
-                blueprint.steps.indexOf(step) + 1
-            }/${blueprint.steps.length}] @ ${data.originX},${
+            `onStepCandidates - ${data.blueprint.id}[${
+                data.blueprint.steps.indexOf(step) + 1
+            }/${data.blueprint.steps.length}] @ ${data.originX},${
                 data.originY
             } : wantCount: ${wantCount}, have: ${haveCount}`
         );
@@ -146,7 +136,6 @@ export class ConsoleLogger implements Logger {
 
     async onStepInstanceSuccess(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         x: number,
         y: number
@@ -156,7 +145,6 @@ export class ConsoleLogger implements Logger {
 
     async onStepInstanceFail(
         _data: BuildData,
-        _blueprint: Blueprint,
         _step: BuildStep,
         x: number,
         y: number,
@@ -165,15 +153,11 @@ export class ConsoleLogger implements Logger {
         console.log(`onStepInstanceFail @ ${x},${y} - error: ${error}`);
     }
 
-    async onStepSuccess(
-        data: BuildData,
-        blueprint: Blueprint,
-        step: BuildStep
-    ) {
+    async onStepSuccess(data: BuildData, step: BuildStep) {
         console.log(
-            `onStepSuccess - ${blueprint.id}[${
-                blueprint.steps.indexOf(step) + 1
-            }/${blueprint.steps.length}] @ ${data.originX},${
+            `onStepSuccess - ${data.blueprint.id}[${
+                data.blueprint.steps.indexOf(step) + 1
+            }/${data.blueprint.steps.length}] @ ${data.originX},${
                 data.originY
             } : count: [${step.count.toString()}], flags: ${GWU.flag.toString(
                 StepFlags,
@@ -183,16 +167,11 @@ export class ConsoleLogger implements Logger {
         console.groupEnd();
     }
 
-    async onStepFail(
-        data: BuildData,
-        blueprint: Blueprint,
-        step: BuildStep,
-        error: string
-    ) {
+    async onStepFail(data: BuildData, step: BuildStep, error: string) {
         console.log(
-            `onStepFail - ${blueprint.id}[${
-                blueprint.steps.indexOf(step) + 1
-            }/${blueprint.steps.length}] @ ${data.originX},${
+            `onStepFail - ${data.blueprint.id}[${
+                data.blueprint.steps.indexOf(step) + 1
+            }/${data.blueprint.steps.length}] @ ${data.originX},${
                 data.originY
             } : error : ${error}`
         );

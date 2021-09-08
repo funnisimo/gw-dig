@@ -4,7 +4,6 @@ import * as GWM from 'gw-map';
 import { DigSite } from '../site/digSite';
 import { Room } from '../types';
 import { BuildData } from '../blueprint/data';
-import { Blueprint } from '../blueprint/blueprint';
 import { BuildStep } from '../blueprint/buildStep';
 
 export interface Logger {
@@ -25,43 +24,35 @@ export interface Logger {
 
     //
 
-    onBuildError(data: BuildData, error: string): Promise<any>;
+    onBuildError(error: string): Promise<any>;
 
     onBlueprintPick(
         data: BuildData,
-        blueprint: Blueprint,
         flags: number,
         depth: number
     ): Promise<any>;
 
-    onBlueprintCandidates(data: BuildData, blueprint: Blueprint): Promise<any>;
+    onBlueprintCandidates(data: BuildData): Promise<any>;
 
     onBlueprintStart(
         data: BuildData,
-        blueprint: Blueprint,
         adoptedItem: GWM.item.Item | null
     ): Promise<any>;
 
-    onBlueprintInterior(data: BuildData, blueprint: Blueprint): Promise<any>;
+    onBlueprintInterior(data: BuildData): Promise<any>;
 
-    onBlueprintFail(
-        data: BuildData,
-        blueprint: Blueprint,
-        error: string
-    ): Promise<any>;
+    onBlueprintFail(data: BuildData, error: string): Promise<any>;
 
-    onBlueprintSuccess(data: BuildData, blueprint: Blueprint): Promise<any>;
+    onBlueprintSuccess(data: BuildData): Promise<any>;
 
     onStepStart(
         data: BuildData,
-        blueprint: Blueprint,
         step: BuildStep,
         item: GWM.item.Item | null
     ): Promise<any>;
 
     onStepCandidates(
         data: BuildData,
-        blueprint: Blueprint,
         step: BuildStep,
         candidates: GWU.grid.NumGrid,
         wantCount: number
@@ -69,7 +60,6 @@ export interface Logger {
 
     onStepInstanceSuccess(
         data: BuildData,
-        blueprint: Blueprint,
         step: BuildStep,
         x: number,
         y: number
@@ -77,25 +67,15 @@ export interface Logger {
 
     onStepInstanceFail(
         data: BuildData,
-        blueprint: Blueprint,
         step: BuildStep,
         x: number,
         y: number,
         error: string
     ): Promise<any>;
 
-    onStepSuccess(
-        data: BuildData,
-        blueprint: Blueprint,
-        step: BuildStep
-    ): Promise<any>;
+    onStepSuccess(data: BuildData, step: BuildStep): Promise<any>;
 
-    onStepFail(
-        data: BuildData,
-        blueprint: Blueprint,
-        step: BuildStep,
-        error: string
-    ): Promise<any>;
+    onStepFail(data: BuildData, step: BuildStep, error: string): Promise<any>;
 }
 
 export class NullLogger implements Logger {

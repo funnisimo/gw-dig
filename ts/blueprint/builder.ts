@@ -5,25 +5,30 @@ import * as SITE from '../site';
 import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 
-import { BuildData, DataOptions } from './data';
+import { BuildData } from './data';
 import { NullLogger, Logger } from '../log/logger';
 import { ConsoleLogger } from '../log/consoleLogger';
-import { DisruptOptions } from '../site';
+import { DisruptOptions, BuildSite, MapSite } from '../site';
 
 export type BlueType = BLUE.Blueprint | string;
 
-export interface BuilderOptions extends DataOptions {
+export interface BuilderOptions {
     blueprints: BlueType[] | { [key: string]: BlueType };
     log: Logger | boolean;
 }
 
+export interface BuildInfo {
+    x: number;
+    y: number;
+}
+
+export type BuildResult = BuildInfo | null;
+
 export class Builder {
-    data: BuildData;
     blueprints: BLUE.Blueprint[] | null = null;
     log: Logger;
 
-    constructor(map: GWM.map.Map, options: Partial<BuilderOptions> = {}) {
-        this.data = new BuildData(map, options);
+    constructor(options: Partial<BuilderOptions> = {}) {
         if (options.blueprints) {
             if (!Array.isArray(options.blueprints)) {
                 options.blueprints = Object.values(options.blueprints);
@@ -37,49 +42,59 @@ export class Builder {
         }
     }
 
-    _pickRandom(requiredFlags: number): BLUE.Blueprint | null {
+    _pickRandom(
+        requiredFlags: number,
+        depth: number,
+        rng?: GWU.rng.Random
+    ): BLUE.Blueprint | null {
+        rng = rng || GWU.rng.random;
         const blueprints = this.blueprints || Object.values(BLUE.blueprints);
         const weights = blueprints.map((b) => {
             if (!b.qualifies(requiredFlags)) return 0;
-            return b.frequency(this.data.depth);
+            return b.frequency(depth);
         });
 
-        const index = this.data.map.rng.weighted(weights) as number;
+        const index = rng.weighted(weights) as number;
         return blueprints[index] || null;
     }
 
     async buildRandom(
+        site: BuildSite | GWM.map.Map,
         requiredMachineFlags = BLUE.Flags.BP_ROOM,
         x = -1,
         y = -1,
         adoptedItem: GWM.item.Item | null = null
-    ) {
-        const data = this.data;
-        data.site.analyze();
+    ): Promise<BuildResult> {
+        if (site instanceof GWM.map.Map) {
+            site = new MapSite(site);
+        }
+
+        const depth = site.depth;
 
         let tries = 0;
         while (tries < 10) {
-            const blueprint = this._pickRandom(requiredMachineFlags);
+            const blueprint = this._pickRandom(
+                requiredMachineFlags,
+                depth,
+                site.rng
+            );
             if (!blueprint) {
                 await this.log.onBuildError(
-                    data,
                     `Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(
                         BLUE.Flags,
                         requiredMachineFlags
-                    )}, depth: ${data.depth}`
+                    )}, depth: ${depth}`
                 );
-                return false;
+                return null;
             }
 
-            await this.log.onBlueprintPick(
-                data,
-                blueprint,
-                requiredMachineFlags,
-                data.depth
-            );
+            const data = new BuildData(site, blueprint);
+            data.site.analyze();
 
-            if (await this._buildAt(blueprint, x, y, adoptedItem)) {
-                return true;
+            await this.log.onBlueprintPick(data, requiredMachineFlags, depth);
+
+            if (await this._buildAt(data, x, y, adoptedItem)) {
+                return { x, y };
             }
             ++tries;
         }
@@ -90,16 +105,19 @@ export class Builder {
         //         ' tried : ' +
         //         tries.join(', ')
         // );
-        return false;
+        return null;
     }
 
     async build(
+        site: BuildSite | GWM.map.Map,
         blueprint: BLUE.Blueprint | string,
         x = -1,
         y = -1,
         adoptedItem: GWM.item.Item | null = null
-    ) {
-        const data = this.data;
+    ): Promise<BuildResult> {
+        if (site instanceof GWM.map.Map) {
+            site = new MapSite(site);
+        }
 
         if (typeof blueprint === 'string') {
             const id = blueprint;
@@ -107,61 +125,58 @@ export class Builder {
             if (!blueprint) throw new Error('Failed to find blueprint - ' + id);
         }
 
+        const data = new BuildData(site, blueprint);
         data.site.analyze();
 
-        return await this._buildAt(blueprint, x, y, adoptedItem);
+        return await this._buildAt(data, x, y, adoptedItem);
     }
 
     async _buildAt(
-        blueprint: BLUE.Blueprint,
+        data: BuildData,
         x = -1,
         y = -1,
         adoptedItem: GWM.item.Item | null = null
-    ) {
-        const data = this.data;
+    ): Promise<BuildResult> {
         if (x >= 0 && y >= 0) {
-            return await this._build(blueprint, x, y, adoptedItem);
+            return await this._build(data, x, y, adoptedItem);
         }
 
-        let count = await this._markCandidates(blueprint);
+        let count = await this._markCandidates(data);
         if (!count) {
-            return false;
+            return null;
         }
 
         let tries = 20; // TODO - Make property of Blueprint
         while (count-- && tries--) {
-            const loc = BLUE.pickCandidateLoc(data, blueprint) || false;
+            const loc = BLUE.pickCandidateLoc(data) || false;
             if (loc) {
-                if (await this._build(blueprint, loc[0], loc[1], adoptedItem)) {
-                    return true;
+                if (await this._build(data, loc[0], loc[1], adoptedItem)) {
+                    return { x: loc[0], y: loc[1] };
                 }
             }
         }
 
         await this.log.onBlueprintFail(
             data,
-            blueprint,
             'No suitable locations found to build blueprint.'
         );
-        return false;
+        return null;
     }
 
     //////////////////////////////////////////
     // Returns true if the machine got built; false if it was aborted.
     // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
     async _build(
-        blueprint: BLUE.Blueprint,
+        data: BuildData,
         originX: number,
         originY: number,
         adoptedItem: GWM.item.Item | null = null
-    ) {
-        const data = this.data;
+    ): Promise<BuildResult> {
         data.reset(originX, originY);
+        await this.log.onBlueprintStart(data, adoptedItem);
 
-        await this.log.onBlueprintStart(data, blueprint, adoptedItem);
-
-        if (!(await this._computeInterior(blueprint))) {
-            return false;
+        if (!(await this._computeInterior(data))) {
+            return null;
         }
 
         // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
@@ -169,16 +184,16 @@ export class Builder {
         data.machineNumber = data.site.nextMachineId(); // Reserve this machine number, starting with 1.
 
         // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
-        BLUE.prepareInterior(data, blueprint);
+        BLUE.prepareInterior(data);
 
         // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
         // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
-        data.calcDistances(blueprint.size.hi);
+        data.calcDistances(data.blueprint.size.hi);
 
         // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
         // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
 
-        const components = blueprint.pickComponents(data.site.rng);
+        const components = data.blueprint.pickComponents(data.site.rng);
 
         // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
 
@@ -187,22 +202,21 @@ export class Builder {
             const component = components[index];
             // console.log('BUILD COMPONENT', component);
 
-            if (!(await this._buildStep(blueprint, component, adoptedItem))) {
+            if (!(await this._buildStep(data, component, adoptedItem))) {
                 // failure! abort!
                 // Restore the map to how it was before we touched it.
                 await this.log.onBlueprintFail(
                     data,
-                    blueprint,
                     `Failed to build step ${index + 1}.`
                 );
                 snapshot.restore();
                 // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
-                return false;
+                return null;
             }
         }
 
         // Clear out the interior flag for all non-wired cells, if requested.
-        if (blueprint.noInteriorFlag) {
+        if (data.blueprint.noInteriorFlag) {
             SITE.clearInteriorFlag(data.site, data.machineNumber);
         }
 
@@ -214,78 +228,74 @@ export class Builder {
         // 	torchBearer->carriedItem = torch;
         // }
 
-        await this.log.onBlueprintSuccess(data, blueprint);
+        await this.log.onBlueprintSuccess(data);
 
         snapshot.cancel();
 
         // console.log('Built a machine from blueprint:', originX, originY);
-        return true;
+        return { x: originX, y: originY };
     }
 
-    async _markCandidates(blueprint: BLUE.Blueprint): Promise<number> {
-        const data = this.data;
-        const count = BLUE.markCandidates(data, blueprint);
+    async _markCandidates(data: BuildData): Promise<number> {
+        const count = BLUE.markCandidates(data);
 
         if (count <= 0) {
             await this.log.onBlueprintFail(
                 data,
-                blueprint,
                 'No suitable candidate locations found.'
             );
             return 0;
         }
 
-        await this.log.onBlueprintCandidates(data, blueprint);
+        await this.log.onBlueprintCandidates(data);
 
         return count;
     }
 
-    async _computeInterior(blueprint: BLUE.Blueprint): Promise<boolean> {
+    async _computeInterior(data: BuildData): Promise<boolean> {
         let fail = null;
-        const data = this.data;
-        let count = blueprint.fillInterior(data);
+        let count = data.blueprint.fillInterior(data);
 
         // Now make sure the interior map satisfies the machine's qualifications.
         if (!count) {
             fail = 'Interior error.';
-        } else if (!blueprint.size.contains(count)) {
-            fail = `Interior wrong size - have: ${count}, want: ${blueprint.size.toString()}`;
+        } else if (!data.blueprint.size.contains(count)) {
+            fail = `Interior wrong size - have: ${count}, want: ${data.blueprint.size.toString()}`;
         } else if (
-            blueprint.treatAsBlocking &&
+            data.blueprint.treatAsBlocking &&
             SITE.siteDisruptedBy(data.site, data.interior, {
                 machine: data.site.machineCount,
             })
         ) {
             fail = 'Interior blocks map.';
         } else if (
-            blueprint.requireBlocking &&
+            data.blueprint.requireBlocking &&
             SITE.siteDisruptedSize(data.site, data.interior) < 100
         ) {
             fail = 'Interior does not block enough cells.';
         }
 
         if (!fail) {
-            await this.log.onBlueprintInterior(data, blueprint);
+            await this.log.onBlueprintInterior(data);
 
             return true;
         }
 
-        await this.log.onBlueprintFail(data, blueprint, fail);
+        await this.log.onBlueprintFail(data, fail);
         return false;
     }
 
     async _buildStep(
-        blueprint: BLUE.Blueprint,
+        data: BuildData,
         buildStep: STEP.BuildStep,
         adoptedItem: GWM.item.Item | null
     ) {
         let wantCount = 0;
         let builtCount = 0;
-        const data = this.data;
 
         const site = data.site;
 
-        await this.log.onStepStart(data, blueprint, buildStep, adoptedItem);
+        await this.log.onStepStart(data, buildStep, adoptedItem);
 
         // console.log(
         //     'buildComponent',
@@ -296,7 +306,7 @@ export class Builder {
         // Figure out the distance bounds.
         const distanceBound = STEP.calcDistanceBound(data, buildStep);
 
-        // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+        // If the StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
 
         // Make a master map of candidate locations for this feature.
         let qualifyingTileCount = 0;
@@ -306,6 +316,7 @@ export class Builder {
             // Try to create a sub-machine that qualifies.
 
             let success = await this.buildRandom(
+                data.site,
                 BLUE.Flags.BP_VESTIBULE,
                 data.originX,
                 data.originY
@@ -314,7 +325,6 @@ export class Builder {
             if (!success) {
                 await this.log.onStepFail(
                     data,
-                    blueprint,
                     buildStep,
                     'Failed to build vestibule'
                 );
@@ -324,7 +334,7 @@ export class Builder {
 
         // If we are just building a vestibule, then we can exit here...
         if (!buildStep.buildsInstances) {
-            await this.log.onStepSuccess(data, blueprint, buildStep);
+            await this.log.onStepSuccess(data, buildStep);
             return true;
         }
 
@@ -342,7 +352,6 @@ export class Builder {
             } else {
                 qualifyingTileCount = buildStep.markCandidates(
                     data,
-                    blueprint,
                     candidates,
                     distanceBound
                 );
@@ -358,7 +367,6 @@ export class Builder {
 
                 await this.log.onStepCandidates(
                     data,
-                    blueprint,
                     buildStep,
                     candidates,
                     wantCount
@@ -370,11 +378,10 @@ export class Builder {
                 ) {
                     await this.log.onStepFail(
                         data,
-                        blueprint,
                         buildStep,
                         `Blueprint ${
-                            blueprint.id
-                        }, step ${blueprint.steps.indexOf(
+                            data.blueprint.id
+                        }, step ${data.blueprint.steps.indexOf(
                             buildStep
                         )} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
                     );
@@ -394,7 +401,7 @@ export class Builder {
                 } else {
                     // Pick our candidate location randomly, and also strike it from
                     // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = this.data.map.rng.matchingLoc(
+                    [x, y] = data.rng.matchingLoc(
                         candidates.width,
                         candidates.height,
                         (x, y) => candidates[x][y] > 0
@@ -408,7 +415,7 @@ export class Builder {
 
                 if (
                     await this._buildStepInstance(
-                        blueprint,
+                        data,
                         buildStep,
                         x,
                         y,
@@ -443,20 +450,19 @@ export class Builder {
         ) {
             await this.log.onStepFail(
                 data,
-                blueprint,
                 buildStep,
                 `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`
             );
             return false;
         }
 
-        await this.log.onStepSuccess(data, blueprint, buildStep);
+        await this.log.onStepSuccess(data, buildStep);
 
         return true;
     }
 
     async _buildStepInstance(
-        blueprint: BLUE.Blueprint,
+        data: BuildData,
         buildStep: STEP.BuildStep,
         x: number,
         y: number,
@@ -465,7 +471,6 @@ export class Builder {
         let success = true;
         let didSomething = true;
 
-        const data = this.data;
         const site = data.site;
 
         if (success && buildStep.treatAsBlocking) {
@@ -482,7 +487,6 @@ export class Builder {
             if (SITE.siteDisruptedByXY(site, x, y, options)) {
                 await this.log.onStepInstanceFail(
                     data,
-                    blueprint,
                     buildStep,
                     x,
                     y,
@@ -499,7 +503,6 @@ export class Builder {
             if (!success) {
                 this.log.onStepInstanceFail(
                     data,
-                    blueprint,
                     buildStep,
                     x,
                     y,
@@ -513,7 +516,16 @@ export class Builder {
         if (success && buildStep.tile !== -1) {
             const tile = GWM.tile.get(buildStep.tile);
 
-            if (
+            if (!tile) {
+                success = false;
+                await this.log.onStepInstanceFail(
+                    data,
+                    buildStep,
+                    x,
+                    y,
+                    'failed to find tile - ' + buildStep.tile
+                );
+            } else if (
                 !buildStep.permitBlocking &&
                 tile.blocksMove() &&
                 !buildStep.treatAsBlocking // already did treatAsBlocking
@@ -525,7 +537,6 @@ export class Builder {
                 ) {
                     await this.log.onStepInstanceFail(
                         data,
-                        blueprint,
                         buildStep,
                         x,
                         y,
@@ -541,7 +552,6 @@ export class Builder {
                 if (!success) {
                     await this.log.onStepInstanceFail(
                         data,
-                        blueprint,
                         buildStep,
                         x,
                         y,
@@ -560,7 +570,6 @@ export class Builder {
                 success = false;
                 await this.log.onStepInstanceFail(
                     data,
-                    blueprint,
                     buildStep,
                     x,
                     y,
@@ -577,24 +586,25 @@ export class Builder {
                 }
 
                 if (buildStep.outsourceItem) {
-                    success = await this.buildRandom(
+                    const result = await this.buildRandom(
+                        data.site,
                         BLUE.Flags.BP_ADOPT_ITEM,
                         -1,
                         -1,
                         item
                     );
-                    if (success) {
+                    if (result) {
                         didSomething = true;
                     } else {
                         await this.log.onStepInstanceFail(
                             data,
-                            blueprint,
                             buildStep,
                             x,
                             y,
                             'Failed to build machine to adopt item - ' +
                                 item.kind.id
                         );
+                        success = false;
                     }
                 } else {
                     success = site.addItem(x, y, item);
@@ -602,7 +612,6 @@ export class Builder {
                     if (!success) {
                         await this.log.onStepInstanceFail(
                             data,
-                            blueprint,
                             buildStep,
                             x,
                             y,
@@ -626,7 +635,6 @@ export class Builder {
                 } else {
                     await this.log.onStepInstanceFail(
                         data,
-                        blueprint,
                         buildStep,
                         x,
                         y,
@@ -639,8 +647,13 @@ export class Builder {
 
         if (success && didSomething) {
             // Mark the feature location as part of the machine, in case it is not already inside of it.
-            if (!blueprint.noInteriorFlag) {
-                site.setMachine(x, y, data.machineNumber, blueprint.isRoom);
+            if (!data.blueprint.noInteriorFlag) {
+                site.setMachine(
+                    x,
+                    y,
+                    data.machineNumber,
+                    data.blueprint.isRoom
+                );
             }
 
             // Mark the feature location as impregnable if requested.
@@ -648,13 +661,7 @@ export class Builder {
                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
             }
 
-            await this.log.onStepInstanceSuccess(
-                data,
-                blueprint,
-                buildStep,
-                x,
-                y
-            );
+            await this.log.onStepInstanceSuccess(data, buildStep, x, y);
         } else if (didSomething) {
             // roll back any changes?
         }

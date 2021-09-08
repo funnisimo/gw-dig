@@ -26,7 +26,7 @@ const digger = new GWD.Digger({
     lakes: false,
 });
 
-const builder = new GWD.blueprint.Builder(map, {
+const builder = new GWD.blueprint.Builder({
     //seed: 12345
 });
 
@@ -35,8 +35,8 @@ const room = GWD.blueprint.make({
     flags: 'BP_ROOM',
     size: '10-100',
     steps: [
-        { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
-        { tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' },
+        { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
+        { tile: 'DOOR', flags: 'BS_BUILD_AT_ORIGIN' },
     ],
 });
 
@@ -51,7 +51,7 @@ SHOW(canvas.node);
 async function buildMap() {
     map.clear();
     await digger.create(map);
-    await builder.build(room);
+    await builder.build(map, room);
     map.drawInto(canvas);
     canvas.render();
 }
@@ -80,7 +80,7 @@ const digger = new GWD.Digger({
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
     flags: 'BP_VESTIBULE',
-    steps: [{ tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' }],
+    steps: [{ tile: 'DOOR', flags: 'BS_BUILD_AT_ORIGIN' }],
 });
 
 const room = GWD.blueprint.make({
@@ -88,12 +88,12 @@ const room = GWD.blueprint.make({
     flags: 'BP_ROOM',
     size: '10-100',
     steps: [
-        { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
-        { flags: 'BF_BUILD_VESTIBULE' },
+        { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
+        { flags: 'BS_BUILD_VESTIBULE' },
     ],
 });
 
-const builder = new GWD.blueprint.Builder(map, {
+const builder = new GWD.blueprint.Builder({
     // seed: 12345,
     blueprints: { room, vestibule },
 });
@@ -109,7 +109,7 @@ SHOW(canvas.node);
 async function buildMap() {
     map.clear();
     await digger.create(map);
-    await builder.build(room);
+    await builder.build(map, room);
     map.drawInto(canvas);
     canvas.render();
 }

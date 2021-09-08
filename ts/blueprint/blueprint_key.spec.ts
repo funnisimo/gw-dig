@@ -41,7 +41,7 @@ describe('Blueprint - key', () => {
             flags: 'BP_ADOPT_ITEM',
             steps: [
                 {
-                    flags: 'BF_ADOPT_ITEM, BF_TREAT_AS_BLOCKING',
+                    flags: 'BS_ADOPT_ITEM, BS_TREAT_AS_BLOCKING',
                 },
             ],
         });
@@ -54,7 +54,7 @@ describe('Blueprint - key', () => {
                     tile: 'LOCKED_DOOR',
                     item: 'key',
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE, BF_ITEM_IS_KEY, BF_OUTSOURCE_ITEM_TO_MACHINE, BF_KEY_DISPOSABLE',
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
                 },
             ],
         });
@@ -62,17 +62,17 @@ describe('Blueprint - key', () => {
         const blue = GWD.blueprint.install('ROOM', {
             flags: 'BP_ROOM',
             size: '10-100',
-            steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+            steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
         await digger.create(map);
-        const builder = new GWD.blueprint.Builder(map);
+        const builder = new GWD.blueprint.Builder();
 
         // @ts-ignore
         // const _logger = new GWD.blueprint.Logger();
 
-        await builder.build(blue);
+        await builder.build(map, blue);
 
         // map.dump();
 
@@ -103,7 +103,7 @@ describe('Blueprint - key', () => {
             size: '1',
             steps: [
                 {
-                    flags: 'BF_ADOPT_ITEM, BF_TREAT_AS_BLOCKING',
+                    flags: 'BS_ADOPT_ITEM, BS_TREAT_AS_BLOCKING',
                 },
             ],
         });
@@ -116,7 +116,7 @@ describe('Blueprint - key', () => {
                     tile: 'LOCKED_DOOR',
                     item: 'key',
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE, BF_ITEM_IS_KEY, BF_OUTSOURCE_ITEM_TO_MACHINE, BF_KEY_DISPOSABLE',
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
                 },
             ],
         });
@@ -124,18 +124,18 @@ describe('Blueprint - key', () => {
         const blue = GWD.blueprint.install('ROOM', {
             flags: 'BP_ROOM',
             size: '10-100',
-            steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+            steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
         await digger.create(map);
 
-        const builder = new GWD.blueprint.Builder(map);
+        const builder = new GWD.blueprint.Builder();
 
         // @ts-ignore
         // const _logger = new GWD.blueprint.Logger();
 
-        const result = await builder.build(blue);
+        const result = await builder.build(map, blue);
 
         // map.dump();
 

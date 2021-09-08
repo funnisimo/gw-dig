@@ -1,6 +1,6 @@
 ### Vestibule with traps
 
-Using 'BF_REPEAT_UNTIL_NO_PROGRESS' allows you to fill an area, except for any other restrictions that you place on it - e.g. 'BF_TREAT_AS_BLOCKING'. Here is an example of creating a set of traps that create a random safe path to the doorway.
+Using 'BS_REPEAT_UNTIL_NO_PROGRESS' allows you to fill an area, except for any other restrictions that you place on it - e.g. 'BS_TREAT_AS_BLOCKING'. Here is an example of creating a set of traps that create a random safe path to the doorway.
 
 ```js
 const portcullis = GWM.tile.install('TRAP', {
@@ -34,11 +34,11 @@ const vestibule = GWD.blueprint.make({
     steps: [
         {
             tile: 'DOOR',
-            flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+            flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
         },
         {
             tile: 'TRAP',
-            flags: 'BF_REPEAT_UNTIL_NO_PROGRESS, BF_TREAT_AS_BLOCKING',
+            flags: 'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING',
         },
     ],
 });
@@ -47,7 +47,7 @@ const room = GWD.blueprint.make({
     id: 'ROOM',
     flags: 'BP_ROOM',
     size: '10-100',
-    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+    steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
 });
 
 const map = GWM.map.make(80, 34, { visible: true });
@@ -58,7 +58,7 @@ const canvas = GWU.canvas.make({
 });
 SHOW(canvas.node);
 
-const builder = new GWD.blueprint.Builder(map, {
+const builder = new GWD.blueprint.Builder({
     seed: 12345,
     blueprints: [vestibule, room],
 });
@@ -66,7 +66,7 @@ const builder = new GWD.blueprint.Builder(map, {
 digger
     .create(map)
     .then(async () => {
-        await builder.build(room);
+        await builder.build(map, room);
     })
     .then(() => {
         map.drawInto(canvas);

@@ -665,6 +665,9 @@
         get rng() {
             return this.map.rng;
         }
+        get depth() {
+            return this.map.properties.depth || 0;
+        }
         // get seed() {
         //     return this.map.seed;
         // }
@@ -679,6 +682,9 @@
         }
         get height() {
             return this.map.height;
+        }
+        free() {
+            GWU__namespace.grid.free(this.doors);
         }
         dump() {
             this.map.dump();
@@ -835,9 +841,6 @@
         // }
         snapshot() {
             return new MapSnapshot(this, this.snapshots.takeNew());
-        }
-        free() {
-            GWU__namespace.grid.free(this.doors);
         }
         getChokeCount(x, y) {
             return this.map.cell(x, y).chokeCount;
@@ -2163,36 +2166,36 @@
     const Fl$1 = GWU__namespace.flag.fl;
     var StepFlags;
     (function (StepFlags) {
-        StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
-        StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl$1(2)] = "BF_BUILD_VESTIBULE";
-        StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl$1(3)] = "BF_ADOPT_ITEM";
-        StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl$1(4)] = "BF_BUILD_AT_ORIGIN";
-        StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl$1(5)] = "BF_PERMIT_BLOCKING";
-        StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl$1(6)] = "BF_TREAT_AS_BLOCKING";
-        StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl$1(7)] = "BF_NEAR_ORIGIN";
-        StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl$1(8)] = "BF_FAR_FROM_ORIGIN";
-        StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl$1(9)] = "BF_IN_VIEW_OF_ORIGIN";
-        StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(10)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
-        StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl$1(11)] = "BF_MONSTER_TAKE_ITEM";
-        StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl$1(12)] = "BF_MONSTER_SLEEPING";
-        StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl$1(13)] = "BF_MONSTER_FLEEING";
-        StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl$1(14)] = "BF_MONSTERS_DORMANT";
-        StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl$1(15)] = "BF_ITEM_IS_KEY";
-        StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl$1(16)] = "BF_ITEM_IDENTIFIED";
-        StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl$1(17)] = "BF_ITEM_PLAYER_AVOIDS";
-        StepFlags[StepFlags["BF_EVERYWHERE"] = Fl$1(18)] = "BF_EVERYWHERE";
-        StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl$1(19)] = "BF_ALTERNATIVE";
-        StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl$1(20)] = "BF_ALTERNATIVE_2";
-        StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl$1(21)] = "BF_BUILD_IN_WALLS";
-        StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
-        StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
-        StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
-        StepFlags[StepFlags["BF_NO_BLOCK_ORIGIN"] = Fl$1(25)] = "BF_NO_BLOCK_ORIGIN";
-        // TODO - BF_ALLOW_IN_HALLWAY instead?
-        StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
-        StepFlags[StepFlags["BF_ALLOW_BOUNDARY"] = Fl$1(28)] = "BF_ALLOW_BOUNDARY";
-        StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl$1(29)] = "BF_SKELETON_KEY";
-        StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl$1(30)] = "BF_KEY_DISPOSABLE";
+        StepFlags[StepFlags["BS_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BS_OUTSOURCE_ITEM_TO_MACHINE";
+        StepFlags[StepFlags["BS_BUILD_VESTIBULE"] = Fl$1(2)] = "BS_BUILD_VESTIBULE";
+        StepFlags[StepFlags["BS_ADOPT_ITEM"] = Fl$1(3)] = "BS_ADOPT_ITEM";
+        StepFlags[StepFlags["BS_BUILD_AT_ORIGIN"] = Fl$1(4)] = "BS_BUILD_AT_ORIGIN";
+        StepFlags[StepFlags["BS_PERMIT_BLOCKING"] = Fl$1(5)] = "BS_PERMIT_BLOCKING";
+        StepFlags[StepFlags["BS_TREAT_AS_BLOCKING"] = Fl$1(6)] = "BS_TREAT_AS_BLOCKING";
+        StepFlags[StepFlags["BS_NEAR_ORIGIN"] = Fl$1(7)] = "BS_NEAR_ORIGIN";
+        StepFlags[StepFlags["BS_FAR_FROM_ORIGIN"] = Fl$1(8)] = "BS_FAR_FROM_ORIGIN";
+        StepFlags[StepFlags["BS_IN_VIEW_OF_ORIGIN"] = Fl$1(9)] = "BS_IN_VIEW_OF_ORIGIN";
+        StepFlags[StepFlags["BS_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(10)] = "BS_IN_PASSABLE_VIEW_OF_ORIGIN";
+        StepFlags[StepFlags["BS_MONSTER_TAKE_ITEM"] = Fl$1(11)] = "BS_MONSTER_TAKE_ITEM";
+        StepFlags[StepFlags["BS_MONSTER_SLEEPING"] = Fl$1(12)] = "BS_MONSTER_SLEEPING";
+        StepFlags[StepFlags["BS_MONSTER_FLEEING"] = Fl$1(13)] = "BS_MONSTER_FLEEING";
+        StepFlags[StepFlags["BS_MONSTERS_DORMANT"] = Fl$1(14)] = "BS_MONSTERS_DORMANT";
+        StepFlags[StepFlags["BS_ITEM_IS_KEY"] = Fl$1(15)] = "BS_ITEM_IS_KEY";
+        StepFlags[StepFlags["BS_ITEM_IDENTIFIED"] = Fl$1(16)] = "BS_ITEM_IDENTIFIED";
+        StepFlags[StepFlags["BS_ITEM_PLAYER_AVOIDS"] = Fl$1(17)] = "BS_ITEM_PLAYER_AVOIDS";
+        StepFlags[StepFlags["BS_EVERYWHERE"] = Fl$1(18)] = "BS_EVERYWHERE";
+        StepFlags[StepFlags["BS_ALTERNATIVE"] = Fl$1(19)] = "BS_ALTERNATIVE";
+        StepFlags[StepFlags["BS_ALTERNATIVE_2"] = Fl$1(20)] = "BS_ALTERNATIVE_2";
+        StepFlags[StepFlags["BS_BUILD_IN_WALLS"] = Fl$1(21)] = "BS_BUILD_IN_WALLS";
+        StepFlags[StepFlags["BS_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BS_BUILD_ANYWHERE_ON_LEVEL";
+        StepFlags[StepFlags["BS_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BS_REPEAT_UNTIL_NO_PROGRESS";
+        StepFlags[StepFlags["BS_IMPREGNABLE"] = Fl$1(24)] = "BS_IMPREGNABLE";
+        StepFlags[StepFlags["BS_NO_BLOCK_ORIGIN"] = Fl$1(25)] = "BS_NO_BLOCK_ORIGIN";
+        // TODO - BS_ALLOW_IN_HALLWAY instead?
+        StepFlags[StepFlags["BS_NOT_IN_HALLWAY"] = Fl$1(27)] = "BS_NOT_IN_HALLWAY";
+        StepFlags[StepFlags["BS_ALLOW_BOUNDARY"] = Fl$1(28)] = "BS_ALLOW_BOUNDARY";
+        StepFlags[StepFlags["BS_SKELETON_KEY"] = Fl$1(29)] = "BS_SKELETON_KEY";
+        StepFlags[StepFlags["BS_KEY_DISPOSABLE"] = Fl$1(30)] = "BS_KEY_DISPOSABLE";
     })(StepFlags || (StepFlags = {}));
     class BuildStep {
         constructor(cfg = {}) {
@@ -2219,66 +2222,66 @@
             if (cfg.effect) {
                 this.effect = GWM__namespace.effect.from(cfg.effect);
             }
-            if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
-                throw new Error('Cannot have blueprint step with item and BF_ADOPT_ITEM.');
+            if (this.item && this.flags & StepFlags.BS_ADOPT_ITEM) {
+                throw new Error('Cannot have blueprint step with item and BS_ADOPT_ITEM.');
             }
             if (this.buildAtOrigin && this.count.hi > 1) {
-                throw new Error('Cannot have count > 1 for step with BF_BUILD_AT_ORIGIN.');
+                throw new Error('Cannot have count > 1 for step with BS_BUILD_AT_ORIGIN.');
             }
             if (this.buildAtOrigin && this.repeatUntilNoProgress) {
-                throw new Error('Cannot have BF_BUILD_AT_ORIGIN and BF_REPEAT_UNTIL_NO_PROGRESS together in a build step.');
+                throw new Error('Cannot have BS_BUILD_AT_ORIGIN and BS_REPEAT_UNTIL_NO_PROGRESS together in a build step.');
             }
         }
         get allowBoundary() {
-            return !!(this.flags & StepFlags.BF_ALLOW_BOUNDARY);
+            return !!(this.flags & StepFlags.BS_ALLOW_BOUNDARY);
         }
         get notInHallway() {
-            return !!(this.flags & StepFlags.BF_NOT_IN_HALLWAY);
+            return !!(this.flags & StepFlags.BS_NOT_IN_HALLWAY);
         }
         get buildInWalls() {
-            return !!(this.flags & StepFlags.BF_BUILD_IN_WALLS);
+            return !!(this.flags & StepFlags.BS_BUILD_IN_WALLS);
         }
         get buildAnywhere() {
-            return !!(this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL);
+            return !!(this.flags & StepFlags.BS_BUILD_ANYWHERE_ON_LEVEL);
         }
         get repeatUntilNoProgress() {
-            return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
+            return !!(this.flags & StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS);
         }
         get permitBlocking() {
-            return !!(this.flags & StepFlags.BF_PERMIT_BLOCKING);
+            return !!(this.flags & StepFlags.BS_PERMIT_BLOCKING);
         }
         get treatAsBlocking() {
             return !!(this.flags &
-                (StepFlags.BF_TREAT_AS_BLOCKING | StepFlags.BF_NO_BLOCK_ORIGIN));
+                (StepFlags.BS_TREAT_AS_BLOCKING | StepFlags.BS_NO_BLOCK_ORIGIN));
         }
         get noBlockOrigin() {
-            return !!(this.flags & StepFlags.BF_NO_BLOCK_ORIGIN);
+            return !!(this.flags & StepFlags.BS_NO_BLOCK_ORIGIN);
         }
         get adoptItem() {
-            return !!(this.flags & StepFlags.BF_ADOPT_ITEM);
+            return !!(this.flags & StepFlags.BS_ADOPT_ITEM);
         }
         get itemIsKey() {
-            return !!(this.flags & StepFlags.BF_ITEM_IS_KEY);
+            return !!(this.flags & StepFlags.BS_ITEM_IS_KEY);
         }
         get keyIsDisposable() {
-            return !!(this.flags & StepFlags.BF_KEY_DISPOSABLE);
+            return !!(this.flags & StepFlags.BS_KEY_DISPOSABLE);
         }
         get outsourceItem() {
-            return !!(this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE);
+            return !!(this.flags & StepFlags.BS_OUTSOURCE_ITEM_TO_MACHINE);
         }
         get impregnable() {
-            return !!(this.flags & StepFlags.BF_IMPREGNABLE);
+            return !!(this.flags & StepFlags.BS_IMPREGNABLE);
         }
         get buildVestibule() {
-            return !!(this.flags & StepFlags.BF_BUILD_VESTIBULE);
+            return !!(this.flags & StepFlags.BS_BUILD_VESTIBULE);
         }
         get generateEverywhere() {
             return !!(this.flags &
-                StepFlags.BF_EVERYWHERE &
-                ~StepFlags.BF_BUILD_AT_ORIGIN);
+                StepFlags.BS_EVERYWHERE &
+                ~StepFlags.BS_BUILD_AT_ORIGIN);
         }
         get buildAtOrigin() {
-            return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
+            return !!(this.flags & StepFlags.BS_BUILD_AT_ORIGIN);
         }
         get buildsInstances() {
             return !!(this.effect ||
@@ -2309,8 +2312,9 @@
         // ): boolean {
         //     return buildStep(builder, blueprint, this, adoptedItem);
         // }
-        markCandidates(data, blueprint, candidates, distanceBound = [0, 10000]) {
+        markCandidates(data, candidates, distanceBound = [0, 10000]) {
             updateViewMap(data, this);
+            const blueprint = data.blueprint;
             let count = 0;
             candidates.update((_v, i, j) => {
                 if (cellIsCandidate(data, blueprint, this, i, j, distanceBound)) {
@@ -2326,10 +2330,10 @@
     }
     function updateViewMap(builder, buildStep) {
         if (buildStep.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
+            (StepFlags.BS_IN_VIEW_OF_ORIGIN |
+                StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN)) {
             const site = builder.site;
-            if (buildStep.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
+            if (buildStep.flags & StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) {
                 const fov = new GWU__namespace.fov.FOV({
                     isBlocked: (x, y) => {
                         return site.blocksPathing(x, y);
@@ -2362,10 +2366,10 @@
     }
     function calcDistanceBound(builder, buildStep) {
         const distanceBound = [0, 10000];
-        if (buildStep.flags & StepFlags.BF_NEAR_ORIGIN) {
+        if (buildStep.flags & StepFlags.BS_NEAR_ORIGIN) {
             distanceBound[1] = builder.distance25;
         }
-        if (buildStep.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
+        if (buildStep.flags & StepFlags.BS_FAR_FROM_ORIGIN) {
             distanceBound[0] = builder.distance75;
         }
         return distanceBound;
@@ -2414,8 +2418,8 @@
         }
         // Must be in the viewmap if the appropriate flag is set.
         if (buildStep.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
+            (StepFlags.BS_IN_VIEW_OF_ORIGIN |
+                StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) &&
             !builder.viewMap[x][y]) {
             return false;
         }
@@ -2456,9 +2460,10 @@
                         return;
                     }
                     // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
-                    if (buildStep.buildAnywhere &&
-                        !site.blocksPathing(newX, newY) &&
-                        !site.getMachine(newX, newY) &&
+                    const neighborMachine = site.getMachine(newX, newY);
+                    if (!site.blocksPathing(newX, newY) &&
+                        (!neighborMachine ||
+                            neighborMachine == builder.machineNumber) &&
                         !(newX == builder.originX && newY == builder.originY)) {
                         ok = true;
                     }
@@ -2515,7 +2520,7 @@
     //     // Figure out the distance bounds.
     //     const distanceBound = calcDistanceBound(builder, buildStep);
     //     buildStep.updateViewMap(builder);
-    //     // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+    //     // If the StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
     //     // Make a master map of candidate locations for this feature.
     //     let qualifyingTileCount = markCandidates(
     //         candidates,
@@ -2568,9 +2573,9 @@
     //         if (success && buildStep.tile !== -1) {
     //             const tile = GWM.tile.get(buildStep.tile);
     //             if (
-    //                 !(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+    //                 !(buildStep.flags & StepFlags.BS_PERMIT_BLOCKING) &&
     //                 (tile.blocksMove() ||
-    //                     buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)
+    //                     buildStep.flags & StepFlags.BS_TREAT_AS_BLOCKING)
     //             ) {
     //                 // Yes, check for blocking.
     //                 success = !SITE.siteDisruptedByXY(site, x, y, {
@@ -2589,14 +2594,14 @@
     //             if (!item) {
     //                 success = false;
     //             }
-    //             if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
+    //             if (buildStep.flags & StepFlags.BS_ITEM_IS_KEY) {
     //                 item.key = GWM.entity.makeKeyInfo(
     //                     x,
     //                     y,
-    //                     !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE)
+    //                     !!(buildStep.flags & StepFlags.BS_KEY_DISPOSABLE)
     //                 );
     //             }
-    //             if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+    //             if (buildStep.flags & StepFlags.BS_OUTSOURCE_ITEM_TO_MACHINE) {
     //                 success = builder.buildRandom(
     //                     Flags.BP_ADOPT_ITEM,
     //                     -1,
@@ -2610,7 +2615,7 @@
     //                 success = site.addItem(x, y, item);
     //                 didSomething = didSomething || success;
     //             }
-    //         } else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
+    //         } else if (success && buildStep.flags & StepFlags.BS_ADOPT_ITEM) {
     //             // adopt item if necessary
     //             if (!adoptedItem) {
     //                 GWU.grid.free(candidates);
@@ -2618,7 +2623,7 @@
     //                     'Failed to build blueprint because there is no adopted item.'
     //                 );
     //             }
-    //             if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
+    //             if (buildStep.flags & StepFlags.BS_TREAT_AS_BLOCKING) {
     //                 // Yes, check for blocking.
     //                 success = !SITE.siteDisruptedByXY(site, x, y);
     //             }
@@ -2648,7 +2653,7 @@
     //                 site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
     //             }
     //             // Mark the feature location as impregnable if requested.
-    //             if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
+    //             if (buildStep.flags & StepFlags.BS_IMPREGNABLE) {
     //                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
     //             }
     //         }
@@ -2657,9 +2662,9 @@
     //         qualifyingTileCount > 0 &&
     //         (buildStep.generateEverywhere ||
     //             builtCount < wantCount ||
-    //             buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
+    //             buildStep.flags & StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS)
     //     );
-    //     if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
+    //     if (success && buildStep.flags & StepFlags.BS_BUILD_VESTIBULE) {
     //         // Generate a door guard machine.
     //         // Try to create a sub-machine that qualifies.
     //         success = builder.buildRandom(
@@ -2734,8 +2739,8 @@
                 this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
             }
             if (this.flags & Flags.BP_ADOPT_ITEM) {
-                if (!this.steps.some((s) => s.flags & StepFlags.BF_ADOPT_ITEM)) {
-                    throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.');
+                if (!this.steps.some((s) => s.flags & StepFlags.BS_ADOPT_ITEM)) {
+                    throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BS_ADOPT_ITEM.');
                 }
             }
             if (opts.id) {
@@ -2809,8 +2814,8 @@
         }
         pickComponents(rng) {
             const alternativeFlags = [
-                StepFlags.BF_ALTERNATIVE,
-                StepFlags.BF_ALTERNATIVE_2,
+                StepFlags.BS_ALTERNATIVE,
+                StepFlags.BS_ALTERNATIVE_2,
             ];
             const keepFeature = new Array(this.steps.length).fill(true);
             for (let j = 0; j <= 1; j++) {
@@ -2888,9 +2893,10 @@
             }
         }
     }
-    function markCandidates(buildData, blueprint) {
+    function markCandidates(buildData) {
         const site = buildData.site;
         const candidates = buildData.candidates;
+        const blueprint = buildData.blueprint;
         candidates.fill(0);
         // Find a location and map out the machine interior.
         if (blueprint.isRoom) {
@@ -2920,7 +2926,7 @@
         }
         return candidates.count((v) => v == 1);
     }
-    function pickCandidateLoc(buildData, _blueprint) {
+    function pickCandidateLoc(buildData) {
         const site = buildData.site;
         const candidates = buildData.candidates;
         const randSite = site.rng.matchingLoc(site.width, site.height, (x, y) => candidates[x][y] == 1);
@@ -3074,9 +3080,10 @@
         }
         return count;
     }
-    function prepareInterior(builder, blueprint) {
+    function prepareInterior(builder) {
         const interior = builder.interior;
         const site = builder.site;
+        const blueprint = builder.blueprint;
         // If requested, clear and expand the room as far as possible until either it's convex or it bumps into surrounding rooms
         if (blueprint.maximizeInterior) {
             expandMachineInterior(builder, 1);
@@ -3280,54 +3287,54 @@
             console.log('stairs added');
         }
         //
-        async onBuildError(_data, error) {
+        async onBuildError(error) {
             console.log(`onBuildError - error: ${error}`);
         }
-        async onBlueprintPick(_data, blueprint, flags, depth) {
-            console.log(`onBlueprintPick - ${blueprint.id}, depth = ${depth}, matchingFlags = ${GWU__namespace.flag.toString(Flags, flags)}`);
+        async onBlueprintPick(data, flags, depth) {
+            console.log(`onBlueprintPick - ${data.blueprint.id}, depth = ${depth}, matchingFlags = ${GWU__namespace.flag.toString(Flags, flags)}`);
         }
-        async onBlueprintCandidates(data, blueprint) {
-            const label = `onBlueprintCandidates - ${blueprint.id}`;
+        async onBlueprintCandidates(data) {
+            const label = `onBlueprintCandidates - ${data.blueprint.id}`;
             console.group(label);
             data.candidates.dump();
             console.groupEnd();
         }
-        async onBlueprintStart(data, blueprint) {
-            console.group(`onBlueprintStart - ${blueprint.id} @ ${data.originX},${data.originY} : stepCount: ${blueprint.steps.length}, size: [${blueprint.size.toString()}], flags: ${GWU__namespace.flag.toString(Flags, blueprint.flags)}`);
+        async onBlueprintStart(data) {
+            console.group(`onBlueprintStart - ${data.blueprint.id} @ ${data.originX},${data.originY} : stepCount: ${data.blueprint.steps.length}, size: [${data.blueprint.size.toString()}], flags: ${GWU__namespace.flag.toString(Flags, data.blueprint.flags)}`);
         }
-        async onBlueprintInterior(data, blueprint) {
-            console.group(`onBlueprintInterior - ${blueprint.id}`);
+        async onBlueprintInterior(data) {
+            console.group(`onBlueprintInterior - ${data.blueprint.id}`);
             data.interior.dump();
             console.groupEnd();
         }
-        async onBlueprintFail(data, blueprint, error) {
-            console.log(`onBlueprintFail - ${blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`);
+        async onBlueprintFail(data, error) {
+            console.log(`onBlueprintFail - ${data.blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`);
             console.groupEnd();
         }
-        async onBlueprintSuccess(data, blueprint) {
-            console.log(`onBlueprintSuccess - ${blueprint.id} @ ${data.originX},${data.originY}`);
+        async onBlueprintSuccess(data) {
+            console.log(`onBlueprintSuccess - ${data.blueprint.id} @ ${data.originX},${data.originY}`);
             console.groupEnd();
         }
-        async onStepStart(data, blueprint, step) {
-            console.group(`onStepStart - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
+        async onStepStart(data, step) {
+            console.group(`onStepStart - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
         }
-        async onStepCandidates(data, blueprint, step, candidates, wantCount) {
+        async onStepCandidates(data, step, candidates, wantCount) {
             const haveCount = candidates.count((v) => v == 1);
-            console.log(`onStepCandidates - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : wantCount: ${wantCount}, have: ${haveCount}`);
+            console.log(`onStepCandidates - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : wantCount: ${wantCount}, have: ${haveCount}`);
             candidates.dump();
         }
-        async onStepInstanceSuccess(_data, _blueprint, _step, x, y) {
+        async onStepInstanceSuccess(_data, _step, x, y) {
             console.log(`onStepInstance @ ${x},${y}`);
         }
-        async onStepInstanceFail(_data, _blueprint, _step, x, y, error) {
+        async onStepInstanceFail(_data, _step, x, y, error) {
             console.log(`onStepInstanceFail @ ${x},${y} - error: ${error}`);
         }
-        async onStepSuccess(data, blueprint, step) {
-            console.log(`onStepSuccess - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
+        async onStepSuccess(data, step) {
+            console.log(`onStepSuccess - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU__namespace.flag.toString(StepFlags, step.flags)}`);
             console.groupEnd();
         }
-        async onStepFail(data, blueprint, step, error) {
-            console.log(`onStepFail - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : error : ${error}`);
+        async onStepFail(data, step, error) {
+            console.log(`onStepFail - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : error : ${error}`);
             console.groupEnd();
         }
     }
@@ -3898,8 +3905,7 @@
     }
 
     class BuildData {
-        constructor(map, options = {}) {
-            this.map = map;
+        constructor(site, blueprint) {
             this.originX = -1;
             this.originY = -1;
             this.distance25 = -1;
@@ -3907,14 +3913,13 @@
             this.machineNumber = 0;
             this.depth = 0;
             this.seed = 0;
-            this.site = new MapSite(map);
-            this.interior = GWU__namespace.grid.alloc(map.width, map.height);
-            this.occupied = GWU__namespace.grid.alloc(map.width, map.height);
-            this.viewMap = GWU__namespace.grid.alloc(map.width, map.height);
-            this.distanceMap = GWU__namespace.grid.alloc(map.width, map.height);
-            this.candidates = GWU__namespace.grid.alloc(map.width, map.height);
-            this.depth = options.depth || 1;
-            this.seed = options.seed || 0;
+            this.site = site;
+            this.blueprint = blueprint;
+            this.interior = GWU__namespace.grid.alloc(site.width, site.height);
+            this.occupied = GWU__namespace.grid.alloc(site.width, site.height);
+            this.viewMap = GWU__namespace.grid.alloc(site.width, site.height);
+            this.distanceMap = GWU__namespace.grid.alloc(site.width, site.height);
+            this.candidates = GWU__namespace.grid.alloc(site.width, site.height);
         }
         free() {
             GWU__namespace.grid.free(this.interior);
@@ -3922,6 +3927,9 @@
             GWU__namespace.grid.free(this.viewMap);
             GWU__namespace.grid.free(this.distanceMap);
             GWU__namespace.grid.free(this.candidates);
+        }
+        get rng() {
+            return this.site.rng;
         }
         reset(originX, originY) {
             this.interior.fill(0);
@@ -3977,9 +3985,8 @@
     }
 
     class Builder {
-        constructor(map, options = {}) {
+        constructor(options = {}) {
             this.blueprints = null;
-            this.data = new BuildData(map, options);
             if (options.blueprints) {
                 if (!Array.isArray(options.blueprints)) {
                     options.blueprints = Object.values(options.blueprints);
@@ -3993,29 +4000,34 @@
                 this.log = options.log || new NullLogger();
             }
         }
-        _pickRandom(requiredFlags) {
+        _pickRandom(requiredFlags, depth, rng) {
+            rng = rng || GWU__namespace.rng.random;
             const blueprints$1 = this.blueprints || Object.values(blueprints);
             const weights = blueprints$1.map((b) => {
                 if (!b.qualifies(requiredFlags))
                     return 0;
-                return b.frequency(this.data.depth);
+                return b.frequency(depth);
             });
-            const index = this.data.map.rng.weighted(weights);
+            const index = rng.weighted(weights);
             return blueprints$1[index] || null;
         }
-        async buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
-            const data = this.data;
-            data.site.analyze();
+        async buildRandom(site, requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
+            if (site instanceof GWM__namespace.map.Map) {
+                site = new MapSite(site);
+            }
+            const depth = site.depth;
             let tries = 0;
             while (tries < 10) {
-                const blueprint = this._pickRandom(requiredMachineFlags);
+                const blueprint = this._pickRandom(requiredMachineFlags, depth, site.rng);
                 if (!blueprint) {
-                    await this.log.onBuildError(data, `Failed to find matching blueprint: requiredMachineFlags : ${GWU__namespace.flag.toString(Flags, requiredMachineFlags)}, depth: ${data.depth}`);
-                    return false;
+                    await this.log.onBuildError(`Failed to find matching blueprint: requiredMachineFlags : ${GWU__namespace.flag.toString(Flags, requiredMachineFlags)}, depth: ${depth}`);
+                    return null;
                 }
-                await this.log.onBlueprintPick(data, blueprint, requiredMachineFlags, data.depth);
-                if (await this._buildAt(blueprint, x, y, adoptedItem)) {
-                    return true;
+                const data = new BuildData(site, blueprint);
+                data.site.analyze();
+                await this.log.onBlueprintPick(data, requiredMachineFlags, depth);
+                if (await this._buildAt(data, x, y, adoptedItem)) {
+                    return { x, y };
                 }
                 ++tries;
             }
@@ -4025,77 +4037,78 @@
             //         ' tried : ' +
             //         tries.join(', ')
             // );
-            return false;
+            return null;
         }
-        async build(blueprint, x = -1, y = -1, adoptedItem = null) {
-            const data = this.data;
+        async build(site, blueprint, x = -1, y = -1, adoptedItem = null) {
+            if (site instanceof GWM__namespace.map.Map) {
+                site = new MapSite(site);
+            }
             if (typeof blueprint === 'string') {
                 const id = blueprint;
                 blueprint = blueprints[id];
                 if (!blueprint)
                     throw new Error('Failed to find blueprint - ' + id);
             }
+            const data = new BuildData(site, blueprint);
             data.site.analyze();
-            return await this._buildAt(blueprint, x, y, adoptedItem);
+            return await this._buildAt(data, x, y, adoptedItem);
         }
-        async _buildAt(blueprint, x = -1, y = -1, adoptedItem = null) {
-            const data = this.data;
+        async _buildAt(data, x = -1, y = -1, adoptedItem = null) {
             if (x >= 0 && y >= 0) {
-                return await this._build(blueprint, x, y, adoptedItem);
+                return await this._build(data, x, y, adoptedItem);
             }
-            let count = await this._markCandidates(blueprint);
+            let count = await this._markCandidates(data);
             if (!count) {
-                return false;
+                return null;
             }
             let tries = 20; // TODO - Make property of Blueprint
             while (count-- && tries--) {
                 const loc = pickCandidateLoc(data) || false;
                 if (loc) {
-                    if (await this._build(blueprint, loc[0], loc[1], adoptedItem)) {
-                        return true;
+                    if (await this._build(data, loc[0], loc[1], adoptedItem)) {
+                        return { x: loc[0], y: loc[1] };
                     }
                 }
             }
-            await this.log.onBlueprintFail(data, blueprint, 'No suitable locations found to build blueprint.');
-            return false;
+            await this.log.onBlueprintFail(data, 'No suitable locations found to build blueprint.');
+            return null;
         }
         //////////////////////////////////////////
         // Returns true if the machine got built; false if it was aborted.
         // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-        async _build(blueprint, originX, originY, adoptedItem = null) {
-            const data = this.data;
+        async _build(data, originX, originY, adoptedItem = null) {
             data.reset(originX, originY);
-            await this.log.onBlueprintStart(data, blueprint, adoptedItem);
-            if (!(await this._computeInterior(blueprint))) {
-                return false;
+            await this.log.onBlueprintStart(data, adoptedItem);
+            if (!(await this._computeInterior(data))) {
+                return null;
             }
             // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
             const snapshot = data.site.snapshot();
             data.machineNumber = data.site.nextMachineId(); // Reserve this machine number, starting with 1.
             // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
-            prepareInterior(data, blueprint);
+            prepareInterior(data);
             // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
             // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
-            data.calcDistances(blueprint.size.hi);
+            data.calcDistances(data.blueprint.size.hi);
             // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
             // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
-            const components = blueprint.pickComponents(data.site.rng);
+            const components = data.blueprint.pickComponents(data.site.rng);
             // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
             // Now tick through the features and build them.
             for (let index = 0; index < components.length; index++) {
                 const component = components[index];
                 // console.log('BUILD COMPONENT', component);
-                if (!(await this._buildStep(blueprint, component, adoptedItem))) {
+                if (!(await this._buildStep(data, component, adoptedItem))) {
                     // failure! abort!
                     // Restore the map to how it was before we touched it.
-                    await this.log.onBlueprintFail(data, blueprint, `Failed to build step ${index + 1}.`);
+                    await this.log.onBlueprintFail(data, `Failed to build step ${index + 1}.`);
                     snapshot.restore();
                     // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
-                    return false;
+                    return null;
                 }
             }
             // Clear out the interior flag for all non-wired cells, if requested.
-            if (blueprint.noInteriorFlag) {
+            if (data.blueprint.noInteriorFlag) {
                 clearInteriorFlag(data.site, data.machineNumber);
             }
             // if (torchBearer && torch) {
@@ -4105,55 +4118,52 @@
             // 	removeItemFromChain(torch, floorItems);
             // 	torchBearer->carriedItem = torch;
             // }
-            await this.log.onBlueprintSuccess(data, blueprint);
+            await this.log.onBlueprintSuccess(data);
             snapshot.cancel();
             // console.log('Built a machine from blueprint:', originX, originY);
-            return true;
+            return { x: originX, y: originY };
         }
-        async _markCandidates(blueprint) {
-            const data = this.data;
-            const count = markCandidates(data, blueprint);
+        async _markCandidates(data) {
+            const count = markCandidates(data);
             if (count <= 0) {
-                await this.log.onBlueprintFail(data, blueprint, 'No suitable candidate locations found.');
+                await this.log.onBlueprintFail(data, 'No suitable candidate locations found.');
                 return 0;
             }
-            await this.log.onBlueprintCandidates(data, blueprint);
+            await this.log.onBlueprintCandidates(data);
             return count;
         }
-        async _computeInterior(blueprint) {
+        async _computeInterior(data) {
             let fail = null;
-            const data = this.data;
-            let count = blueprint.fillInterior(data);
+            let count = data.blueprint.fillInterior(data);
             // Now make sure the interior map satisfies the machine's qualifications.
             if (!count) {
                 fail = 'Interior error.';
             }
-            else if (!blueprint.size.contains(count)) {
-                fail = `Interior wrong size - have: ${count}, want: ${blueprint.size.toString()}`;
+            else if (!data.blueprint.size.contains(count)) {
+                fail = `Interior wrong size - have: ${count}, want: ${data.blueprint.size.toString()}`;
             }
-            else if (blueprint.treatAsBlocking &&
+            else if (data.blueprint.treatAsBlocking &&
                 siteDisruptedBy(data.site, data.interior, {
                     machine: data.site.machineCount,
                 })) {
                 fail = 'Interior blocks map.';
             }
-            else if (blueprint.requireBlocking &&
+            else if (data.blueprint.requireBlocking &&
                 siteDisruptedSize(data.site, data.interior) < 100) {
                 fail = 'Interior does not block enough cells.';
             }
             if (!fail) {
-                await this.log.onBlueprintInterior(data, blueprint);
+                await this.log.onBlueprintInterior(data);
                 return true;
             }
-            await this.log.onBlueprintFail(data, blueprint, fail);
+            await this.log.onBlueprintFail(data, fail);
             return false;
         }
-        async _buildStep(blueprint, buildStep, adoptedItem) {
+        async _buildStep(data, buildStep, adoptedItem) {
             let wantCount = 0;
             let builtCount = 0;
-            const data = this.data;
             const site = data.site;
-            await this.log.onStepStart(data, blueprint, buildStep, adoptedItem);
+            await this.log.onStepStart(data, buildStep, adoptedItem);
             // console.log(
             //     'buildComponent',
             //     blueprint.id,
@@ -4161,21 +4171,21 @@
             // );
             // Figure out the distance bounds.
             const distanceBound = calcDistanceBound(data, buildStep);
-            // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+            // If the StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
             // Make a master map of candidate locations for this feature.
             let qualifyingTileCount = 0;
             if (buildStep.buildVestibule) {
                 // Generate a door guard machine.
                 // Try to create a sub-machine that qualifies.
-                let success = await this.buildRandom(Flags.BP_VESTIBULE, data.originX, data.originY);
+                let success = await this.buildRandom(data.site, Flags.BP_VESTIBULE, data.originX, data.originY);
                 if (!success) {
-                    await this.log.onStepFail(data, blueprint, buildStep, 'Failed to build vestibule');
+                    await this.log.onStepFail(data, buildStep, 'Failed to build vestibule');
                     return false;
                 }
             }
             // If we are just building a vestibule, then we can exit here...
             if (!buildStep.buildsInstances) {
-                await this.log.onStepSuccess(data, blueprint, buildStep);
+                await this.log.onStepSuccess(data, buildStep);
                 return true;
             }
             const candidates = GWU__namespace.grid.alloc(site.width, site.height);
@@ -4188,7 +4198,7 @@
                     wantCount = 1;
                 }
                 else {
-                    qualifyingTileCount = buildStep.markCandidates(data, blueprint, candidates, distanceBound);
+                    qualifyingTileCount = buildStep.markCandidates(data, candidates, distanceBound);
                     if (buildStep.generateEverywhere ||
                         buildStep.repeatUntilNoProgress) {
                         wantCount = qualifyingTileCount;
@@ -4196,10 +4206,10 @@
                     else {
                         wantCount = buildStep.count.value(site.rng);
                     }
-                    await this.log.onStepCandidates(data, blueprint, buildStep, candidates, wantCount);
+                    await this.log.onStepCandidates(data, buildStep, candidates, wantCount);
                     if (!qualifyingTileCount ||
                         qualifyingTileCount < buildStep.count.lo) {
-                        await this.log.onStepFail(data, blueprint, buildStep, `Blueprint ${blueprint.id}, step ${blueprint.steps.indexOf(buildStep)} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`);
+                        await this.log.onStepFail(data, buildStep, `Blueprint ${data.blueprint.id}, step ${data.blueprint.steps.indexOf(buildStep)} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`);
                         return false;
                     }
                 }
@@ -4214,13 +4224,13 @@
                     else {
                         // Pick our candidate location randomly, and also strike it from
                         // the candidates map so that subsequent instances of this same feature can't choose it.
-                        [x, y] = this.data.map.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+                        [x, y] = data.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
                     }
                     // Don't waste time trying the same place again whether or not this attempt succeeds.
                     candidates[x][y] = 0;
                     qualifyingTileCount--;
                     const snapshot = data.site.snapshot();
-                    if (await this._buildStepInstance(blueprint, buildStep, x, y, adoptedItem)) {
+                    if (await this._buildStepInstance(data, buildStep, x, y, adoptedItem)) {
                         // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
                         qualifyingTileCount -= makePersonalSpace(data, x, y, candidates, buildStep.pad);
                         builtCount++; // we've placed an instance
@@ -4237,16 +4247,15 @@
             if (!buildStep.count.contains(builtCount) &&
                 !buildStep.generateEverywhere &&
                 !buildStep.repeatUntilNoProgress) {
-                await this.log.onStepFail(data, blueprint, buildStep, `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`);
+                await this.log.onStepFail(data, buildStep, `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`);
                 return false;
             }
-            await this.log.onStepSuccess(data, blueprint, buildStep);
+            await this.log.onStepSuccess(data, buildStep);
             return true;
         }
-        async _buildStepInstance(blueprint, buildStep, x, y, adoptedItem = null) {
+        async _buildStepInstance(data, buildStep, x, y, adoptedItem = null) {
             let success = true;
             let didSomething = true;
-            const data = this.data;
             const site = data.site;
             if (success && buildStep.treatAsBlocking) {
                 // Yes, check for blocking.
@@ -4260,7 +4269,7 @@
                     };
                 }
                 if (siteDisruptedByXY(site, x, y, options)) {
-                    await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'instance blocks map');
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'instance blocks map');
                     success = false;
                 }
             }
@@ -4269,21 +4278,25 @@
                 success = site.buildEffect(buildStep.effect, x, y);
                 didSomething = success;
                 if (!success) {
-                    this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to build effect - ' +
+                    this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build effect - ' +
                         JSON.stringify(buildStep.effect));
                 }
             }
             // Now try to place the terrain tile, if any.
             if (success && buildStep.tile !== -1) {
                 const tile = GWM__namespace.tile.get(buildStep.tile);
-                if (!buildStep.permitBlocking &&
+                if (!tile) {
+                    success = false;
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'failed to find tile - ' + buildStep.tile);
+                }
+                else if (!buildStep.permitBlocking &&
                     tile.blocksMove() &&
                     !buildStep.treatAsBlocking // already did treatAsBlocking
                 ) {
                     if (siteDisruptedByXY(site, x, y, {
                         machine: site.machineCount,
                     })) {
-                        await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'tile blocks site');
+                        await this.log.onStepInstanceFail(data, buildStep, x, y, 'tile blocks site');
                         success = false;
                     }
                 }
@@ -4291,7 +4304,7 @@
                     success = site.setTile(x, y, tile);
                     didSomething = didSomething || success;
                     if (!success) {
-                        await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'failed to set tile - ' + tile.id);
+                        await this.log.onStepInstanceFail(data, buildStep, x, y, 'failed to set tile - ' + tile.id);
                     }
                 }
             }
@@ -4301,7 +4314,7 @@
                 const item = site.makeRandomItem(buildStep.item);
                 if (!item) {
                     success = false;
-                    await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to make random item - ' +
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to make random item - ' +
                         JSON.stringify(buildStep.item));
                 }
                 else {
@@ -4309,20 +4322,21 @@
                         item.key = GWM__namespace.entity.makeKeyInfo(x, y, !!buildStep.keyIsDisposable);
                     }
                     if (buildStep.outsourceItem) {
-                        success = await this.buildRandom(Flags.BP_ADOPT_ITEM, -1, -1, item);
-                        if (success) {
+                        const result = await this.buildRandom(data.site, Flags.BP_ADOPT_ITEM, -1, -1, item);
+                        if (result) {
                             didSomething = true;
                         }
                         else {
-                            await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to build machine to adopt item - ' +
+                            await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build machine to adopt item - ' +
                                 item.kind.id);
+                            success = false;
                         }
                     }
                     else {
                         success = site.addItem(x, y, item);
                         didSomething = didSomething || success;
                         if (!success) {
-                            await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to add item to site - ' + item.kind.id);
+                            await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to add item to site - ' + item.kind.id);
                         }
                     }
                 }
@@ -4338,21 +4352,21 @@
                         didSomething = true;
                     }
                     else {
-                        await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to add adopted item to site - ' +
+                        await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to add adopted item to site - ' +
                             adoptedItem.kind.id);
                     }
                 }
             }
             if (success && didSomething) {
                 // Mark the feature location as part of the machine, in case it is not already inside of it.
-                if (!blueprint.noInteriorFlag) {
-                    site.setMachine(x, y, data.machineNumber, blueprint.isRoom);
+                if (!data.blueprint.noInteriorFlag) {
+                    site.setMachine(x, y, data.machineNumber, data.blueprint.isRoom);
                 }
                 // Mark the feature location as impregnable if requested.
                 if (buildStep.impregnable) {
                     site.setCellFlag(x, y, GWM__namespace.flags.Cell.IMPREGNABLE);
                 }
-                await this.log.onStepInstanceSuccess(data, blueprint, buildStep, x, y);
+                await this.log.onStepInstanceSuccess(data, buildStep, x, y);
             }
             return success && didSomething;
         }
@@ -4422,19 +4436,19 @@
         async onLakesAdded(_site) { }
         async onBridgesAdded(_site) { }
         async onStairsAdded(_site) { }
-        async onBuildError(_data, _error) { }
-        async onBlueprintPick(_data, _blueprint, _flags, _depth) { }
-        async onBlueprintCandidates(_data, _blueprint) { }
-        async onBlueprintStart(_data, _blueprint, _adoptedItem) { }
-        async onBlueprintInterior(_data, _blueprint) { }
-        async onBlueprintFail(_data, _blueprint, _error) { }
-        async onBlueprintSuccess(_data, _blueprint) { }
-        async onStepStart(_data, _blueprint, _step, _item) { }
-        async onStepCandidates(_data, _blueprint, _step, _candidates, _wantCount) { }
-        async onStepInstanceSuccess(_data, _blueprint, _step, _x, _y) { }
-        async onStepInstanceFail(_data, _blueprint, _step, _x, _y, _error) { }
-        async onStepSuccess(_data, _blueprint, _step) { }
-        async onStepFail(_data, _blueprint, _step, _error) { }
+        async onBuildError(_error) { }
+        async onBlueprintPick(_data, _flags, _depth) { }
+        async onBlueprintCandidates(_data) { }
+        async onBlueprintStart(_data, _adoptedItem) { }
+        async onBlueprintInterior(_data) { }
+        async onBlueprintFail(_data, _error) { }
+        async onBlueprintSuccess(_data) { }
+        async onStepStart(_data, _step, _item) { }
+        async onStepCandidates(_data, _step, _candidates, _wantCount) { }
+        async onStepInstanceSuccess(_data, _step, _x, _y) { }
+        async onStepInstanceFail(_data, _step, _x, _y, _error) { }
+        async onStepSuccess(_data, _step) { }
+        async onStepFail(_data, _step, _error) { }
     }
 
     var index = /*#__PURE__*/Object.freeze({

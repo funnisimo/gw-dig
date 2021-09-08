@@ -72,10 +72,10 @@ export class Blueprint {
         }
         if (this.flags & Flags.BP_ADOPT_ITEM) {
             if (
-                !this.steps.some((s) => s.flags & STEP.StepFlags.BF_ADOPT_ITEM)
+                !this.steps.some((s) => s.flags & STEP.StepFlags.BS_ADOPT_ITEM)
             ) {
                 throw new Error(
-                    'Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.'
+                    'Blueprint wants to BP_ADOPT_ITEM, but has no steps with BS_ADOPT_ITEM.'
                 );
             }
         }
@@ -155,8 +155,8 @@ export class Blueprint {
 
     pickComponents(rng: GWU.rng.Random) {
         const alternativeFlags = [
-            STEP.StepFlags.BF_ALTERNATIVE,
-            STEP.StepFlags.BF_ALTERNATIVE_2,
+            STEP.StepFlags.BS_ALTERNATIVE,
+            STEP.StepFlags.BS_ALTERNATIVE_2,
         ];
 
         const keepFeature = new Array(this.steps.length).fill(true);
@@ -383,12 +383,10 @@ export class Blueprint {
     // }
 }
 
-export function markCandidates(
-    buildData: BuildData,
-    blueprint: Blueprint
-): number {
+export function markCandidates(buildData: BuildData): number {
     const site = buildData.site;
     const candidates = buildData.candidates;
+    const blueprint = buildData.blueprint;
     candidates.fill(0);
 
     // Find a location and map out the machine interior.
@@ -422,10 +420,7 @@ export function markCandidates(
     return candidates.count((v) => v == 1);
 }
 
-export function pickCandidateLoc(
-    buildData: BuildData,
-    _blueprint: Blueprint
-): GWU.xy.Loc | null {
+export function pickCandidateLoc(buildData: BuildData): GWU.xy.Loc | null {
     const site = buildData.site;
     const candidates = buildData.candidates;
 
@@ -632,9 +627,10 @@ function addTileToInteriorAndIterate(
     return count;
 }
 
-export function prepareInterior(builder: BuildData, blueprint: Blueprint) {
+export function prepareInterior(builder: BuildData) {
     const interior = builder.interior;
     const site = builder.site;
+    const blueprint = builder.blueprint;
 
     // If requested, clear and expand the room as far as possible until either it's convex or it bumps into surrounding rooms
     if (blueprint.maximizeInterior) {

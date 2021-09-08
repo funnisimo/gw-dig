@@ -35,7 +35,7 @@ GWD.blueprint.install('ADPOTER', {
     // size: '10-100',
     steps: [
         {
-            flags: 'BF_ADOPT_ITEM, BF_TREAT_AS_BLOCKING',
+            flags: 'BS_ADOPT_ITEM, BS_TREAT_AS_BLOCKING',
         },
     ],
 });
@@ -48,7 +48,7 @@ GWD.blueprint.install('VESTIBULE', {
             tile: 'LOCKED_DOOR',
             item: 'key',
             flags:
-                'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE, BF_ITEM_IS_KEY, BF_OUTSOURCE_ITEM_TO_MACHINE, BF_KEY_DISPOSABLE',
+                'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
         },
     ],
 });
@@ -56,7 +56,7 @@ GWD.blueprint.install('VESTIBULE', {
 const blue = GWD.blueprint.install('ROOM', {
     flags: 'BP_ROOM',
     size: '10-100',
-    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+    steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
 });
 ```
 
@@ -87,7 +87,7 @@ const digger = new GWD.Digger({
 
 let elapsed = 0;
 
-const builder = new GWD.blueprint.Builder(map, {});
+const builder = new GWD.blueprint.Builder();
 
 async function buildMap() {
     buffer.blackOut();
@@ -99,7 +99,7 @@ async function buildMap() {
     let start = Date.now();
 
     await digger.create(map);
-    await builder.build('ROOM');
+    await builder.build(map, 'ROOM');
 
     elapsed = Date.now() - start;
 }

@@ -35,7 +35,7 @@ describe('Blueprint', () => {
         const sd = BLUE.install('SECRET_DOOR', {
             frequency: 10,
             flags: 'BP_VESTIBULE',
-            steps: [{ tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' }],
+            steps: [{ tile: 'DOOR', flags: 'BS_BUILD_AT_ORIGIN' }],
         });
 
         const rm = BLUE.install('WET_ROOM', {
@@ -43,10 +43,10 @@ describe('Blueprint', () => {
             size: '10-20',
             flags: 'BP_ROOM',
             steps: [
-                { tile: 'SHALLOW', flags: 'BF_EVERYWHERE' },
+                { tile: 'SHALLOW', flags: 'BS_EVERYWHERE' },
                 {
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE, BF_PERMIT_BLOCKING',
+                        'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE, BS_PERMIT_BLOCKING',
                 },
             ],
         });
@@ -58,12 +58,12 @@ describe('Blueprint', () => {
     test('Carpet Secret Room', () => {
         // Mixed item library -- can check one item out at a time
         // [[1, 12],           [30, 50],	30,		6,			0,                  (BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD),	[
-        // 	[0,	CARPET,		DUNGEON,		[0,0],		0,			0,			-1,			0,				0,				0,			0,			(BF_EVERYWHERE)],
-        // 	[0,	0,          0,              [1,1],		1,			0,          0,        0,				2,					0,			0,          (BF_BUILD_AT_ORIGIN | BF_PERMIT_BLOCKING | BF_BUILD_VESTIBULE)],
-        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[1,1],		1,			(WEAPON|ARMOR|WAND|STAFF|RING|CHARM),-1,0,2,	0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
-        //  [0,	ALTAR_CAGE_OPEN,DUNGEON,	[3,3],		3,			(WEAPON|ARMOR|WAND),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
-        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
-        //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BF_TREAT_AS_BLOCKING | BF_BUILD_IN_WALLS | BF_IMPREGNABLE)]]],
+        // 	[0,	CARPET,		DUNGEON,		[0,0],		0,			0,			-1,			0,				0,				0,			0,			(BS_EVERYWHERE)],
+        // 	[0,	0,          0,              [1,1],		1,			0,          0,        0,				2,					0,			0,          (BS_BUILD_AT_ORIGIN | BS_PERMIT_BLOCKING | BS_BUILD_VESTIBULE)],
+        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[1,1],		1,			(WEAPON|ARMOR|WAND|STAFF|RING|CHARM),-1,0,2,	0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BS_GENERATE_ITEM | BS_NO_THROWING_WEAPONS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE)],
+        //  [0,	ALTAR_CAGE_OPEN,DUNGEON,	[3,3],		3,			(WEAPON|ARMOR|WAND),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BS_GENERATE_ITEM | BS_NO_THROWING_WEAPONS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE)],
+        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BS_GENERATE_ITEM | BS_NO_THROWING_WEAPONS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE)],
+        //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BS_TREAT_AS_BLOCKING | BS_BUILD_IN_WALLS | BS_IMPREGNABLE)]]],
 
         GWM.tile.install('CARPET', { ch: '#', fg: 0xb36 });
         GWM.tile.install('DOOR_SECRET', {
@@ -79,10 +79,10 @@ describe('Blueprint', () => {
             size: '15-25',
             flags: 'BP_ROOM',
             steps: [
-                { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
+                { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {
                     tile: 'DOOR_SECRET',
-                    flags: 'BF_BUILD_AT_ORIGIN | BF_PERMIT_BLOCKING',
+                    flags: 'BS_BUILD_AT_ORIGIN | BS_PERMIT_BLOCKING',
                 },
             ],
         });
@@ -100,8 +100,8 @@ describe('Blueprint', () => {
         // dumpSite(site);
 
         // Create a build site
-        const builder = new BLUE.Builder(map);
-        expect(builder.build(a)).toBeTruthy();
+        const builder = new BLUE.Builder();
+        expect(builder.build(map, a)).toBeTruthy();
 
         // dumpSite(site);
 
@@ -112,12 +112,12 @@ describe('Blueprint', () => {
     test('Mixed Item Library', () => {
         // Mixed item library -- can check one item out at a time
         // [[1, 12],           [30, 50],	30,		6,			0,                  (BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD),	[
-        // 	[0,	CARPET,		DUNGEON,		[0,0],		0,			0,			-1,			0,				0,				0,			0,			(BF_EVERYWHERE)],
-        // 	[0,	0,          0,              [1,1],		1,			0,          0,        0,				2,					0,			0,          (BF_BUILD_AT_ORIGIN | BF_PERMIT_BLOCKING | BF_BUILD_VESTIBULE)],
-        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[1,1],		1,			(WEAPON|ARMOR|WAND|STAFF|RING|CHARM),-1,0,2,	0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
-        //  [0,	ALTAR_CAGE_OPEN,DUNGEON,	[3,3],		3,			(WEAPON|ARMOR|WAND),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
-        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BF_GENERATE_ITEM | BF_NO_THROWING_WEAPONS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE)],
-        //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BF_TREAT_AS_BLOCKING | BF_BUILD_IN_WALLS | BF_IMPREGNABLE)]]],
+        // 	[0,	CARPET,		DUNGEON,		[0,0],		0,			0,			-1,			0,				0,				0,			0,			(BS_EVERYWHERE)],
+        // 	[0,	0,          0,              [1,1],		1,			0,          0,        0,				2,					0,			0,          (BS_BUILD_AT_ORIGIN | BS_PERMIT_BLOCKING | BS_BUILD_VESTIBULE)],
+        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[1,1],		1,			(WEAPON|ARMOR|WAND|STAFF|RING|CHARM),-1,0,2,	0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BS_GENERATE_ITEM | BS_NO_THROWING_WEAPONS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE)],
+        //  [0,	ALTAR_CAGE_OPEN,DUNGEON,	[3,3],		3,			(WEAPON|ARMOR|WAND),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_PLAYER_AVOIDS),	(BS_GENERATE_ITEM | BS_NO_THROWING_WEAPONS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE)],
+        // 	[0,	ALTAR_CAGE_OPEN,DUNGEON,	[2,3],		2,			(STAFF|RING|CHARM),-1,	0,				2,					0,			(ITEM_IS_KEY | ITEM_KIND_AUTO_ID | ITEM_MAX_CHARGES_KNOWN | ITEM_PLAYER_AVOIDS),	(BS_GENERATE_ITEM | BS_NO_THROWING_WEAPONS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE)],
+        //  [0,	STATUE_INERT,DUNGEON,		[2,3],		0,			0,			-1,			0,				2,				0,          0,          (BS_TREAT_AS_BLOCKING | BS_BUILD_IN_WALLS | BS_IMPREGNABLE)]]],
 
         GWM.tile.install('CARPET', { ch: '#', fg: 0xb36 });
         GWM.tile.install('ALTAR', { ch: 'T', fg: 0xf63 });
@@ -129,10 +129,10 @@ describe('Blueprint', () => {
             flags:
                 'BP_ROOM | BP_REWARD | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE',
             steps: [
-                { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
+                { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {
                     flags:
-                        'BF_BUILD_AT_ORIGIN | BF_PERMIT_BLOCKING | BF_BUILD_VESTIBULE',
+                        'BS_BUILD_AT_ORIGIN | BS_PERMIT_BLOCKING | BS_BUILD_VESTIBULE',
                 },
                 {
                     tile: 'ALTAR',
@@ -143,7 +143,7 @@ describe('Blueprint', () => {
                     pad: 2,
                     count: 1,
                     flags:
-                        'BF_ITEM_IS_KEY | BF_ITEM_IDENTIFIED | BF_ITEM_PLAYER_AVOIDS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE',
+                        'BS_ITEM_IS_KEY | BS_ITEM_IDENTIFIED | BS_ITEM_PLAYER_AVOIDS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE',
                 },
                 {
                     tile: 'ALTAR',
@@ -154,7 +154,7 @@ describe('Blueprint', () => {
                     pad: 2,
                     count: 3,
                     flags:
-                        'BF_ITEM_IS_KEY | BF_ITEM_IDENTIFIED | BF_ITEM_PLAYER_AVOIDS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE',
+                        'BS_ITEM_IS_KEY | BS_ITEM_IDENTIFIED | BS_ITEM_PLAYER_AVOIDS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE',
                 },
                 {
                     tile: 'ALTAR',
@@ -162,13 +162,13 @@ describe('Blueprint', () => {
                     pad: 2,
                     count: '2-3',
                     flags:
-                        'BF_ITEM_IS_KEY | BF_ITEM_IDENTIFIED | BF_ITEM_PLAYER_AVOIDS | BF_TREAT_AS_BLOCKING | BF_IMPREGNABLE',
+                        'BS_ITEM_IS_KEY | BS_ITEM_IDENTIFIED | BS_ITEM_PLAYER_AVOIDS | BS_TREAT_AS_BLOCKING | BS_IMPREGNABLE',
                 },
                 {
                     tile: 'STATUE',
                     pad: 2,
                     flags:
-                        'BF_TREAT_AS_BLOCKING | BF_BUILD_IN_WALLS | BF_IMPREGNABLE',
+                        'BS_TREAT_AS_BLOCKING | BS_BUILD_IN_WALLS | BS_IMPREGNABLE',
                 },
             ],
         });
@@ -199,15 +199,15 @@ describe('Blueprint', () => {
         });
         await digger.create(map);
 
-        const builder = new BLUE.Builder(map);
+        const builder = new BLUE.Builder();
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-200',
-            steps: [{ tile: 'CARPET', flags: 'BF_EVERYWHERE' }],
+            steps: [{ tile: 'CARPET', flags: 'BS_EVERYWHERE' }],
         });
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         expect(
             map.cells.count((c, _x, _y) => {
