@@ -649,7 +649,7 @@ declare class BuildStep {
     get buildAtOrigin(): boolean;
     get buildsInstances(): boolean;
     markCandidates(data: BuildData, candidates: GWU.grid.NumGrid, distanceBound?: [number, number]): number;
-    makePersonalSpace(builder: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid): number;
+    makePersonalSpace(_data: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid): number;
     toString(): string;
 }
 declare function updateViewMap(builder: BuildData, buildStep: BuildStep): void;

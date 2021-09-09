@@ -749,9 +749,9 @@ export function prepareInterior(builder: BuildData) {
                         return; // is part of a machine
 
                     if (site.blocksPathing(i, j)) return; // is a blocker for the player (water?)
-                    site.setTile(i, j, SITE.WALL);
+                    site.clearCell(i, j, SITE.WALL);
                 },
-                false
+                false // all 8 directions
             );
         });
     }

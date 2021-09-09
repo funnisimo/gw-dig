@@ -1873,6 +1873,7 @@
                 return false;
             if (opts.blockedByOtherLayers && cell.highestPriority() > tile.priority)
                 return false;
+            // TODO - Are we blocked by other layer (L_BLOCKS_SURFACE on an already present tile)?
             if (tile.depth > Depth$1.GROUND && tile.groundTile) {
                 const ground = cell.depthTile(Depth$1.GROUND);
                 if (!ground || ground === tiles.NULL) {
@@ -2522,6 +2523,9 @@
         isStairs() {
             return this.hasTileFlag(Tile$1.T_HAS_STAIRS);
         }
+        isGateSite() {
+            return this.hasCellFlag(Cell$1.IS_GATE_SITE);
+        }
         // @returns - whether or not the change results in a change to the cell tiles.
         //          - If there is a change to cell lighting, the cell will have the
         //          - LIGHT_CHANGED flag set.
@@ -2551,6 +2555,15 @@
             //     }
             // }
             return true;
+        }
+        clearTiles(tile) {
+            this.tiles[0] = tiles.NULL;
+            for (let i = 1; i < this.tiles.length; ++i) {
+                this.tiles[i] = null;
+            }
+            if (tile) {
+                this.setTile(tile);
+            }
         }
         clear(tile) {
             this.tiles = [tiles.NULL];
@@ -3151,6 +3164,10 @@
             if (!(layer instanceof TileLayer))
                 return false;
             return layer.setTile(x, y, tile, opts);
+        }
+        clearTiles(x, y, tile) {
+            const cell = this.cell(x, y);
+            cell.clearTiles(tile);
         }
         async tick(dt) {
             let didSomething = await this.fireAll('tick');

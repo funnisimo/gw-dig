@@ -121,7 +121,7 @@ export class MapSite implements BUILD.BuildSite {
         tile: string | number | GWM.tile.Tile
     ): boolean {
         this.needsAnalysis = true;
-        this.map.clearCell(x, y, tile);
+        this.map.clearTiles(x, y, tile);
         return true;
     }
 

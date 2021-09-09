@@ -721,7 +721,7 @@
         }
         clearCell(x, y, tile) {
             this.needsAnalysis = true;
-            this.map.clearCell(x, y, tile);
+            this.map.clearTiles(x, y, tile);
             return true;
         }
         getTileIndex(x, y) {
@@ -2333,7 +2333,7 @@
             });
             return count;
         }
-        makePersonalSpace(builder, x, y, candidates) {
+        makePersonalSpace(_data, x, y, candidates) {
             let count = 0;
             if (this.pad < 1)
                 return 0; // do not mark occupied
@@ -2346,7 +2346,7 @@
                             candidates[i][j] = 0;
                             ++count;
                         }
-                        builder.occupied[i][j] = 1;
+                        // builder.occupied[i][j] = 1;
                     }
                 }
             }
@@ -2375,7 +2375,9 @@
             if (this.chance) {
                 parts.push('chance: ' + this.chance);
             }
-            parts.push('flags: ' + GWU__namespace.flag.toString(StepFlags, this.flags));
+            if (this.flags) {
+                parts.push('flags: ' + GWU__namespace.flag.toString(StepFlags, this.flags));
+            }
             return '{ ' + parts.join(', ') + ' }';
         }
     }
@@ -3241,8 +3243,9 @@
                         return; // is part of a machine
                     if (site.blocksPathing(i, j))
                         return; // is a blocker for the player (water?)
-                    site.setTile(i, j, WALL);
-                }, false);
+                    site.clearCell(i, j, WALL);
+                }, false // all 8 directions
+                );
             });
         }
         // Completely clear the interior, fill with granite, and cut entirely new rooms into it from the gate site.

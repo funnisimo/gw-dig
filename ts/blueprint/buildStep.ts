@@ -238,7 +238,7 @@ export class BuildStep {
     }
 
     makePersonalSpace(
-        builder: BuildData,
+        _data: BuildData,
         x: number,
         y: number,
         candidates: GWU.grid.NumGrid
@@ -256,7 +256,7 @@ export class BuildStep {
                         candidates[i][j] = 0;
                         ++count;
                     }
-                    builder.occupied[i][j] = 1;
+                    // builder.occupied[i][j] = 1;
                 }
             }
         }
@@ -286,7 +286,9 @@ export class BuildStep {
         if (this.chance) {
             parts.push('chance: ' + this.chance);
         }
-        parts.push('flags: ' + GWU.flag.toString(StepFlags, this.flags));
+        if (this.flags) {
+            parts.push('flags: ' + GWU.flag.toString(StepFlags, this.flags));
+        }
         return '{ ' + parts.join(', ') + ' }';
     }
 }
