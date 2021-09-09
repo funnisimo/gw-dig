@@ -563,7 +563,10 @@ export class Builder {
 
         // Generate an item, if necessary
         if (success && buildStep.item) {
-            const item = site.makeRandomItem(buildStep.item);
+            const item = site.makeRandomItem(
+                buildStep.item,
+                buildStep.item.make
+            );
             if (!item) {
                 success = false;
                 await this.log.onStepInstanceFail(

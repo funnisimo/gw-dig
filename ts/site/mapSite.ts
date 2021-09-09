@@ -141,13 +141,11 @@ export class MapSite implements BUILD.BuildSite {
         return this.map.cellInfo(x, y).hasItem();
     }
     makeRandomItem(
-        tags: string | Partial<GWM.item.MatchOptions>
+        tags: Partial<GWM.item.MatchOptions>,
+        makeOptions?: any
     ): GWM.item.Item {
-        if (typeof tags === 'string') {
-            tags = { tags };
-        }
         tags.rng = this.rng;
-        return GWM.item.makeRandom(tags);
+        return GWM.item.makeRandom(tags, makeOptions);
     }
     addItem(x: number, y: number, item: GWM.item.Item): boolean {
         this.needsAnalysis = true;

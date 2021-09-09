@@ -69,7 +69,7 @@ interface BuildSite extends DigSite {
     hasCellFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
-    makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
+    makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     analyze(): void;
     buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
@@ -172,7 +172,7 @@ declare class MapSite implements BuildSite {
     getTileIndex(x: number, y: number): number;
     clear(): void;
     hasItem(x: number, y: number): boolean;
-    makeRandomItem(tags: string | Partial<GWM.item.MatchOptions>): GWM.item.Item;
+    makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     hasActor(x: number, y: number): boolean;
     blocksMove(x: number, y: number): boolean;
@@ -581,12 +581,15 @@ declare namespace loop_d {
   };
 }
 
+interface ItemOptions extends GWM.item.MatchOptions {
+    make: any;
+}
 interface StepOptions {
     tile: string | number;
     flags: GWU.flag.FlagBase;
     pad: number;
     count: GWU.range.RangeBase;
-    item: string | Partial<GWM.item.MatchOptions>;
+    item: string | Partial<ItemOptions>;
     horde: any;
     effect: Partial<GWM.effect.EffectConfig> | string;
 }
@@ -626,7 +629,7 @@ declare class BuildStep {
     flags: number;
     pad: number;
     count: GWU.range.Range;
-    item: string | Partial<GWM.item.MatchOptions> | null;
+    item: Partial<ItemOptions> | null;
     horde: any | null;
     effect: GWM.effect.EffectInfo | null;
     chance: number;
@@ -931,6 +934,7 @@ declare class Builder {
 
 type index_d$1_BuildData = BuildData;
 declare const index_d$1_BuildData: typeof BuildData;
+type index_d$1_ItemOptions = ItemOptions;
 type index_d$1_StepOptions = StepOptions;
 type index_d$1_StepFlags = StepFlags;
 declare const index_d$1_StepFlags: typeof StepFlags;
@@ -965,6 +969,7 @@ declare const index_d$1_make: typeof make;
 declare namespace index_d$1 {
   export {
     index_d$1_BuildData as BuildData,
+    index_d$1_ItemOptions as ItemOptions,
     index_d$1_StepOptions as StepOptions,
     index_d$1_StepFlags as StepFlags,
     index_d$1_BuildStep as BuildStep,

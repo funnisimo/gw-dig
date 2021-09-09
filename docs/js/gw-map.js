@@ -471,6 +471,7 @@
         constructor(config) {
             super(config);
         }
+        make(_item, _options) { }
         forbidsCell(_item, _cell) {
             return false;
         }
@@ -539,7 +540,7 @@
     }
 
     class Item extends Entity {
-        constructor(kind) {
+        constructor(kind, options) {
             super(kind);
             this.quantity = 1;
             this.next = null;
@@ -548,6 +549,7 @@
             this.flags.item = 0;
             this.depth = Depth$1.ITEM;
             this.kind = kind;
+            this.kind.make(this, options);
         }
         itemFlags() {
             return this.flags.item;
@@ -559,19 +561,19 @@
             return (this.flags.item & flags) === flags;
         }
     }
-    function make$3(id) {
+    function make$3(id, makeOptions) {
         const kind = get$1(id);
         if (!kind)
             throw new Error('Failed to find item kind - ' + id);
-        return new Item(kind);
+        return new Item(kind, makeOptions);
     }
-    function makeRandom(opts) {
+    function makeRandom(opts, makeOptions) {
         const kind = randomKind(opts);
         if (!kind)
             throw new Error('Failed to find item kind matching - ' + JSON.stringify(opts));
-        return new Item(kind);
+        return new Item(kind, makeOptions);
     }
-    function from$2(info) {
+    function from$2(info, makeOptions) {
         let kind;
         if (typeof info === 'string') {
             // @ts-ignore
@@ -585,7 +587,7 @@
         else {
             kind = makeKind(info);
         }
-        return new Item(kind);
+        return new Item(kind, makeOptions);
     }
 
     var index$4 = /*#__PURE__*/Object.freeze({

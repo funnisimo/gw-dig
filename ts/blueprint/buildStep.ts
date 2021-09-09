@@ -4,12 +4,16 @@ import * as GWM from 'gw-map';
 import { BuildData } from './data';
 import { Blueprint } from './blueprint';
 
+export interface ItemOptions extends GWM.item.MatchOptions {
+    make: any;
+}
+
 export interface StepOptions {
     tile: string | number;
     flags: GWU.flag.FlagBase;
     pad: number;
     count: GWU.range.RangeBase;
-    item: string | Partial<GWM.item.MatchOptions>;
+    item: string | Partial<ItemOptions>;
     horde: any;
     effect: Partial<GWM.effect.EffectConfig> | string;
 }
@@ -64,7 +68,7 @@ export class BuildStep {
     public flags: number = 0;
     public pad: number = 0;
     public count: GWU.range.Range;
-    public item: string | Partial<GWM.item.MatchOptions> | null = null;
+    public item: Partial<ItemOptions> | null = null;
     public horde: any | null = null;
     public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
@@ -80,7 +84,11 @@ export class BuildStep {
             this.pad = cfg.pad;
         }
         this.count = GWU.range.make(cfg.count || 1);
-        this.item = cfg.item || null;
+        if (typeof cfg.item === 'string') {
+            this.item = { tags: cfg.item };
+        } else {
+            this.item = cfg.item || null;
+        }
         this.horde = cfg.horde || null;
 
         if (cfg.effect) {

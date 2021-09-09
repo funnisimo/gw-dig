@@ -24,7 +24,8 @@ export interface BuildSite extends DIG.DigSite {
     clearCellFlag(x: number, y: number, flag: number): void;
 
     makeRandomItem(
-        tags: string | Partial<GWM.item.MatchOptions>
+        tags: Partial<GWM.item.MatchOptions>,
+        makeOptions?: any
     ): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
 

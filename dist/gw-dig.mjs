@@ -712,12 +712,9 @@ class MapSite {
     hasItem(x, y) {
         return this.map.cellInfo(x, y).hasItem();
     }
-    makeRandomItem(tags) {
-        if (typeof tags === 'string') {
-            tags = { tags };
-        }
+    makeRandomItem(tags, makeOptions) {
         tags.rng = this.rng;
-        return GWM.item.makeRandom(tags);
+        return GWM.item.makeRandom(tags, makeOptions);
     }
     addItem(x, y, item) {
         this.needsAnalysis = true;
@@ -2199,7 +2196,12 @@ class BuildStep {
             this.pad = cfg.pad;
         }
         this.count = GWU.range.make(cfg.count || 1);
-        this.item = cfg.item || null;
+        if (typeof cfg.item === 'string') {
+            this.item = { tags: cfg.item };
+        }
+        else {
+            this.item = cfg.item || null;
+        }
         this.horde = cfg.horde || null;
         if (cfg.effect) {
             this.effect = GWM.effect.from(cfg.effect);
@@ -4409,7 +4411,7 @@ class Builder {
         // Generate an actor, if necessary
         // Generate an item, if necessary
         if (success && buildStep.item) {
-            const item = site.makeRandomItem(buildStep.item);
+            const item = site.makeRandomItem(buildStep.item, buildStep.item.make);
             if (!item) {
                 success = false;
                 await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to make random item - ' +
