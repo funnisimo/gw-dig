@@ -115,6 +115,7 @@ export class ConsoleLogger implements Logger {
                 step.flags
             )}`
         );
+        console.log(step.toString());
     }
 
     async onStepCandidates(
@@ -132,6 +133,10 @@ export class ConsoleLogger implements Logger {
             } : wantCount: ${wantCount}, have: ${haveCount}`
         );
         candidates.dump();
+        if (haveCount == 0) {
+            console.log('No candidates - check interior');
+            data.interior.dump();
+        }
     }
 
     async onStepInstanceSuccess(

@@ -507,11 +507,11 @@
         }
         if (typeof opts.tags === 'string') {
             opts.tags
-                .split(/[,|]/)
+                .split(/[,|&]/)
                 .map((t) => t.trim())
                 .forEach((t) => {
                 if (t.startsWith('!')) {
-                    match.forbidTags.push(t.substring(1));
+                    match.forbidTags.push(t.substring(1).trim());
                 }
                 else {
                     match.tags.push(t);
@@ -522,7 +522,7 @@
             match.tags = opts.tags.slice();
         }
         if (typeof opts.forbidTags === 'string') {
-            match.forbidTags = opts.forbidTags.split(/[,|]/).map((t) => t.trim());
+            match.forbidTags = opts.forbidTags.split(/[,|&]/).map((t) => t.trim());
         }
         else if (Array.isArray(opts.forbidTags)) {
             match.forbidTags = opts.forbidTags.slice();
@@ -2549,7 +2549,7 @@
             // }
             return true;
         }
-        clear() {
+        clear(tile) {
             this.tiles = [tiles.NULL];
             this.flags.cell = 0;
             this.needsRedraw = true;
@@ -2557,6 +2557,9 @@
             this.machineId = 0;
             this._actor = null;
             this._item = null;
+            if (tile) {
+                this.setTile(tile);
+            }
         }
         clearDepth(depth) {
             if (depth == 0) {
@@ -3109,6 +3112,10 @@
             this.fov.needsUpdate = true;
             this.layers.forEach((l) => l.clear());
         }
+        clearCell(x, y, tile) {
+            const cell = this.cell(x, y);
+            cell.clear(tile);
+        }
         // Skips all the logic checks and just forces a clean cell with the given tile
         fill(tile, boundary) {
             tile = get(tile);
@@ -3117,8 +3124,7 @@
             for (i = 0; i < this.width; ++i) {
                 for (j = 0; j < this.height; ++j) {
                     const cell = this.cell(i, j);
-                    cell.clear();
-                    cell.setTile(this.isBoundaryXY(i, j) ? boundary : tile);
+                    cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
                 }
             }
         }

@@ -2,7 +2,7 @@ import 'jest-extended';
 
 // import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
-import * as GWD from '..';
+import * as GWD from '../..';
 
 describe('buildStep - noBlockOrigin', () => {
     test('trap path', async () => {

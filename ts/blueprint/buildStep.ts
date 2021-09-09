@@ -69,7 +69,7 @@ export class BuildStep {
     public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
     // public next: null = null;
-    public id = 'n/a';
+    // public id = 'n/a';
 
     constructor(cfg: Partial<StepOptions> = {}) {
         this.tile = cfg.tile ?? -1;
@@ -221,14 +221,73 @@ export class BuildStep {
         const blueprint = data.blueprint;
         let count = 0;
         candidates.update((_v, i, j) => {
-            if (cellIsCandidate(data, blueprint, this, i, j, distanceBound)) {
+            const candidateType = cellIsCandidate(
+                data,
+                blueprint,
+                this,
+                i,
+                j,
+                distanceBound
+            );
+            if (candidateType === CandidateType.OK) {
                 count++;
-                return 1;
-            } else {
-                return 0;
             }
+            return candidateType;
         });
         return count;
+    }
+
+    makePersonalSpace(
+        builder: BuildData,
+        x: number,
+        y: number,
+        candidates: GWU.grid.NumGrid
+    ) {
+        let count = 0;
+
+        if (this.pad < 1) return 0; // do not mark occupied
+        // or...
+        // if (this.buildEverywhere) return 0;  // do not mark occupied
+
+        for (let i = x - this.pad; i <= x + this.pad; i++) {
+            for (let j = y - this.pad; j <= y + this.pad; j++) {
+                if (candidates.hasXY(i, j)) {
+                    if (candidates[i][j] == 1) {
+                        candidates[i][j] = 0;
+                        ++count;
+                    }
+                    builder.occupied[i][j] = 1;
+                }
+            }
+        }
+        return count;
+    }
+
+    toString() {
+        let parts = [];
+        if (this.tile) {
+            parts.push('tile: ' + this.tile);
+        }
+        if (this.effect) {
+            parts.push('effect: ' + this.effect);
+        }
+        if (this.item) {
+            parts.push('item: ' + this.item);
+        }
+        if (this.horde) {
+            parts.push('horde: ' + this.horde);
+        }
+        if (this.pad > 1) {
+            parts.push('pad: ' + this.pad);
+        }
+        if (this.count.lo > 1 || this.count.hi > 1) {
+            parts.push('count: ' + this.count.toString());
+        }
+        if (this.chance) {
+            parts.push('chance: ' + this.chance);
+        }
+        parts.push('flags: ' + GWU.flag.toString(StepFlags, this.flags));
+        return '{ ' + parts.join(', ') + ' }';
     }
 }
 
@@ -284,6 +343,22 @@ export function calcDistanceBound(
     return distanceBound;
 }
 
+export enum CandidateType {
+    NOT_CANDIDATE = 0,
+    OK = 1,
+    IN_HALLWAY,
+    ON_BOUNDARY,
+    MUST_BE_ORIGIN,
+    NOT_ORIGIN,
+    OCCUPIED,
+    NOT_IN_VIEW,
+    TOO_FAR,
+    TOO_CLOSE,
+    INVALID_WALL,
+    BLOCKED,
+    FAILED,
+}
+
 export function cellIsCandidate(
     builder: BuildData,
     blueprint: Blueprint,
@@ -291,7 +366,7 @@ export function cellIsCandidate(
     x: number,
     y: number,
     distanceBound: [number, number]
-) {
+): CandidateType {
     const site = builder.site;
 
     // No building in the hallway if it's prohibited.
@@ -305,7 +380,7 @@ export function cellIsCandidate(
             (i, j) => site.hasXY(i, j) && site.isPassable(i, j)
         ) > 1
     ) {
-        return false;
+        return CandidateType.IN_HALLWAY;
     }
 
     // if (buildStep.noBlockOrigin) {
@@ -328,24 +403,26 @@ export function cellIsCandidate(
         (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1) &&
         !buildStep.allowBoundary
     ) {
-        return false;
+        return CandidateType.ON_BOUNDARY;
     }
 
     // The origin is a candidate if the feature is flagged to be built at the origin.
     // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
     if (buildStep.buildAtOrigin) {
-        return x == builder.originX && y == builder.originY;
+        if (x == builder.originX && y == builder.originY)
+            return CandidateType.OK;
+        return CandidateType.MUST_BE_ORIGIN;
     } else if (
         blueprint.isRoom &&
         x == builder.originX &&
         y == builder.originY
     ) {
-        return false;
+        return CandidateType.NOT_ORIGIN;
     }
 
     // No building in another feature's personal space!
     if (builder.occupied[x][y]) {
-        return false;
+        return CandidateType.OCCUPIED;
     }
 
     // Must be in the viewmap if the appropriate flag is set.
@@ -355,7 +432,7 @@ export function cellIsCandidate(
                 StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) &&
         !builder.viewMap[x][y]
     ) {
-        return false;
+        return CandidateType.NOT_IN_VIEW;
     }
 
     // Do a distance check if the feature requests it.
@@ -380,13 +457,8 @@ export function cellIsCandidate(
         distance = builder.distanceMap[x][y];
     }
 
-    if (
-        distance > distanceBound[1] || // distance exceeds max
-        distance < distanceBound[0]
-    ) {
-        // distance falls short of min
-        return false;
-    }
+    if (distance > distanceBound[1]) return CandidateType.TOO_FAR; // distance exceeds max
+    if (distance < distanceBound[0]) return CandidateType.TOO_CLOSE;
 
     if (buildStep.buildInWalls) {
         // If we're supposed to build in a wall...
@@ -422,12 +494,12 @@ export function cellIsCandidate(
                 },
                 true
             );
-            return ok;
+            return ok ? CandidateType.OK : CandidateType.INVALID_WALL;
         }
-        return false;
+        return CandidateType.NOT_CANDIDATE;
     } else if (site.isWall(x, y)) {
         // Can't build in a wall unless instructed to do so.
-        return false;
+        return CandidateType.INVALID_WALL;
     } else if (buildStep.buildAnywhere) {
         if (
             (buildStep.item && site.blocksItems(x, y)) ||
@@ -439,37 +511,14 @@ export function cellIsCandidate(
                     GWM.flags.Cell.IS_IN_MACHINE
             )
         ) {
-            return false;
+            return CandidateType.BLOCKED;
         } else {
-            return true;
+            return CandidateType.OK;
         }
     } else if (builder.interior[x][y]) {
-        return true;
+        return CandidateType.OK;
     }
-    return false;
-}
-
-export function makePersonalSpace(
-    builder: BuildData,
-    x: number,
-    y: number,
-    candidates: GWU.grid.NumGrid,
-    personalSpace: number
-) {
-    let count = 0;
-
-    for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
-        for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
-            if (builder.site.hasXY(i, j)) {
-                if (candidates[i][j]) {
-                    candidates[i][j] = 0;
-                    ++count;
-                }
-                builder.occupied[i][j] = 1;
-            }
-        }
-    }
-    return count;
+    return CandidateType.FAILED;
 }
 
 // export function buildStep(

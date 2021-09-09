@@ -372,6 +372,9 @@ export class Builder {
                     wantCount
                 );
 
+                // get rid of all error/invalid codes
+                candidates.update((v) => (v == 1 ? 1 : 0));
+
                 if (
                     !qualifyingTileCount ||
                     qualifyingTileCount < buildStep.count.lo
@@ -379,11 +382,7 @@ export class Builder {
                     await this.log.onStepFail(
                         data,
                         buildStep,
-                        `Blueprint ${
-                            data.blueprint.id
-                        }, step ${data.blueprint.steps.indexOf(
-                            buildStep
-                        )} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
+                        `Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
                     );
                     return false;
                 }
@@ -404,7 +403,7 @@ export class Builder {
                     [x, y] = data.rng.matchingLoc(
                         candidates.width,
                         candidates.height,
-                        (x, y) => candidates[x][y] > 0
+                        (x, y) => candidates[x][y] == 1
                     );
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
@@ -423,12 +422,11 @@ export class Builder {
                     )
                 ) {
                     // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                    qualifyingTileCount -= STEP.makePersonalSpace(
+                    qualifyingTileCount -= buildStep.makePersonalSpace(
                         data,
                         x,
                         y,
-                        candidates,
-                        buildStep.pad
+                        candidates
                     );
                     builtCount++; // we've placed an instance
                     didSomething = true;

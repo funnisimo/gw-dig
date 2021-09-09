@@ -77,6 +77,11 @@ export interface DigSite {
         tile: string | number | GWM.tile.Tile,
         opts?: GWM.map.SetTileOptions
     ): boolean;
+    clearCell(
+        x: number,
+        y: number,
+        tile: string | number | GWM.tile.Tile
+    ): boolean;
 
     hasTile(
         x: number,

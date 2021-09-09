@@ -46,6 +46,7 @@ interface DigSite {
     isShallow: GWU.xy.XYMatchFunc;
     isAnyLiquid: GWU.xy.XYMatchFunc;
     setTile(x: number, y: number, tile: string | number | GWM.tile.Tile, opts?: GWM.map.SetTileOptions): boolean;
+    clearCell(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
     hasTile(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
     getTileIndex(x: number, y: number): number;
     getMachine(x: number, y: number): number;
@@ -128,6 +129,7 @@ declare class GridSite implements DigSite {
     isSet(x: number, y: number): boolean;
     getTileIndex(x: number, y: number): number;
     setTile(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
+    clearCell(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
     hasTile(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
     getMachine(_x: number, _y: number): number;
     updateDoorDirs(): void;
@@ -166,6 +168,7 @@ declare class MapSite implements BuildSite {
     clearCellFlag(x: number, y: number, flag: number): void;
     hasTile(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
     setTile(x: number, y: number, tile: string | number | GWM.tile.Tile, opts?: Partial<GWM.map.SetOptions>): boolean;
+    clearCell(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
     getTileIndex(x: number, y: number): number;
     clear(): void;
     hasItem(x: number, y: number): boolean;
@@ -627,7 +630,6 @@ declare class BuildStep {
     horde: any | null;
     effect: GWM.effect.EffectInfo | null;
     chance: number;
-    id: string;
     constructor(cfg?: Partial<StepOptions>);
     get allowBoundary(): boolean;
     get notInHallway(): boolean;
@@ -647,11 +649,27 @@ declare class BuildStep {
     get buildAtOrigin(): boolean;
     get buildsInstances(): boolean;
     markCandidates(data: BuildData, candidates: GWU.grid.NumGrid, distanceBound?: [number, number]): number;
+    makePersonalSpace(builder: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid): number;
+    toString(): string;
 }
 declare function updateViewMap(builder: BuildData, buildStep: BuildStep): void;
 declare function calcDistanceBound(builder: BuildData, buildStep: BuildStep): [number, number];
-declare function cellIsCandidate(builder: BuildData, blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, distanceBound: [number, number]): boolean;
-declare function makePersonalSpace(builder: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid, personalSpace: number): number;
+declare enum CandidateType {
+    NOT_CANDIDATE = 0,
+    OK = 1,
+    IN_HALLWAY = 2,
+    ON_BOUNDARY = 3,
+    MUST_BE_ORIGIN = 4,
+    NOT_ORIGIN = 5,
+    OCCUPIED = 6,
+    NOT_IN_VIEW = 7,
+    TOO_FAR = 8,
+    TOO_CLOSE = 9,
+    INVALID_WALL = 10,
+    BLOCKED = 11,
+    FAILED = 12
+}
+declare function cellIsCandidate(builder: BuildData, blueprint: Blueprint, buildStep: BuildStep, x: number, y: number, distanceBound: [number, number]): CandidateType;
 
 declare enum Flags {
     BP_ROOM,
@@ -706,9 +724,15 @@ declare class Blueprint {
     pickComponents(rng: GWU.rng.Random): BuildStep[];
     fillInterior(builder: BuildData): number;
 }
+declare function markCandidates(buildData: BuildData): number;
+declare function pickCandidateLoc(buildData: BuildData): GWU.xy.Loc | null;
+declare function computeVestibuleInterior(builder: BuildData, blueprint: Blueprint): number;
+declare function maximizeInterior(data: BuildData, minimumInteriorNeighbors?: number): void;
+declare function prepareInterior(builder: BuildData): void;
 declare const blueprints: Record<string, Blueprint>;
 declare function install(id: string, blueprint: Blueprint | Partial<BlueprintOptions>): Blueprint;
 declare function random(requiredFlags: number, depth: number, rng?: GWU.rng.Random): Blueprint;
+declare function get(id: string | Blueprint): Blueprint;
 declare function make(config: Partial<BlueprintOptions>): Blueprint;
 
 declare class BuildData {
@@ -905,15 +929,6 @@ declare class Builder {
     _buildStepInstance(data: BuildData, buildStep: BuildStep, x: number, y: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
 }
 
-type index_d$1_Flags = Flags;
-declare const index_d$1_Flags: typeof Flags;
-type index_d$1_Blueprint = Blueprint;
-declare const index_d$1_Blueprint: typeof Blueprint;
-type index_d$1_BlueprintOptions = BlueprintOptions;
-declare const index_d$1_install: typeof install;
-declare const index_d$1_random: typeof random;
-declare const index_d$1_blueprints: typeof blueprints;
-declare const index_d$1_make: typeof make;
 type index_d$1_BuildData = BuildData;
 declare const index_d$1_BuildData: typeof BuildData;
 type index_d$1_StepOptions = StepOptions;
@@ -923,36 +938,58 @@ type index_d$1_BuildStep = BuildStep;
 declare const index_d$1_BuildStep: typeof BuildStep;
 declare const index_d$1_updateViewMap: typeof updateViewMap;
 declare const index_d$1_calcDistanceBound: typeof calcDistanceBound;
+type index_d$1_CandidateType = CandidateType;
+declare const index_d$1_CandidateType: typeof CandidateType;
 declare const index_d$1_cellIsCandidate: typeof cellIsCandidate;
-declare const index_d$1_makePersonalSpace: typeof makePersonalSpace;
 type index_d$1_BlueType = BlueType;
 type index_d$1_BuilderOptions = BuilderOptions;
 type index_d$1_BuildInfo = BuildInfo;
 type index_d$1_BuildResult = BuildResult;
 type index_d$1_Builder = Builder;
 declare const index_d$1_Builder: typeof Builder;
+type index_d$1_Flags = Flags;
+declare const index_d$1_Flags: typeof Flags;
+type index_d$1_BlueprintOptions = BlueprintOptions;
+type index_d$1_Blueprint = Blueprint;
+declare const index_d$1_Blueprint: typeof Blueprint;
+declare const index_d$1_markCandidates: typeof markCandidates;
+declare const index_d$1_pickCandidateLoc: typeof pickCandidateLoc;
+declare const index_d$1_computeVestibuleInterior: typeof computeVestibuleInterior;
+declare const index_d$1_maximizeInterior: typeof maximizeInterior;
+declare const index_d$1_prepareInterior: typeof prepareInterior;
+declare const index_d$1_blueprints: typeof blueprints;
+declare const index_d$1_install: typeof install;
+declare const index_d$1_random: typeof random;
+declare const index_d$1_get: typeof get;
+declare const index_d$1_make: typeof make;
 declare namespace index_d$1 {
   export {
-    index_d$1_Flags as Flags,
-    index_d$1_Blueprint as Blueprint,
-    index_d$1_BlueprintOptions as BlueprintOptions,
-    index_d$1_install as install,
-    index_d$1_random as random,
-    index_d$1_blueprints as blueprints,
-    index_d$1_make as make,
     index_d$1_BuildData as BuildData,
     index_d$1_StepOptions as StepOptions,
     index_d$1_StepFlags as StepFlags,
     index_d$1_BuildStep as BuildStep,
     index_d$1_updateViewMap as updateViewMap,
     index_d$1_calcDistanceBound as calcDistanceBound,
+    index_d$1_CandidateType as CandidateType,
     index_d$1_cellIsCandidate as cellIsCandidate,
-    index_d$1_makePersonalSpace as makePersonalSpace,
     index_d$1_BlueType as BlueType,
     index_d$1_BuilderOptions as BuilderOptions,
     index_d$1_BuildInfo as BuildInfo,
     index_d$1_BuildResult as BuildResult,
     index_d$1_Builder as Builder,
+    index_d$1_Flags as Flags,
+    index_d$1_BlueprintOptions as BlueprintOptions,
+    index_d$1_Blueprint as Blueprint,
+    index_d$1_markCandidates as markCandidates,
+    index_d$1_pickCandidateLoc as pickCandidateLoc,
+    index_d$1_computeVestibuleInterior as computeVestibuleInterior,
+    index_d$1_maximizeInterior as maximizeInterior,
+    index_d$1_prepareInterior as prepareInterior,
+    index_d$1_blueprints as blueprints,
+    index_d$1_install as install,
+    index_d$1_random as random,
+    index_d$1_get as get,
+    index_d$1_make as make,
   };
 }
 

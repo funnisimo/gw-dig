@@ -115,6 +115,15 @@ export class MapSite implements BUILD.BuildSite {
         this.needsAnalysis = true;
         return this.map.setTile(x, y, tile, opts);
     }
+    clearCell(
+        x: number,
+        y: number,
+        tile: string | number | GWM.tile.Tile
+    ): boolean {
+        this.needsAnalysis = true;
+        this.map.clearCell(x, y, tile);
+        return true;
+    }
 
     getTileIndex(x: number, y: number): number {
         if (!this.hasXY(x, y)) return 0;

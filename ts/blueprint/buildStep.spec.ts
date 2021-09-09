@@ -1,3 +1,4 @@
+import 'jest-extended';
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
@@ -5,6 +6,8 @@ import * as BUILDER from './builder';
 import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 import * as DIG from '../index';
+import { BuildData } from '.';
+import { MapSite } from '../site';
 
 describe('buildStep', () => {
     test('constructor', () => {
@@ -198,6 +201,80 @@ describe('buildStep', () => {
             expect(
                 GWU.xy.distanceBetween(x, y, result!.x, result!.y)
             ).toBeGreaterThan(3);
+        });
+    });
+
+    describe('markCandidates', () => {
+        beforeAll(() => {
+            DIG.room.install('ENTRANCE', new DIG.room.BrogueEntrance());
+            DIG.room.install(
+                'ROOM',
+                new DIG.room.Rectangular({ width: '4-10', height: '4-10' })
+            );
+            DIG.room.install('CHUNK', new DIG.room.ChunkyRoom());
+            DIG.room.install(
+                'CHOICE',
+                new DIG.room.ChoiceRoom({ choices: { ROOM: 100, CHUNK: 50 } })
+            );
+        });
+
+        let map: GWM.map.Map;
+        let data: BuildData;
+
+        beforeEach(async () => {
+            map = GWM.map.make(80, 34);
+            map.properties.depth = 1;
+
+            const digger = new DIG.Digger({
+                seed: 12345,
+                rooms: { count: 40, first: 'ENTRANCE', digger: 'CHOICE' },
+                doors: { chance: 0 },
+                loops: false,
+                lakes: false,
+            });
+
+            await digger.create(map);
+
+            GWM.map.analyze(map);
+        });
+
+        afterEach(() => {
+            if (data) data.free();
+        });
+
+        test.only('markCandidates', async () => {
+            // map.dump();
+
+            const blue = new BLUE.Blueprint({
+                id: 'TEST',
+                size: '30-50',
+                frequency: '1-12: 30',
+                flags:
+                    'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+
+                steps: [
+                    {
+                        tile: 'ALTAR_CAGE_OPEN',
+                        count: 1,
+                        pad: 2,
+                        flags: 'BS_TREAT_AS_BLOCKING, BS_IMPREGNABLE',
+                    },
+                ],
+            });
+
+            const site = new MapSite(map);
+            data = new BuildData(site, blue);
+            data.reset(58, 21);
+
+            const count = blue.fillInterior(data);
+            expect(count).toBeWithin(30, 51);
+
+            const step = blue.steps[0];
+
+            const candidates = GWU.grid.make(map.width, map.height);
+            const candidateCount = step.markCandidates(data, candidates);
+
+            expect(candidateCount).toBeGreaterThan(0);
         });
     });
 });

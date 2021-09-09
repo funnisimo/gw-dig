@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
-import * as GWD from '..';
-import { BuildData } from '.';
-import { MapSite } from '../site';
+import * as GWD from '../..';
+import { BuildData, CandidateType } from '..';
+import { MapSite } from '../../site';
 
 describe('inPassableViewOfOrigin', () => {
     let candidates: GWU.grid.NumGrid;
@@ -92,8 +92,10 @@ describe('inPassableViewOfOrigin', () => {
         // candidates.dump();
 
         // steps to side of origin (now blocked) should not be there...
-        expect(candidates.count((v) => v > 0)).toBeGreaterThan(5);
-        expect(candidates[72][14]).toEqual(0);
-        expect(candidates[74][14]).toEqual(0);
+        expect(candidates.count((v) => v == CandidateType.OK)).toBeGreaterThan(
+            5
+        );
+        expect(candidates[72][14]).toEqual(CandidateType.INVALID_WALL);
+        expect(candidates[74][14]).toEqual(CandidateType.INVALID_WALL);
     });
 });

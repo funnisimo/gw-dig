@@ -1,5 +1,5 @@
 import * as GWM from 'gw-map';
-import * as GWD from '..';
+import * as GWD from '../..';
 
 describe('Blueprint - hole', () => {
     beforeAll(() => {

@@ -161,6 +161,9 @@ export class GridSite implements DIG.DigSite {
         this.tiles[x][y] = tile;
         return true;
     }
+    clearCell(x: number, y: number, tile: number | string | GWM.tile.Tile) {
+        return this.setTile(x, y, tile);
+    }
 
     hasTile(
         x: number,
