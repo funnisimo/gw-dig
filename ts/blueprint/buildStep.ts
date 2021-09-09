@@ -17,46 +17,46 @@ export interface StepOptions {
 const Fl = GWU.flag.fl;
 
 export enum StepFlags {
-    BF_OUTSOURCE_ITEM_TO_MACHINE = Fl(1), // item must be adopted by another machine
-    BF_BUILD_VESTIBULE = Fl(2), // call this at the origin of a door room to create a new door guard machine there
-    BF_ADOPT_ITEM = Fl(3), // this feature will take the adopted item (be it from another machine or a previous feature)
-    BF_BUILD_AT_ORIGIN = Fl(4), // generate this feature at the room entrance
+    BS_OUTSOURCE_ITEM_TO_MACHINE = Fl(1), // item must be adopted by another machine
+    BS_BUILD_VESTIBULE = Fl(2), // call this at the origin of a door room to create a new door guard machine there
+    BS_ADOPT_ITEM = Fl(3), // this feature will take the adopted item (be it from another machine or a previous feature)
+    BS_BUILD_AT_ORIGIN = Fl(4), // generate this feature at the room entrance
 
-    BF_PERMIT_BLOCKING = Fl(5), // permit the feature to block the map's passability (e.g. to add a locked door)
-    BF_TREAT_AS_BLOCKING = Fl(6), // treat this terrain as though it blocks, for purposes of deciding whether it can be placed there
+    BS_PERMIT_BLOCKING = Fl(5), // permit the feature to block the map's passability (e.g. to add a locked door)
+    BS_TREAT_AS_BLOCKING = Fl(6), // treat this terrain as though it blocks, for purposes of deciding whether it can be placed there
 
-    BF_NEAR_ORIGIN = Fl(7), // feature must spawn in the rough quarter of tiles closest to the origin
-    BF_FAR_FROM_ORIGIN = Fl(8), // feature must spawn in the rough quarter of tiles farthest from the origin
-    BF_IN_VIEW_OF_ORIGIN = Fl(9), // this feature must be in view of the origin
-    BF_IN_PASSABLE_VIEW_OF_ORIGIN = Fl(10), // this feature must be in view of the origin, where "view" is blocked by pathing blockers
+    BS_NEAR_ORIGIN = Fl(7), // feature must spawn in the rough quarter of tiles closest to the origin
+    BS_FAR_FROM_ORIGIN = Fl(8), // feature must spawn in the rough quarter of tiles farthest from the origin
+    BS_IN_VIEW_OF_ORIGIN = Fl(9), // this feature must be in view of the origin
+    BS_IN_PASSABLE_VIEW_OF_ORIGIN = Fl(10), // this feature must be in view of the origin, where "view" is blocked by pathing blockers
 
-    BF_MONSTER_TAKE_ITEM = Fl(11), // the item associated with this feature (including if adopted) will be in possession of the horde leader that's generated
-    BF_MONSTER_SLEEPING = Fl(12), // the monsters should be asleep when generated
-    BF_MONSTER_FLEEING = Fl(13), // the monsters should be permanently fleeing when generated
-    BF_MONSTERS_DORMANT = Fl(14), // monsters are dormant, and appear when a dungeon feature with DFF_ACTIVATE_DORMANT_MONSTER spawns on their tile
+    BS_MONSTER_TAKE_ITEM = Fl(11), // the item associated with this feature (including if adopted) will be in possession of the horde leader that's generated
+    BS_MONSTER_SLEEPING = Fl(12), // the monsters should be asleep when generated
+    BS_MONSTER_FLEEING = Fl(13), // the monsters should be permanently fleeing when generated
+    BS_MONSTERS_DORMANT = Fl(14), // monsters are dormant, and appear when a dungeon feature with DFF_ACTIVATE_DORMANT_MONSTER spawns on their tile
 
-    BF_ITEM_IS_KEY = Fl(15),
-    BF_ITEM_IDENTIFIED = Fl(16),
-    BF_ITEM_PLAYER_AVOIDS = Fl(17),
+    BS_ITEM_IS_KEY = Fl(15),
+    BS_ITEM_IDENTIFIED = Fl(16),
+    BS_ITEM_PLAYER_AVOIDS = Fl(17),
 
-    BF_EVERYWHERE = Fl(18), // generate the feature on every tile of the machine (e.g. carpeting)
-    BF_ALTERNATIVE = Fl(19), // build only one feature that has this flag per machine; the rest are skipped
-    BF_ALTERNATIVE_2 = Fl(20), // same as BF_ALTERNATIVE, but provides for a second set of alternatives of which only one will be chosen
+    BS_EVERYWHERE = Fl(18), // generate the feature on every tile of the machine (e.g. carpeting)
+    BS_ALTERNATIVE = Fl(19), // build only one feature that has this flag per machine; the rest are skipped
+    BS_ALTERNATIVE_2 = Fl(20), // same as BS_ALTERNATIVE, but provides for a second set of alternatives of which only one will be chosen
 
-    BF_BUILD_IN_WALLS = Fl(21), // build in an impassable tile that is adjacent to the interior
-    BF_BUILD_ANYWHERE_ON_LEVEL = Fl(22), // build anywhere on the level that is not inside the machine
-    BF_REPEAT_UNTIL_NO_PROGRESS = Fl(23), // keep trying to build this feature set until no changes are made
-    BF_IMPREGNABLE = Fl(24), // this feature's location will be immune to tunneling
+    BS_BUILD_IN_WALLS = Fl(21), // build in an impassable tile that is adjacent to the interior
+    BS_BUILD_ANYWHERE_ON_LEVEL = Fl(22), // build anywhere on the level that is not inside the machine
+    BS_REPEAT_UNTIL_NO_PROGRESS = Fl(23), // keep trying to build this feature set until no changes are made
+    BS_IMPREGNABLE = Fl(24), // this feature's location will be immune to tunneling
 
-    BF_NO_BLOCK_ORIGIN = Fl(25), // Treat as blocking, but do not block the path to the origin
+    BS_NO_BLOCK_ORIGIN = Fl(25), // Treat as blocking, but do not block the path to the origin
 
-    // TODO - BF_ALLOW_IN_HALLWAY instead?
-    BF_NOT_IN_HALLWAY = Fl(27), // the feature location must have a passableArcCount of <= 1
+    // TODO - BS_ALLOW_IN_HALLWAY instead?
+    BS_NOT_IN_HALLWAY = Fl(27), // the feature location must have a passableArcCount of <= 1
 
-    BF_ALLOW_BOUNDARY = Fl(28), // allow build it in the outermost walls of the level
+    BS_ALLOW_BOUNDARY = Fl(28), // allow build it in the outermost walls of the level
 
-    BF_SKELETON_KEY = Fl(29), // if a key is generated or adopted by this feature, it will open all locks in this machine.
-    BF_KEY_DISPOSABLE = Fl(30), // if a key is generated or adopted, it will self-destruct after being used at this current location.
+    BS_SKELETON_KEY = Fl(29), // if a key is generated or adopted by this feature, it will open all locks in this machine.
+    BS_KEY_DISPOSABLE = Fl(30), // if a key is generated or adopted, it will self-destruct after being used at this current location.
 }
 
 export class BuildStep {
@@ -69,7 +69,7 @@ export class BuildStep {
     public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
     // public next: null = null;
-    public id = 'n/a';
+    // public id = 'n/a';
 
     constructor(cfg: Partial<StepOptions> = {}) {
         this.tile = cfg.tile ?? -1;
@@ -87,93 +87,93 @@ export class BuildStep {
             this.effect = GWM.effect.from(cfg.effect);
         }
 
-        if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
+        if (this.item && this.flags & StepFlags.BS_ADOPT_ITEM) {
             throw new Error(
-                'Cannot have blueprint step with item and BF_ADOPT_ITEM.'
+                'Cannot have blueprint step with item and BS_ADOPT_ITEM.'
             );
         }
 
         if (this.buildAtOrigin && this.count.hi > 1) {
             throw new Error(
-                'Cannot have count > 1 for step with BF_BUILD_AT_ORIGIN.'
+                'Cannot have count > 1 for step with BS_BUILD_AT_ORIGIN.'
             );
         }
         if (this.buildAtOrigin && this.repeatUntilNoProgress) {
             throw new Error(
-                'Cannot have BF_BUILD_AT_ORIGIN and BF_REPEAT_UNTIL_NO_PROGRESS together in a build step.'
+                'Cannot have BS_BUILD_AT_ORIGIN and BS_REPEAT_UNTIL_NO_PROGRESS together in a build step.'
             );
         }
     }
 
     get allowBoundary(): boolean {
-        return !!(this.flags & StepFlags.BF_ALLOW_BOUNDARY);
+        return !!(this.flags & StepFlags.BS_ALLOW_BOUNDARY);
     }
 
     get notInHallway(): boolean {
-        return !!(this.flags & StepFlags.BF_NOT_IN_HALLWAY);
+        return !!(this.flags & StepFlags.BS_NOT_IN_HALLWAY);
     }
 
     get buildInWalls(): boolean {
-        return !!(this.flags & StepFlags.BF_BUILD_IN_WALLS);
+        return !!(this.flags & StepFlags.BS_BUILD_IN_WALLS);
     }
 
     get buildAnywhere(): boolean {
-        return !!(this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL);
+        return !!(this.flags & StepFlags.BS_BUILD_ANYWHERE_ON_LEVEL);
     }
 
     get repeatUntilNoProgress(): boolean {
-        return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
+        return !!(this.flags & StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS);
     }
 
     get permitBlocking(): boolean {
-        return !!(this.flags & StepFlags.BF_PERMIT_BLOCKING);
+        return !!(this.flags & StepFlags.BS_PERMIT_BLOCKING);
     }
 
     get treatAsBlocking(): boolean {
         return !!(
             this.flags &
-            (StepFlags.BF_TREAT_AS_BLOCKING | StepFlags.BF_NO_BLOCK_ORIGIN)
+            (StepFlags.BS_TREAT_AS_BLOCKING | StepFlags.BS_NO_BLOCK_ORIGIN)
         );
     }
 
     get noBlockOrigin(): boolean {
-        return !!(this.flags & StepFlags.BF_NO_BLOCK_ORIGIN);
+        return !!(this.flags & StepFlags.BS_NO_BLOCK_ORIGIN);
     }
 
     get adoptItem(): boolean {
-        return !!(this.flags & StepFlags.BF_ADOPT_ITEM);
+        return !!(this.flags & StepFlags.BS_ADOPT_ITEM);
     }
 
     get itemIsKey(): boolean {
-        return !!(this.flags & StepFlags.BF_ITEM_IS_KEY);
+        return !!(this.flags & StepFlags.BS_ITEM_IS_KEY);
     }
 
     get keyIsDisposable(): boolean {
-        return !!(this.flags & StepFlags.BF_KEY_DISPOSABLE);
+        return !!(this.flags & StepFlags.BS_KEY_DISPOSABLE);
     }
 
     get outsourceItem(): boolean {
-        return !!(this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE);
+        return !!(this.flags & StepFlags.BS_OUTSOURCE_ITEM_TO_MACHINE);
     }
 
     get impregnable(): boolean {
-        return !!(this.flags & StepFlags.BF_IMPREGNABLE);
+        return !!(this.flags & StepFlags.BS_IMPREGNABLE);
     }
 
     get buildVestibule(): boolean {
-        return !!(this.flags & StepFlags.BF_BUILD_VESTIBULE);
+        return !!(this.flags & StepFlags.BS_BUILD_VESTIBULE);
     }
 
     get generateEverywhere(): boolean {
         return !!(
             this.flags &
-            StepFlags.BF_EVERYWHERE &
-            ~StepFlags.BF_BUILD_AT_ORIGIN
+            StepFlags.BS_EVERYWHERE &
+            ~StepFlags.BS_BUILD_AT_ORIGIN
         );
     }
 
     get buildAtOrigin(): boolean {
-        return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
+        return !!(this.flags & StepFlags.BS_BUILD_AT_ORIGIN);
     }
 
     get buildsInstances(): boolean {
@@ -214,33 +214,93 @@ export class BuildStep {
 
     markCandidates(
         data: BuildData,
-        blueprint: Blueprint,
         candidates: GWU.grid.NumGrid,
         distanceBound: [number, number] = [0, 10000]
     ): number {
         updateViewMap(data, this);
-
+        const blueprint = data.blueprint;
         let count = 0;
         candidates.update((_v, i, j) => {
-            if (cellIsCandidate(data, blueprint, this, i, j, distanceBound)) {
+            const candidateType = cellIsCandidate(
+                data,
+                blueprint,
+                this,
+                i,
+                j,
+                distanceBound
+            );
+            if (candidateType === CandidateType.OK) {
                 count++;
-                return 1;
-            } else {
-                return 0;
             }
+            return candidateType;
         });
         return count;
+    }
+
+    makePersonalSpace(
+        _data: BuildData,
+        x: number,
+        y: number,
+        candidates: GWU.grid.NumGrid
+    ) {
+        let count = 0;
+
+        if (this.pad < 1) return 0; // do not mark occupied
+        // or...
+        // if (this.buildEverywhere) return 0;  // do not mark occupied
+
+        for (let i = x - this.pad; i <= x + this.pad; i++) {
+            for (let j = y - this.pad; j <= y + this.pad; j++) {
+                if (candidates.hasXY(i, j)) {
+                    if (candidates[i][j] == 1) {
+                        candidates[i][j] = 0;
+                        ++count;
+                    }
+                    // builder.occupied[i][j] = 1;
+                }
+            }
+        }
+        return count;
+    }
+
+    toString() {
+        let parts = [];
+        if (this.tile) {
+            parts.push('tile: ' + this.tile);
+        }
+        if (this.effect) {
+            parts.push('effect: ' + this.effect);
+        }
+        if (this.item) {
+            parts.push('item: ' + this.item);
+        }
+        if (this.horde) {
+            parts.push('horde: ' + this.horde);
+        }
+        if (this.pad > 1) {
+            parts.push('pad: ' + this.pad);
+        }
+        if (this.count.lo > 1 || this.count.hi > 1) {
+            parts.push('count: ' + this.count.toString());
+        }
+        if (this.chance) {
+            parts.push('chance: ' + this.chance);
+        }
+        if (this.flags) {
+            parts.push('flags: ' + GWU.flag.toString(StepFlags, this.flags));
+        }
+        return '{ ' + parts.join(', ') + ' }';
     }
 }
 
 export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
     if (
         buildStep.flags &
-        (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-            StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)
+        (StepFlags.BS_IN_VIEW_OF_ORIGIN |
+            StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN)
     ) {
         const site = builder.site;
-        if (buildStep.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
+        if (buildStep.flags & StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) {
             const fov = new GWU.fov.FOV({
                 isBlocked: (x, y) => {
                     return site.blocksPathing(x, y);
@@ -276,13 +336,29 @@ export function calcDistanceBound(
     buildStep: BuildStep
 ): [number, number] {
     const distanceBound: [number, number] = [0, 10000];
-    if (buildStep.flags & StepFlags.BF_NEAR_ORIGIN) {
+    if (buildStep.flags & StepFlags.BS_NEAR_ORIGIN) {
         distanceBound[1] = builder.distance25;
     }
-    if (buildStep.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
+    if (buildStep.flags & StepFlags.BS_FAR_FROM_ORIGIN) {
         distanceBound[0] = builder.distance75;
     }
     return distanceBound;
+}
+
+export enum CandidateType {
+    NOT_CANDIDATE = 0,
+    OK = 1,
+    IN_HALLWAY,
+    ON_BOUNDARY,
+    MUST_BE_ORIGIN,
+    NOT_ORIGIN,
+    OCCUPIED,
+    NOT_IN_VIEW,
+    TOO_FAR,
+    TOO_CLOSE,
+    INVALID_WALL,
+    BLOCKED,
+    FAILED,
 }
 
 export function cellIsCandidate(
@@ -292,7 +368,7 @@ export function cellIsCandidate(
     x: number,
     y: number,
     distanceBound: [number, number]
-) {
+): CandidateType {
     const site = builder.site;
 
     // No building in the hallway if it's prohibited.
@@ -306,7 +382,7 @@ export function cellIsCandidate(
             (i, j) => site.hasXY(i, j) && site.isPassable(i, j)
         ) > 1
     ) {
-        return false;
+        return CandidateType.IN_HALLWAY;
     }
 
     // if (buildStep.noBlockOrigin) {
@@ -329,34 +405,36 @@ export function cellIsCandidate(
         (x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1) &&
         !buildStep.allowBoundary
     ) {
-        return false;
+        return CandidateType.ON_BOUNDARY;
     }
 
     // The origin is a candidate if the feature is flagged to be built at the origin.
     // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
     if (buildStep.buildAtOrigin) {
-        return x == builder.originX && y == builder.originY;
+        if (x == builder.originX && y == builder.originY)
+            return CandidateType.OK;
+        return CandidateType.MUST_BE_ORIGIN;
     } else if (
         blueprint.isRoom &&
         x == builder.originX &&
         y == builder.originY
     ) {
-        return false;
+        return CandidateType.NOT_ORIGIN;
     }
 
     // No building in another feature's personal space!
     if (builder.occupied[x][y]) {
-        return false;
+        return CandidateType.OCCUPIED;
     }
 
     // Must be in the viewmap if the appropriate flag is set.
     if (
         buildStep.flags &
-            (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-                StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
+            (StepFlags.BS_IN_VIEW_OF_ORIGIN |
+                StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) &&
         !builder.viewMap[x][y]
     ) {
-        return false;
+        return CandidateType.NOT_IN_VIEW;
     }
 
     // Do a distance check if the feature requests it.
@@ -381,13 +459,8 @@ export function cellIsCandidate(
         distance = builder.distanceMap[x][y];
     }
 
-    if (
-        distance > distanceBound[1] || // distance exceeds max
-        distance < distanceBound[0]
-    ) {
-        // distance falls short of min
-        return false;
-    }
+    if (distance > distanceBound[1]) return CandidateType.TOO_FAR; // distance exceeds max
+    if (distance < distanceBound[0]) return CandidateType.TOO_CLOSE;
 
     if (buildStep.buildInWalls) {
         // If we're supposed to build in a wall...
@@ -411,10 +484,11 @@ export function cellIsCandidate(
                         return;
                     }
                     // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
+                    const neighborMachine = site.getMachine(newX, newY);
                     if (
-                        buildStep.buildAnywhere &&
                         !site.blocksPathing(newX, newY) &&
-                        !site.getMachine(newX, newY) &&
+                        (!neighborMachine ||
+                            neighborMachine == builder.machineNumber) &&
                         !(newX == builder.originX && newY == builder.originY)
                     ) {
                         ok = true;
@@ -422,12 +496,12 @@ export function cellIsCandidate(
                 },
                 true
             );
-            return ok;
+            return ok ? CandidateType.OK : CandidateType.INVALID_WALL;
         }
-        return false;
+        return CandidateType.NOT_CANDIDATE;
     } else if (site.isWall(x, y)) {
         // Can't build in a wall unless instructed to do so.
-        return false;
+        return CandidateType.INVALID_WALL;
     } else if (buildStep.buildAnywhere) {
         if (
             (buildStep.item && site.blocksItems(x, y)) ||
@@ -439,37 +513,14 @@ export function cellIsCandidate(
                     GWM.flags.Cell.IS_IN_MACHINE
             )
         ) {
-            return false;
+            return CandidateType.BLOCKED;
         } else {
-            return true;
+            return CandidateType.OK;
         }
     } else if (builder.interior[x][y]) {
-        return true;
+        return CandidateType.OK;
     }
-    return false;
-}
-
-export function makePersonalSpace(
-    builder: BuildData,
-    x: number,
-    y: number,
-    candidates: GWU.grid.NumGrid,
-    personalSpace: number
-) {
-    let count = 0;
-
-    for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
-        for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
-            if (builder.site.hasXY(i, j)) {
-                if (candidates[i][j]) {
-                    candidates[i][j] = 0;
-                    ++count;
-                }
-                builder.occupied[i][j] = 1;
-            }
-        }
-    }
-    return count;
+    return CandidateType.FAILED;
 }
 
 // export function buildStep(
@@ -489,7 +540,7 @@ export function makePersonalSpace(
 //     const distanceBound = calcDistanceBound(builder, buildStep);
 //     buildStep.updateViewMap(builder);
 
-//     // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+//     // If the StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
 
 //     // Make a master map of candidate locations for this feature.
 //     let qualifyingTileCount = markCandidates(
@@ -550,9 +601,9 @@ export function makePersonalSpace(
 //         if (success && buildStep.tile !== -1) {
 //             const tile = GWM.tile.get(buildStep.tile);
 //             if (
-//                 !(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
+//                 !(buildStep.flags & StepFlags.BS_PERMIT_BLOCKING) &&
 //                 (tile.blocksMove() ||
-//                     buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)
+//                     buildStep.flags & StepFlags.BS_TREAT_AS_BLOCKING)
 //             ) {
 //                 // Yes, check for blocking.
 //                 success = !SITE.siteDisruptedByXY(site, x, y, {
@@ -574,15 +625,15 @@ export function makePersonalSpace(
 //                 success = false;
 //             }
 
-//             if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
+//             if (buildStep.flags & StepFlags.BS_ITEM_IS_KEY) {
 //                 item.key = GWM.entity.makeKeyInfo(
 //                     x,
 //                     y,
-//                     !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE)
+//                     !!(buildStep.flags & StepFlags.BS_KEY_DISPOSABLE)
 //                 );
 //             }
 
-//             if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
+//             if (buildStep.flags & StepFlags.BS_OUTSOURCE_ITEM_TO_MACHINE) {
 //                 success = builder.buildRandom(
 //                     Flags.BP_ADOPT_ITEM,
 //                     -1,
@@ -596,7 +647,7 @@ export function makePersonalSpace(
 //                 success = site.addItem(x, y, item);
 //                 didSomething = didSomething || success;
 //             }
-//         } else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
+//         } else if (success && buildStep.flags & StepFlags.BS_ADOPT_ITEM) {
 //             // adopt item if necessary
 //             if (!adoptedItem) {
 //                 GWU.grid.free(candidates);
@@ -605,7 +656,7 @@ export function makePersonalSpace(
 //                 );
 //             }
 
-//             if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
+//             if (buildStep.flags & StepFlags.BS_TREAT_AS_BLOCKING) {
 //                 // Yes, check for blocking.
 //                 success = !SITE.siteDisruptedByXY(site, x, y);
 //             }
@@ -639,7 +690,7 @@ export function makePersonalSpace(
 //             }
 
 //             // Mark the feature location as impregnable if requested.
-//             if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
+//             if (buildStep.flags & StepFlags.BS_IMPREGNABLE) {
 //                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
 //             }
 //         }
@@ -649,10 +700,10 @@ export function makePersonalSpace(
 //         qualifyingTileCount > 0 &&
 //         (buildStep.generateEverywhere ||
 //             builtCount < wantCount ||
-//             buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
+//             buildStep.flags & StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS)
 //     );
 
-//     if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
+//     if (success && buildStep.flags & StepFlags.BS_BUILD_VESTIBULE) {
 //         // Generate a door guard machine.
 //         // Try to create a sub-machine that qualifies.
 

@@ -470,6 +470,13 @@ class GridSite {
     dump() {
         this.tiles.dump();
     }
+    drawInto(buffer) {
+        buffer.blackOut();
+        this.tiles.forEach((t, x, y) => {
+            const tile = GWM.tile.get(t);
+            buffer.drawSprite(x, y, tile.sprite);
+        });
+    }
     setSeed(seed) {
         this.rng.seed(seed);
     }
@@ -574,6 +581,9 @@ class GridSite {
         this.tiles[x][y] = tile;
         return true;
     }
+    clearCell(x, y, tile) {
+        return this.setTile(x, y, tile);
+    }
     hasTile(x, y, tile) {
         if (tile instanceof GWM.tile.Tile) {
             tile = tile.index;
@@ -632,6 +642,9 @@ class MapSite {
     get rng() {
         return this.map.rng;
     }
+    get depth() {
+        return this.map.properties.depth || 0;
+    }
     // get seed() {
     //     return this.map.seed;
     // }
@@ -647,8 +660,14 @@ class MapSite {
     get height() {
         return this.map.height;
     }
+    free() {
+        GWU.grid.free(this.doors);
+    }
     dump() {
         this.map.dump();
+    }
+    drawInto(buffer) {
+        this.map.drawInto(buffer);
     }
     hasXY(x, y) {
         return this.map.hasXY(x, y);
@@ -673,6 +692,11 @@ class MapSite {
     setTile(x, y, tile, opts) {
         this.needsAnalysis = true;
         return this.map.setTile(x, y, tile, opts);
+    }
+    clearCell(x, y, tile) {
+        this.needsAnalysis = true;
+        this.map.clearTiles(x, y, tile);
+        return true;
     }
     getTileIndex(x, y) {
         if (!this.hasXY(x, y))
@@ -800,9 +824,6 @@ class MapSite {
     snapshot() {
         return new MapSnapshot(this, this.snapshots.takeNew());
     }
-    free() {
-        GWU.grid.free(this.doors);
-    }
     getChokeCount(x, y) {
         return this.map.cell(x, y).chokeCount;
     }
@@ -845,7 +866,7 @@ class MapSite {
     }
 }
 
-var index$1 = /*#__PURE__*/Object.freeze({
+var index$2 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     NOTHING: NOTHING,
     FLOOR: FLOOR,
@@ -2100,7 +2121,1321 @@ var loop = /*#__PURE__*/Object.freeze({
     digLoops: digLoops
 });
 
-class Level {
+class NullLogger {
+    async onDigFirstRoom() { }
+    async onRoomCandidate() { }
+    async onRoomFailed() { }
+    async onRoomSuccess() { }
+    async onLoopsAdded() { }
+    async onLakesAdded() { }
+    async onBridgesAdded() { }
+    async onStairsAdded() { }
+    async onBuildError() { }
+    async onBlueprintPick() { }
+    async onBlueprintCandidates() { }
+    async onBlueprintStart() { }
+    async onBlueprintInterior() { }
+    async onBlueprintFail() { }
+    async onBlueprintSuccess() { }
+    async onStepStart() { }
+    async onStepCandidates() { }
+    async onStepInstanceSuccess() { }
+    async onStepInstanceFail() { }
+    async onStepSuccess() { }
+    async onStepFail() { }
+}
+
+const Fl$1 = GWU.flag.fl;
+var StepFlags;
+(function (StepFlags) {
+    StepFlags[StepFlags["BS_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BS_OUTSOURCE_ITEM_TO_MACHINE";
+    StepFlags[StepFlags["BS_BUILD_VESTIBULE"] = Fl$1(2)] = "BS_BUILD_VESTIBULE";
+    StepFlags[StepFlags["BS_ADOPT_ITEM"] = Fl$1(3)] = "BS_ADOPT_ITEM";
+    StepFlags[StepFlags["BS_BUILD_AT_ORIGIN"] = Fl$1(4)] = "BS_BUILD_AT_ORIGIN";
+    StepFlags[StepFlags["BS_PERMIT_BLOCKING"] = Fl$1(5)] = "BS_PERMIT_BLOCKING";
+    StepFlags[StepFlags["BS_TREAT_AS_BLOCKING"] = Fl$1(6)] = "BS_TREAT_AS_BLOCKING";
+    StepFlags[StepFlags["BS_NEAR_ORIGIN"] = Fl$1(7)] = "BS_NEAR_ORIGIN";
+    StepFlags[StepFlags["BS_FAR_FROM_ORIGIN"] = Fl$1(8)] = "BS_FAR_FROM_ORIGIN";
+    StepFlags[StepFlags["BS_IN_VIEW_OF_ORIGIN"] = Fl$1(9)] = "BS_IN_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BS_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(10)] = "BS_IN_PASSABLE_VIEW_OF_ORIGIN";
+    StepFlags[StepFlags["BS_MONSTER_TAKE_ITEM"] = Fl$1(11)] = "BS_MONSTER_TAKE_ITEM";
+    StepFlags[StepFlags["BS_MONSTER_SLEEPING"] = Fl$1(12)] = "BS_MONSTER_SLEEPING";
+    StepFlags[StepFlags["BS_MONSTER_FLEEING"] = Fl$1(13)] = "BS_MONSTER_FLEEING";
+    StepFlags[StepFlags["BS_MONSTERS_DORMANT"] = Fl$1(14)] = "BS_MONSTERS_DORMANT";
+    StepFlags[StepFlags["BS_ITEM_IS_KEY"] = Fl$1(15)] = "BS_ITEM_IS_KEY";
+    StepFlags[StepFlags["BS_ITEM_IDENTIFIED"] = Fl$1(16)] = "BS_ITEM_IDENTIFIED";
+    StepFlags[StepFlags["BS_ITEM_PLAYER_AVOIDS"] = Fl$1(17)] = "BS_ITEM_PLAYER_AVOIDS";
+    StepFlags[StepFlags["BS_EVERYWHERE"] = Fl$1(18)] = "BS_EVERYWHERE";
+    StepFlags[StepFlags["BS_ALTERNATIVE"] = Fl$1(19)] = "BS_ALTERNATIVE";
+    StepFlags[StepFlags["BS_ALTERNATIVE_2"] = Fl$1(20)] = "BS_ALTERNATIVE_2";
+    StepFlags[StepFlags["BS_BUILD_IN_WALLS"] = Fl$1(21)] = "BS_BUILD_IN_WALLS";
+    StepFlags[StepFlags["BS_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BS_BUILD_ANYWHERE_ON_LEVEL";
+    StepFlags[StepFlags["BS_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BS_REPEAT_UNTIL_NO_PROGRESS";
+    StepFlags[StepFlags["BS_IMPREGNABLE"] = Fl$1(24)] = "BS_IMPREGNABLE";
+    StepFlags[StepFlags["BS_NO_BLOCK_ORIGIN"] = Fl$1(25)] = "BS_NO_BLOCK_ORIGIN";
+    // TODO - BS_ALLOW_IN_HALLWAY instead?
+    StepFlags[StepFlags["BS_NOT_IN_HALLWAY"] = Fl$1(27)] = "BS_NOT_IN_HALLWAY";
+    StepFlags[StepFlags["BS_ALLOW_BOUNDARY"] = Fl$1(28)] = "BS_ALLOW_BOUNDARY";
+    StepFlags[StepFlags["BS_SKELETON_KEY"] = Fl$1(29)] = "BS_SKELETON_KEY";
+    StepFlags[StepFlags["BS_KEY_DISPOSABLE"] = Fl$1(30)] = "BS_KEY_DISPOSABLE";
+})(StepFlags || (StepFlags = {}));
+class BuildStep {
+    // public next: null = null;
+    // public id = 'n/a';
+    constructor(cfg = {}) {
+        var _a;
+        this.tile = -1;
+        this.flags = 0;
+        this.pad = 0;
+        this.item = null;
+        this.horde = null;
+        this.effect = null;
+        this.chance = 0;
+        this.tile = (_a = cfg.tile) !== null && _a !== void 0 ? _a : -1;
+        if (cfg.flags) {
+            this.flags = GWU.flag.from(StepFlags, cfg.flags);
+        }
+        if (cfg.pad) {
+            this.pad = cfg.pad;
+        }
+        this.count = GWU.range.make(cfg.count || 1);
+        this.item = cfg.item || null;
+        this.horde = cfg.horde || null;
+        if (cfg.effect) {
+            this.effect = GWM.effect.from(cfg.effect);
+        }
+        if (this.item && this.flags & StepFlags.BS_ADOPT_ITEM) {
+            throw new Error('Cannot have blueprint step with item and BS_ADOPT_ITEM.');
+        }
+        if (this.buildAtOrigin && this.count.hi > 1) {
+            throw new Error('Cannot have count > 1 for step with BS_BUILD_AT_ORIGIN.');
+        }
+        if (this.buildAtOrigin && this.repeatUntilNoProgress) {
+            throw new Error('Cannot have BS_BUILD_AT_ORIGIN and BS_REPEAT_UNTIL_NO_PROGRESS together in a build step.');
+        }
+    }
+    get allowBoundary() {
+        return !!(this.flags & StepFlags.BS_ALLOW_BOUNDARY);
+    }
+    get notInHallway() {
+        return !!(this.flags & StepFlags.BS_NOT_IN_HALLWAY);
+    }
+    get buildInWalls() {
+        return !!(this.flags & StepFlags.BS_BUILD_IN_WALLS);
+    }
+    get buildAnywhere() {
+        return !!(this.flags & StepFlags.BS_BUILD_ANYWHERE_ON_LEVEL);
+    }
+    get repeatUntilNoProgress() {
+        return !!(this.flags & StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS);
+    }
+    get permitBlocking() {
+        return !!(this.flags & StepFlags.BS_PERMIT_BLOCKING);
+    }
+    get treatAsBlocking() {
+        return !!(this.flags &
+            (StepFlags.BS_TREAT_AS_BLOCKING | StepFlags.BS_NO_BLOCK_ORIGIN));
+    }
+    get noBlockOrigin() {
+        return !!(this.flags & StepFlags.BS_NO_BLOCK_ORIGIN);
+    }
+    get adoptItem() {
+        return !!(this.flags & StepFlags.BS_ADOPT_ITEM);
+    }
+    get itemIsKey() {
+        return !!(this.flags & StepFlags.BS_ITEM_IS_KEY);
+    }
+    get keyIsDisposable() {
+        return !!(this.flags & StepFlags.BS_KEY_DISPOSABLE);
+    }
+    get outsourceItem() {
+        return !!(this.flags & StepFlags.BS_OUTSOURCE_ITEM_TO_MACHINE);
+    }
+    get impregnable() {
+        return !!(this.flags & StepFlags.BS_IMPREGNABLE);
+    }
+    get buildVestibule() {
+        return !!(this.flags & StepFlags.BS_BUILD_VESTIBULE);
+    }
+    get generateEverywhere() {
+        return !!(this.flags &
+            StepFlags.BS_EVERYWHERE &
+            ~StepFlags.BS_BUILD_AT_ORIGIN);
+    }
+    get buildAtOrigin() {
+        return !!(this.flags & StepFlags.BS_BUILD_AT_ORIGIN);
+    }
+    get buildsInstances() {
+        return !!(this.effect ||
+            this.tile != -1 ||
+            this.item ||
+            this.horde ||
+            this.adoptItem);
+    }
+    // cellIsCandidate(
+    //     builder: BuildData,
+    //     blueprint: Blueprint,
+    //     x: number,
+    //     y: number,
+    //     distanceBound: [number, number]
+    // ) {
+    //     return cellIsCandidate(builder, blueprint, this, x, y, distanceBound);
+    // }
+    // distanceBound(builder: BuildData): [number, number] {
+    //     return calcDistanceBound(builder, this);
+    // }
+    // updateViewMap(builder: BuildData): void {
+    //     updateViewMap(builder, this);
+    // }
+    // build(
+    //     builder: BuildData,
+    //     blueprint: Blueprint,
+    //     adoptedItem: GWM.item.Item | null
+    // ): boolean {
+    //     return buildStep(builder, blueprint, this, adoptedItem);
+    // }
+    markCandidates(data, candidates, distanceBound = [0, 10000]) {
+        updateViewMap(data, this);
+        const blueprint = data.blueprint;
+        let count = 0;
+        candidates.update((_v, i, j) => {
+            const candidateType = cellIsCandidate(data, blueprint, this, i, j, distanceBound);
+            if (candidateType === CandidateType.OK) {
+                count++;
+            }
+            return candidateType;
+        });
+        return count;
+    }
+    makePersonalSpace(_data, x, y, candidates) {
+        let count = 0;
+        if (this.pad < 1)
+            return 0; // do not mark occupied
+        // or...
+        // if (this.buildEverywhere) return 0;  // do not mark occupied
+        for (let i = x - this.pad; i <= x + this.pad; i++) {
+            for (let j = y - this.pad; j <= y + this.pad; j++) {
+                if (candidates.hasXY(i, j)) {
+                    if (candidates[i][j] == 1) {
+                        candidates[i][j] = 0;
+                        ++count;
+                    }
+                    // builder.occupied[i][j] = 1;
+                }
+            }
+        }
+        return count;
+    }
+    toString() {
+        let parts = [];
+        if (this.tile) {
+            parts.push('tile: ' + this.tile);
+        }
+        if (this.effect) {
+            parts.push('effect: ' + this.effect);
+        }
+        if (this.item) {
+            parts.push('item: ' + this.item);
+        }
+        if (this.horde) {
+            parts.push('horde: ' + this.horde);
+        }
+        if (this.pad > 1) {
+            parts.push('pad: ' + this.pad);
+        }
+        if (this.count.lo > 1 || this.count.hi > 1) {
+            parts.push('count: ' + this.count.toString());
+        }
+        if (this.chance) {
+            parts.push('chance: ' + this.chance);
+        }
+        if (this.flags) {
+            parts.push('flags: ' + GWU.flag.toString(StepFlags, this.flags));
+        }
+        return '{ ' + parts.join(', ') + ' }';
+    }
+}
+function updateViewMap(builder, buildStep) {
+    if (buildStep.flags &
+        (StepFlags.BS_IN_VIEW_OF_ORIGIN |
+            StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN)) {
+        const site = builder.site;
+        if (buildStep.flags & StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) {
+            const fov = new GWU.fov.FOV({
+                isBlocked: (x, y) => {
+                    return site.blocksPathing(x, y);
+                },
+                hasXY: (x, y) => {
+                    return site.hasXY(x, y);
+                },
+            });
+            fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                builder.viewMap[x][y] = 1;
+            });
+        }
+        else {
+            const fov = new GWU.fov.FOV({
+                // TileFlags.T_OBSTRUCTS_PASSABILITY |
+                //     TileFlags.T_OBSTRUCTS_VISION,
+                isBlocked: (x, y) => {
+                    return site.blocksPathing(x, y) || site.blocksVision(x, y);
+                },
+                hasXY: (x, y) => {
+                    return site.hasXY(x, y);
+                },
+            });
+            fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
+                builder.viewMap[x][y] = 1;
+            });
+        }
+        builder.viewMap[builder.originX][builder.originY] = 1;
+    }
+}
+function calcDistanceBound(builder, buildStep) {
+    const distanceBound = [0, 10000];
+    if (buildStep.flags & StepFlags.BS_NEAR_ORIGIN) {
+        distanceBound[1] = builder.distance25;
+    }
+    if (buildStep.flags & StepFlags.BS_FAR_FROM_ORIGIN) {
+        distanceBound[0] = builder.distance75;
+    }
+    return distanceBound;
+}
+var CandidateType;
+(function (CandidateType) {
+    CandidateType[CandidateType["NOT_CANDIDATE"] = 0] = "NOT_CANDIDATE";
+    CandidateType[CandidateType["OK"] = 1] = "OK";
+    CandidateType[CandidateType["IN_HALLWAY"] = 2] = "IN_HALLWAY";
+    CandidateType[CandidateType["ON_BOUNDARY"] = 3] = "ON_BOUNDARY";
+    CandidateType[CandidateType["MUST_BE_ORIGIN"] = 4] = "MUST_BE_ORIGIN";
+    CandidateType[CandidateType["NOT_ORIGIN"] = 5] = "NOT_ORIGIN";
+    CandidateType[CandidateType["OCCUPIED"] = 6] = "OCCUPIED";
+    CandidateType[CandidateType["NOT_IN_VIEW"] = 7] = "NOT_IN_VIEW";
+    CandidateType[CandidateType["TOO_FAR"] = 8] = "TOO_FAR";
+    CandidateType[CandidateType["TOO_CLOSE"] = 9] = "TOO_CLOSE";
+    CandidateType[CandidateType["INVALID_WALL"] = 10] = "INVALID_WALL";
+    CandidateType[CandidateType["BLOCKED"] = 11] = "BLOCKED";
+    CandidateType[CandidateType["FAILED"] = 12] = "FAILED";
+})(CandidateType || (CandidateType = {}));
+function cellIsCandidate(builder, blueprint, buildStep, x, y, distanceBound) {
+    const site = builder.site;
+    // No building in the hallway if it's prohibited.
+    // This check comes before the origin check, so an area machine will fail altogether
+    // if its origin is in a hallway and the feature that must be built there does not permit as much.
+    if (buildStep.notInHallway &&
+        GWU.xy.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
+        return CandidateType.IN_HALLWAY;
+    }
+    // if (buildStep.noBlockOrigin) {
+    //     let ok = true;
+    //     GWU.xy.eachNeighbor(
+    //         x,
+    //         y,
+    //         (nx, ny) => {
+    //             if (nx === builder.originX && ny === builder.originY) {
+    //                 ok = false;
+    //             }
+    //         },
+    //         true
+    //     );
+    //     if (!ok) return false;
+    // }
+    // No building along the perimeter of the level if it's prohibited.
+    if ((x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1) &&
+        !buildStep.allowBoundary) {
+        return CandidateType.ON_BOUNDARY;
+    }
+    // The origin is a candidate if the feature is flagged to be built at the origin.
+    // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
+    if (buildStep.buildAtOrigin) {
+        if (x == builder.originX && y == builder.originY)
+            return CandidateType.OK;
+        return CandidateType.MUST_BE_ORIGIN;
+    }
+    else if (blueprint.isRoom &&
+        x == builder.originX &&
+        y == builder.originY) {
+        return CandidateType.NOT_ORIGIN;
+    }
+    // No building in another feature's personal space!
+    if (builder.occupied[x][y]) {
+        return CandidateType.OCCUPIED;
+    }
+    // Must be in the viewmap if the appropriate flag is set.
+    if (buildStep.flags &
+        (StepFlags.BS_IN_VIEW_OF_ORIGIN |
+            StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) &&
+        !builder.viewMap[x][y]) {
+        return CandidateType.NOT_IN_VIEW;
+    }
+    // Do a distance check if the feature requests it.
+    let distance = 10000;
+    if (site.isWall(x, y)) {
+        // Distance is calculated for walls too.
+        GWU.xy.eachNeighbor(x, y, (i, j) => {
+            if (!builder.distanceMap.hasXY(i, j))
+                return;
+            if (!site.blocksPathing(i, j) &&
+                distance > builder.distanceMap[i][j] + 1) {
+                distance = builder.distanceMap[i][j] + 1;
+            }
+        }, true);
+    }
+    else {
+        distance = builder.distanceMap[x][y];
+    }
+    if (distance > distanceBound[1])
+        return CandidateType.TOO_FAR; // distance exceeds max
+    if (distance < distanceBound[0])
+        return CandidateType.TOO_CLOSE;
+    if (buildStep.buildInWalls) {
+        // If we're supposed to build in a wall...
+        const cellMachine = site.getMachine(x, y);
+        if (!builder.interior[x][y] &&
+            (!cellMachine || cellMachine == builder.machineNumber) &&
+            site.isWall(x, y)) {
+            let ok = false;
+            // ...and this location is a wall that's not already machined...
+            GWU.xy.eachNeighbor(x, y, (newX, newY) => {
+                if (!site.hasXY(newX, newY))
+                    return;
+                if (!builder.interior[newX][newY] &&
+                    !buildStep.buildAnywhere) {
+                    return;
+                }
+                // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
+                const neighborMachine = site.getMachine(newX, newY);
+                if (!site.blocksPathing(newX, newY) &&
+                    (!neighborMachine ||
+                        neighborMachine == builder.machineNumber) &&
+                    !(newX == builder.originX && newY == builder.originY)) {
+                    ok = true;
+                }
+            }, true);
+            return ok ? CandidateType.OK : CandidateType.INVALID_WALL;
+        }
+        return CandidateType.NOT_CANDIDATE;
+    }
+    else if (site.isWall(x, y)) {
+        // Can't build in a wall unless instructed to do so.
+        return CandidateType.INVALID_WALL;
+    }
+    else if (buildStep.buildAnywhere) {
+        if ((buildStep.item && site.blocksItems(x, y)) ||
+            site.hasCellFlag(x, y, GWM.flags.Cell.IS_CHOKEPOINT |
+                GWM.flags.Cell.IS_IN_LOOP |
+                GWM.flags.Cell.IS_IN_MACHINE)) {
+            return CandidateType.BLOCKED;
+        }
+        else {
+            return CandidateType.OK;
+        }
+    }
+    else if (builder.interior[x][y]) {
+        return CandidateType.OK;
+    }
+    return CandidateType.FAILED;
+}
+// export function buildStep(
+//     builder: BuildData,
+//     blueprint: Blueprint,
+//     buildStep: BuildStep,
+//     adoptedItem: GWM.item.Item | null
+// ): boolean {
+//     let wantCount = 0;
+//     let builtCount = 0;
+//     const site = builder.site;
+//     const candidates = GWU.grid.alloc(site.width, site.height);
+//     // Figure out the distance bounds.
+//     const distanceBound = calcDistanceBound(builder, buildStep);
+//     buildStep.updateViewMap(builder);
+//     // If the StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+//     // Make a master map of candidate locations for this feature.
+//     let qualifyingTileCount = markCandidates(
+//         candidates,
+//         builder,
+//         blueprint,
+//         buildStep,
+//         distanceBound
+//     );
+//     if (!buildStep.generateEverywhere) {
+//         wantCount = buildStep.count.value();
+//     }
+//     if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
+//         console.log(
+//             ' - Only %s qualifying tiles - want at least %s.',
+//             qualifyingTileCount,
+//             buildStep.count.lo
+//         );
+//         GWU.grid.free(candidates);
+//         return false;
+//     }
+//     let x = 0,
+//         y = 0;
+//     let success = true;
+//     let didSomething = false;
+//     do {
+//         success = true;
+//         // Find a location for the feature.
+//         if (buildStep.buildAtOrigin) {
+//             // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
+//             x = builder.originX;
+//             y = builder.originY;
+//         } else {
+//             // Pick our candidate location randomly, and also strike it from
+//             // the candidates map so that subsequent instances of this same feature can't choose it.
+//             [x, y] = site.rng.matchingLoc(
+//                 candidates.width,
+//                 candidates.height,
+//                 (x, y) => candidates[x][y] > 0
+//             );
+//         }
+//         // Don't waste time trying the same place again whether or not this attempt succeeds.
+//         candidates[x][y] = 0;
+//         qualifyingTileCount--;
+//         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
+//         if (buildStep.effect) {
+//             success = site.fireEffect(buildStep.effect, x, y);
+//             didSomething = success;
+//         }
+//         // Now try to place the terrain tile, if any.
+//         if (success && buildStep.tile !== -1) {
+//             const tile = GWM.tile.get(buildStep.tile);
+//             if (
+//                 !(buildStep.flags & StepFlags.BS_PERMIT_BLOCKING) &&
+//                 (tile.blocksMove() ||
+//                     buildStep.flags & StepFlags.BS_TREAT_AS_BLOCKING)
+//             ) {
+//                 // Yes, check for blocking.
+//                 success = !SITE.siteDisruptedByXY(site, x, y, {
+//                     machine: site.machineCount,
+//                 });
+//             }
+//             if (success) {
+//                 success = site.setTile(x, y, tile);
+//                 didSomething = didSomething || success;
+//             }
+//         }
+//         // Generate an actor, if necessary
+//         // Generate an item, if necessary
+//         if (success && buildStep.item) {
+//             const item = site.makeRandomItem(buildStep.item);
+//             if (!item) {
+//                 success = false;
+//             }
+//             if (buildStep.flags & StepFlags.BS_ITEM_IS_KEY) {
+//                 item.key = GWM.entity.makeKeyInfo(
+//                     x,
+//                     y,
+//                     !!(buildStep.flags & StepFlags.BS_KEY_DISPOSABLE)
+//                 );
+//             }
+//             if (buildStep.flags & StepFlags.BS_OUTSOURCE_ITEM_TO_MACHINE) {
+//                 success = builder.buildRandom(
+//                     Flags.BP_ADOPT_ITEM,
+//                     -1,
+//                     -1,
+//                     item
+//                 );
+//                 if (success) {
+//                     didSomething = true;
+//                 }
+//             } else {
+//                 success = site.addItem(x, y, item);
+//                 didSomething = didSomething || success;
+//             }
+//         } else if (success && buildStep.flags & StepFlags.BS_ADOPT_ITEM) {
+//             // adopt item if necessary
+//             if (!adoptedItem) {
+//                 GWU.grid.free(candidates);
+//                 throw new Error(
+//                     'Failed to build blueprint because there is no adopted item.'
+//                 );
+//             }
+//             if (buildStep.flags & StepFlags.BS_TREAT_AS_BLOCKING) {
+//                 // Yes, check for blocking.
+//                 success = !SITE.siteDisruptedByXY(site, x, y);
+//             }
+//             if (success) {
+//                 success = site.addItem(x, y, adoptedItem);
+//                 if (success) {
+//                     didSomething = true;
+//                 } else {
+//                     console.log('- failed to add item', x, y);
+//                 }
+//             } else {
+//                 // console.log('- blocks map', x, y);
+//             }
+//         }
+//         if (success && didSomething) {
+//             // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
+//             qualifyingTileCount -= makePersonalSpace(
+//                 builder,
+//                 x,
+//                 y,
+//                 candidates,
+//                 buildStep.pad
+//             );
+//             builtCount++; // we've placed an instance
+//             // Mark the feature location as part of the machine, in case it is not already inside of it.
+//             if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
+//                 site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
+//             }
+//             // Mark the feature location as impregnable if requested.
+//             if (buildStep.flags & StepFlags.BS_IMPREGNABLE) {
+//                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
+//             }
+//         }
+//         // Finished with this instance!
+//     } while (
+//         qualifyingTileCount > 0 &&
+//         (buildStep.generateEverywhere ||
+//             builtCount < wantCount ||
+//             buildStep.flags & StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS)
+//     );
+//     if (success && buildStep.flags & StepFlags.BS_BUILD_VESTIBULE) {
+//         // Generate a door guard machine.
+//         // Try to create a sub-machine that qualifies.
+//         success = builder.buildRandom(
+//             Flags.BP_VESTIBULE,
+//             builder.originX,
+//             builder.originY
+//         );
+//         if (!success) {
+//             // console.log(
+//             //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
+//             // );
+//             // failure! abort!
+//             GWU.grid.free(candidates);
+//             return false;
+//         }
+//         ++builtCount;
+//     }
+//     //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
+//     //DEBUG logBuffer(candidates);
+//     success = builtCount > 0;
+//     GWU.grid.free(candidates);
+//     return success;
+// }
+
+const Fl = GWU.flag.fl;
+var Flags;
+(function (Flags) {
+    Flags[Flags["BP_ROOM"] = Fl(0)] = "BP_ROOM";
+    Flags[Flags["BP_VESTIBULE"] = Fl(1)] = "BP_VESTIBULE";
+    Flags[Flags["BP_REWARD"] = Fl(2)] = "BP_REWARD";
+    Flags[Flags["BP_ADOPT_ITEM"] = Fl(3)] = "BP_ADOPT_ITEM";
+    Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl(4)] = "BP_PURGE_PATHING_BLOCKERS";
+    Flags[Flags["BP_PURGE_INTERIOR"] = Fl(5)] = "BP_PURGE_INTERIOR";
+    Flags[Flags["BP_PURGE_LIQUIDS"] = Fl(6)] = "BP_PURGE_LIQUIDS";
+    Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl(7)] = "BP_SURROUND_WITH_WALLS";
+    Flags[Flags["BP_IMPREGNABLE"] = Fl(8)] = "BP_IMPREGNABLE";
+    Flags[Flags["BP_OPEN_INTERIOR"] = Fl(9)] = "BP_OPEN_INTERIOR";
+    Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl(10)] = "BP_MAXIMIZE_INTERIOR";
+    Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl(11)] = "BP_REDESIGN_INTERIOR";
+    Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl(12)] = "BP_TREAT_AS_BLOCKING";
+    Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl(13)] = "BP_REQUIRE_BLOCKING";
+    Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl(14)] = "BP_NO_INTERIOR_FLAG";
+    Flags[Flags["BP_NOT_IN_HALLWAY"] = Fl(15)] = "BP_NOT_IN_HALLWAY";
+})(Flags || (Flags = {}));
+class Blueprint {
+    constructor(opts = {}) {
+        this.tags = [];
+        this.flags = 0;
+        this.steps = [];
+        this.id = 'n/a';
+        if (opts.tags) {
+            if (typeof opts.tags === 'string') {
+                opts.tags = opts.tags.split(/[,|]/).map((v) => v.trim());
+            }
+            this.tags = opts.tags;
+        }
+        this.frequency = GWU.frequency.make(opts.frequency || 100);
+        if (opts.size) {
+            this.size = GWU.range.make(opts.size);
+            if (this.size.lo <= 0)
+                this.size.lo = 1;
+            if (this.size.hi < this.size.lo)
+                this.size.hi = this.size.lo;
+        }
+        else {
+            this.size = GWU.range.make([1, 1]); // Anything bigger makes weird things happen
+        }
+        if (opts.flags) {
+            this.flags = GWU.flag.from(Flags, opts.flags);
+        }
+        if (opts.steps) {
+            this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
+        }
+        if (this.flags & Flags.BP_ADOPT_ITEM) {
+            if (!this.steps.some((s) => s.flags & StepFlags.BS_ADOPT_ITEM)) {
+                throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BS_ADOPT_ITEM.');
+            }
+        }
+        if (opts.id) {
+            this.id = opts.id;
+        }
+    }
+    get isRoom() {
+        return !!(this.flags & Flags.BP_ROOM);
+    }
+    get isReward() {
+        return !!(this.flags & Flags.BP_REWARD);
+    }
+    get isVestiblue() {
+        return !!(this.flags & Flags.BP_VESTIBULE);
+    }
+    get adoptsItem() {
+        return !!(this.flags & Flags.BP_ADOPT_ITEM);
+    }
+    get treatAsBlocking() {
+        return !!(this.flags & Flags.BP_TREAT_AS_BLOCKING);
+    }
+    get requireBlocking() {
+        return !!(this.flags & Flags.BP_REQUIRE_BLOCKING);
+    }
+    get purgeInterior() {
+        return !!(this.flags & Flags.BP_PURGE_INTERIOR);
+    }
+    get purgeBlockers() {
+        return !!(this.flags & Flags.BP_PURGE_PATHING_BLOCKERS);
+    }
+    get purgeLiquids() {
+        return !!(this.flags & Flags.BP_PURGE_LIQUIDS);
+    }
+    get surroundWithWalls() {
+        return !!(this.flags & Flags.BP_SURROUND_WITH_WALLS);
+    }
+    get makeImpregnable() {
+        return !!(this.flags & Flags.BP_IMPREGNABLE);
+    }
+    get maximizeInterior() {
+        return !!(this.flags & Flags.BP_MAXIMIZE_INTERIOR);
+    }
+    get openInterior() {
+        return !!(this.flags & Flags.BP_OPEN_INTERIOR);
+    }
+    get noInteriorFlag() {
+        return !!(this.flags & Flags.BP_NO_INTERIOR_FLAG);
+    }
+    get notInHallway() {
+        return !!(this.flags & Flags.BP_NOT_IN_HALLWAY);
+    }
+    qualifies(requiredFlags, tags) {
+        if (tags && tags.length) {
+            if (typeof tags === 'string') {
+                tags = tags.split(/[,|]/).map((v) => v.trim());
+            }
+            // Must match all tags!
+            if (!tags.every((want) => this.tags.includes(want)))
+                return false;
+        }
+        if (
+        // Must have the required flags:
+        ~this.flags & requiredFlags ||
+            // May NOT have BP_ADOPT_ITEM unless that flag is required:
+            this.flags & Flags.BP_ADOPT_ITEM & ~requiredFlags ||
+            // May NOT have BP_VESTIBULE unless that flag is required:
+            this.flags & Flags.BP_VESTIBULE & ~requiredFlags) {
+            return false;
+        }
+        return true;
+    }
+    pickComponents(rng) {
+        const alternativeFlags = [
+            StepFlags.BS_ALTERNATIVE,
+            StepFlags.BS_ALTERNATIVE_2,
+        ];
+        const keepFeature = new Array(this.steps.length).fill(true);
+        for (let j = 0; j <= 1; j++) {
+            let totalFreq = 0;
+            for (let i = 0; i < keepFeature.length; i++) {
+                if (this.steps[i].flags & alternativeFlags[j]) {
+                    keepFeature[i] = false;
+                    totalFreq++;
+                }
+            }
+            if (totalFreq > 0) {
+                let randIndex = rng.range(1, totalFreq);
+                for (let i = 0; i < keepFeature.length; i++) {
+                    if (this.steps[i].flags & alternativeFlags[j]) {
+                        if (randIndex == 1) {
+                            keepFeature[i] = true; // This is the alternative that gets built. The rest do not.
+                            break;
+                        }
+                        else {
+                            randIndex--;
+                        }
+                    }
+                }
+            }
+        }
+        return this.steps.filter((_f, i) => keepFeature[i]);
+    }
+    fillInterior(builder) {
+        const interior = builder.interior;
+        const site = builder.site;
+        interior.fill(0);
+        // Find a location and map out the machine interior.
+        if (this.isRoom) {
+            // If it's a room machine, count up the gates of appropriate
+            // choke size and remember where they are. The origin of the room will be the gate location.
+            // Now map out the interior into interior[][].
+            // Start at the gate location and do a depth-first floodfill to grab all adjoining tiles with the
+            // same or lower choke value, ignoring any tiles that are already part of a machine.
+            // If we get false from this, try again. If we've tried too many times already, abort.
+            return addTileToInteriorAndIterate(builder, builder.originX, builder.originY);
+        }
+        else if (this.isVestiblue) {
+            return computeVestibuleInterior(builder, this);
+            // success
+        }
+        else {
+            // Find a location and map out the interior for a non-room machine.
+            // The strategy here is simply to pick a random location on the map,
+            // expand it along a pathing map by one space in all directions until the size reaches
+            // the chosen size, and then make sure the resulting space qualifies.
+            // If not, try again. If we've tried too many times already, abort.
+            let distanceMap = builder.distanceMap;
+            computeDistanceMap(site, distanceMap, builder.originX, builder.originY, this.size.hi);
+            const seq = site.rng.sequence(site.width * site.height);
+            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+            let goalSize = this.size.value(); // Keeps track of the goal size.
+            for (let k = 0; k < 1000 && qualifyingTileCount < goalSize; k++) {
+                for (let n = 0; n < seq.length && qualifyingTileCount < goalSize; n++) {
+                    const i = Math.floor(seq[n] / site.height);
+                    const j = seq[n] % site.height;
+                    if (distanceMap[i][j] == k) {
+                        interior[i][j] = 1;
+                        qualifyingTileCount++;
+                        if (site.isOccupied(i, j) ||
+                            site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)) {
+                            // Abort if we've entered another machine or engulfed another machine's item or monster.
+                            return 0;
+                        }
+                    }
+                }
+            }
+            // If locationFailsafe runs out, tryAgain will still be true, and we'll try a different machine.
+            // If we're not choosing the blueprint, then don't bother with the locationFailsafe; just use the higher-level failsafe.
+            return qualifyingTileCount;
+        }
+    }
+}
+function markCandidates(buildData) {
+    const site = buildData.site;
+    const candidates = buildData.candidates;
+    const blueprint = buildData.blueprint;
+    candidates.fill(0);
+    // Find a location and map out the machine interior.
+    if (blueprint.isRoom) {
+        // If it's a room machine, count up the gates of appropriate
+        // choke size and remember where they are. The origin of the room will be the gate location.
+        candidates.update((_v, x, y) => {
+            return site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE) &&
+                blueprint.size.contains(site.getChokeCount(x, y))
+                ? 1
+                : 0;
+        });
+    }
+    else if (blueprint.isVestiblue) {
+        //  Door machines must have locations passed in. We can't pick one ourselves.
+        throw new Error('ERROR: Attempted to build a vestiblue without a location being provided.');
+    }
+    else {
+        candidates.update((_v, x, y) => {
+            if (!site.isPassable(x, y))
+                return 0;
+            if (blueprint.notInHallway) {
+                const count = GWU.xy.arcCount(x, y, (i, j) => site.isPassable(i, j));
+                return count <= 1 ? 1 : 0;
+            }
+            return 1;
+        });
+    }
+    return candidates.count((v) => v == 1);
+}
+function pickCandidateLoc(buildData) {
+    const site = buildData.site;
+    const candidates = buildData.candidates;
+    const randSite = site.rng.matchingLoc(site.width, site.height, (x, y) => candidates[x][y] == 1);
+    if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
+        // If no suitable sites, abort.
+        return null;
+    }
+    return randSite;
+}
+// // Assume site has been analyzed (aka GateSites and ChokeCounts set)
+// export function computeInterior(
+//     builder: BuildData,
+//     blueprint: Blueprint
+// ): boolean {
+//     let failsafe = blueprint.isRoom ? 10 : 20;
+//     let tryAgain;
+//     const interior = builder.interior;
+//     const site = builder.site;
+//     do {
+//         tryAgain = false;
+//         if (--failsafe <= 0) {
+//             // console.log(
+//             //     `Failed to build blueprint ${blueprint.id}; failed repeatedly to find a suitable blueprint location.`
+//             // );
+//             return false;
+//         }
+//         let count = fillInterior(builder, blueprint);
+//         // Now make sure the interior map satisfies the machine's qualifications.
+//         if (!count) {
+//             console.debug('- no interior');
+//             tryAgain = true;
+//         } else if (!blueprint.size.contains(count)) {
+//             console.debug('- too small');
+//             tryAgain = true;
+//         } else if (
+//             blueprint.treatAsBlocking &&
+//             SITE.siteDisruptedBy(site, interior, { machine: site.machineCount })
+//         ) {
+//             console.debug('- blocks');
+//             tryAgain = true;
+//         } else if (
+//             blueprint.requireBlocking &&
+//             SITE.siteDisruptedSize(site, interior) < 100
+//         ) {
+//             console.debug('- does not block');
+//             tryAgain = true;
+//         }
+//         // Now loop if necessary.
+//     } while (tryAgain);
+//     // console.log(tryAgain, failsafe);
+//     return true;
+// }
+function computeVestibuleInterior(builder, blueprint) {
+    let success = true;
+    const site = builder.site;
+    const interior = builder.interior;
+    interior.fill(0);
+    if (blueprint.size.hi == 1) {
+        interior[builder.originX][builder.originY] = 1;
+        return 1;
+    }
+    // If this is a wall - it is really an error (maybe manually trying a build location?)
+    const doorChokeCount = site.getChokeCount(builder.originX, builder.originY);
+    if (doorChokeCount > 10000) {
+        return 0;
+    }
+    const vestibuleLoc = [-1, -1];
+    let vestibuleChokeCount = doorChokeCount;
+    GWU.xy.eachNeighbor(builder.originX, builder.originY, (x, y) => {
+        const count = site.getChokeCount(x, y);
+        if (count == doorChokeCount)
+            return;
+        if (count > 10000)
+            return;
+        if (count < 0)
+            return;
+        vestibuleLoc[0] = x;
+        vestibuleLoc[1] = y;
+        vestibuleChokeCount = count;
+    }, true);
+    const roomSize = vestibuleChokeCount - doorChokeCount;
+    if (blueprint.size.contains(roomSize)) {
+        // The room entirely fits within the vestibule desired size
+        const count = interior.floodFill(vestibuleLoc[0], vestibuleLoc[1], (_v, i, j) => {
+            if (site.isOccupied(i, j)) {
+                success = false;
+            }
+            return site.getChokeCount(i, j) === vestibuleChokeCount;
+        }, 1);
+        if (success && blueprint.size.contains(count))
+            return roomSize;
+    }
+    let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
+    const wantSize = blueprint.size.value(site.rng); // Keeps track of the goal size.
+    const distMap = builder.distanceMap;
+    computeDistanceMap(site, distMap, builder.originX, builder.originY, blueprint.size.hi);
+    const cells = site.rng.sequence(site.width * site.height);
+    success = true;
+    for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
+        for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
+            const x = Math.floor(cells[i] / site.height);
+            const y = cells[i] % site.height;
+            const dist = distMap[x][y];
+            if (dist != k)
+                continue;
+            if (site.isOccupied(x, y)) {
+                success = false;
+                qualifyingTileCount = wantSize;
+            }
+            if (site.getChokeCount(x, y) <= doorChokeCount)
+                continue;
+            interior[x][y] = 1;
+            qualifyingTileCount += 1;
+        }
+    }
+    return qualifyingTileCount;
+}
+// Assumes (startX, startY) is in the machine.
+// Returns true if everything went well, and false if we ran into a machine component
+// that was already there, as we don't want to build a machine around it.
+function addTileToInteriorAndIterate(builder, startX, startY) {
+    let goodSoFar = true;
+    const interior = builder.interior;
+    const site = builder.site;
+    let count = 1;
+    interior[startX][startY] = 1;
+    const startChokeCount = site.getChokeCount(startX, startY);
+    for (let dir = 0; dir < 4 && goodSoFar; dir++) {
+        const newX = startX + GWU.xy.DIRS[dir][0];
+        const newY = startY + GWU.xy.DIRS[dir][1];
+        if (!site.hasXY(newX, newY))
+            continue;
+        if (interior[newX][newY])
+            continue; // already done
+        if (site.isOccupied(newX, newY) ||
+            (site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_IN_MACHINE) &&
+                !site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_GATE_SITE))) {
+            // Abort if there's an item in the room.
+            // Items haven't been populated yet, so the only way this could happen is if another machine
+            // previously placed an item here.
+            // Also abort if we're touching another machine at any point other than a gate tile.
+            return 0;
+        }
+        if (site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
+            !site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_IN_MACHINE)) {
+            let additional = addTileToInteriorAndIterate(builder, newX, newY);
+            if (additional <= 0)
+                return 0;
+            count += additional;
+        }
+    }
+    return count;
+}
+function maximizeInterior(data, minimumInteriorNeighbors = 1) {
+    const interior = data.interior;
+    const site = data.site;
+    let interiorNeighborCount = 0;
+    // let openNeighborCount = 0;
+    let madeChange = true;
+    let interiorCount = 0;
+    let maxInteriorCount = data.blueprint.size.hi;
+    let gen = 0;
+    while (madeChange && interiorCount < maxInteriorCount) {
+        madeChange = false;
+        interiorCount = 0;
+        ++gen;
+        interior.forEach((i, x, y) => {
+            if (!i)
+                return;
+            ++interiorCount;
+            if (i != gen)
+                return;
+            GWU.xy.eachNeighbor(x, y, (i, j) => {
+                if (!interior.hasXY(i, j) || interior[i][j])
+                    return;
+                if (interior.isBoundaryXY(i, j))
+                    return;
+                interiorNeighborCount = 0;
+                let ok = true;
+                GWU.xy.eachNeighbor(i, j, (x2, y2) => {
+                    if (interior[x2][y2]) {
+                        ++interiorNeighborCount;
+                    }
+                    else if (!site.isWall(x2, y2)) {
+                        ok = false; // non-interior and not wall
+                    }
+                    else if (site.getMachine(x2, y2)) {
+                        ok = false; // in another machine
+                    }
+                }, false // 8 dirs
+                );
+                if (!ok || interiorNeighborCount < minimumInteriorNeighbors)
+                    return;
+                interior[i][j] = gen + 1;
+                ++interiorCount;
+                if (site.blocksPathing(i, j)) {
+                    site.clearCell(i, j, 'FLOOR');
+                }
+                madeChange = true;
+            }, true // 4 dirs
+            );
+        });
+    }
+    interior.update((v) => (v > 0 ? 1 : 0));
+}
+function prepareInterior(builder) {
+    const interior = builder.interior;
+    const site = builder.site;
+    const blueprint = builder.blueprint;
+    // If requested, clear and expand the room as far as possible until either it's convex or it bumps into surrounding rooms
+    if (blueprint.maximizeInterior) {
+        maximizeInterior(builder, 1);
+    }
+    else if (blueprint.openInterior) {
+        maximizeInterior(builder, 4);
+    }
+    // If requested, cleanse the interior -- no interesting terrain allowed.
+    if (blueprint.purgeInterior) {
+        interior.forEach((v, x, y) => {
+            if (v)
+                site.clearCell(x, y, FLOOR);
+        });
+    }
+    else {
+        if (blueprint.purgeBlockers) {
+            // If requested, purge pathing blockers -- no traps allowed.
+            interior.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                if (site.blocksPathing(x, y)) {
+                    site.clearCell(x, y, FLOOR);
+                }
+            });
+        }
+        // If requested, purge the liquid layer in the interior -- no liquids allowed.
+        if (blueprint.purgeLiquids) {
+            interior.forEach((v, x, y) => {
+                if (v && site.isAnyLiquid(x, y)) {
+                    site.clearCell(x, y, FLOOR);
+                }
+            });
+        }
+    }
+    // Surround with walls if requested.
+    if (blueprint.surroundWithWalls) {
+        interior.forEach((v, x, y) => {
+            if (!v || site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE))
+                return;
+            GWU.xy.eachNeighbor(x, y, (i, j) => {
+                if (!interior.hasXY(i, j))
+                    return; // Not valid x,y
+                if (interior[i][j])
+                    return; // is part of machine
+                if (site.isWall(i, j))
+                    return; // is already a wall (of some sort)
+                if (site.hasCellFlag(i, j, GWM.flags.Cell.IS_GATE_SITE))
+                    return; // is a door site
+                if (site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE))
+                    return; // is part of a machine
+                if (site.blocksPathing(i, j))
+                    return; // is a blocker for the player (water?)
+                site.clearCell(i, j, WALL);
+            }, false // all 8 directions
+            );
+        });
+    }
+    // Completely clear the interior, fill with granite, and cut entirely new rooms into it from the gate site.
+    // Then zero out any portion of the interior that is still wall.
+    // if (flags & BPFlags.BP_REDESIGN_INTERIOR) {
+    //     RUT.Map.Blueprint.redesignInterior(map, interior, originX, originY, dungeonProfileIndex);
+    // }
+    // Reinforce surrounding tiles and interior tiles if requested to prevent tunneling in or through.
+    if (blueprint.makeImpregnable) {
+        interior.forEach((v, x, y) => {
+            if (!v || site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE))
+                return;
+            site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
+            GWU.xy.eachNeighbor(x, y, (i, j) => {
+                if (!interior.hasXY(i, j))
+                    return;
+                if (interior[i][j])
+                    return;
+                if (site.hasCellFlag(i, j, GWM.flags.Cell.IS_GATE_SITE))
+                    return;
+                site.setCellFlag(i, j, GWM.flags.Cell.IMPREGNABLE);
+            }, false);
+        });
+    }
+    // If necessary, label the interior as IS_IN_AREA_MACHINE or IS_IN_ROOM_MACHINE and mark down the number.
+    const machineNumber = builder.machineNumber;
+    interior.forEach((v, x, y) => {
+        if (!v)
+            return;
+        if (!blueprint.noInteriorFlag) {
+            site.setMachine(x, y, machineNumber, blueprint.isRoom);
+        }
+        // secret doors mess up machines
+        // TODO - is this still true?
+        if (site.isSecretDoor(x, y)) {
+            site.setTile(x, y, DOOR);
+        }
+    });
+}
+// export function expandMachineInterior(
+//     builder: BuildData,
+//     minimumInteriorNeighbors = 1
+// ) {
+//     let madeChange;
+//     const interior = builder.interior;
+//     const site = builder.site;
+//     do {
+//         madeChange = false;
+//         interior.forEach((_v, x, y) => {
+//             // if (v && site.isDoor(x, y)) {
+//             //     site.setTile(x, y, SITE.FLOOR); // clean out the doors...
+//             //     return;
+//             // }
+//             if (site.hasCellFlag(x, y, GWM.flags.Cell.IS_IN_MACHINE)) return;
+//             if (!site.blocksPathing(x, y)) return;
+//             let nbcount = 0;
+//             GWU.xy.eachNeighbor(
+//                 x,
+//                 y,
+//                 (i, j) => {
+//                     if (!interior.hasXY(i, j)) return; // Not in map
+//                     if (interior.isBoundaryXY(i, j)) return; // Not on boundary
+//                     if (interior[i][j] && !site.blocksPathing(i, j)) {
+//                         ++nbcount; // in machine and open tile
+//                     }
+//                 },
+//                 false
+//             );
+//             if (nbcount < minimumInteriorNeighbors) return;
+//             nbcount = 0;
+//             GWU.xy.eachNeighbor(
+//                 x,
+//                 y,
+//                 (i, j) => {
+//                     if (!interior.hasXY(i, j)) return; // not on map
+//                     if (interior[i][j]) return; // already part of machine
+//                     if (
+//                         !site.isWall(i, j) ||
+//                         site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)
+//                     ) {
+//                         ++nbcount; // tile is not a wall or is in a machine
+//                     }
+//                 },
+//                 false
+//             );
+//             if (nbcount) return;
+//             // Eliminate this obstruction; welcome its location into the machine.
+//             madeChange = true;
+//             interior[x][y] = 1;
+//             if (site.blocksPathing(x, y)) {
+//                 site.setTile(x, y, SITE.FLOOR);
+//             }
+//             GWU.xy.eachNeighbor(x, y, (i, j) => {
+//                 if (!interior.hasXY(i, j)) return;
+//                 if (site.isSet(i, j)) return;
+//                 site.setTile(i, j, SITE.WALL);
+//             });
+//         });
+//     } while (madeChange);
+// }
+///////////////////////////
+// INSTALL
+const blueprints = {};
+function install(id, blueprint) {
+    if (!(blueprint instanceof Blueprint)) {
+        blueprint = new Blueprint(blueprint);
+    }
+    blueprints[id] = blueprint;
+    blueprint.id = id;
+    return blueprint;
+}
+function random(requiredFlags, depth, rng) {
+    const matches = Object.values(blueprints).filter((b) => b.qualifies(requiredFlags) && b.frequency(depth));
+    rng = rng || GWU.rng.random;
+    return rng.item(matches);
+}
+function get(id) {
+    if (id instanceof Blueprint)
+        return id;
+    return blueprints[id];
+}
+function make(config) {
+    // if (!config.id) throw new Error('id is required to make Blueprint.');
+    return new Blueprint(config);
+}
+
+class ConsoleLogger {
+    async onDigFirstRoom(site) {
+        console.group('dig first room');
+        site.dump();
+        console.groupEnd();
+    }
+    async onRoomCandidate(room, roomSite) {
+        console.group('room candidate: ' + room.toString());
+        roomSite.dump();
+        console.groupEnd();
+    }
+    async onRoomFailed(_site, _room, _roomSite, error) {
+        console.log('Room Failed - ', error);
+    }
+    async onRoomSuccess(site, room) {
+        console.group('Added Room - ' + room.toString());
+        site.dump();
+        console.groupEnd();
+    }
+    async onLoopsAdded(_site) {
+        console.log('loops added');
+    }
+    async onLakesAdded(_site) {
+        console.log('lakes added');
+    }
+    async onBridgesAdded(_site) {
+        console.log('bridges added');
+    }
+    async onStairsAdded(_site) {
+        console.log('stairs added');
+    }
+    //
+    async onBuildError(error) {
+        console.log(`onBuildError - error: ${error}`);
+    }
+    async onBlueprintPick(data, flags, depth) {
+        console.log(`onBlueprintPick - ${data.blueprint.id}, depth = ${depth}, matchingFlags = ${GWU.flag.toString(Flags, flags)}`);
+    }
+    async onBlueprintCandidates(data) {
+        const label = `onBlueprintCandidates - ${data.blueprint.id}`;
+        console.group(label);
+        data.candidates.dump();
+        console.groupEnd();
+    }
+    async onBlueprintStart(data) {
+        console.group(`onBlueprintStart - ${data.blueprint.id} @ ${data.originX},${data.originY} : stepCount: ${data.blueprint.steps.length}, size: [${data.blueprint.size.toString()}], flags: ${GWU.flag.toString(Flags, data.blueprint.flags)}`);
+    }
+    async onBlueprintInterior(data) {
+        console.group(`onBlueprintInterior - ${data.blueprint.id}`);
+        data.interior.dump();
+        console.groupEnd();
+    }
+    async onBlueprintFail(data, error) {
+        console.log(`onBlueprintFail - ${data.blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`);
+        console.groupEnd();
+    }
+    async onBlueprintSuccess(data) {
+        console.log(`onBlueprintSuccess - ${data.blueprint.id} @ ${data.originX},${data.originY}`);
+        console.groupEnd();
+    }
+    async onStepStart(data, step) {
+        console.group(`onStepStart - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU.flag.toString(StepFlags, step.flags)}`);
+        console.log(step.toString());
+    }
+    async onStepCandidates(data, step, candidates, wantCount) {
+        const haveCount = candidates.count((v) => v == 1);
+        console.log(`onStepCandidates - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : wantCount: ${wantCount}, have: ${haveCount}`);
+        candidates.dump();
+        if (haveCount == 0) {
+            console.log('No candidates - check interior');
+            data.interior.dump();
+        }
+    }
+    async onStepInstanceSuccess(_data, _step, x, y) {
+        console.log(`onStepInstance @ ${x},${y}`);
+    }
+    async onStepInstanceFail(_data, _step, x, y, error) {
+        console.log(`onStepInstanceFail @ ${x},${y} - error: ${error}`);
+    }
+    async onStepSuccess(data, step) {
+        console.log(`onStepSuccess - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU.flag.toString(StepFlags, step.flags)}`);
+        console.groupEnd();
+    }
+    async onStepFail(data, step, error) {
+        console.log(`onStepFail - ${data.blueprint.id}[${data.blueprint.steps.indexOf(step) + 1}/${data.blueprint.steps.length}] @ ${data.originX},${data.originY} : error : ${error}`);
+        console.groupEnd();
+    }
+}
+
+class Digger {
     constructor(options = {}) {
         var _a, _b;
         this.seed = 0;
@@ -2173,13 +3508,22 @@ class Level {
         }
         this.startLoc = options.startLoc || [-1, -1];
         this.endLoc = options.endLoc || [-1, -1];
+        if (options.log === true) {
+            this.log = new ConsoleLogger();
+        }
+        else if (options.log) {
+            this.log = options.log;
+        }
+        else {
+            this.log = new NullLogger();
+        }
     }
     _makeRoomSite(width, height) {
         const site = new GridSite(width, height);
         site.rng = this.site.rng;
         return site;
     }
-    create(...args) {
+    async create(...args) {
         if (args.length == 1 && args[0] instanceof GWM.map.Map) {
             const map = args[0];
             this.site = new MapSite(map);
@@ -2189,7 +3533,7 @@ class Level {
             const height = args[1];
             this.site = new GridSite(width, height);
         }
-        const result = this._create(this.site);
+        const result = await this._create(this.site);
         if (args.length > 1) {
             const width = args[0];
             const height = args[1];
@@ -2203,7 +3547,7 @@ class Level {
         this.site.free();
         return result;
     }
-    _create(site) {
+    async _create(site) {
         if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
             this.startLoc[0] = Math.floor(site.width / 2);
             this.startLoc[1] = site.height - 2;
@@ -2211,19 +3555,20 @@ class Level {
         this.start(site);
         let tries = 20;
         while (--tries) {
-            if (this.addFirstRoom(site))
+            if (await this.addFirstRoom(site))
                 break;
         }
         if (!tries)
             throw new Error('Failed to place first room!');
         site.updateDoorDirs();
+        await this.log.onDigFirstRoom(site);
         // site.dump();
         // console.log('- rng.number', site.rng.number());
         let fails = 0;
         let count = 1;
         const maxFails = this.rooms.fails || 20;
         while (fails < maxFails) {
-            if (this.addRoom(site)) {
+            if (await this.addRoom(site)) {
                 fails = 0;
                 site.updateDoorDirs();
                 site.rng.shuffle(this.seq);
@@ -2237,14 +3582,22 @@ class Level {
                 ++fails;
             }
         }
-        if (this.loops)
+        if (this.loops) {
             this.addLoops(site, this.loops);
-        if (this.lakes)
+            await this.log.onLoopsAdded(site);
+        }
+        if (this.lakes) {
             this.addLakes(site, this.lakes);
-        if (this.bridges)
+            await this.log.onLakesAdded(site);
+        }
+        if (this.bridges) {
             this.addBridges(site, this.bridges);
-        if (this.stairs)
+            await this.log.onBridgesAdded(site);
+        }
+        if (this.stairs) {
             this.addStairs(site, this.stairs);
+            await this.log.onStairsAdded(site);
+        }
         this.finish(site);
         return true;
     }
@@ -2268,24 +3621,24 @@ class Level {
         }
         return new ChoiceRoom(id);
     }
-    addFirstRoom(site) {
+    async addFirstRoom(site) {
         const roomSite = this._makeRoomSite(site.width, site.height);
         let digger = this.getDigger(this.rooms.first || this.rooms.digger || 'DEFAULT');
         let room = digger.create(roomSite);
         if (room &&
-            !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)) {
+            !(await this._attachRoomAtLoc(site, roomSite, room, this.startLoc))) {
             room = null;
         }
         roomSite.free();
         // Should we add the starting stairs now too?
         return room;
     }
-    addRoom(site) {
+    async addRoom(site) {
         const roomSite = this._makeRoomSite(site.width, site.height);
         let digger = this.getDigger(this.rooms.digger || 'DEFAULT');
         let room = digger.create(roomSite);
         // attach hall?
-        if (this.halls.chance) {
+        if (room && this.halls.chance) {
             let hall$1 = dig(this.halls, roomSite, room.doors);
             if (hall$1) {
                 room.hall = hall$1;
@@ -2293,8 +3646,15 @@ class Level {
         }
         // console.log('potential room');
         // roomSite.dump();
-        if (room && !this._attachRoom(site, roomSite, room)) {
-            room = null;
+        if (room) {
+            await this.log.onRoomCandidate(room, roomSite);
+            if (this._attachRoom(site, roomSite, room)) {
+                await this.log.onRoomSuccess(site, room);
+            }
+            else {
+                await this.log.onRoomFailed(site, room, roomSite, 'Did not fit.');
+                room = null;
+            }
         }
         roomSite.free();
         return room;
@@ -2330,7 +3690,7 @@ class Level {
         }
         return false;
     }
-    _attachRoomAtLoc(site, roomSite, room, attachLoc) {
+    async _attachRoomAtLoc(site, roomSite, room, attachLoc) {
         const [x, y] = attachLoc;
         const doorSites = room.hall ? room.hall.doors : room.doors;
         const dirs = site.rng.sequence(4);
@@ -2585,7 +3945,7 @@ class Dungeon {
             startLoc = endLoc;
         }
     }
-    getLevel(id, cb) {
+    async getLevel(id, cb) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
         // Generate the level
@@ -2629,20 +3989,19 @@ class Dungeon {
         return this.makeLevel(id, levelOpts, cb);
         // TODO - Update startLoc, endLoc
     }
-    makeLevel(id, opts, cb) {
-        const level = new Level(opts);
-        const result = level.create(this.config.width, this.config.height, cb);
-        if (!GWU.xy.equalsXY(level.endLoc, opts.endLoc) ||
-            !GWU.xy.equalsXY(level.startLoc, opts.startLoc)) {
-            this.stairLocs[id] = [level.startLoc, level.endLoc];
+    async makeLevel(id, opts, cb) {
+        const digger = new Digger(opts);
+        const result = await digger.create(this.config.width, this.config.height, cb);
+        if (!GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
+            !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)) {
+            this.stairLocs[id] = [digger.startLoc, digger.endLoc];
         }
         return result;
     }
 }
 
 class BuildData {
-    constructor(map, options = {}) {
-        this.map = map;
+    constructor(site, blueprint) {
         this.originX = -1;
         this.originY = -1;
         this.distance25 = -1;
@@ -2650,14 +4009,13 @@ class BuildData {
         this.machineNumber = 0;
         this.depth = 0;
         this.seed = 0;
-        this.site = new MapSite(map);
-        this.interior = GWU.grid.alloc(map.width, map.height);
-        this.occupied = GWU.grid.alloc(map.width, map.height);
-        this.viewMap = GWU.grid.alloc(map.width, map.height);
-        this.distanceMap = GWU.grid.alloc(map.width, map.height);
-        this.candidates = GWU.grid.alloc(map.width, map.height);
-        this.depth = options.depth || 1;
-        this.seed = options.seed || 0;
+        this.site = site;
+        this.blueprint = blueprint;
+        this.interior = GWU.grid.alloc(site.width, site.height);
+        this.occupied = GWU.grid.alloc(site.width, site.height);
+        this.viewMap = GWU.grid.alloc(site.width, site.height);
+        this.distanceMap = GWU.grid.alloc(site.width, site.height);
+        this.candidates = GWU.grid.alloc(site.width, site.height);
     }
     free() {
         GWU.grid.free(this.interior);
@@ -2665,6 +4023,9 @@ class BuildData {
         GWU.grid.free(this.viewMap);
         GWU.grid.free(this.distanceMap);
         GWU.grid.free(this.candidates);
+    }
+    get rng() {
+        return this.site.rng;
     }
     reset(originX, originY) {
         this.interior.fill(0);
@@ -2719,1167 +4080,9 @@ class BuildData {
     }
 }
 
-class NullLogger {
-    async onError() { }
-    async onBlueprintPick() { }
-    async onBlueprintCandidates() { }
-    async onBlueprintStart() { }
-    async onBlueprintInterior() { }
-    async onBlueprintFail() { }
-    async onBlueprintSuccess() { }
-    async onStepStart() { }
-    async onStepCandidates() { }
-    async onStepInstanceSuccess() { }
-    async onStepInstanceFail() { }
-    async onStepSuccess() { }
-    async onStepFail() { }
-}
-
-const Fl$1 = GWU.flag.fl;
-var StepFlags;
-(function (StepFlags) {
-    StepFlags[StepFlags["BF_OUTSOURCE_ITEM_TO_MACHINE"] = Fl$1(1)] = "BF_OUTSOURCE_ITEM_TO_MACHINE";
-    StepFlags[StepFlags["BF_BUILD_VESTIBULE"] = Fl$1(2)] = "BF_BUILD_VESTIBULE";
-    StepFlags[StepFlags["BF_ADOPT_ITEM"] = Fl$1(3)] = "BF_ADOPT_ITEM";
-    StepFlags[StepFlags["BF_BUILD_AT_ORIGIN"] = Fl$1(4)] = "BF_BUILD_AT_ORIGIN";
-    StepFlags[StepFlags["BF_PERMIT_BLOCKING"] = Fl$1(5)] = "BF_PERMIT_BLOCKING";
-    StepFlags[StepFlags["BF_TREAT_AS_BLOCKING"] = Fl$1(6)] = "BF_TREAT_AS_BLOCKING";
-    StepFlags[StepFlags["BF_NEAR_ORIGIN"] = Fl$1(7)] = "BF_NEAR_ORIGIN";
-    StepFlags[StepFlags["BF_FAR_FROM_ORIGIN"] = Fl$1(8)] = "BF_FAR_FROM_ORIGIN";
-    StepFlags[StepFlags["BF_IN_VIEW_OF_ORIGIN"] = Fl$1(9)] = "BF_IN_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(10)] = "BF_IN_PASSABLE_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BF_MONSTER_TAKE_ITEM"] = Fl$1(11)] = "BF_MONSTER_TAKE_ITEM";
-    StepFlags[StepFlags["BF_MONSTER_SLEEPING"] = Fl$1(12)] = "BF_MONSTER_SLEEPING";
-    StepFlags[StepFlags["BF_MONSTER_FLEEING"] = Fl$1(13)] = "BF_MONSTER_FLEEING";
-    StepFlags[StepFlags["BF_MONSTERS_DORMANT"] = Fl$1(14)] = "BF_MONSTERS_DORMANT";
-    StepFlags[StepFlags["BF_ITEM_IS_KEY"] = Fl$1(15)] = "BF_ITEM_IS_KEY";
-    StepFlags[StepFlags["BF_ITEM_IDENTIFIED"] = Fl$1(16)] = "BF_ITEM_IDENTIFIED";
-    StepFlags[StepFlags["BF_ITEM_PLAYER_AVOIDS"] = Fl$1(17)] = "BF_ITEM_PLAYER_AVOIDS";
-    StepFlags[StepFlags["BF_EVERYWHERE"] = Fl$1(18)] = "BF_EVERYWHERE";
-    StepFlags[StepFlags["BF_ALTERNATIVE"] = Fl$1(19)] = "BF_ALTERNATIVE";
-    StepFlags[StepFlags["BF_ALTERNATIVE_2"] = Fl$1(20)] = "BF_ALTERNATIVE_2";
-    StepFlags[StepFlags["BF_BUILD_IN_WALLS"] = Fl$1(21)] = "BF_BUILD_IN_WALLS";
-    StepFlags[StepFlags["BF_BUILD_ANYWHERE_ON_LEVEL"] = Fl$1(22)] = "BF_BUILD_ANYWHERE_ON_LEVEL";
-    StepFlags[StepFlags["BF_REPEAT_UNTIL_NO_PROGRESS"] = Fl$1(23)] = "BF_REPEAT_UNTIL_NO_PROGRESS";
-    StepFlags[StepFlags["BF_IMPREGNABLE"] = Fl$1(24)] = "BF_IMPREGNABLE";
-    StepFlags[StepFlags["BF_NO_BLOCK_ORIGIN"] = Fl$1(25)] = "BF_NO_BLOCK_ORIGIN";
-    // TODO - BF_ALLOW_IN_HALLWAY instead?
-    StepFlags[StepFlags["BF_NOT_IN_HALLWAY"] = Fl$1(27)] = "BF_NOT_IN_HALLWAY";
-    StepFlags[StepFlags["BF_ALLOW_BOUNDARY"] = Fl$1(28)] = "BF_ALLOW_BOUNDARY";
-    StepFlags[StepFlags["BF_SKELETON_KEY"] = Fl$1(29)] = "BF_SKELETON_KEY";
-    StepFlags[StepFlags["BF_KEY_DISPOSABLE"] = Fl$1(30)] = "BF_KEY_DISPOSABLE";
-})(StepFlags || (StepFlags = {}));
-class BuildStep {
-    constructor(cfg = {}) {
-        var _a;
-        this.tile = -1;
-        this.flags = 0;
-        this.pad = 0;
-        this.item = null;
-        this.horde = null;
-        this.effect = null;
-        this.chance = 0;
-        // public next: null = null;
-        this.id = 'n/a';
-        this.tile = (_a = cfg.tile) !== null && _a !== void 0 ? _a : -1;
-        if (cfg.flags) {
-            this.flags = GWU.flag.from(StepFlags, cfg.flags);
-        }
-        if (cfg.pad) {
-            this.pad = cfg.pad;
-        }
-        this.count = GWU.range.make(cfg.count || 1);
-        this.item = cfg.item || null;
-        this.horde = cfg.horde || null;
-        if (cfg.effect) {
-            this.effect = GWM.effect.from(cfg.effect);
-        }
-        if (this.item && this.flags & StepFlags.BF_ADOPT_ITEM) {
-            throw new Error('Cannot have blueprint step with item and BF_ADOPT_ITEM.');
-        }
-        if (this.buildAtOrigin && this.count.hi > 1) {
-            throw new Error('Cannot have count > 1 for step with BF_BUILD_AT_ORIGIN.');
-        }
-        if (this.buildAtOrigin && this.repeatUntilNoProgress) {
-            throw new Error('Cannot have BF_BUILD_AT_ORIGIN and BF_REPEAT_UNTIL_NO_PROGRESS together in a build step.');
-        }
-    }
-    get allowBoundary() {
-        return !!(this.flags & StepFlags.BF_ALLOW_BOUNDARY);
-    }
-    get notInHallway() {
-        return !!(this.flags & StepFlags.BF_NOT_IN_HALLWAY);
-    }
-    get buildInWalls() {
-        return !!(this.flags & StepFlags.BF_BUILD_IN_WALLS);
-    }
-    get buildAnywhere() {
-        return !!(this.flags & StepFlags.BF_BUILD_ANYWHERE_ON_LEVEL);
-    }
-    get repeatUntilNoProgress() {
-        return !!(this.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS);
-    }
-    get permitBlocking() {
-        return !!(this.flags & StepFlags.BF_PERMIT_BLOCKING);
-    }
-    get treatAsBlocking() {
-        return !!(this.flags &
-            (StepFlags.BF_TREAT_AS_BLOCKING | StepFlags.BF_NO_BLOCK_ORIGIN));
-    }
-    get noBlockOrigin() {
-        return !!(this.flags & StepFlags.BF_NO_BLOCK_ORIGIN);
-    }
-    get adoptItem() {
-        return !!(this.flags & StepFlags.BF_ADOPT_ITEM);
-    }
-    get itemIsKey() {
-        return !!(this.flags & StepFlags.BF_ITEM_IS_KEY);
-    }
-    get keyIsDisposable() {
-        return !!(this.flags & StepFlags.BF_KEY_DISPOSABLE);
-    }
-    get outsourceItem() {
-        return !!(this.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE);
-    }
-    get impregnable() {
-        return !!(this.flags & StepFlags.BF_IMPREGNABLE);
-    }
-    get buildVestibule() {
-        return !!(this.flags & StepFlags.BF_BUILD_VESTIBULE);
-    }
-    get generateEverywhere() {
-        return !!(this.flags &
-            StepFlags.BF_EVERYWHERE &
-            ~StepFlags.BF_BUILD_AT_ORIGIN);
-    }
-    get buildAtOrigin() {
-        return !!(this.flags & StepFlags.BF_BUILD_AT_ORIGIN);
-    }
-    get buildsInstances() {
-        return !!(this.effect ||
-            this.tile != -1 ||
-            this.item ||
-            this.horde ||
-            this.adoptItem);
-    }
-    // cellIsCandidate(
-    //     builder: BuildData,
-    //     blueprint: Blueprint,
-    //     x: number,
-    //     y: number,
-    //     distanceBound: [number, number]
-    // ) {
-    //     return cellIsCandidate(builder, blueprint, this, x, y, distanceBound);
-    // }
-    // distanceBound(builder: BuildData): [number, number] {
-    //     return calcDistanceBound(builder, this);
-    // }
-    // updateViewMap(builder: BuildData): void {
-    //     updateViewMap(builder, this);
-    // }
-    // build(
-    //     builder: BuildData,
-    //     blueprint: Blueprint,
-    //     adoptedItem: GWM.item.Item | null
-    // ): boolean {
-    //     return buildStep(builder, blueprint, this, adoptedItem);
-    // }
-    markCandidates(data, blueprint, candidates, distanceBound = [0, 10000]) {
-        updateViewMap(data, this);
-        let count = 0;
-        candidates.update((_v, i, j) => {
-            if (cellIsCandidate(data, blueprint, this, i, j, distanceBound)) {
-                count++;
-                return 1;
-            }
-            else {
-                return 0;
-            }
-        });
-        return count;
-    }
-}
-function updateViewMap(builder, buildStep) {
-    if (buildStep.flags &
-        (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-            StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN)) {
-        const site = builder.site;
-        if (buildStep.flags & StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) {
-            const fov = new GWU.fov.FOV({
-                isBlocked: (x, y) => {
-                    return site.blocksPathing(x, y);
-                },
-                hasXY: (x, y) => {
-                    return site.hasXY(x, y);
-                },
-            });
-            fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                builder.viewMap[x][y] = 1;
-            });
-        }
-        else {
-            const fov = new GWU.fov.FOV({
-                // TileFlags.T_OBSTRUCTS_PASSABILITY |
-                //     TileFlags.T_OBSTRUCTS_VISION,
-                isBlocked: (x, y) => {
-                    return site.blocksPathing(x, y) || site.blocksVision(x, y);
-                },
-                hasXY: (x, y) => {
-                    return site.hasXY(x, y);
-                },
-            });
-            fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                builder.viewMap[x][y] = 1;
-            });
-        }
-        builder.viewMap[builder.originX][builder.originY] = 1;
-    }
-}
-function calcDistanceBound(builder, buildStep) {
-    const distanceBound = [0, 10000];
-    if (buildStep.flags & StepFlags.BF_NEAR_ORIGIN) {
-        distanceBound[1] = builder.distance25;
-    }
-    if (buildStep.flags & StepFlags.BF_FAR_FROM_ORIGIN) {
-        distanceBound[0] = builder.distance75;
-    }
-    return distanceBound;
-}
-function cellIsCandidate(builder, blueprint, buildStep, x, y, distanceBound) {
-    const site = builder.site;
-    // No building in the hallway if it's prohibited.
-    // This check comes before the origin check, so an area machine will fail altogether
-    // if its origin is in a hallway and the feature that must be built there does not permit as much.
-    if (buildStep.notInHallway &&
-        GWU.xy.arcCount(x, y, (i, j) => site.hasXY(i, j) && site.isPassable(i, j)) > 1) {
-        return false;
-    }
-    // if (buildStep.noBlockOrigin) {
-    //     let ok = true;
-    //     GWU.xy.eachNeighbor(
-    //         x,
-    //         y,
-    //         (nx, ny) => {
-    //             if (nx === builder.originX && ny === builder.originY) {
-    //                 ok = false;
-    //             }
-    //         },
-    //         true
-    //     );
-    //     if (!ok) return false;
-    // }
-    // No building along the perimeter of the level if it's prohibited.
-    if ((x == 0 || x == site.width - 1 || y == 0 || y == site.height - 1) &&
-        !buildStep.allowBoundary) {
-        return false;
-    }
-    // The origin is a candidate if the feature is flagged to be built at the origin.
-    // If it's a room, the origin (i.e. doorway) is otherwise NOT a candidate.
-    if (buildStep.buildAtOrigin) {
-        return x == builder.originX && y == builder.originY;
-    }
-    else if (blueprint.isRoom &&
-        x == builder.originX &&
-        y == builder.originY) {
-        return false;
-    }
-    // No building in another feature's personal space!
-    if (builder.occupied[x][y]) {
-        return false;
-    }
-    // Must be in the viewmap if the appropriate flag is set.
-    if (buildStep.flags &
-        (StepFlags.BF_IN_VIEW_OF_ORIGIN |
-            StepFlags.BF_IN_PASSABLE_VIEW_OF_ORIGIN) &&
-        !builder.viewMap[x][y]) {
-        return false;
-    }
-    // Do a distance check if the feature requests it.
-    let distance = 10000;
-    if (site.isWall(x, y)) {
-        // Distance is calculated for walls too.
-        GWU.xy.eachNeighbor(x, y, (i, j) => {
-            if (!builder.distanceMap.hasXY(i, j))
-                return;
-            if (!site.blocksPathing(i, j) &&
-                distance > builder.distanceMap[i][j] + 1) {
-                distance = builder.distanceMap[i][j] + 1;
-            }
-        }, true);
-    }
-    else {
-        distance = builder.distanceMap[x][y];
-    }
-    if (distance > distanceBound[1] || // distance exceeds max
-        distance < distanceBound[0]) {
-        // distance falls short of min
-        return false;
-    }
-    if (buildStep.buildInWalls) {
-        // If we're supposed to build in a wall...
-        const cellMachine = site.getMachine(x, y);
-        if (!builder.interior[x][y] &&
-            (!cellMachine || cellMachine == builder.machineNumber) &&
-            site.isWall(x, y)) {
-            let ok = false;
-            // ...and this location is a wall that's not already machined...
-            GWU.xy.eachNeighbor(x, y, (newX, newY) => {
-                if (!site.hasXY(newX, newY))
-                    return;
-                if (!builder.interior[newX][newY] &&
-                    !buildStep.buildAnywhere) {
-                    return;
-                }
-                // ...and it's next to an interior spot or permitted elsewhere and next to passable spot...
-                if (buildStep.buildAnywhere &&
-                    !site.blocksPathing(newX, newY) &&
-                    !site.getMachine(newX, newY) &&
-                    !(newX == builder.originX && newY == builder.originY)) {
-                    ok = true;
-                }
-            }, true);
-            return ok;
-        }
-        return false;
-    }
-    else if (site.isWall(x, y)) {
-        // Can't build in a wall unless instructed to do so.
-        return false;
-    }
-    else if (buildStep.buildAnywhere) {
-        if ((buildStep.item && site.blocksItems(x, y)) ||
-            site.hasCellFlag(x, y, GWM.flags.Cell.IS_CHOKEPOINT |
-                GWM.flags.Cell.IS_IN_LOOP |
-                GWM.flags.Cell.IS_IN_MACHINE)) {
-            return false;
-        }
-        else {
-            return true;
-        }
-    }
-    else if (builder.interior[x][y]) {
-        return true;
-    }
-    return false;
-}
-function makePersonalSpace(builder, x, y, candidates, personalSpace) {
-    let count = 0;
-    for (let i = x - personalSpace + 1; i <= x + personalSpace - 1; i++) {
-        for (let j = y - personalSpace + 1; j <= y + personalSpace - 1; j++) {
-            if (builder.site.hasXY(i, j)) {
-                if (candidates[i][j]) {
-                    candidates[i][j] = 0;
-                    ++count;
-                }
-                builder.occupied[i][j] = 1;
-            }
-        }
-    }
-    return count;
-}
-// export function buildStep(
-//     builder: BuildData,
-//     blueprint: Blueprint,
-//     buildStep: BuildStep,
-//     adoptedItem: GWM.item.Item | null
-// ): boolean {
-//     let wantCount = 0;
-//     let builtCount = 0;
-//     const site = builder.site;
-//     const candidates = GWU.grid.alloc(site.width, site.height);
-//     // Figure out the distance bounds.
-//     const distanceBound = calcDistanceBound(builder, buildStep);
-//     buildStep.updateViewMap(builder);
-//     // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
-//     // Make a master map of candidate locations for this feature.
-//     let qualifyingTileCount = markCandidates(
-//         candidates,
-//         builder,
-//         blueprint,
-//         buildStep,
-//         distanceBound
-//     );
-//     if (!buildStep.generateEverywhere) {
-//         wantCount = buildStep.count.value();
-//     }
-//     if (!qualifyingTileCount || qualifyingTileCount < buildStep.count.lo) {
-//         console.log(
-//             ' - Only %s qualifying tiles - want at least %s.',
-//             qualifyingTileCount,
-//             buildStep.count.lo
-//         );
-//         GWU.grid.free(candidates);
-//         return false;
-//     }
-//     let x = 0,
-//         y = 0;
-//     let success = true;
-//     let didSomething = false;
-//     do {
-//         success = true;
-//         // Find a location for the feature.
-//         if (buildStep.buildAtOrigin) {
-//             // Does the feature want to be at the origin? If so, put it there. (Just an optimization.)
-//             x = builder.originX;
-//             y = builder.originY;
-//         } else {
-//             // Pick our candidate location randomly, and also strike it from
-//             // the candidates map so that subsequent instances of this same feature can't choose it.
-//             [x, y] = site.rng.matchingLoc(
-//                 candidates.width,
-//                 candidates.height,
-//                 (x, y) => candidates[x][y] > 0
-//             );
-//         }
-//         // Don't waste time trying the same place again whether or not this attempt succeeds.
-//         candidates[x][y] = 0;
-//         qualifyingTileCount--;
-//         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
-//         if (buildStep.effect) {
-//             success = site.fireEffect(buildStep.effect, x, y);
-//             didSomething = success;
-//         }
-//         // Now try to place the terrain tile, if any.
-//         if (success && buildStep.tile !== -1) {
-//             const tile = GWM.tile.get(buildStep.tile);
-//             if (
-//                 !(buildStep.flags & StepFlags.BF_PERMIT_BLOCKING) &&
-//                 (tile.blocksMove() ||
-//                     buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING)
-//             ) {
-//                 // Yes, check for blocking.
-//                 success = !SITE.siteDisruptedByXY(site, x, y, {
-//                     machine: site.machineCount,
-//                 });
-//             }
-//             if (success) {
-//                 success = site.setTile(x, y, tile);
-//                 didSomething = didSomething || success;
-//             }
-//         }
-//         // Generate an actor, if necessary
-//         // Generate an item, if necessary
-//         if (success && buildStep.item) {
-//             const item = site.makeRandomItem(buildStep.item);
-//             if (!item) {
-//                 success = false;
-//             }
-//             if (buildStep.flags & StepFlags.BF_ITEM_IS_KEY) {
-//                 item.key = GWM.entity.makeKeyInfo(
-//                     x,
-//                     y,
-//                     !!(buildStep.flags & StepFlags.BF_KEY_DISPOSABLE)
-//                 );
-//             }
-//             if (buildStep.flags & StepFlags.BF_OUTSOURCE_ITEM_TO_MACHINE) {
-//                 success = builder.buildRandom(
-//                     Flags.BP_ADOPT_ITEM,
-//                     -1,
-//                     -1,
-//                     item
-//                 );
-//                 if (success) {
-//                     didSomething = true;
-//                 }
-//             } else {
-//                 success = site.addItem(x, y, item);
-//                 didSomething = didSomething || success;
-//             }
-//         } else if (success && buildStep.flags & StepFlags.BF_ADOPT_ITEM) {
-//             // adopt item if necessary
-//             if (!adoptedItem) {
-//                 GWU.grid.free(candidates);
-//                 throw new Error(
-//                     'Failed to build blueprint because there is no adopted item.'
-//                 );
-//             }
-//             if (buildStep.flags & StepFlags.BF_TREAT_AS_BLOCKING) {
-//                 // Yes, check for blocking.
-//                 success = !SITE.siteDisruptedByXY(site, x, y);
-//             }
-//             if (success) {
-//                 success = site.addItem(x, y, adoptedItem);
-//                 if (success) {
-//                     didSomething = true;
-//                 } else {
-//                     console.log('- failed to add item', x, y);
-//                 }
-//             } else {
-//                 // console.log('- blocks map', x, y);
-//             }
-//         }
-//         if (success && didSomething) {
-//             // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-//             qualifyingTileCount -= makePersonalSpace(
-//                 builder,
-//                 x,
-//                 y,
-//                 candidates,
-//                 buildStep.pad
-//             );
-//             builtCount++; // we've placed an instance
-//             // Mark the feature location as part of the machine, in case it is not already inside of it.
-//             if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
-//                 site.setMachine(x, y, builder.machineNumber, blueprint.isRoom);
-//             }
-//             // Mark the feature location as impregnable if requested.
-//             if (buildStep.flags & StepFlags.BF_IMPREGNABLE) {
-//                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
-//             }
-//         }
-//         // Finished with this instance!
-//     } while (
-//         qualifyingTileCount > 0 &&
-//         (buildStep.generateEverywhere ||
-//             builtCount < wantCount ||
-//             buildStep.flags & StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS)
-//     );
-//     if (success && buildStep.flags & StepFlags.BF_BUILD_VESTIBULE) {
-//         // Generate a door guard machine.
-//         // Try to create a sub-machine that qualifies.
-//         success = builder.buildRandom(
-//             Flags.BP_VESTIBULE,
-//             builder.originX,
-//             builder.originY
-//         );
-//         if (!success) {
-//             // console.log(
-//             //     `Depth ${builder.depth}: Failed to place blueprint ${blueprint.id} because it requires a vestibule and we couldn't place one.`
-//             // );
-//             // failure! abort!
-//             GWU.grid.free(candidates);
-//             return false;
-//         }
-//         ++builtCount;
-//     }
-//     //DEBUG printf("\nFinished feature %i. Here's the candidates map:", feat);
-//     //DEBUG logBuffer(candidates);
-//     success = builtCount > 0;
-//     GWU.grid.free(candidates);
-//     return success;
-// }
-
-const Fl = GWU.flag.fl;
-var Flags;
-(function (Flags) {
-    Flags[Flags["BP_ROOM"] = Fl(0)] = "BP_ROOM";
-    Flags[Flags["BP_VESTIBULE"] = Fl(1)] = "BP_VESTIBULE";
-    Flags[Flags["BP_REWARD"] = Fl(2)] = "BP_REWARD";
-    Flags[Flags["BP_ADOPT_ITEM"] = Fl(3)] = "BP_ADOPT_ITEM";
-    Flags[Flags["BP_PURGE_PATHING_BLOCKERS"] = Fl(4)] = "BP_PURGE_PATHING_BLOCKERS";
-    Flags[Flags["BP_PURGE_INTERIOR"] = Fl(5)] = "BP_PURGE_INTERIOR";
-    Flags[Flags["BP_PURGE_LIQUIDS"] = Fl(6)] = "BP_PURGE_LIQUIDS";
-    Flags[Flags["BP_SURROUND_WITH_WALLS"] = Fl(7)] = "BP_SURROUND_WITH_WALLS";
-    Flags[Flags["BP_IMPREGNABLE"] = Fl(8)] = "BP_IMPREGNABLE";
-    Flags[Flags["BP_OPEN_INTERIOR"] = Fl(9)] = "BP_OPEN_INTERIOR";
-    Flags[Flags["BP_MAXIMIZE_INTERIOR"] = Fl(10)] = "BP_MAXIMIZE_INTERIOR";
-    Flags[Flags["BP_REDESIGN_INTERIOR"] = Fl(11)] = "BP_REDESIGN_INTERIOR";
-    Flags[Flags["BP_TREAT_AS_BLOCKING"] = Fl(12)] = "BP_TREAT_AS_BLOCKING";
-    Flags[Flags["BP_REQUIRE_BLOCKING"] = Fl(13)] = "BP_REQUIRE_BLOCKING";
-    Flags[Flags["BP_NO_INTERIOR_FLAG"] = Fl(14)] = "BP_NO_INTERIOR_FLAG";
-    Flags[Flags["BP_NOT_IN_HALLWAY"] = Fl(15)] = "BP_NOT_IN_HALLWAY";
-})(Flags || (Flags = {}));
-class Blueprint {
-    constructor(opts = {}) {
-        this.tags = [];
-        this.flags = 0;
-        this.steps = [];
-        this.id = 'n/a';
-        if (opts.tags) {
-            if (typeof opts.tags === 'string') {
-                opts.tags = opts.tags.split(/[,|]/).map((v) => v.trim());
-            }
-            this.tags = opts.tags;
-        }
-        this.frequency = GWU.frequency.make(opts.frequency || 100);
-        if (opts.size) {
-            this.size = GWU.range.make(opts.size);
-            if (this.size.lo <= 0)
-                this.size.lo = 1;
-            if (this.size.hi < this.size.lo)
-                this.size.hi = this.size.lo;
-        }
-        else {
-            this.size = GWU.range.make([1, 1]); // Anything bigger makes weird things happen
-        }
-        if (opts.flags) {
-            this.flags = GWU.flag.from(Flags, opts.flags);
-        }
-        if (opts.steps) {
-            this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
-        }
-        if (this.flags & Flags.BP_ADOPT_ITEM) {
-            if (!this.steps.some((s) => s.flags & StepFlags.BF_ADOPT_ITEM)) {
-                throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BF_ADOPT_ITEM.');
-            }
-        }
-        if (opts.id) {
-            this.id = opts.id;
-        }
-    }
-    get isRoom() {
-        return !!(this.flags & Flags.BP_ROOM);
-    }
-    get isReward() {
-        return !!(this.flags & Flags.BP_REWARD);
-    }
-    get isVestiblue() {
-        return !!(this.flags & Flags.BP_VESTIBULE);
-    }
-    get adoptsItem() {
-        return !!(this.flags & Flags.BP_ADOPT_ITEM);
-    }
-    get treatAsBlocking() {
-        return !!(this.flags & Flags.BP_TREAT_AS_BLOCKING);
-    }
-    get requireBlocking() {
-        return !!(this.flags & Flags.BP_REQUIRE_BLOCKING);
-    }
-    get purgeInterior() {
-        return !!(this.flags & Flags.BP_PURGE_INTERIOR);
-    }
-    get purgeBlockers() {
-        return !!(this.flags & Flags.BP_PURGE_PATHING_BLOCKERS);
-    }
-    get purgeLiquids() {
-        return !!(this.flags & Flags.BP_PURGE_LIQUIDS);
-    }
-    get surroundWithWalls() {
-        return !!(this.flags & Flags.BP_SURROUND_WITH_WALLS);
-    }
-    get makeImpregnable() {
-        return !!(this.flags & Flags.BP_IMPREGNABLE);
-    }
-    get maximizeInterior() {
-        return !!(this.flags & Flags.BP_MAXIMIZE_INTERIOR);
-    }
-    get openInterior() {
-        return !!(this.flags & Flags.BP_OPEN_INTERIOR);
-    }
-    get noInteriorFlag() {
-        return !!(this.flags & Flags.BP_NO_INTERIOR_FLAG);
-    }
-    get notInHallway() {
-        return !!(this.flags & Flags.BP_NOT_IN_HALLWAY);
-    }
-    qualifies(requiredFlags, tags) {
-        if (tags && tags.length) {
-            if (typeof tags === 'string') {
-                tags = tags.split(/[,|]/).map((v) => v.trim());
-            }
-            // Must match all tags!
-            if (!tags.every((want) => this.tags.includes(want)))
-                return false;
-        }
-        if (
-        // Must have the required flags:
-        ~this.flags & requiredFlags ||
-            // May NOT have BP_ADOPT_ITEM unless that flag is required:
-            this.flags & Flags.BP_ADOPT_ITEM & ~requiredFlags ||
-            // May NOT have BP_VESTIBULE unless that flag is required:
-            this.flags & Flags.BP_VESTIBULE & ~requiredFlags) {
-            return false;
-        }
-        return true;
-    }
-    pickComponents(rng) {
-        const alternativeFlags = [
-            StepFlags.BF_ALTERNATIVE,
-            StepFlags.BF_ALTERNATIVE_2,
-        ];
-        const keepFeature = new Array(this.steps.length).fill(true);
-        for (let j = 0; j <= 1; j++) {
-            let totalFreq = 0;
-            for (let i = 0; i < keepFeature.length; i++) {
-                if (this.steps[i].flags & alternativeFlags[j]) {
-                    keepFeature[i] = false;
-                    totalFreq++;
-                }
-            }
-            if (totalFreq > 0) {
-                let randIndex = rng.range(1, totalFreq);
-                for (let i = 0; i < keepFeature.length; i++) {
-                    if (this.steps[i].flags & alternativeFlags[j]) {
-                        if (randIndex == 1) {
-                            keepFeature[i] = true; // This is the alternative that gets built. The rest do not.
-                            break;
-                        }
-                        else {
-                            randIndex--;
-                        }
-                    }
-                }
-            }
-        }
-        return this.steps.filter((_f, i) => keepFeature[i]);
-    }
-    fillInterior(builder) {
-        const interior = builder.interior;
-        const site = builder.site;
-        interior.fill(0);
-        // Find a location and map out the machine interior.
-        if (this.isRoom) {
-            // If it's a room machine, count up the gates of appropriate
-            // choke size and remember where they are. The origin of the room will be the gate location.
-            // Now map out the interior into interior[][].
-            // Start at the gate location and do a depth-first floodfill to grab all adjoining tiles with the
-            // same or lower choke value, ignoring any tiles that are already part of a machine.
-            // If we get false from this, try again. If we've tried too many times already, abort.
-            return addTileToInteriorAndIterate(builder, builder.originX, builder.originY);
-        }
-        else if (this.isVestiblue) {
-            return computeVestibuleInterior(builder, this);
-            // success
-        }
-        else {
-            // Find a location and map out the interior for a non-room machine.
-            // The strategy here is simply to pick a random location on the map,
-            // expand it along a pathing map by one space in all directions until the size reaches
-            // the chosen size, and then make sure the resulting space qualifies.
-            // If not, try again. If we've tried too many times already, abort.
-            let distanceMap = builder.distanceMap;
-            computeDistanceMap(site, distanceMap, builder.originX, builder.originY, this.size.hi);
-            const seq = site.rng.sequence(site.width * site.height);
-            let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-            let goalSize = this.size.value(); // Keeps track of the goal size.
-            for (let k = 0; k < 1000 && qualifyingTileCount < goalSize; k++) {
-                for (let n = 0; n < seq.length && qualifyingTileCount < goalSize; n++) {
-                    const i = Math.floor(seq[n] / site.height);
-                    const j = seq[n] % site.height;
-                    if (distanceMap[i][j] == k) {
-                        interior[i][j] = 1;
-                        qualifyingTileCount++;
-                        if (site.isOccupied(i, j) ||
-                            site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)) {
-                            // Abort if we've entered another machine or engulfed another machine's item or monster.
-                            return 0;
-                        }
-                    }
-                }
-            }
-            // If locationFailsafe runs out, tryAgain will still be true, and we'll try a different machine.
-            // If we're not choosing the blueprint, then don't bother with the locationFailsafe; just use the higher-level failsafe.
-            return qualifyingTileCount;
-        }
-    }
-}
-function markCandidates(buildData, blueprint) {
-    const site = buildData.site;
-    const candidates = buildData.candidates;
-    candidates.fill(0);
-    // Find a location and map out the machine interior.
-    if (blueprint.isRoom) {
-        // If it's a room machine, count up the gates of appropriate
-        // choke size and remember where they are. The origin of the room will be the gate location.
-        candidates.update((_v, x, y) => {
-            return site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE) &&
-                blueprint.size.contains(site.getChokeCount(x, y))
-                ? 1
-                : 0;
-        });
-    }
-    else if (blueprint.isVestiblue) {
-        //  Door machines must have locations passed in. We can't pick one ourselves.
-        throw new Error('ERROR: Attempted to build a vestiblue without a location being provided.');
-    }
-    else {
-        candidates.update((_v, x, y) => {
-            if (!site.isPassable(x, y))
-                return 0;
-            if (blueprint.notInHallway) {
-                const count = GWU.xy.arcCount(x, y, (i, j) => site.isPassable(i, j));
-                return count <= 1 ? 1 : 0;
-            }
-            return 1;
-        });
-    }
-    return candidates.count((v) => v == 1);
-}
-function pickCandidateLoc(buildData, _blueprint) {
-    const site = buildData.site;
-    const candidates = buildData.candidates;
-    const randSite = site.rng.matchingLoc(site.width, site.height, (x, y) => candidates[x][y] == 1);
-    if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
-        // If no suitable sites, abort.
-        return null;
-    }
-    return randSite;
-}
-// // Assume site has been analyzed (aka GateSites and ChokeCounts set)
-// export function computeInterior(
-//     builder: BuildData,
-//     blueprint: Blueprint
-// ): boolean {
-//     let failsafe = blueprint.isRoom ? 10 : 20;
-//     let tryAgain;
-//     const interior = builder.interior;
-//     const site = builder.site;
-//     do {
-//         tryAgain = false;
-//         if (--failsafe <= 0) {
-//             // console.log(
-//             //     `Failed to build blueprint ${blueprint.id}; failed repeatedly to find a suitable blueprint location.`
-//             // );
-//             return false;
-//         }
-//         let count = fillInterior(builder, blueprint);
-//         // Now make sure the interior map satisfies the machine's qualifications.
-//         if (!count) {
-//             console.debug('- no interior');
-//             tryAgain = true;
-//         } else if (!blueprint.size.contains(count)) {
-//             console.debug('- too small');
-//             tryAgain = true;
-//         } else if (
-//             blueprint.treatAsBlocking &&
-//             SITE.siteDisruptedBy(site, interior, { machine: site.machineCount })
-//         ) {
-//             console.debug('- blocks');
-//             tryAgain = true;
-//         } else if (
-//             blueprint.requireBlocking &&
-//             SITE.siteDisruptedSize(site, interior) < 100
-//         ) {
-//             console.debug('- does not block');
-//             tryAgain = true;
-//         }
-//         // Now loop if necessary.
-//     } while (tryAgain);
-//     // console.log(tryAgain, failsafe);
-//     return true;
-// }
-function computeVestibuleInterior(builder, blueprint) {
-    let success = true;
-    const site = builder.site;
-    const interior = builder.interior;
-    interior.fill(0);
-    if (blueprint.size.hi == 1) {
-        interior[builder.originX][builder.originY] = 1;
-        return 1;
-    }
-    // If this is a wall - it is really an error (maybe manually trying a build location?)
-    const doorChokeCount = site.getChokeCount(builder.originX, builder.originY);
-    if (doorChokeCount > 10000) {
-        return 0;
-    }
-    const vestibuleLoc = [-1, -1];
-    let vestibuleChokeCount = doorChokeCount;
-    GWU.xy.eachNeighbor(builder.originX, builder.originY, (x, y) => {
-        const count = site.getChokeCount(x, y);
-        if (count == doorChokeCount)
-            return;
-        if (count > 10000)
-            return;
-        if (count < 0)
-            return;
-        vestibuleLoc[0] = x;
-        vestibuleLoc[1] = y;
-        vestibuleChokeCount = count;
-    }, true);
-    const roomSize = vestibuleChokeCount - doorChokeCount;
-    if (blueprint.size.contains(roomSize)) {
-        // The room entirely fits within the vestibule desired size
-        const count = interior.floodFill(vestibuleLoc[0], vestibuleLoc[1], (_v, i, j) => {
-            if (site.isOccupied(i, j)) {
-                success = false;
-            }
-            return site.getChokeCount(i, j) === vestibuleChokeCount;
-        }, 1);
-        if (success && blueprint.size.contains(count))
-            return roomSize;
-    }
-    let qualifyingTileCount = 0; // Keeps track of how many interior cells we've added.
-    const wantSize = blueprint.size.value(site.rng); // Keeps track of the goal size.
-    const distMap = builder.distanceMap;
-    computeDistanceMap(site, distMap, builder.originX, builder.originY, blueprint.size.hi);
-    const cells = site.rng.sequence(site.width * site.height);
-    success = true;
-    for (let k = 0; k < 1000 && qualifyingTileCount < wantSize; k++) {
-        for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
-            const x = Math.floor(cells[i] / site.height);
-            const y = cells[i] % site.height;
-            const dist = distMap[x][y];
-            if (dist != k)
-                continue;
-            if (site.isOccupied(x, y)) {
-                success = false;
-                qualifyingTileCount = wantSize;
-            }
-            if (site.getChokeCount(x, y) <= doorChokeCount)
-                continue;
-            interior[x][y] = 1;
-            qualifyingTileCount += 1;
-        }
-    }
-    return qualifyingTileCount;
-}
-// Assumes (startX, startY) is in the machine.
-// Returns true if everything went well, and false if we ran into a machine component
-// that was already there, as we don't want to build a machine around it.
-function addTileToInteriorAndIterate(builder, startX, startY) {
-    let goodSoFar = true;
-    const interior = builder.interior;
-    const site = builder.site;
-    let count = 1;
-    interior[startX][startY] = 1;
-    const startChokeCount = site.getChokeCount(startX, startY);
-    for (let dir = 0; dir < 4 && goodSoFar; dir++) {
-        const newX = startX + GWU.xy.DIRS[dir][0];
-        const newY = startY + GWU.xy.DIRS[dir][1];
-        if (!site.hasXY(newX, newY))
-            continue;
-        if (interior[newX][newY])
-            continue; // already done
-        if (site.isOccupied(newX, newY) ||
-            (site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_IN_MACHINE) &&
-                !site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_GATE_SITE))) {
-            // Abort if there's an item in the room.
-            // Items haven't been populated yet, so the only way this could happen is if another machine
-            // previously placed an item here.
-            // Also abort if we're touching another machine at any point other than a gate tile.
-            return 0;
-        }
-        if (site.getChokeCount(newX, newY) <= startChokeCount && // don't have to worry about walls since they're all 30000
-            !site.hasCellFlag(newX, newY, GWM.flags.Cell.IS_IN_MACHINE)) {
-            let additional = addTileToInteriorAndIterate(builder, newX, newY);
-            if (additional <= 0)
-                return 0;
-            count += additional;
-        }
-    }
-    return count;
-}
-function prepareInterior(builder, blueprint) {
-    const interior = builder.interior;
-    const site = builder.site;
-    // If requested, clear and expand the room as far as possible until either it's convex or it bumps into surrounding rooms
-    if (blueprint.maximizeInterior) {
-        expandMachineInterior(builder, 1);
-    }
-    else if (blueprint.openInterior) {
-        expandMachineInterior(builder, 4);
-    }
-    // If requested, cleanse the interior -- no interesting terrain allowed.
-    if (blueprint.purgeInterior) {
-        interior.forEach((v, x, y) => {
-            if (v)
-                site.setTile(x, y, FLOOR);
-        });
-    }
-    // If requested, purge pathing blockers -- no traps allowed.
-    if (blueprint.purgeBlockers) {
-        interior.forEach((v, x, y) => {
-            if (!v)
-                return;
-            if (site.blocksPathing(x, y)) {
-                site.setTile(x, y, FLOOR);
-            }
-        });
-    }
-    // If requested, purge the liquid layer in the interior -- no liquids allowed.
-    if (blueprint.purgeLiquids) {
-        interior.forEach((v, x, y) => {
-            if (v && site.isAnyLiquid(x, y)) {
-                site.setTile(x, y, FLOOR);
-            }
-        });
-    }
-    // Surround with walls if requested.
-    if (blueprint.surroundWithWalls) {
-        interior.forEach((v, x, y) => {
-            if (!v || site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE))
-                return;
-            GWU.xy.eachNeighbor(x, y, (i, j) => {
-                if (!interior.hasXY(i, j))
-                    return; // Not valid x,y
-                if (interior[i][j])
-                    return; // is part of machine
-                if (site.isWall(i, j))
-                    return; // is already a wall (of some sort)
-                if (site.hasCellFlag(i, j, GWM.flags.Cell.IS_GATE_SITE))
-                    return; // is a door site
-                if (site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE))
-                    return; // is part of a machine
-                if (!site.blocksPathing(i, j))
-                    return; // is not a blocker for the player (water?)
-                site.setTile(i, j, WALL);
-            }, false);
-        });
-    }
-    // Completely clear the interior, fill with granite, and cut entirely new rooms into it from the gate site.
-    // Then zero out any portion of the interior that is still wall.
-    // if (flags & BPFlags.BP_REDESIGN_INTERIOR) {
-    //     RUT.Map.Blueprint.redesignInterior(map, interior, originX, originY, dungeonProfileIndex);
-    // }
-    // Reinforce surrounding tiles and interior tiles if requested to prevent tunneling in or through.
-    if (blueprint.makeImpregnable) {
-        interior.forEach((v, x, y) => {
-            if (!v || site.hasCellFlag(x, y, GWM.flags.Cell.IS_GATE_SITE))
-                return;
-            site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
-            GWU.xy.eachNeighbor(x, y, (i, j) => {
-                if (!interior.hasXY(i, j))
-                    return;
-                if (interior[i][j])
-                    return;
-                if (site.hasCellFlag(i, j, GWM.flags.Cell.IS_GATE_SITE))
-                    return;
-                site.setCellFlag(i, j, GWM.flags.Cell.IMPREGNABLE);
-            }, false);
-        });
-    }
-    // If necessary, label the interior as IS_IN_AREA_MACHINE or IS_IN_ROOM_MACHINE and mark down the number.
-    const machineNumber = builder.machineNumber;
-    interior.forEach((v, x, y) => {
-        if (!v)
-            return;
-        if (!(blueprint.flags & Flags.BP_NO_INTERIOR_FLAG)) {
-            site.setMachine(x, y, machineNumber, blueprint.isRoom);
-        }
-        // secret doors mess up machines
-        // TODO - is this still true?
-        if (site.isSecretDoor(x, y)) {
-            site.setTile(x, y, DOOR);
-        }
-    });
-}
-function expandMachineInterior(builder, minimumInteriorNeighbors = 1) {
-    let madeChange;
-    const interior = builder.interior;
-    const site = builder.site;
-    do {
-        madeChange = false;
-        interior.forEach((_v, x, y) => {
-            // if (v && site.isDoor(x, y)) {
-            //     site.setTile(x, y, SITE.FLOOR); // clean out the doors...
-            //     return;
-            // }
-            if (site.hasCellFlag(x, y, GWM.flags.Cell.IS_IN_MACHINE))
-                return;
-            if (!site.blocksPathing(x, y))
-                return;
-            let nbcount = 0;
-            GWU.xy.eachNeighbor(x, y, (i, j) => {
-                if (!interior.hasXY(i, j))
-                    return; // Not in map
-                if (interior[i][j] && !site.blocksPathing(i, j)) {
-                    ++nbcount; // in machine and open tile
-                }
-            }, false);
-            if (nbcount < minimumInteriorNeighbors)
-                return;
-            nbcount = 0;
-            GWU.xy.eachNeighbor(x, y, (i, j) => {
-                if (!interior.hasXY(i, j))
-                    return; // not on map
-                if (interior[i][j])
-                    return; // already part of machine
-                if (!site.isWall(i, j) ||
-                    site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)) {
-                    ++nbcount; // tile is not a wall or is in a machine
-                }
-            }, false);
-            if (nbcount)
-                return;
-            // Eliminate this obstruction; welcome its location into the machine.
-            madeChange = true;
-            interior[x][y] = 1;
-            if (site.blocksPathing(x, y)) {
-                site.setTile(x, y, FLOOR);
-            }
-            GWU.xy.eachNeighbor(x, y, (i, j) => {
-                if (!interior.hasXY(i, j))
-                    return;
-                if (site.isSet(i, j))
-                    return;
-                site.setTile(i, j, WALL);
-            });
-        });
-    } while (madeChange);
-}
-///////////////////////////
-// INSTALL
-const blueprints = {};
-function install(id, blueprint) {
-    if (!(blueprint instanceof Blueprint)) {
-        blueprint = new Blueprint(blueprint);
-    }
-    blueprints[id] = blueprint;
-    blueprint.id = id;
-    return blueprint;
-}
-function random(requiredFlags, depth, rng) {
-    const matches = Object.values(blueprints).filter((b) => b.qualifies(requiredFlags) && b.frequency(depth));
-    rng = rng || GWU.rng.random;
-    return rng.item(matches);
-}
-function get(id) {
-    if (id instanceof Blueprint)
-        return id;
-    return blueprints[id];
-}
-function make(config) {
-    // if (!config.id) throw new Error('id is required to make Blueprint.');
-    return new Blueprint(config);
-}
-
-class ConsoleLogger {
-    async onError(_data, error) {
-        console.log(`onBuildError - error: ${error}`);
-    }
-    async onBlueprintPick(_data, blueprint, flags, depth) {
-        console.log(`onBlueprintPick - ${blueprint.id}, depth = ${depth}, matchingFlags = ${GWU.flag.toString(Flags, flags)}`);
-    }
-    async onBlueprintCandidates(data, blueprint) {
-        const label = `onBlueprintCandidates - ${blueprint.id}`;
-        console.group(label);
-        data.candidates.dump();
-        console.groupEnd();
-    }
-    async onBlueprintStart(data, blueprint) {
-        console.group(`onBlueprintStart - ${blueprint.id} @ ${data.originX},${data.originY} : stepCount: ${blueprint.steps.length}, size: [${blueprint.size.toString()}], flags: ${GWU.flag.toString(Flags, blueprint.flags)}`);
-    }
-    async onBlueprintInterior(data, blueprint) {
-        console.group(`onBlueprintInterior - ${blueprint.id}`);
-        data.interior.dump();
-        console.groupEnd();
-    }
-    async onBlueprintFail(data, blueprint, error) {
-        console.log(`onBlueprintFail - ${blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`);
-        console.groupEnd();
-    }
-    async onBlueprintSuccess(data, blueprint) {
-        console.log(`onBlueprintSuccess - ${blueprint.id} @ ${data.originX},${data.originY}`);
-        console.groupEnd();
-    }
-    async onStepStart(data, blueprint, step) {
-        console.group(`onStepStart - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU.flag.toString(StepFlags, step.flags)}`);
-    }
-    async onStepCandidates(data, blueprint, step, candidates, wantCount) {
-        const haveCount = candidates.count((v) => v == 1);
-        console.log(`onStepCandidates - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : wantCount: ${wantCount}, have: ${haveCount}`);
-        candidates.dump();
-    }
-    async onStepInstanceSuccess(_data, _blueprint, _step, x, y) {
-        console.log(`onStepInstance @ ${x},${y}`);
-    }
-    async onStepInstanceFail(_data, _blueprint, _step, x, y, error) {
-        console.log(`onStepInstanceFail @ ${x},${y} - error: ${error}`);
-    }
-    async onStepSuccess(data, blueprint, step) {
-        console.log(`onStepSuccess - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : count: [${step.count.toString()}], flags: ${GWU.flag.toString(StepFlags, step.flags)}`);
-        console.groupEnd();
-    }
-    async onStepFail(data, blueprint, step, error) {
-        console.log(`onStepFail - ${blueprint.id}[${blueprint.steps.indexOf(step) + 1}/${blueprint.steps.length}] @ ${data.originX},${data.originY} : error : ${error}`);
-        console.groupEnd();
-    }
-}
-
 class Builder {
-    constructor(map, options = {}) {
+    constructor(options = {}) {
         this.blueprints = null;
-        this.data = new BuildData(map, options);
         if (options.blueprints) {
             if (!Array.isArray(options.blueprints)) {
                 options.blueprints = Object.values(options.blueprints);
@@ -3893,29 +4096,34 @@ class Builder {
             this.log = options.log || new NullLogger();
         }
     }
-    _pickRandom(requiredFlags) {
+    _pickRandom(requiredFlags, depth, rng) {
+        rng = rng || GWU.rng.random;
         const blueprints$1 = this.blueprints || Object.values(blueprints);
         const weights = blueprints$1.map((b) => {
             if (!b.qualifies(requiredFlags))
                 return 0;
-            return b.frequency(this.data.depth);
+            return b.frequency(depth);
         });
-        const index = this.data.map.rng.weighted(weights);
+        const index = rng.weighted(weights);
         return blueprints$1[index] || null;
     }
-    async buildRandom(requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
-        const data = this.data;
-        data.site.analyze();
+    async buildRandom(site, requiredMachineFlags = Flags.BP_ROOM, x = -1, y = -1, adoptedItem = null) {
+        if (site instanceof GWM.map.Map) {
+            site = new MapSite(site);
+        }
+        const depth = site.depth;
         let tries = 0;
         while (tries < 10) {
-            const blueprint = this._pickRandom(requiredMachineFlags);
+            const blueprint = this._pickRandom(requiredMachineFlags, depth, site.rng);
             if (!blueprint) {
-                await this.log.onError(data, `Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(Flags, requiredMachineFlags)}, depth: ${data.depth}`);
-                return false;
+                await this.log.onBuildError(`Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(Flags, requiredMachineFlags)}, depth: ${depth}`);
+                return null;
             }
-            await this.log.onBlueprintPick(data, blueprint, requiredMachineFlags, data.depth);
-            if (await this._buildAt(blueprint, x, y, adoptedItem)) {
-                return true;
+            const data = new BuildData(site, blueprint);
+            data.site.analyze();
+            await this.log.onBlueprintPick(data, requiredMachineFlags, depth);
+            if (await this._buildAt(data, x, y, adoptedItem)) {
+                return { x, y };
             }
             ++tries;
         }
@@ -3925,77 +4133,78 @@ class Builder {
         //         ' tried : ' +
         //         tries.join(', ')
         // );
-        return false;
+        return null;
     }
-    async build(blueprint, x = -1, y = -1, adoptedItem = null) {
-        const data = this.data;
+    async build(site, blueprint, x = -1, y = -1, adoptedItem = null) {
+        if (site instanceof GWM.map.Map) {
+            site = new MapSite(site);
+        }
         if (typeof blueprint === 'string') {
             const id = blueprint;
             blueprint = blueprints[id];
             if (!blueprint)
                 throw new Error('Failed to find blueprint - ' + id);
         }
+        const data = new BuildData(site, blueprint);
         data.site.analyze();
-        return await this._buildAt(blueprint, x, y, adoptedItem);
+        return await this._buildAt(data, x, y, adoptedItem);
     }
-    async _buildAt(blueprint, x = -1, y = -1, adoptedItem = null) {
-        const data = this.data;
+    async _buildAt(data, x = -1, y = -1, adoptedItem = null) {
         if (x >= 0 && y >= 0) {
-            return await this._build(blueprint, x, y, adoptedItem);
+            return await this._build(data, x, y, adoptedItem);
         }
-        let count = await this._markCandidates(blueprint);
+        let count = await this._markCandidates(data);
         if (!count) {
-            return false;
+            return null;
         }
         let tries = 20; // TODO - Make property of Blueprint
         while (count-- && tries--) {
             const loc = pickCandidateLoc(data) || false;
             if (loc) {
-                if (await this._build(blueprint, loc[0], loc[1], adoptedItem)) {
-                    return true;
+                if (await this._build(data, loc[0], loc[1], adoptedItem)) {
+                    return { x: loc[0], y: loc[1] };
                 }
             }
         }
-        await this.log.onBlueprintFail(data, blueprint, 'No suitable locations found to build blueprint.');
-        return false;
+        await this.log.onBlueprintFail(data, 'No suitable locations found to build blueprint.');
+        return null;
     }
     //////////////////////////////////////////
     // Returns true if the machine got built; false if it was aborted.
     // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-    async _build(blueprint, originX, originY, adoptedItem = null) {
-        const data = this.data;
+    async _build(data, originX, originY, adoptedItem = null) {
         data.reset(originX, originY);
-        await this.log.onBlueprintStart(data, blueprint, adoptedItem);
-        if (!(await this._computeInterior(blueprint))) {
-            return false;
+        await this.log.onBlueprintStart(data, adoptedItem);
+        if (!(await this._computeInterior(data))) {
+            return null;
         }
         // This is the point of no return. Back up the level so it can be restored if we have to abort this machine after this point.
         const snapshot = data.site.snapshot();
         data.machineNumber = data.site.nextMachineId(); // Reserve this machine number, starting with 1.
         // Perform any transformations to the interior indicated by the blueprint flags, including expanding the interior if requested.
-        prepareInterior(data, blueprint);
+        prepareInterior(data);
         // Calculate the distance map (so that features that want to be close to or far from the origin can be placed accordingly)
         // and figure out the 33rd and 67th percentiles for features that want to be near or far from the origin.
-        data.calcDistances(blueprint.size.hi);
+        data.calcDistances(data.blueprint.size.hi);
         // Now decide which features will be skipped -- of the features marked MF_ALTERNATIVE, skip all but one, chosen randomly.
         // Then repeat and do the same with respect to MF_ALTERNATIVE_2, to provide up to two independent sets of alternative features per machine.
-        const components = blueprint.pickComponents(data.site.rng);
+        const components = data.blueprint.pickComponents(data.site.rng);
         // Zero out occupied[][], and use it to keep track of the personal space around each feature that gets placed.
         // Now tick through the features and build them.
         for (let index = 0; index < components.length; index++) {
             const component = components[index];
             // console.log('BUILD COMPONENT', component);
-            if (!(await this._buildStep(blueprint, component, adoptedItem))) {
+            if (!(await this._buildStep(data, component, adoptedItem))) {
                 // failure! abort!
                 // Restore the map to how it was before we touched it.
-                await this.log.onBlueprintFail(data, blueprint, `Failed to build step ${index + 1}.`);
+                await this.log.onBlueprintFail(data, `Failed to build step ${index + 1}.`);
                 snapshot.restore();
                 // abortItemsAndMonsters(spawnedItems, spawnedMonsters);
-                return false;
+                return null;
             }
         }
         // Clear out the interior flag for all non-wired cells, if requested.
-        if (blueprint.noInteriorFlag) {
+        if (data.blueprint.noInteriorFlag) {
             clearInteriorFlag(data.site, data.machineNumber);
         }
         // if (torchBearer && torch) {
@@ -4005,55 +4214,52 @@ class Builder {
         // 	removeItemFromChain(torch, floorItems);
         // 	torchBearer->carriedItem = torch;
         // }
-        await this.log.onBlueprintSuccess(data, blueprint);
+        await this.log.onBlueprintSuccess(data);
         snapshot.cancel();
         // console.log('Built a machine from blueprint:', originX, originY);
-        return true;
+        return { x: originX, y: originY };
     }
-    async _markCandidates(blueprint) {
-        const data = this.data;
-        const count = markCandidates(data, blueprint);
+    async _markCandidates(data) {
+        const count = markCandidates(data);
         if (count <= 0) {
-            await this.log.onBlueprintFail(data, blueprint, 'No suitable candidate locations found.');
+            await this.log.onBlueprintFail(data, 'No suitable candidate locations found.');
             return 0;
         }
-        await this.log.onBlueprintCandidates(data, blueprint);
+        await this.log.onBlueprintCandidates(data);
         return count;
     }
-    async _computeInterior(blueprint) {
+    async _computeInterior(data) {
         let fail = null;
-        const data = this.data;
-        let count = blueprint.fillInterior(data);
+        let count = data.blueprint.fillInterior(data);
         // Now make sure the interior map satisfies the machine's qualifications.
         if (!count) {
             fail = 'Interior error.';
         }
-        else if (!blueprint.size.contains(count)) {
-            fail = `Interior wrong size - have: ${count}, want: ${blueprint.size.toString()}`;
+        else if (!data.blueprint.size.contains(count)) {
+            fail = `Interior wrong size - have: ${count}, want: ${data.blueprint.size.toString()}`;
         }
-        else if (blueprint.treatAsBlocking &&
+        else if (data.blueprint.treatAsBlocking &&
             siteDisruptedBy(data.site, data.interior, {
                 machine: data.site.machineCount,
             })) {
             fail = 'Interior blocks map.';
         }
-        else if (blueprint.requireBlocking &&
+        else if (data.blueprint.requireBlocking &&
             siteDisruptedSize(data.site, data.interior) < 100) {
             fail = 'Interior does not block enough cells.';
         }
         if (!fail) {
-            await this.log.onBlueprintInterior(data, blueprint);
+            await this.log.onBlueprintInterior(data);
             return true;
         }
-        await this.log.onBlueprintFail(data, blueprint, fail);
+        await this.log.onBlueprintFail(data, fail);
         return false;
     }
-    async _buildStep(blueprint, buildStep, adoptedItem) {
+    async _buildStep(data, buildStep, adoptedItem) {
         let wantCount = 0;
         let builtCount = 0;
-        const data = this.data;
         const site = data.site;
-        await this.log.onStepStart(data, blueprint, buildStep, adoptedItem);
+        await this.log.onStepStart(data, buildStep, adoptedItem);
         // console.log(
         //     'buildComponent',
         //     blueprint.id,
@@ -4061,21 +4267,21 @@ class Builder {
         // );
         // Figure out the distance bounds.
         const distanceBound = calcDistanceBound(data, buildStep);
-        // If the StepFlags.BF_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
+        // If the StepFlags.BS_REPEAT_UNTIL_NO_PROGRESS flag is set, repeat until we fail to build the required number of instances.
         // Make a master map of candidate locations for this feature.
         let qualifyingTileCount = 0;
         if (buildStep.buildVestibule) {
             // Generate a door guard machine.
             // Try to create a sub-machine that qualifies.
-            let success = await this.buildRandom(Flags.BP_VESTIBULE, data.originX, data.originY);
+            let success = await this.buildRandom(data.site, Flags.BP_VESTIBULE, data.originX, data.originY);
             if (!success) {
-                await this.log.onStepFail(data, blueprint, buildStep, 'Failed to build vestibule');
+                await this.log.onStepFail(data, buildStep, 'Failed to build vestibule');
                 return false;
             }
         }
         // If we are just building a vestibule, then we can exit here...
         if (!buildStep.buildsInstances) {
-            await this.log.onStepSuccess(data, blueprint, buildStep);
+            await this.log.onStepSuccess(data, buildStep);
             return true;
         }
         const candidates = GWU.grid.alloc(site.width, site.height);
@@ -4088,7 +4294,7 @@ class Builder {
                 wantCount = 1;
             }
             else {
-                qualifyingTileCount = buildStep.markCandidates(data, blueprint, candidates, distanceBound);
+                qualifyingTileCount = buildStep.markCandidates(data, candidates, distanceBound);
                 if (buildStep.generateEverywhere ||
                     buildStep.repeatUntilNoProgress) {
                     wantCount = qualifyingTileCount;
@@ -4096,10 +4302,12 @@ class Builder {
                 else {
                     wantCount = buildStep.count.value(site.rng);
                 }
-                await this.log.onStepCandidates(data, blueprint, buildStep, candidates, wantCount);
+                await this.log.onStepCandidates(data, buildStep, candidates, wantCount);
+                // get rid of all error/invalid codes
+                candidates.update((v) => (v == 1 ? 1 : 0));
                 if (!qualifyingTileCount ||
                     qualifyingTileCount < buildStep.count.lo) {
-                    await this.log.onStepFail(data, blueprint, buildStep, `Blueprint ${blueprint.id}, step ${blueprint.steps.indexOf(buildStep)} - Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`);
+                    await this.log.onStepFail(data, buildStep, `Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`);
                     return false;
                 }
             }
@@ -4114,15 +4322,15 @@ class Builder {
                 else {
                     // Pick our candidate location randomly, and also strike it from
                     // the candidates map so that subsequent instances of this same feature can't choose it.
-                    [x, y] = this.data.map.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] > 0);
+                    [x, y] = data.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] == 1);
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
                 candidates[x][y] = 0;
                 qualifyingTileCount--;
                 const snapshot = data.site.snapshot();
-                if (await this._buildStepInstance(blueprint, buildStep, x, y, adoptedItem)) {
+                if (await this._buildStepInstance(data, buildStep, x, y, adoptedItem)) {
                     // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
-                    qualifyingTileCount -= makePersonalSpace(data, x, y, candidates, buildStep.pad);
+                    qualifyingTileCount -= buildStep.makePersonalSpace(data, x, y, candidates);
                     builtCount++; // we've placed an instance
                     didSomething = true;
                     snapshot.cancel(); // This snapshot is useless b/c we made changes...
@@ -4137,16 +4345,15 @@ class Builder {
         if (!buildStep.count.contains(builtCount) &&
             !buildStep.generateEverywhere &&
             !buildStep.repeatUntilNoProgress) {
-            await this.log.onStepFail(data, blueprint, buildStep, `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`);
+            await this.log.onStepFail(data, buildStep, `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`);
             return false;
         }
-        await this.log.onStepSuccess(data, blueprint, buildStep);
+        await this.log.onStepSuccess(data, buildStep);
         return true;
     }
-    async _buildStepInstance(blueprint, buildStep, x, y, adoptedItem = null) {
+    async _buildStepInstance(data, buildStep, x, y, adoptedItem = null) {
         let success = true;
         let didSomething = true;
-        const data = this.data;
         const site = data.site;
         if (success && buildStep.treatAsBlocking) {
             // Yes, check for blocking.
@@ -4160,7 +4367,7 @@ class Builder {
                 };
             }
             if (siteDisruptedByXY(site, x, y, options)) {
-                await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'instance blocks map');
+                await this.log.onStepInstanceFail(data, buildStep, x, y, 'instance blocks map');
                 success = false;
             }
         }
@@ -4169,21 +4376,25 @@ class Builder {
             success = site.buildEffect(buildStep.effect, x, y);
             didSomething = success;
             if (!success) {
-                this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to build effect - ' +
+                this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build effect - ' +
                     JSON.stringify(buildStep.effect));
             }
         }
         // Now try to place the terrain tile, if any.
         if (success && buildStep.tile !== -1) {
             const tile = GWM.tile.get(buildStep.tile);
-            if (!buildStep.permitBlocking &&
+            if (!tile) {
+                success = false;
+                await this.log.onStepInstanceFail(data, buildStep, x, y, 'failed to find tile - ' + buildStep.tile);
+            }
+            else if (!buildStep.permitBlocking &&
                 tile.blocksMove() &&
                 !buildStep.treatAsBlocking // already did treatAsBlocking
             ) {
                 if (siteDisruptedByXY(site, x, y, {
                     machine: site.machineCount,
                 })) {
-                    await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'tile blocks site');
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'tile blocks site');
                     success = false;
                 }
             }
@@ -4191,7 +4402,7 @@ class Builder {
                 success = site.setTile(x, y, tile);
                 didSomething = didSomething || success;
                 if (!success) {
-                    await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'failed to set tile - ' + tile.id);
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'failed to set tile - ' + tile.id);
                 }
             }
         }
@@ -4201,7 +4412,7 @@ class Builder {
             const item = site.makeRandomItem(buildStep.item);
             if (!item) {
                 success = false;
-                await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to make random item - ' +
+                await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to make random item - ' +
                     JSON.stringify(buildStep.item));
             }
             else {
@@ -4209,20 +4420,21 @@ class Builder {
                     item.key = GWM.entity.makeKeyInfo(x, y, !!buildStep.keyIsDisposable);
                 }
                 if (buildStep.outsourceItem) {
-                    success = await this.buildRandom(Flags.BP_ADOPT_ITEM, -1, -1, item);
-                    if (success) {
+                    const result = await this.buildRandom(data.site, Flags.BP_ADOPT_ITEM, -1, -1, item);
+                    if (result) {
                         didSomething = true;
                     }
                     else {
-                        await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to build machine to adopt item - ' +
+                        await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build machine to adopt item - ' +
                             item.kind.id);
+                        success = false;
                     }
                 }
                 else {
                     success = site.addItem(x, y, item);
                     didSomething = didSomething || success;
                     if (!success) {
-                        await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to add item to site - ' + item.kind.id);
+                        await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to add item to site - ' + item.kind.id);
                     }
                 }
             }
@@ -4238,44 +4450,116 @@ class Builder {
                     didSomething = true;
                 }
                 else {
-                    await this.log.onStepInstanceFail(data, blueprint, buildStep, x, y, 'Failed to add adopted item to site - ' +
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to add adopted item to site - ' +
                         adoptedItem.kind.id);
                 }
             }
         }
         if (success && didSomething) {
             // Mark the feature location as part of the machine, in case it is not already inside of it.
-            if (!blueprint.noInteriorFlag) {
-                site.setMachine(x, y, data.machineNumber, blueprint.isRoom);
+            if (!data.blueprint.noInteriorFlag) {
+                site.setMachine(x, y, data.machineNumber, data.blueprint.isRoom);
             }
             // Mark the feature location as impregnable if requested.
             if (buildStep.impregnable) {
                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
             }
-            await this.log.onStepInstanceSuccess(data, blueprint, buildStep, x, y);
+            await this.log.onStepInstanceSuccess(data, buildStep, x, y);
         }
         return success && didSomething;
     }
 }
 
-var index = /*#__PURE__*/Object.freeze({
+var index$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    get Flags () { return Flags; },
-    Blueprint: Blueprint,
-    install: install,
-    random: random,
-    blueprints: blueprints,
-    make: make,
     BuildData: BuildData,
-    NullLogger: NullLogger,
     get StepFlags () { return StepFlags; },
     BuildStep: BuildStep,
     updateViewMap: updateViewMap,
     calcDistanceBound: calcDistanceBound,
+    get CandidateType () { return CandidateType; },
     cellIsCandidate: cellIsCandidate,
-    makePersonalSpace: makePersonalSpace,
     Builder: Builder,
-    ConsoleLogger: ConsoleLogger
+    get Flags () { return Flags; },
+    Blueprint: Blueprint,
+    markCandidates: markCandidates,
+    pickCandidateLoc: pickCandidateLoc,
+    computeVestibuleInterior: computeVestibuleInterior,
+    maximizeInterior: maximizeInterior,
+    prepareInterior: prepareInterior,
+    blueprints: blueprints,
+    install: install,
+    random: random,
+    get: get,
+    make: make
 });
 
-export { Dungeon, Hall, Level, Room, index as blueprint, bridge, hall, lake, loop, makeHall, room, index$1 as site, stairs };
+class Visualizer {
+    constructor(dest, io) {
+        this.dest = dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
+        this.io = io || GWU.loop;
+    }
+    async onDigFirstRoom(site) {
+        site.drawInto(this.dest);
+        this.dest.drawText(0, 0, 'First Room', 'yellow');
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onRoomCandidate(room, roomSite) {
+        roomSite.drawInto(this.dest);
+        this.dest.drawText(0, 0, 'Room Candidate', 'yellow');
+        if (room.doors) {
+            room.doors.forEach((loc) => {
+                if (!loc || loc[0] < 0)
+                    return;
+                this.dest.drawSprite(loc[0], loc[1], GWM.tile.tiles.DOOR.sprite);
+            });
+        }
+        if (room.hall && room.hall.doors) {
+            room.hall.doors.forEach((loc) => {
+                if (!loc || loc[0] < 0)
+                    return;
+                this.dest.drawSprite(loc[0], loc[1], GWM.tile.tiles.DOOR.sprite);
+            });
+        }
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onRoomFailed(_site, _room, _roomSite, error) {
+        this.dest.drawText(0, 0, error, 'red');
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onRoomSuccess(site, room) {
+        site.drawInto(this.dest);
+        this.dest.drawText(0, 0, 'Room: ' + room.toString(), 'yellow');
+        this.dest.render();
+        await this.io.nextKeyPress();
+    }
+    async onLoopsAdded(_site) { }
+    async onLakesAdded(_site) { }
+    async onBridgesAdded(_site) { }
+    async onStairsAdded(_site) { }
+    async onBuildError(_error) { }
+    async onBlueprintPick(_data, _flags, _depth) { }
+    async onBlueprintCandidates(_data) { }
+    async onBlueprintStart(_data, _adoptedItem) { }
+    async onBlueprintInterior(_data) { }
+    async onBlueprintFail(_data, _error) { }
+    async onBlueprintSuccess(_data) { }
+    async onStepStart(_data, _step, _item) { }
+    async onStepCandidates(_data, _step, _candidates, _wantCount) { }
+    async onStepInstanceSuccess(_data, _step, _x, _y) { }
+    async onStepInstanceFail(_data, _step, _x, _y, _error) { }
+    async onStepSuccess(_data, _step) { }
+    async onStepFail(_data, _step, _error) { }
+}
+
+var index = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    NullLogger: NullLogger,
+    ConsoleLogger: ConsoleLogger,
+    Visualizer: Visualizer
+});
+
+export { Digger, Dungeon, Hall, Room, index$1 as blueprint, bridge, hall, lake, index as log, loop, makeHall, room, index$2 as site, stairs };

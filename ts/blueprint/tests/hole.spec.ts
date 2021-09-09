@@ -1,5 +1,5 @@
 import * as GWM from 'gw-map';
-import * as GWD from '..';
+import * as GWD from '../..';
 
 describe('Blueprint - hole', () => {
     beforeAll(() => {
@@ -101,12 +101,12 @@ describe('Blueprint - hole', () => {
                     effect: 'HOLE_WITH_PLATE',
                     // tile: 'PRESSURE_PLATE',
                     flags:
-                        'BF_TREAT_AS_BLOCKING, BF_FAR_FROM_ORIGIN, BF_IN_PASSABLE_VIEW_OF_ORIGIN',
+                        'BS_TREAT_AS_BLOCKING, BS_FAR_FROM_ORIGIN, BS_IN_PASSABLE_VIEW_OF_ORIGIN',
                 },
                 {
                     tile: 'PORTCULLIS_CLOSED',
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
             ],
         });
@@ -114,10 +114,10 @@ describe('Blueprint - hole', () => {
         const blue = GWD.blueprint.install('ROOM', {
             flags: 'BP_ROOM',
             size: '10-100',
-            steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+            steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
         });
 
-        const level = new GWD.Level({
+        const digger = new GWD.Digger({
             seed: 123456,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
@@ -126,15 +126,15 @@ describe('Blueprint - hole', () => {
         });
 
         const map = GWM.map.make(80, 34, { visible: true });
-        level.create(map);
+        digger.create(map);
 
-        const builder = new GWD.blueprint.Builder(map);
+        const builder = new GWD.blueprint.Builder();
 
         // jest.spyOn(builder, '_buildAt');
 
         // map.dump();
 
-        const result = await builder.build(blue, 59, 10);
+        const result = await builder.build(map, blue, 59, 10);
 
         // map.dump();
 

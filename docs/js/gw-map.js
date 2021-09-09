@@ -507,11 +507,11 @@
         }
         if (typeof opts.tags === 'string') {
             opts.tags
-                .split(/[,|]/)
+                .split(/[,|&]/)
                 .map((t) => t.trim())
                 .forEach((t) => {
                 if (t.startsWith('!')) {
-                    match.forbidTags.push(t.substring(1));
+                    match.forbidTags.push(t.substring(1).trim());
                 }
                 else {
                     match.tags.push(t);
@@ -522,7 +522,7 @@
             match.tags = opts.tags.slice();
         }
         if (typeof opts.forbidTags === 'string') {
-            match.forbidTags = opts.forbidTags.split(/[,|]/).map((t) => t.trim());
+            match.forbidTags = opts.forbidTags.split(/[,|&]/).map((t) => t.trim());
         }
         else if (Array.isArray(opts.forbidTags)) {
             match.forbidTags = opts.forbidTags.slice();
@@ -1873,6 +1873,7 @@
                 return false;
             if (opts.blockedByOtherLayers && cell.highestPriority() > tile.priority)
                 return false;
+            // TODO - Are we blocked by other layer (L_BLOCKS_SURFACE on an already present tile)?
             if (tile.depth > Depth$1.GROUND && tile.groundTile) {
                 const ground = cell.depthTile(Depth$1.GROUND);
                 if (!ground || ground === tiles.NULL) {
@@ -1882,6 +1883,9 @@
             // if nothing changed... return false
             if (!cell.setTile(tile))
                 return false;
+            if (tile.hasEntityFlag(Entity$1.L_BLOCKS_SURFACE)) {
+                cell.clearDepth(Depth$1.SURFACE);
+            }
             if (opts.machine) {
                 cell.machineId = opts.machine;
             }
@@ -2030,7 +2034,7 @@
             if (!GWU__namespace.list.remove(cell, 'item', obj))
                 return false;
             if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-                await cell.activate('key', this.map, x, y);
+                await cell.activate('nokey', this.map, x, y);
             }
             return true;
         }
@@ -2519,6 +2523,9 @@
         isStairs() {
             return this.hasTileFlag(Tile$1.T_HAS_STAIRS);
         }
+        isGateSite() {
+            return this.hasCellFlag(Cell$1.IS_GATE_SITE);
+        }
         // @returns - whether or not the change results in a change to the cell tiles.
         //          - If there is a change to cell lighting, the cell will have the
         //          - LIGHT_CHANGED flag set.
@@ -2549,7 +2556,16 @@
             // }
             return true;
         }
-        clear() {
+        clearTiles(tile) {
+            this.tiles[0] = tiles.NULL;
+            for (let i = 1; i < this.tiles.length; ++i) {
+                this.tiles[i] = null;
+            }
+            if (tile) {
+                this.setTile(tile);
+            }
+        }
+        clear(tile) {
             this.tiles = [tiles.NULL];
             this.flags.cell = 0;
             this.needsRedraw = true;
@@ -2557,6 +2573,9 @@
             this.machineId = 0;
             this._actor = null;
             this._item = null;
+            if (tile) {
+                this.setTile(tile);
+            }
         }
         clearDepth(depth) {
             if (depth == 0) {
@@ -3109,6 +3128,10 @@
             this.fov.needsUpdate = true;
             this.layers.forEach((l) => l.clear());
         }
+        clearCell(x, y, tile) {
+            const cell = this.cell(x, y);
+            cell.clear(tile);
+        }
         // Skips all the logic checks and just forces a clean cell with the given tile
         fill(tile, boundary) {
             tile = get(tile);
@@ -3117,8 +3140,7 @@
             for (i = 0; i < this.width; ++i) {
                 for (j = 0; j < this.height; ++j) {
                     const cell = this.cell(i, j);
-                    cell.clear();
-                    cell.setTile(this.isBoundaryXY(i, j) ? boundary : tile);
+                    cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
                 }
             }
         }
@@ -3142,6 +3164,10 @@
             if (!(layer instanceof TileLayer))
                 return false;
             return layer.setTile(x, y, tile, opts);
+        }
+        clearTiles(x, y, tile) {
+            const cell = this.cell(x, y);
+            cell.clearTiles(tile);
         }
         async tick(dt) {
             let didSomething = await this.fireAll('tick');

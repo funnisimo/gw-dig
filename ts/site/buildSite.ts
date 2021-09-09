@@ -9,6 +9,9 @@ export interface Snapshot {
 }
 
 export interface BuildSite extends DIG.DigSite {
+    readonly depth: number;
+    readonly machineCount: number;
+
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
 

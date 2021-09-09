@@ -1,4 +1,4 @@
-import * as DIG from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
 export const NOTHING = GWM.tile.get('NULL').index;
@@ -35,45 +35,52 @@ export const TILEMAP = {
 export interface DigSite {
     readonly width: number;
     readonly height: number;
-    readonly rng: DIG.rng.Random;
+    readonly rng: GWU.rng.Random;
 
     free(): void;
     clear(): void;
     dump(): void;
+    drawInto(buffer: GWU.canvas.Buffer): void;
+
     setSeed(seed: number): void;
 
-    hasXY: DIG.xy.XYMatchFunc;
-    isBoundaryXY: DIG.xy.XYMatchFunc;
+    hasXY: GWU.xy.XYMatchFunc;
+    isBoundaryXY: GWU.xy.XYMatchFunc;
 
-    isSet: DIG.xy.XYMatchFunc;
-    isDiggable: DIG.xy.XYMatchFunc;
-    isNothing: DIG.xy.XYMatchFunc;
+    isSet: GWU.xy.XYMatchFunc;
+    isDiggable: GWU.xy.XYMatchFunc;
+    isNothing: GWU.xy.XYMatchFunc;
 
-    isPassable: DIG.xy.XYMatchFunc;
-    isFloor: DIG.xy.XYMatchFunc;
-    isBridge: DIG.xy.XYMatchFunc;
-    isDoor: DIG.xy.XYMatchFunc;
-    isSecretDoor: DIG.xy.XYMatchFunc;
+    isPassable: GWU.xy.XYMatchFunc;
+    isFloor: GWU.xy.XYMatchFunc;
+    isBridge: GWU.xy.XYMatchFunc;
+    isDoor: GWU.xy.XYMatchFunc;
+    isSecretDoor: GWU.xy.XYMatchFunc;
 
-    blocksMove: DIG.xy.XYMatchFunc;
-    blocksDiagonal: DIG.xy.XYMatchFunc;
-    blocksPathing: DIG.xy.XYMatchFunc;
-    blocksVision: DIG.xy.XYMatchFunc;
-    blocksItems: DIG.xy.XYMatchFunc;
-    blocksEffects: DIG.xy.XYMatchFunc;
+    blocksMove: GWU.xy.XYMatchFunc;
+    blocksDiagonal: GWU.xy.XYMatchFunc;
+    blocksPathing: GWU.xy.XYMatchFunc;
+    blocksVision: GWU.xy.XYMatchFunc;
+    blocksItems: GWU.xy.XYMatchFunc;
+    blocksEffects: GWU.xy.XYMatchFunc;
 
-    isWall: DIG.xy.XYMatchFunc;
-    isStairs: DIG.xy.XYMatchFunc;
+    isWall: GWU.xy.XYMatchFunc;
+    isStairs: GWU.xy.XYMatchFunc;
 
-    isDeep: DIG.xy.XYMatchFunc;
-    isShallow: DIG.xy.XYMatchFunc;
-    isAnyLiquid: DIG.xy.XYMatchFunc;
+    isDeep: GWU.xy.XYMatchFunc;
+    isShallow: GWU.xy.XYMatchFunc;
+    isAnyLiquid: GWU.xy.XYMatchFunc;
 
     setTile(
         x: number,
         y: number,
         tile: string | number | GWM.tile.Tile,
         opts?: GWM.map.SetTileOptions
+    ): boolean;
+    clearCell(
+        x: number,
+        y: number,
+        tile: string | number | GWM.tile.Tile
     ): boolean;
 
     hasTile(

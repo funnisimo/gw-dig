@@ -35,7 +35,7 @@ GWD.blueprint.install('ADPOTER', {
     // size: '10-100',
     steps: [
         {
-            flags: 'BF_ADOPT_ITEM, BF_TREAT_AS_BLOCKING',
+            flags: 'BS_ADOPT_ITEM, BS_TREAT_AS_BLOCKING',
         },
     ],
 });
@@ -48,7 +48,7 @@ GWD.blueprint.install('VESTIBULE', {
             tile: 'LOCKED_DOOR',
             item: 'key',
             flags:
-                'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE, BF_ITEM_IS_KEY, BF_OUTSOURCE_ITEM_TO_MACHINE, BF_KEY_DISPOSABLE',
+                'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
         },
     ],
 });
@@ -56,7 +56,7 @@ GWD.blueprint.install('VESTIBULE', {
 const blue = GWD.blueprint.install('ROOM', {
     flags: 'BP_ROOM',
     size: '10-100',
-    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+    steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
 });
 ```
 
@@ -64,13 +64,6 @@ Now, lets generate a new dungeon...
 
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
-const level = new GWD.Level({
-    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
-    doors: { chance: 0 },
-    loops: false,
-    lakes: false,
-});
-const builder = new GWD.blueprint.Builder(map);
 
 const canvas = GWU.canvas.make({
     font: 'monospace',
@@ -84,28 +77,39 @@ SHOW(canvas.node);
 // canvas.render();
 const buffer = canvas.buffer;
 
+const digger = new GWD.Digger({
+    rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+    doors: { chance: 0 },
+    loops: false,
+    lakes: false,
+    log: new GWD.log.Visualizer(canvas, LOOP),
+});
+
 let elapsed = 0;
+
+const builder = new GWD.blueprint.Builder();
 
 async function buildMap() {
     buffer.blackOut();
     buffer.drawText(0, 0, 'Building Level', 'yellow');
     buffer.render();
 
+    await LOOP.nextKeyPress();
+
     let start = Date.now();
 
-    level.create(map);
-    await builder.build('ROOM');
+    await digger.create(map);
+    await builder.build(map, 'ROOM');
 
     elapsed = Date.now() - start;
 }
 
 let carried = null;
+let draw = false;
 
 LOOP.run(
     {
-        start: async () => {
-            await buildMap();
-        },
+        start: buildMap,
         Enter: buildMap,
         click: (e) => {
             if (carried) {
@@ -120,14 +124,24 @@ LOOP.run(
             if (carried.isDestroyed) {
                 carried = null;
             }
+            draw = true;
         },
         tick: async (e) => {
             await map.tick();
+            draw = true;
         },
         draw: () => {
-            map.drawInto(buffer);
-            buffer.drawText(0, 0, 'Elapsed: ' + Math.floor(elapsed), 'yellow');
-            buffer.render();
+            if (draw) {
+                draw = false;
+                map.drawInto(buffer);
+                buffer.drawText(
+                    0,
+                    0,
+                    'Elapsed: ' + Math.floor(elapsed),
+                    'yellow'
+                );
+                buffer.render();
+            }
         },
     },
     200

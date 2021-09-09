@@ -2,7 +2,7 @@ import * as GWM from 'gw-map';
 
 import * as BLUE from './index';
 import * as ROOM from '../room';
-import { Level } from '../level';
+import { Digger } from '../digger';
 
 describe('Builder', () => {
     let map: GWM.map.Map;
@@ -18,16 +18,16 @@ describe('Builder', () => {
 
         map = GWM.map.make(80, 34, { visible: true });
 
-        const level = new Level({
+        const digger = new Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
-        builder = new BLUE.Builder(map);
+        builder = new BLUE.Builder();
     });
 
     test('Build Item', async () => {
@@ -41,10 +41,10 @@ describe('Builder', () => {
         const blue = BLUE.install('ROOM', {
             flags: 'BP_ROOM',
             size: '10-100',
-            steps: [{ item: 'SHOVEL', flags: 'BF_FAR_FROM_ORIGIN' }],
+            steps: [{ item: 'SHOVEL', flags: 'BS_FAR_FROM_ORIGIN' }],
         });
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 

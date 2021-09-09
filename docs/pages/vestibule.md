@@ -115,22 +115,21 @@ const map = GWM.map.make(80, 34, {
     // seed: 12345
 });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     // seed: 12345,
     rooms: { count: 40, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
     flags: 'BP_VESTIBULE',
     size: '5-10',
     steps: [
-        { tile: 'DOOR', flags: 'BF_BUILD_AT_ORIGIN' },
-        { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
+        { tile: 'DOOR', flags: 'BS_BUILD_AT_ORIGIN' },
+        { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
     ],
 });
 
@@ -138,10 +137,10 @@ const room = GWD.blueprint.make({
     id: 'ROOM',
     flags: 'BP_ROOM',
     size: '10-100',
-    steps: [{ flags: 'BF_BUILD_VESTIBULE' }],
+    steps: [{ flags: 'BS_BUILD_VESTIBULE' }],
 });
 
-const builder = new GWD.blueprint.Builder(map, {
+const builder = new GWD.blueprint.Builder({
     // seed: 12345,
     blueprints: [vestibule, room],
 });
@@ -155,8 +154,8 @@ const canvas = GWU.canvas.make({
 SHOW(canvas.node);
 
 async function buildMap() {
-    level.create(map);
-    await builder.build(room);
+    await digger.create(map);
+    await builder.build(map, room);
 }
 
 LOOP.run({
@@ -171,19 +170,18 @@ LOOP.run({
 
 ### Vestibule with lever
 
-You can also build tiles outside the vestibule's interior area with the 'BF_BUILD_ANYWHERE_ON_LEVEL' flag.
+You can also build tiles outside the vestibule's interior area with the 'BS_BUILD_ANYWHERE_ON_LEVEL' flag.
 
 ```js
 const map = GWM.map.make(80, 34, { visible: true });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
 
 const vestibule = GWD.blueprint.make({
     id: 'VESTIBULE',
@@ -192,12 +190,12 @@ const vestibule = GWD.blueprint.make({
     steps: [
         {
             tile: 'PORTCULLIS_CLOSED',
-            flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+            flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
         },
         {
             tile: 'WALL_LEVER',
             flags:
-                'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL, BF_NOT_IN_HALLWAYS',
+                'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAYS',
         },
     ],
 });
@@ -206,10 +204,10 @@ const room = GWD.blueprint.make({
     id: 'ROOM',
     flags: 'BP_ROOM',
     size: '10-100',
-    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+    steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
 });
 
-const builder = new GWD.blueprint.Builder(map, {
+const builder = new GWD.blueprint.Builder({
     seed: 12345,
     blueprints: { vestibule, room },
 });
@@ -217,10 +215,15 @@ const builder = new GWD.blueprint.Builder(map, {
 const canvas = GWU.canvas.make({ font: 'monospace', width: 80, height: 34 });
 SHOW(canvas.node);
 
-builder.build(room).then(() => {
-    map.drawInto(canvas);
-    canvas.render();
-});
+digger
+    .create(map)
+    .then(async () => {
+        await builder.build(map, room);
+    })
+    .then(() => {
+        map.drawInto(canvas);
+        canvas.render();
+    });
 ```
 
 ### Throwing Tutorial
@@ -237,11 +240,11 @@ const vestibule = GWD.blueprint.make({
             effect: 'CHASM_MEDIUM',
             tile: 'PRESSURE_PLATE',
             flags:
-                'BF_TREAT_AS_BLOCKING, BF_FAR_FROM_ORIGIN, BF_IN_PASSABLE_VIEW_OF_ORIGIN',
+                'BS_TREAT_AS_BLOCKING, BS_FAR_FROM_ORIGIN, BS_IN_PASSABLE_VIEW_OF_ORIGIN',
         },
         {
             tile: 'PORTCULLIS_CLOSED',
-            flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+            flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
         },
     ],
 });
@@ -250,21 +253,20 @@ const room = GWD.blueprint.make({
     id: 'ROOM',
     flags: 'BP_ROOM',
     size: '10-100',
-    steps: [{ flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' }],
+    steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
 });
 
 const map = GWM.map.make(80, 34, { visible: true });
 
-const level = new GWD.Level({
+const digger = new GWD.Digger({
     seed: 12345,
     rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
     doors: { chance: 0 },
     loops: false,
     lakes: false,
 });
-level.create(map);
 
-const builder = new GWD.blueprint.Builder(map, {
+const builder = new GWD.blueprint.Builder({
     seed: 12345,
     blueprints: { room, vestibule },
 });
@@ -280,7 +282,8 @@ SHOW(canvas.node);
 LOOP.run(
     {
         start: async () => {
-            await builder.build(room);
+            await digger.create(map);
+            await builder.build(map, room);
         },
         click: async (e) => {
             await map.fire('enter', e.x, e.y);

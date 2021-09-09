@@ -49,6 +49,9 @@ export class MapSite implements BUILD.BuildSite {
     get rng(): GWU.rng.Random {
         return this.map.rng;
     }
+    get depth(): number {
+        return this.map.properties.depth || 0;
+    }
     // get seed() {
     //     return this.map.seed;
     // }
@@ -66,8 +69,14 @@ export class MapSite implements BUILD.BuildSite {
         return this.map.height;
     }
 
+    free() {
+        GWU.grid.free(this.doors);
+    }
     dump() {
         this.map.dump();
+    }
+    drawInto(buffer: GWU.canvas.Buffer): void {
+        this.map.drawInto(buffer);
     }
 
     hasXY(x: number, y: number): boolean {
@@ -105,6 +114,15 @@ export class MapSite implements BUILD.BuildSite {
     ): boolean {
         this.needsAnalysis = true;
         return this.map.setTile(x, y, tile, opts);
+    }
+    clearCell(
+        x: number,
+        y: number,
+        tile: string | number | GWM.tile.Tile
+    ): boolean {
+        this.needsAnalysis = true;
+        this.map.clearTiles(x, y, tile);
+        return true;
     }
 
     getTileIndex(x: number, y: number): number {
@@ -242,10 +260,6 @@ export class MapSite implements BUILD.BuildSite {
 
     snapshot(): MapSnapshot {
         return new MapSnapshot(this, this.snapshots.takeNew());
-    }
-
-    free() {
-        GWU.grid.free(this.doors);
     }
 
     getChokeCount(x: number, y: number): number {

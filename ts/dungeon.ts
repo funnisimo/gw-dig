@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import * as LEVEL from './level';
+import * as LEVEL from './digger';
 
 import * as TYPES from './types';
 import * as ROOM from './room';
@@ -109,7 +109,7 @@ export class Dungeon {
         }
     }
 
-    getLevel(id: number, cb: TYPES.DigFn) {
+    async getLevel(id: number, cb: TYPES.DigFn) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
 
@@ -162,15 +162,23 @@ export class Dungeon {
         // TODO - Update startLoc, endLoc
     }
 
-    makeLevel(id: number, opts: Partial<LEVEL.LevelOptions>, cb: TYPES.DigFn) {
-        const level = new LEVEL.Level(opts);
-        const result = level.create(this.config.width, this.config.height, cb);
+    async makeLevel(
+        id: number,
+        opts: Partial<LEVEL.DiggerOptions>,
+        cb: TYPES.DigFn
+    ) {
+        const digger = new LEVEL.Digger(opts);
+        const result = await digger.create(
+            this.config.width,
+            this.config.height,
+            cb
+        );
 
         if (
-            !GWU.xy.equalsXY(level.endLoc, opts.endLoc) ||
-            !GWU.xy.equalsXY(level.startLoc, opts.startLoc)
+            !GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||
+            !GWU.xy.equalsXY(digger.startLoc, opts.startLoc)
         ) {
-            this.stairLocs[id] = [level.startLoc, level.endLoc];
+            this.stairLocs[id] = [digger.startLoc, digger.endLoc];
         }
         return result;
     }

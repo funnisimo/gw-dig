@@ -2,20 +2,9 @@ import * as GWM from 'gw-map';
 
 import * as BLUE from './index';
 import * as ROOM from '../room';
-import { Level } from '../level';
+import { Digger } from '../digger';
 
 describe('Builder', () => {
-    test('seeding map', async () => {
-        const map = GWM.map.make(80, 34, { visible: true, seed: 23456 });
-        expect(map.seed).toEqual(23456);
-
-        const builder = new BLUE.Builder(map, { seed: 12345 });
-        expect(map.seed).toEqual(23456);
-
-        builder.data.reset(0, 0);
-        expect(map.seed).toEqual(12345);
-    });
-
     test.only('Build Vestiblue', async () => {
         const map = GWM.map.make(80, 34, { visible: true });
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
@@ -25,14 +14,14 @@ describe('Builder', () => {
             new ROOM.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new Level({
+        const digger = new Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        await digger.create(map);
 
         // GWM.map.analyze(map);
 
@@ -42,7 +31,7 @@ describe('Builder', () => {
             steps: [
                 {
                     tile: 'DOOR',
-                    flags: 'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING',
                 },
             ],
         });
@@ -51,14 +40,14 @@ describe('Builder', () => {
             flags: 'BP_ROOM',
             size: '10-100',
             steps: [
-                { tile: 'CARPET', flags: 'BF_EVERYWHERE' },
-                { flags: 'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE' },
+                { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
+                { flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' },
             ],
         });
 
-        const builder = new BLUE.Builder(map);
+        const builder = new BLUE.Builder();
 
-        const result = await builder.build(blue, 61, 8);
+        const result = await builder.build(map, blue, 61, 8);
 
         // map.dump();
 
@@ -118,14 +107,14 @@ describe('Builder', () => {
             new ROOM.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const level = new Level({
+        const digger = new Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
             doors: { chance: 0 },
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        digger.create(map);
 
         GWM.map.analyze(map);
 
@@ -136,12 +125,12 @@ describe('Builder', () => {
                 {
                     tile: 'PORTCULLIS_CLOSED',
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_PERMIT_BLOCKING, BF_IMPREGNABLE',
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'WALL_LEVER',
                     flags:
-                        'BF_BUILD_IN_WALLS, BF_IN_PASSABLE_VIEW_OF_ORIGIN, BF_BUILD_ANYWHERE_ON_LEVEL',
+                        'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL',
                 },
             ],
         });
@@ -152,14 +141,14 @@ describe('Builder', () => {
             steps: [
                 {
                     flags:
-                        'BF_BUILD_AT_ORIGIN, BF_BUILD_VESTIBULE, MF_PERMIT_BLOCKING',
+                        'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE, MF_PERMIT_BLOCKING',
                 },
             ],
         });
 
-        const builder = new BLUE.Builder(map);
+        const builder = new BLUE.Builder();
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 

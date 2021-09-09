@@ -1,3 +1,4 @@
+import 'jest-extended';
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
@@ -5,15 +6,17 @@ import * as BUILDER from './builder';
 import * as BLUE from './blueprint';
 import * as STEP from './buildStep';
 import * as DIG from '../index';
+import { BuildData } from '.';
+import { MapSite } from '../site';
 
 describe('buildStep', () => {
     test('constructor', () => {
         const step = new STEP.BuildStep({
-            flags: 'BF_EVERYWHERE',
+            flags: 'BS_EVERYWHERE',
             tile: 'FLOOR',
         });
 
-        expect(step.flags & STEP.StepFlags.BF_EVERYWHERE).toBeTruthy();
+        expect(step.flags & STEP.StepFlags.BS_EVERYWHERE).toBeTruthy();
         expect(step.tile).toEqual('FLOOR');
         expect(step.pad).toEqual(0);
         expect(step.count).toBeInstanceOf(GWU.range.Range);
@@ -34,7 +37,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map);
+        const builder = new BUILDER.Builder();
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
@@ -42,10 +45,10 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
-        level.create(map);
+        const digger = new DIG.Digger();
+        await digger.create(map);
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
@@ -68,7 +71,7 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map);
+        const builder = new BUILDER.Builder();
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
@@ -77,10 +80,10 @@ describe('buildStep', () => {
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level();
-        level.create(map);
+        const digger = new DIG.Digger();
+        await digger.create(map);
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
@@ -95,25 +98,25 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map);
+        const builder = new BUILDER.Builder();
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
-            steps: [{ tile: 'A', flags: 'BF_EVERYWHERE' }],
+            steps: [{ tile: 'A', flags: 'BS_EVERYWHERE' }],
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             loops: false,
             lakes: false,
         });
-        level.create(map);
+        await digger.create(map);
 
         // map.dump();
 
-        expect(await builder.build(blue)).toBeTruthy();
+        expect(await builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
@@ -127,40 +130,33 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map);
+        const builder = new BUILDER.Builder();
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
-            steps: [{ tile: 'A', flags: 'BF_NEAR_ORIGIN' }],
+            steps: [{ tile: 'A', flags: 'BS_NEAR_ORIGIN' }],
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             lakes: false,
             loops: false,
         });
-        level.create(map);
+        await digger.create(map);
 
-        expect(await builder.build(blue)).toBeTruthy();
+        const result = await builder.build(map, blue);
+        expect(result).toBeTruthy();
 
         // map.dump();
-
-        expect(builder.data.originX).toEqual(52);
-        expect(builder.data.originY).toEqual(6);
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(1);
 
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GWU.xy.distanceBetween(
-                    x,
-                    y,
-                    builder.data.originX,
-                    builder.data.originY
-                )
+                GWU.xy.distanceBetween(x, y, result!.x, result!.y)
             ).toBeLessThan(4);
         });
     });
@@ -174,41 +170,111 @@ describe('buildStep', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        const builder = new BUILDER.Builder(map);
+        const builder = new BUILDER.Builder();
 
         const blue = new BLUE.Blueprint({
             flags: 'BP_ROOM',
             size: '10-25',
-            steps: [{ tile: 'A', flags: 'BF_FAR_FROM_ORIGIN' }],
+            steps: [{ tile: 'A', flags: 'BS_FAR_FROM_ORIGIN' }],
         });
         // const step = blue.steps[0];
 
-        const level = new DIG.Level({
+        const digger = new DIG.Digger({
             seed: 12345,
             lakes: false,
             loops: false,
         });
-        level.create(map);
+        await digger.create(map);
 
-        expect(await builder.build(blue)).toBeTruthy();
+        const result = await builder.build(map, blue);
+        expect(result).toBeTruthy();
 
         // map.dump();
 
-        expect(builder.data.originX).toEqual(52);
-        expect(builder.data.originY).toEqual(6);
+        expect(result!.x).toEqual(52);
+        expect(result!.y).toEqual(6);
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(1);
 
         map.cells.forEach((c, x, y) => {
             if (!c.hasTile('A')) return;
             expect(
-                GWU.xy.distanceBetween(
-                    x,
-                    y,
-                    builder.data.originX,
-                    builder.data.originY
-                )
+                GWU.xy.distanceBetween(x, y, result!.x, result!.y)
             ).toBeGreaterThan(3);
+        });
+    });
+
+    describe('markCandidates', () => {
+        beforeAll(() => {
+            DIG.room.install('ENTRANCE', new DIG.room.BrogueEntrance());
+            DIG.room.install(
+                'ROOM',
+                new DIG.room.Rectangular({ width: '4-10', height: '4-10' })
+            );
+            DIG.room.install('CHUNK', new DIG.room.ChunkyRoom());
+            DIG.room.install(
+                'CHOICE',
+                new DIG.room.ChoiceRoom({ choices: { ROOM: 100, CHUNK: 50 } })
+            );
+        });
+
+        let map: GWM.map.Map;
+        let data: BuildData;
+
+        beforeEach(async () => {
+            map = GWM.map.make(80, 34);
+            map.properties.depth = 1;
+
+            const digger = new DIG.Digger({
+                seed: 12345,
+                rooms: { count: 40, first: 'ENTRANCE', digger: 'CHOICE' },
+                doors: { chance: 0 },
+                loops: false,
+                lakes: false,
+            });
+
+            await digger.create(map);
+
+            GWM.map.analyze(map);
+        });
+
+        afterEach(() => {
+            if (data) data.free();
+        });
+
+        test.only('markCandidates', async () => {
+            // map.dump();
+
+            const blue = new BLUE.Blueprint({
+                id: 'TEST',
+                size: '30-50',
+                frequency: '1-12: 30',
+                flags:
+                    'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+
+                steps: [
+                    {
+                        tile: 'ALTAR_CAGE_OPEN',
+                        count: 1,
+                        pad: 2,
+                        flags: 'BS_TREAT_AS_BLOCKING, BS_IMPREGNABLE',
+                    },
+                ],
+            });
+
+            const site = new MapSite(map);
+            data = new BuildData(site, blue);
+            data.reset(58, 21);
+
+            const count = blue.fillInterior(data);
+            expect(count).toBeWithin(30, 51);
+
+            const step = blue.steps[0];
+
+            const candidates = GWU.grid.make(map.width, map.height);
+            const candidateCount = step.markCandidates(data, candidates);
+
+            expect(candidateCount).toBeGreaterThan(0);
         });
     });
 });
