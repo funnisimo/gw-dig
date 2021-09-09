@@ -23,9 +23,9 @@ describe('Mixed Item Library', () => {
 
         GWM.tile.install('ALTAR_CAGE_OPEN', {
             ch: 'O',
-            fg: 'yellow',
+            bg: 'teal',
             priority: 'WALL-1',
-            flags: 'L_BLOCKS_EFFECTS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
+            flags: 'L_BLOCKS_SURFACE, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
             effects: {
                 machine: { tile: 'ALTAR_CAGE_CLOSED' },
                 noKey: { activateMachine: true },
@@ -35,10 +35,10 @@ describe('Mixed Item Library', () => {
 
         GWM.tile.install('ALTAR_CAGE_CLOSED', {
             ch: 'C',
-            fg: 'yellow',
+            bg: 'red',
             priority: 'WALL-1',
             flags:
-                'L_BLOCKS_MOVE, T_STAND_IN_TILE, L_BLOCKS_EFFECTS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
+                'L_BLOCKS_MOVE, T_STAND_IN_TILE, L_BLOCKS_SURFACE, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
             effects: {
                 machine: { tile: 'ALTAR_CAGE_OPEN' },
                 key: { activateMachine: true },

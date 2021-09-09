@@ -1882,6 +1882,9 @@
             // if nothing changed... return false
             if (!cell.setTile(tile))
                 return false;
+            if (tile.hasEntityFlag(Entity$1.L_BLOCKS_SURFACE)) {
+                cell.clearDepth(Depth$1.SURFACE);
+            }
             if (opts.machine) {
                 cell.machineId = opts.machine;
             }
@@ -2030,7 +2033,7 @@
             if (!GWU__namespace.list.remove(cell, 'item', obj))
                 return false;
             if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-                await cell.activate('key', this.map, x, y);
+                await cell.activate('nokey', this.map, x, y);
             }
             return true;
         }
