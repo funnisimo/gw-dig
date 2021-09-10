@@ -496,7 +496,7 @@ export class Builder {
 
         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
         if (success && buildStep.effect) {
-            success = site.buildEffect(buildStep.effect, x, y);
+            success = await site.buildEffect(buildStep.effect, x, y);
             didSomething = success;
             if (!success) {
                 this.log.onStepInstanceFail(
@@ -563,10 +563,7 @@ export class Builder {
 
         // Generate an item, if necessary
         if (success && buildStep.item) {
-            const item = site.makeRandomItem(
-                buildStep.item,
-                buildStep.item.make
-            );
+            const item = buildStep.makeItem(data);
             if (!item) {
                 success = false;
                 await this.log.onStepInstanceFail(

@@ -140,6 +140,9 @@ export class MapSite implements BUILD.BuildSite {
     hasItem(x: number, y: number): boolean {
         return this.map.cellInfo(x, y).hasItem();
     }
+    makeItem(id: string, makeOptions?: any): GWM.item.Item {
+        return GWM.item.make(id, makeOptions);
+    }
     makeRandomItem(
         tags: Partial<GWM.item.MatchOptions>,
         makeOptions?: any
@@ -274,9 +277,13 @@ export class MapSite implements BUILD.BuildSite {
         }
         this.needsAnalysis = false;
     }
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean {
+    async buildEffect(
+        effect: GWM.effect.EffectInfo,
+        x: number,
+        y: number
+    ): Promise<boolean> {
         this.needsAnalysis = true;
-        return GWM.effect.fireSync(effect, this.map, x, y, { rng: this.rng });
+        return GWM.effect.fire(effect, this.map, x, y, { rng: this.rng });
     }
 
     nextMachineId(): number {

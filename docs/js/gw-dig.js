@@ -738,6 +738,9 @@
         hasItem(x, y) {
             return this.map.cellInfo(x, y).hasItem();
         }
+        makeItem(id, makeOptions) {
+            return GWM__namespace.item.make(id, makeOptions);
+        }
         makeRandomItem(tags, makeOptions) {
             tags.rng = this.rng;
             return GWM__namespace.item.makeRandom(tags, makeOptions);
@@ -859,9 +862,9 @@
             }
             this.needsAnalysis = false;
         }
-        buildEffect(effect, x, y) {
+        async buildEffect(effect, x, y) {
             this.needsAnalysis = true;
-            return GWM__namespace.effect.fireSync(effect, this.map, x, y, { rng: this.rng });
+            return GWM__namespace.effect.fire(effect, this.map, x, y, { rng: this.rng });
         }
         nextMachineId() {
             return ++this.machineCount;
@@ -2299,6 +2302,14 @@
                 this.item ||
                 this.horde ||
                 this.adoptItem);
+        }
+        makeItem(data) {
+            if (!this.item)
+                return null;
+            if (this.item.id) {
+                return data.site.makeItem(this.item.id, this.item.make);
+            }
+            return data.site.makeRandomItem(this.item, this.item.make);
         }
         // cellIsCandidate(
         //     builder: BuildData,
@@ -4401,7 +4412,7 @@
             }
             // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
             if (success && buildStep.effect) {
-                success = site.buildEffect(buildStep.effect, x, y);
+                success = await site.buildEffect(buildStep.effect, x, y);
                 didSomething = success;
                 if (!success) {
                     this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build effect - ' +
@@ -4437,7 +4448,7 @@
             // Generate an actor, if necessary
             // Generate an item, if necessary
             if (success && buildStep.item) {
-                const item = site.makeRandomItem(buildStep.item, buildStep.item.make);
+                const item = buildStep.makeItem(data);
                 if (!item) {
                     success = false;
                     await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to make random item - ' +

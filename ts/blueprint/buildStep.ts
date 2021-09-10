@@ -6,6 +6,7 @@ import { Blueprint } from './blueprint';
 
 export interface ItemOptions extends GWM.item.MatchOptions {
     make: any;
+    id: string;
 }
 
 export interface StepOptions {
@@ -192,6 +193,14 @@ export class BuildStep {
             this.horde ||
             this.adoptItem
         );
+    }
+
+    makeItem(data: BuildData): GWM.item.Item | null {
+        if (!this.item) return null;
+        if (this.item.id) {
+            return data.site.makeItem(this.item.id, this.item.make);
+        }
+        return data.site.makeRandomItem(this.item, this.item.make);
     }
 
     // cellIsCandidate(

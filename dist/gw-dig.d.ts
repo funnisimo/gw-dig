@@ -69,10 +69,11 @@ interface BuildSite extends DigSite {
     hasCellFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
+    makeItem(id: string, makeOptions?: any): GWM.item.Item | null;
     makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     analyze(): void;
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): Promise<boolean>;
     snapshot(): Snapshot;
     nextMachineId(): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -172,6 +173,7 @@ declare class MapSite implements BuildSite {
     getTileIndex(x: number, y: number): number;
     clear(): void;
     hasItem(x: number, y: number): boolean;
+    makeItem(id: string, makeOptions?: any): GWM.item.Item;
     makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     hasActor(x: number, y: number): boolean;
@@ -199,7 +201,7 @@ declare class MapSite implements BuildSite {
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
     analyze(): void;
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): Promise<boolean>;
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -583,6 +585,7 @@ declare namespace loop_d {
 
 interface ItemOptions extends GWM.item.MatchOptions {
     make: any;
+    id: string;
 }
 interface StepOptions {
     tile: string | number;
@@ -651,6 +654,7 @@ declare class BuildStep {
     get generateEverywhere(): boolean;
     get buildAtOrigin(): boolean;
     get buildsInstances(): boolean;
+    makeItem(data: BuildData): GWM.item.Item | null;
     markCandidates(data: BuildData, candidates: GWU.grid.NumGrid, distanceBound?: [number, number]): number;
     makePersonalSpace(_data: BuildData, x: number, y: number, candidates: GWU.grid.NumGrid): number;
     toString(): string;

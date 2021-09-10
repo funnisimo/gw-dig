@@ -100,11 +100,28 @@ describe('Mixed Item Library', () => {
             GWM.item.install('STAFF_TACO', {
                 tags: 'STAFF',
                 name: 'Staff of Tacos',
-                ch: 'O',
+                ch: 'U',
                 fg: 'yellow',
             })
         );
 
+        items.push(
+            GWM.item.install('MENU', {
+                tags: 'SCROLL',
+                name: 'Daily specials',
+                ch: 'M',
+                fg: 'yellow',
+            })
+        );
+
+        items.push(
+            GWM.item.install('ORANGE_JUICE', {
+                tags: 'POTION',
+                name: 'Orange Juice',
+                ch: 'O',
+                fg: 'yellow',
+            })
+        );
         items.forEach((kind) => {
             jest.spyOn(kind, 'make');
         });
@@ -220,6 +237,107 @@ describe('Mixed Item Library', () => {
                 runic: true,
                 cursed: false,
             });
+        });
+        expect(count).toBeWithin(1, 3);
+    });
+
+    test('Specific Item', async () => {
+        const map = GWM.map.make(80, 34);
+        map.properties.depth = 1;
+
+        const digger = new GWD.Digger({
+            seed: 12345,
+            rooms: { count: 40, first: 'ENTRANCE', digger: 'CHOICE' },
+            doors: { chance: 0 },
+            loops: false,
+            lakes: false,
+        });
+
+        await digger.create(map);
+
+        const vestibule = GWD.blueprint.install('DOOR', {
+            size: '1',
+            frequency: '1+',
+            flags: 'BP_VESTIBULE',
+            steps: [{ tile: 'DOOR', flags: 'BS_BUILD_AT_ORIGIN' }],
+        });
+
+        // 	// Guaranteed good consumable item on glowing pedestals (scrolls of enchanting, potion of life)
+        // [[10, AMULET_LEVEL],[10, 30],	30,		5,			0,                  (BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD),	[
+        // 	[0,			CARPET,		DUNGEON,		[0,0],		0,			0,			-1,			0,				0,				0,			0,			(MF_EVERYWHERE)],
+        // [0,			STATUE_INERT,DUNGEON,		[1,3],		0,			0,			-1,			0,				2,				0,          0,          (MF_TREAT_AS_BLOCKING | MF_BUILD_IN_WALLS | MF_IMPREGNABLE)],
+        // 	[0,			PEDESTAL,	DUNGEON,		[1,1],		1,			(SCROLL),	SCROLL_ENCHANTING, 0,       2,				0,			(ITEM_KIND_AUTO_ID),	(MF_GENERATE_ITEM | MF_ALTERNATIVE | MF_TREAT_AS_BLOCKING)],
+        // [0,			PEDESTAL,	DUNGEON,		[1,1],		1,			(POTION),	POTION_LIFE,0,              2,				0,			(ITEM_KIND_AUTO_ID),	(MF_GENERATE_ITEM | MF_ALTERNATIVE | MF_TREAT_AS_BLOCKING)],
+        // 	[0,			0,          0,              [1,1],		1,			0,          0,          0,				2,				0,			0,          (MF_BUILD_AT_ORIGIN | MF_PERMIT_BLOCKING | MF_BUILD_VESTIBULE)]]],
+
+        const room = GWD.blueprint.install('SPECIFIC_ITEM_ROOM', {
+            size: '10-30',
+            frequency: '5-16: 30',
+            flags:
+                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            steps: [
+                { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
+                {
+                    tile: 'STATUE_INERT',
+                    count: '1-3',
+                    pad: 1,
+                    flags: 'BS_BUILD_IN_WALLS | BS_TREAT_AS_BLOCKING',
+                },
+                {
+                    tile: 'PEDESTAL',
+                    item: {
+                        id: 'MENU',
+                    },
+                    pad: 1,
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                },
+                {
+                    tile: 'PEDESTAL',
+                    item: {
+                        id: 'ORANGE_JUICE',
+                    },
+                    pad: 1,
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                },
+                { flags: 'BS_BUILD_VESTIBULE' },
+            ],
+        });
+
+        const builder = new GWD.blueprint.Builder({
+            blueprints: [vestibule, room],
+            // log: true,
+        });
+        await builder.build(map, room, 63, 8);
+
+        // map.dump();
+
+        expect(map.cells.count((c) => c.hasTile('CARPET'))).toBeGreaterThan(20); // carpet everywhere
+        expect(map.cells.count((c) => c.hasTile('DOOR'))).toEqual(1); // vestibule (door)
+        expect(map.cells.count((c) => c.hasTile('STATUE_INERT'))).toBeWithin(
+            2,
+            4
+        ); // 2-3 statues
+
+        expect(
+            map.cells.count(
+                (c) =>
+                    c.hasCellFlag(GWM.flags.Cell.IMPREGNABLE) && c.machineId > 0
+            )
+        ).toBeWithin(30, 100); // extra for walls around
+
+        // map.cells
+        //     .map((c) => (c.hasCellFlag(GWM.flags.Cell.IMPREGNABLE) ? 1 : 0))
+        //     .dump();
+
+        let count = 0;
+        map.eachItem((item) => {
+            ++count;
+            expect(item.kind).toBeOneOf([
+                GWM.item.kinds.MENU,
+                GWM.item.kinds.ORANGE_JUICE,
+            ]);
         });
         expect(count).toBeWithin(1, 3);
     });

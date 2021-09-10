@@ -23,6 +23,7 @@ export interface BuildSite extends DIG.DigSite {
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
 
+    makeItem(id: string, makeOptions?: any): GWM.item.Item | null;
     makeRandomItem(
         tags: Partial<GWM.item.MatchOptions>,
         makeOptions?: any
@@ -30,7 +31,11 @@ export interface BuildSite extends DIG.DigSite {
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
 
     analyze(): void;
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): boolean;
+    buildEffect(
+        effect: GWM.effect.EffectInfo,
+        x: number,
+        y: number
+    ): Promise<boolean>;
 
     snapshot(): Snapshot;
 

@@ -712,6 +712,9 @@ class MapSite {
     hasItem(x, y) {
         return this.map.cellInfo(x, y).hasItem();
     }
+    makeItem(id, makeOptions) {
+        return GWM.item.make(id, makeOptions);
+    }
     makeRandomItem(tags, makeOptions) {
         tags.rng = this.rng;
         return GWM.item.makeRandom(tags, makeOptions);
@@ -833,9 +836,9 @@ class MapSite {
         }
         this.needsAnalysis = false;
     }
-    buildEffect(effect, x, y) {
+    async buildEffect(effect, x, y) {
         this.needsAnalysis = true;
-        return GWM.effect.fireSync(effect, this.map, x, y, { rng: this.rng });
+        return GWM.effect.fire(effect, this.map, x, y, { rng: this.rng });
     }
     nextMachineId() {
         return ++this.machineCount;
@@ -2273,6 +2276,14 @@ class BuildStep {
             this.item ||
             this.horde ||
             this.adoptItem);
+    }
+    makeItem(data) {
+        if (!this.item)
+            return null;
+        if (this.item.id) {
+            return data.site.makeItem(this.item.id, this.item.make);
+        }
+        return data.site.makeRandomItem(this.item, this.item.make);
     }
     // cellIsCandidate(
     //     builder: BuildData,
@@ -4375,7 +4386,7 @@ class Builder {
         }
         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
         if (success && buildStep.effect) {
-            success = site.buildEffect(buildStep.effect, x, y);
+            success = await site.buildEffect(buildStep.effect, x, y);
             didSomething = success;
             if (!success) {
                 this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build effect - ' +
@@ -4411,7 +4422,7 @@ class Builder {
         // Generate an actor, if necessary
         // Generate an item, if necessary
         if (success && buildStep.item) {
-            const item = site.makeRandomItem(buildStep.item, buildStep.item.make);
+            const item = buildStep.makeItem(data);
             if (!item) {
                 success = false;
                 await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to make random item - ' +
