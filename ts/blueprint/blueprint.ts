@@ -70,17 +70,22 @@ export class Blueprint {
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new STEP.BuildStep(cfg));
         }
-        if (this.flags & Flags.BP_ADOPT_ITEM) {
-            if (
-                !this.steps.some((s) => s.flags & STEP.StepFlags.BS_ADOPT_ITEM)
-            ) {
-                throw new Error(
-                    'Blueprint wants to BP_ADOPT_ITEM, but has no steps with BS_ADOPT_ITEM.'
-                );
-            }
-        }
         if (opts.id) {
             this.id = opts.id;
+        }
+
+        if (this.flags & Flags.BP_ADOPT_ITEM) {
+            if (
+                !this.steps.some((step) => {
+                    if (step.adoptItem) return true;
+                    if (step.hordeTakesItem && !step.item) return true;
+                    return false;
+                })
+            ) {
+                throw new Error(
+                    'Blueprint calls for BP_ADOPT_ITEM, but has no adoptive step.'
+                );
+            }
         }
     }
 

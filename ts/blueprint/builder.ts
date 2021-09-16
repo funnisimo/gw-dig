@@ -559,7 +559,7 @@ export class Builder {
             }
         }
 
-        // Generate an actor, if necessary
+        let torch: GWM.item.Item | null = adoptedItem;
 
         // Generate an item, if necessary
         if (success && buildStep.item) {
@@ -604,6 +604,8 @@ export class Builder {
                         );
                         success = false;
                     }
+                } else if (buildStep.hordeTakesItem) {
+                    torch = item;
                 } else {
                     success = site.addItem(x, y, item);
                     didSomething = didSomething || success;
@@ -643,6 +645,64 @@ export class Builder {
             }
         }
 
+        let torchBearer: GWM.actor.Actor | null = null;
+
+        if (success && buildStep.horde) {
+            let horde: GWM.horde.Horde | null;
+            if (buildStep.horde.random) {
+                horde = GWM.horde.random({ rng: site.rng });
+            } else if (buildStep.horde.id) {
+                horde = GWM.horde.from(buildStep.horde.id);
+            } else {
+                buildStep.horde.rng = site.rng;
+                horde = GWM.horde.random(buildStep.horde);
+            }
+            if (!horde) {
+                success = false;
+                await this.log.onStepInstanceFail(
+                    data,
+                    buildStep,
+                    x,
+                    y,
+                    'Failed to pick horde - ' + JSON.stringify(buildStep.horde)
+                );
+            } else {
+                const leader = await site.spawnHorde(horde, x, y, {
+                    machine: site.machineCount,
+                });
+                if (!leader) {
+                    success = false;
+                    await this.log.onStepInstanceFail(
+                        data,
+                        buildStep,
+                        x,
+                        y,
+                        'Failed to build horde - ' + horde
+                    );
+                } else {
+                    // What to do now?
+                    didSomething = true;
+
+                    // leader adopts item...
+                    if (torch && buildStep.hordeTakesItem) {
+                        torchBearer = leader;
+                        if (
+                            !(await torchBearer.pickupItem(torch, {
+                                admin: true,
+                            }))
+                        ) {
+                            success = false;
+                        }
+                    }
+
+                    if (buildStep.horde.effect) {
+                        const info = GWM.effect.from(buildStep.horde.effect);
+                        await site.buildEffect(info, x, y);
+                    }
+                }
+            }
+        }
+
         if (success && didSomething) {
             // Mark the feature location as part of the machine, in case it is not already inside of it.
             if (!data.blueprint.noInteriorFlag) {
@@ -666,4 +726,22 @@ export class Builder {
 
         return success && didSomething;
     }
+}
+
+////////////////////////////////////////////////////
+// TODO - Change this!!!
+// const blue = BLUE.get(id | blue);
+// const result = await blue.buildAt(map, x, y);
+//
+export function build(
+    blueprint: BlueType,
+    map: GWM.map.Map,
+    x: number,
+    y: number,
+    opts?: Partial<BuilderOptions>
+): Promise<BuildResult> {
+    const builder = new Builder(opts);
+    const site = new MapSite(map);
+
+    return builder.build(site, blueprint, x, y);
 }

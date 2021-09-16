@@ -30,6 +30,13 @@ export interface BuildSite extends DIG.DigSite {
     ): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
 
+    spawnHorde(
+        horde: GWM.horde.Horde,
+        x: number,
+        y: number,
+        opts?: Partial<GWM.horde.SpawnOptions>
+    ): Promise<GWM.actor.Actor | null>;
+
     analyze(): void;
     buildEffect(
         effect: GWM.effect.EffectInfo,

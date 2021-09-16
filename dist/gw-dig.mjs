@@ -612,18 +612,15 @@ class GridSite {
 const Flags$1 = GWM.flags.Cell;
 class MapSnapshot {
     constructor(site, snap) {
-        this.machineCount = 0;
         this.needsAnalysis = true;
         this.isUsed = false;
         this.site = site;
         this.snapshot = snap;
-        this.machineCount = this.site.machineCount;
         this.needsAnalysis = this.site.needsAnalysis;
         this.isUsed = true;
     }
     restore() {
         this.site.snapshots.revertMapTo(this.snapshot);
-        this.site.machineCount = this.machineCount;
         this.site.needsAnalysis = this.needsAnalysis;
         this.cancel();
     }
@@ -725,6 +722,9 @@ class MapSite {
     }
     hasActor(x, y) {
         return this.map.hasActor(x, y);
+    }
+    async spawnHorde(horde, x, y, opts = {}) {
+        return horde.spawn(this.map, x, y, opts);
     }
     blocksMove(x, y) {
         return this.map.cellInfo(x, y).blocksMove();
@@ -841,7 +841,7 @@ class MapSite {
         return GWM.effect.fire(effect, this.map, x, y, { rng: this.rng });
     }
     nextMachineId() {
-        return ++this.machineCount;
+        return ++this.map.machineCount;
     }
     getMachine(x, y) {
         return this.map.cell(x, y).machineId;
@@ -866,7 +866,7 @@ class MapSite {
     }
 }
 
-var index$2 = /*#__PURE__*/Object.freeze({
+var index$3 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     NOTHING: NOTHING,
     FLOOR: FLOOR,
@@ -2158,10 +2158,10 @@ var StepFlags;
     StepFlags[StepFlags["BS_FAR_FROM_ORIGIN"] = Fl$1(8)] = "BS_FAR_FROM_ORIGIN";
     StepFlags[StepFlags["BS_IN_VIEW_OF_ORIGIN"] = Fl$1(9)] = "BS_IN_VIEW_OF_ORIGIN";
     StepFlags[StepFlags["BS_IN_PASSABLE_VIEW_OF_ORIGIN"] = Fl$1(10)] = "BS_IN_PASSABLE_VIEW_OF_ORIGIN";
-    StepFlags[StepFlags["BS_MONSTER_TAKE_ITEM"] = Fl$1(11)] = "BS_MONSTER_TAKE_ITEM";
-    StepFlags[StepFlags["BS_MONSTER_SLEEPING"] = Fl$1(12)] = "BS_MONSTER_SLEEPING";
-    StepFlags[StepFlags["BS_MONSTER_FLEEING"] = Fl$1(13)] = "BS_MONSTER_FLEEING";
-    StepFlags[StepFlags["BS_MONSTERS_DORMANT"] = Fl$1(14)] = "BS_MONSTERS_DORMANT";
+    StepFlags[StepFlags["BS_HORDE_TAKES_ITEM"] = Fl$1(11)] = "BS_HORDE_TAKES_ITEM";
+    StepFlags[StepFlags["BS_HORDE_SLEEPING"] = Fl$1(12)] = "BS_HORDE_SLEEPING";
+    StepFlags[StepFlags["BS_HORDE_FLEEING"] = Fl$1(13)] = "BS_HORDE_FLEEING";
+    StepFlags[StepFlags["BS_HORDES_DORMANT"] = Fl$1(14)] = "BS_HORDES_DORMANT";
     StepFlags[StepFlags["BS_ITEM_IS_KEY"] = Fl$1(15)] = "BS_ITEM_IS_KEY";
     StepFlags[StepFlags["BS_ITEM_IDENTIFIED"] = Fl$1(16)] = "BS_ITEM_IDENTIFIED";
     StepFlags[StepFlags["BS_ITEM_PLAYER_AVOIDS"] = Fl$1(17)] = "BS_ITEM_PLAYER_AVOIDS";
@@ -2205,7 +2205,17 @@ class BuildStep {
         else {
             this.item = cfg.item || null;
         }
-        this.horde = cfg.horde || null;
+        if (cfg.horde) {
+            if (typeof cfg.horde === 'string') {
+                this.horde = { tags: cfg.horde };
+            }
+            else if (cfg.horde === true) {
+                this.horde = { random: true };
+            }
+            else {
+                this.horde = cfg.horde;
+            }
+        }
         if (cfg.effect) {
             this.effect = GWM.effect.from(cfg.effect);
         }
@@ -2217,6 +2227,9 @@ class BuildStep {
         }
         if (this.buildAtOrigin && this.repeatUntilNoProgress) {
             throw new Error('Cannot have BS_BUILD_AT_ORIGIN and BS_REPEAT_UNTIL_NO_PROGRESS together in a build step.');
+        }
+        if (this.hordeTakesItem && !this.horde) {
+            throw new Error('Cannot have BS_HORDE_TAKES_ITEM without a horde configured.');
         }
     }
     get allowBoundary() {
@@ -2261,6 +2274,9 @@ class BuildStep {
     }
     get buildVestibule() {
         return !!(this.flags & StepFlags.BS_BUILD_VESTIBULE);
+    }
+    get hordeTakesItem() {
+        return !!(this.flags & StepFlags.BS_HORDE_TAKES_ITEM);
     }
     get generateEverywhere() {
         return !!(this.flags &
@@ -2345,13 +2361,13 @@ class BuildStep {
             parts.push('tile: ' + this.tile);
         }
         if (this.effect) {
-            parts.push('effect: ' + this.effect);
+            parts.push('effect: ' + JSON.stringify(this.effect));
         }
         if (this.item) {
-            parts.push('item: ' + this.item);
+            parts.push('item: ' + JSON.stringify(this.item));
         }
         if (this.horde) {
-            parts.push('horde: ' + this.horde);
+            parts.push('horde: ' + JSON.stringify(this.horde));
         }
         if (this.pad > 1) {
             parts.push('pad: ' + this.pad);
@@ -2376,7 +2392,7 @@ function updateViewMap(builder, buildStep) {
         if (buildStep.flags & StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) {
             const fov = new GWU.fov.FOV({
                 isBlocked: (x, y) => {
-                    return site.blocksPathing(x, y);
+                    return site.blocksPathing(x, y) || site.blocksVision(x, y);
                 },
                 hasXY: (x, y) => {
                     return site.hasXY(x, y);
@@ -2388,10 +2404,8 @@ function updateViewMap(builder, buildStep) {
         }
         else {
             const fov = new GWU.fov.FOV({
-                // TileFlags.T_OBSTRUCTS_PASSABILITY |
-                //     TileFlags.T_OBSTRUCTS_VISION,
                 isBlocked: (x, y) => {
-                    return site.blocksPathing(x, y) || site.blocksVision(x, y);
+                    return site.blocksVision(x, y);
                 },
                 hasXY: (x, y) => {
                     return site.hasXY(x, y);
@@ -2780,13 +2794,19 @@ class Blueprint {
         if (opts.steps) {
             this.steps = opts.steps.map((cfg) => new BuildStep(cfg));
         }
-        if (this.flags & Flags.BP_ADOPT_ITEM) {
-            if (!this.steps.some((s) => s.flags & StepFlags.BS_ADOPT_ITEM)) {
-                throw new Error('Blueprint wants to BP_ADOPT_ITEM, but has no steps with BS_ADOPT_ITEM.');
-            }
-        }
         if (opts.id) {
             this.id = opts.id;
+        }
+        if (this.flags & Flags.BP_ADOPT_ITEM) {
+            if (!this.steps.some((step) => {
+                if (step.adoptItem)
+                    return true;
+                if (step.hordeTakesItem && !step.item)
+                    return true;
+                return false;
+            })) {
+                throw new Error('Blueprint calls for BP_ADOPT_ITEM, but has no adoptive step.');
+            }
         }
     }
     get isRoom() {
@@ -4419,7 +4439,7 @@ class Builder {
                 }
             }
         }
-        // Generate an actor, if necessary
+        let torch = adoptedItem;
         // Generate an item, if necessary
         if (success && buildStep.item) {
             const item = buildStep.makeItem(data);
@@ -4442,6 +4462,9 @@ class Builder {
                             item.kind.id);
                         success = false;
                     }
+                }
+                else if (buildStep.hordeTakesItem) {
+                    torch = item;
                 }
                 else {
                     success = site.addItem(x, y, item);
@@ -4468,6 +4491,50 @@ class Builder {
                 }
             }
         }
+        let torchBearer = null;
+        if (success && buildStep.horde) {
+            let horde;
+            if (buildStep.horde.random) {
+                horde = GWM.horde.random({ rng: site.rng });
+            }
+            else if (buildStep.horde.id) {
+                horde = GWM.horde.from(buildStep.horde.id);
+            }
+            else {
+                buildStep.horde.rng = site.rng;
+                horde = GWM.horde.random(buildStep.horde);
+            }
+            if (!horde) {
+                success = false;
+                await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to pick horde - ' + JSON.stringify(buildStep.horde));
+            }
+            else {
+                const leader = await site.spawnHorde(horde, x, y, {
+                    machine: site.machineCount,
+                });
+                if (!leader) {
+                    success = false;
+                    await this.log.onStepInstanceFail(data, buildStep, x, y, 'Failed to build horde - ' + horde);
+                }
+                else {
+                    // What to do now?
+                    didSomething = true;
+                    // leader adopts item...
+                    if (torch && buildStep.hordeTakesItem) {
+                        torchBearer = leader;
+                        if (!(await torchBearer.pickupItem(torch, {
+                            admin: true,
+                        }))) {
+                            success = false;
+                        }
+                    }
+                    if (buildStep.horde.effect) {
+                        const info = GWM.effect.from(buildStep.horde.effect);
+                        await site.buildEffect(info, x, y);
+                    }
+                }
+            }
+        }
         if (success && didSomething) {
             // Mark the feature location as part of the machine, in case it is not already inside of it.
             if (!data.blueprint.noInteriorFlag) {
@@ -4482,8 +4549,18 @@ class Builder {
         return success && didSomething;
     }
 }
+////////////////////////////////////////////////////
+// TODO - Change this!!!
+// const blue = BLUE.get(id | blue);
+// const result = await blue.buildAt(map, x, y);
+//
+function build(blueprint, map, x, y, opts) {
+    const builder = new Builder(opts);
+    const site = new MapSite(map);
+    return builder.build(site, blueprint, x, y);
+}
 
-var index$1 = /*#__PURE__*/Object.freeze({
+var index$2 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     BuildData: BuildData,
     get StepFlags () { return StepFlags; },
@@ -4493,6 +4570,7 @@ var index$1 = /*#__PURE__*/Object.freeze({
     get CandidateType () { return CandidateType; },
     cellIsCandidate: cellIsCandidate,
     Builder: Builder,
+    build: build,
     get Flags () { return Flags; },
     Blueprint: Blueprint,
     markCandidates: markCandidates,
@@ -4568,11 +4646,32 @@ class Visualizer {
     async onStepFail(_data, _step, _error) { }
 }
 
-var index = /*#__PURE__*/Object.freeze({
+var index$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     NullLogger: NullLogger,
     ConsoleLogger: ConsoleLogger,
     Visualizer: Visualizer
 });
 
-export { Digger, Dungeon, Hall, Room, index$1 as blueprint, bridge, hall, lake, index as log, loop, makeHall, room, index$2 as site, stairs };
+class MachineHorde extends GWM.horde.Horde {
+    constructor(config) {
+        super(config);
+        this.machine = null;
+        this.machine = config.blueprint || null;
+    }
+    async _addLeader(leader, map, x, y, opts) {
+        if (this.machine) {
+            await build(this.machine, map, x, y);
+        }
+        if (!(await super._addLeader(leader, map, x, y, opts)))
+            return false;
+        return true;
+    }
+}
+
+var index = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    MachineHorde: MachineHorde
+});
+
+export { Digger, Dungeon, Hall, Room, index$2 as blueprint, bridge, hall, index as horde, lake, index$1 as log, loop, makeHall, room, index$3 as site, stairs };

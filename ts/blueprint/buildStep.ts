@@ -9,13 +9,20 @@ export interface ItemOptions extends GWM.item.MatchOptions {
     id: string;
 }
 
+export interface HordeOptions extends GWM.horde.HordeConfig {
+    id: string;
+    effect: string | GWM.effect.EffectBase;
+    random: boolean;
+    rng?: GWU.rng.Random;
+}
+
 export interface StepOptions {
     tile: string | number;
     flags: GWU.flag.FlagBase;
     pad: number;
     count: GWU.range.RangeBase;
     item: string | Partial<ItemOptions>;
-    horde: any;
+    horde: boolean | string | Partial<HordeOptions>;
     effect: Partial<GWM.effect.EffectConfig> | string;
 }
 
@@ -35,10 +42,10 @@ export enum StepFlags {
     BS_IN_VIEW_OF_ORIGIN = Fl(9), // this feature must be in view of the origin
     BS_IN_PASSABLE_VIEW_OF_ORIGIN = Fl(10), // this feature must be in view of the origin, where "view" is blocked by pathing blockers
 
-    BS_MONSTER_TAKE_ITEM = Fl(11), // the item associated with this feature (including if adopted) will be in possession of the horde leader that's generated
-    BS_MONSTER_SLEEPING = Fl(12), // the monsters should be asleep when generated
-    BS_MONSTER_FLEEING = Fl(13), // the monsters should be permanently fleeing when generated
-    BS_MONSTERS_DORMANT = Fl(14), // monsters are dormant, and appear when a dungeon feature with DFF_ACTIVATE_DORMANT_MONSTER spawns on their tile
+    BS_HORDE_TAKES_ITEM = Fl(11), // the item associated with this feature (including if adopted) will be in possession of the horde leader that's generated
+    BS_HORDE_SLEEPING = Fl(12), // the monsters should be asleep when generated
+    BS_HORDE_FLEEING = Fl(13), // the monsters should be permanently fleeing when generated
+    BS_HORDES_DORMANT = Fl(14), // monsters are dormant, and appear when a dungeon feature with DFF_ACTIVATE_DORMANT_MONSTER spawns on their tile
 
     BS_ITEM_IS_KEY = Fl(15),
     BS_ITEM_IDENTIFIED = Fl(16),
@@ -70,7 +77,7 @@ export class BuildStep {
     public pad: number = 0;
     public count: GWU.range.Range;
     public item: Partial<ItemOptions> | null = null;
-    public horde: any | null = null;
+    public horde: Partial<HordeOptions> | null = null;
     public effect: GWM.effect.EffectInfo | null = null;
     public chance = 0;
     // public next: null = null;
@@ -90,7 +97,15 @@ export class BuildStep {
         } else {
             this.item = cfg.item || null;
         }
-        this.horde = cfg.horde || null;
+        if (cfg.horde) {
+            if (typeof cfg.horde === 'string') {
+                this.horde = { tags: cfg.horde };
+            } else if (cfg.horde === true) {
+                this.horde = { random: true };
+            } else {
+                this.horde = cfg.horde;
+            }
+        }
 
         if (cfg.effect) {
             this.effect = GWM.effect.from(cfg.effect);
@@ -110,6 +125,11 @@ export class BuildStep {
         if (this.buildAtOrigin && this.repeatUntilNoProgress) {
             throw new Error(
                 'Cannot have BS_BUILD_AT_ORIGIN and BS_REPEAT_UNTIL_NO_PROGRESS together in a build step.'
+            );
+        }
+        if (this.hordeTakesItem && !this.horde) {
+            throw new Error(
+                'Cannot have BS_HORDE_TAKES_ITEM without a horde configured.'
             );
         }
     }
@@ -171,6 +191,10 @@ export class BuildStep {
 
     get buildVestibule(): boolean {
         return !!(this.flags & StepFlags.BS_BUILD_VESTIBULE);
+    }
+
+    get hordeTakesItem(): boolean {
+        return !!(this.flags & StepFlags.BS_HORDE_TAKES_ITEM);
     }
 
     get generateEverywhere(): boolean {
@@ -286,13 +310,13 @@ export class BuildStep {
             parts.push('tile: ' + this.tile);
         }
         if (this.effect) {
-            parts.push('effect: ' + this.effect);
+            parts.push('effect: ' + JSON.stringify(this.effect));
         }
         if (this.item) {
-            parts.push('item: ' + this.item);
+            parts.push('item: ' + JSON.stringify(this.item));
         }
         if (this.horde) {
-            parts.push('horde: ' + this.horde);
+            parts.push('horde: ' + JSON.stringify(this.horde));
         }
         if (this.pad > 1) {
             parts.push('pad: ' + this.pad);
@@ -320,7 +344,7 @@ export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
         if (buildStep.flags & StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) {
             const fov = new GWU.fov.FOV({
                 isBlocked: (x, y) => {
-                    return site.blocksPathing(x, y);
+                    return site.blocksPathing(x, y) || site.blocksVision(x, y);
                 },
                 hasXY: (x, y) => {
                     return site.hasXY(x, y);
@@ -331,10 +355,8 @@ export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
             });
         } else {
             const fov = new GWU.fov.FOV({
-                // TileFlags.T_OBSTRUCTS_PASSABILITY |
-                //     TileFlags.T_OBSTRUCTS_VISION,
                 isBlocked: (x, y) => {
-                    return site.blocksPathing(x, y) || site.blocksVision(x, y);
+                    return site.blocksVision(x, y);
                 },
                 hasXY: (x, y) => {
                     return site.hasXY(x, y);

@@ -127,6 +127,44 @@ describe('Mixed Item Library', () => {
         });
     });
 
+    test('simple item', async () => {
+        const map = GWM.map.make(80, 34, { visible: true });
+
+        const digger = new GWD.Digger({
+            seed: 12345,
+            rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
+            doors: { chance: 0 },
+            loops: false,
+            lakes: false,
+        });
+        await digger.create(map);
+
+        GWM.item.install('SHOVEL', {
+            name: 'a shovel',
+            tags: 'TOOL',
+            ch: '!',
+            fg: 'gold',
+        });
+
+        const blue = GWD.blueprint.install('ROOM', {
+            flags: 'BP_ROOM',
+            size: '10-100',
+            steps: [{ item: 'TOOL', flags: 'BS_FAR_FROM_ORIGIN' }],
+        });
+
+        const builder = new GWD.blueprint.Builder();
+        expect(await builder.build(map, blue)).toBeTruthy();
+
+        // map.dump();
+
+        let count = 0;
+        map.eachItem((i) => {
+            ++count;
+            expect(i.hasTag('TOOL')).toBeTruthy();
+        });
+        expect(count).toEqual(1);
+    });
+
     test('Good Item Room', async () => {
         const map = GWM.map.make(80, 34);
         map.properties.depth = 1;
@@ -233,7 +271,7 @@ describe('Mixed Item Library', () => {
         let count = 0;
         map.eachItem((item) => {
             ++count;
-            expect(item.kind.make).toHaveBeenCalledWith(item, {
+            expect(item.kind.make).toHaveBeenCalledWith({
                 runic: true,
                 cursed: false,
             });

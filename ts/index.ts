@@ -10,3 +10,4 @@ export * from './digger';
 export * from './dungeon';
 export * as blueprint from './blueprint';
 export * as log from './log';
+export * as horde from './horde';

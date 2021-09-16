@@ -9,21 +9,18 @@ const Flags = GWM.flags.Cell;
 export class MapSnapshot implements BUILD.Snapshot {
     site: MapSite;
     snapshot: GWM.map.Snapshot;
-    machineCount = 0;
     needsAnalysis = true;
     isUsed = false;
 
     constructor(site: MapSite, snap: GWM.map.Snapshot) {
         this.site = site;
         this.snapshot = snap;
-        this.machineCount = this.site.machineCount;
         this.needsAnalysis = this.site.needsAnalysis;
         this.isUsed = true;
     }
 
     restore() {
         this.site.snapshots.revertMapTo(this.snapshot);
-        this.site.machineCount = this.machineCount;
         this.site.needsAnalysis = this.needsAnalysis;
         this.cancel();
     }
@@ -158,6 +155,14 @@ export class MapSite implements BUILD.BuildSite {
     hasActor(x: number, y: number): boolean {
         return this.map.hasActor(x, y);
     }
+    async spawnHorde(
+        horde: GWM.horde.Horde,
+        x: number,
+        y: number,
+        opts: Partial<GWM.horde.SpawnOptions> = {}
+    ): Promise<GWM.actor.Actor | null> {
+        return horde.spawn(this.map, x, y, opts);
+    }
 
     blocksMove(x: number, y: number): boolean {
         return this.map.cellInfo(x, y).blocksMove();
@@ -287,7 +292,7 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     nextMachineId(): number {
-        return ++this.machineCount;
+        return ++this.map.machineCount;
     }
     getMachine(x: number, y: number) {
         return this.map.cell(x, y).machineId;

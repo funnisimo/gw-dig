@@ -72,6 +72,7 @@ interface BuildSite extends DigSite {
     makeItem(id: string, makeOptions?: any): GWM.item.Item | null;
     makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
+    spawnHorde(horde: GWM.horde.Horde, x: number, y: number, opts?: Partial<GWM.horde.SpawnOptions>): Promise<GWM.actor.Actor | null>;
     analyze(): void;
     buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): Promise<boolean>;
     snapshot(): Snapshot;
@@ -140,7 +141,6 @@ declare class GridSite implements DigSite {
 declare class MapSnapshot implements Snapshot {
     site: MapSite;
     snapshot: GWM.map.Snapshot;
-    machineCount: number;
     needsAnalysis: boolean;
     isUsed: boolean;
     constructor(site: MapSite, snap: GWM.map.Snapshot);
@@ -177,6 +177,7 @@ declare class MapSite implements BuildSite {
     makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     hasActor(x: number, y: number): boolean;
+    spawnHorde(horde: GWM.horde.Horde, x: number, y: number, opts?: Partial<GWM.horde.SpawnOptions>): Promise<GWM.actor.Actor | null>;
     blocksMove(x: number, y: number): boolean;
     blocksVision(x: number, y: number): boolean;
     blocksDiagonal(x: number, y: number): boolean;
@@ -209,67 +210,67 @@ declare class MapSite implements BuildSite {
     getDoorDir(x: number, y: number): number;
 }
 
-declare const index_d$2_NOTHING: typeof NOTHING;
-declare const index_d$2_FLOOR: typeof FLOOR;
-declare const index_d$2_DOOR: typeof DOOR;
-declare const index_d$2_SECRET_DOOR: typeof SECRET_DOOR;
-declare const index_d$2_WALL: typeof WALL;
-declare const index_d$2_DEEP: typeof DEEP;
-declare const index_d$2_SHALLOW: typeof SHALLOW;
-declare const index_d$2_BRIDGE: typeof BRIDGE;
-declare const index_d$2_UP_STAIRS: typeof UP_STAIRS;
-declare const index_d$2_DOWN_STAIRS: typeof DOWN_STAIRS;
-declare const index_d$2_IMPREGNABLE: typeof IMPREGNABLE;
-declare const index_d$2_TILEMAP: typeof TILEMAP;
-type index_d$2_DigSite = DigSite;
-type index_d$2_Snapshot = Snapshot;
-type index_d$2_BuildSite = BuildSite;
-declare const index_d$2_directionOfDoorSite: typeof directionOfDoorSite;
-declare const index_d$2_chooseRandomDoorSites: typeof chooseRandomDoorSites;
-declare const index_d$2_copySite: typeof copySite;
-declare const index_d$2_fillCostGrid: typeof fillCostGrid;
-type index_d$2_DisruptOptions = DisruptOptions;
-declare const index_d$2_siteDisruptedByXY: typeof siteDisruptedByXY;
-declare const index_d$2_siteDisruptedBy: typeof siteDisruptedBy;
-declare const index_d$2_siteDisruptedSize: typeof siteDisruptedSize;
-declare const index_d$2_computeDistanceMap: typeof computeDistanceMap;
-declare const index_d$2_clearInteriorFlag: typeof clearInteriorFlag;
-type index_d$2_GridSite = GridSite;
-declare const index_d$2_GridSite: typeof GridSite;
-type index_d$2_MapSnapshot = MapSnapshot;
-declare const index_d$2_MapSnapshot: typeof MapSnapshot;
-type index_d$2_MapSite = MapSite;
-declare const index_d$2_MapSite: typeof MapSite;
-declare namespace index_d$2 {
+declare const index_d$3_NOTHING: typeof NOTHING;
+declare const index_d$3_FLOOR: typeof FLOOR;
+declare const index_d$3_DOOR: typeof DOOR;
+declare const index_d$3_SECRET_DOOR: typeof SECRET_DOOR;
+declare const index_d$3_WALL: typeof WALL;
+declare const index_d$3_DEEP: typeof DEEP;
+declare const index_d$3_SHALLOW: typeof SHALLOW;
+declare const index_d$3_BRIDGE: typeof BRIDGE;
+declare const index_d$3_UP_STAIRS: typeof UP_STAIRS;
+declare const index_d$3_DOWN_STAIRS: typeof DOWN_STAIRS;
+declare const index_d$3_IMPREGNABLE: typeof IMPREGNABLE;
+declare const index_d$3_TILEMAP: typeof TILEMAP;
+type index_d$3_DigSite = DigSite;
+type index_d$3_Snapshot = Snapshot;
+type index_d$3_BuildSite = BuildSite;
+declare const index_d$3_directionOfDoorSite: typeof directionOfDoorSite;
+declare const index_d$3_chooseRandomDoorSites: typeof chooseRandomDoorSites;
+declare const index_d$3_copySite: typeof copySite;
+declare const index_d$3_fillCostGrid: typeof fillCostGrid;
+type index_d$3_DisruptOptions = DisruptOptions;
+declare const index_d$3_siteDisruptedByXY: typeof siteDisruptedByXY;
+declare const index_d$3_siteDisruptedBy: typeof siteDisruptedBy;
+declare const index_d$3_siteDisruptedSize: typeof siteDisruptedSize;
+declare const index_d$3_computeDistanceMap: typeof computeDistanceMap;
+declare const index_d$3_clearInteriorFlag: typeof clearInteriorFlag;
+type index_d$3_GridSite = GridSite;
+declare const index_d$3_GridSite: typeof GridSite;
+type index_d$3_MapSnapshot = MapSnapshot;
+declare const index_d$3_MapSnapshot: typeof MapSnapshot;
+type index_d$3_MapSite = MapSite;
+declare const index_d$3_MapSite: typeof MapSite;
+declare namespace index_d$3 {
   export {
-    index_d$2_NOTHING as NOTHING,
-    index_d$2_FLOOR as FLOOR,
-    index_d$2_DOOR as DOOR,
-    index_d$2_SECRET_DOOR as SECRET_DOOR,
-    index_d$2_WALL as WALL,
-    index_d$2_DEEP as DEEP,
-    index_d$2_SHALLOW as SHALLOW,
-    index_d$2_BRIDGE as BRIDGE,
-    index_d$2_UP_STAIRS as UP_STAIRS,
-    index_d$2_DOWN_STAIRS as DOWN_STAIRS,
-    index_d$2_IMPREGNABLE as IMPREGNABLE,
-    index_d$2_TILEMAP as TILEMAP,
-    index_d$2_DigSite as DigSite,
-    index_d$2_Snapshot as Snapshot,
-    index_d$2_BuildSite as BuildSite,
-    index_d$2_directionOfDoorSite as directionOfDoorSite,
-    index_d$2_chooseRandomDoorSites as chooseRandomDoorSites,
-    index_d$2_copySite as copySite,
-    index_d$2_fillCostGrid as fillCostGrid,
-    index_d$2_DisruptOptions as DisruptOptions,
-    index_d$2_siteDisruptedByXY as siteDisruptedByXY,
-    index_d$2_siteDisruptedBy as siteDisruptedBy,
-    index_d$2_siteDisruptedSize as siteDisruptedSize,
-    index_d$2_computeDistanceMap as computeDistanceMap,
-    index_d$2_clearInteriorFlag as clearInteriorFlag,
-    index_d$2_GridSite as GridSite,
-    index_d$2_MapSnapshot as MapSnapshot,
-    index_d$2_MapSite as MapSite,
+    index_d$3_NOTHING as NOTHING,
+    index_d$3_FLOOR as FLOOR,
+    index_d$3_DOOR as DOOR,
+    index_d$3_SECRET_DOOR as SECRET_DOOR,
+    index_d$3_WALL as WALL,
+    index_d$3_DEEP as DEEP,
+    index_d$3_SHALLOW as SHALLOW,
+    index_d$3_BRIDGE as BRIDGE,
+    index_d$3_UP_STAIRS as UP_STAIRS,
+    index_d$3_DOWN_STAIRS as DOWN_STAIRS,
+    index_d$3_IMPREGNABLE as IMPREGNABLE,
+    index_d$3_TILEMAP as TILEMAP,
+    index_d$3_DigSite as DigSite,
+    index_d$3_Snapshot as Snapshot,
+    index_d$3_BuildSite as BuildSite,
+    index_d$3_directionOfDoorSite as directionOfDoorSite,
+    index_d$3_chooseRandomDoorSites as chooseRandomDoorSites,
+    index_d$3_copySite as copySite,
+    index_d$3_fillCostGrid as fillCostGrid,
+    index_d$3_DisruptOptions as DisruptOptions,
+    index_d$3_siteDisruptedByXY as siteDisruptedByXY,
+    index_d$3_siteDisruptedBy as siteDisruptedBy,
+    index_d$3_siteDisruptedSize as siteDisruptedSize,
+    index_d$3_computeDistanceMap as computeDistanceMap,
+    index_d$3_clearInteriorFlag as clearInteriorFlag,
+    index_d$3_GridSite as GridSite,
+    index_d$3_MapSnapshot as MapSnapshot,
+    index_d$3_MapSite as MapSite,
   };
 }
 
@@ -587,13 +588,19 @@ interface ItemOptions extends GWM.item.MatchOptions {
     make: any;
     id: string;
 }
+interface HordeOptions extends GWM.horde.HordeConfig {
+    id: string;
+    effect: string | GWM.effect.EffectBase;
+    random: boolean;
+    rng?: GWU.rng.Random;
+}
 interface StepOptions {
     tile: string | number;
     flags: GWU.flag.FlagBase;
     pad: number;
     count: GWU.range.RangeBase;
     item: string | Partial<ItemOptions>;
-    horde: any;
+    horde: boolean | string | Partial<HordeOptions>;
     effect: Partial<GWM.effect.EffectConfig> | string;
 }
 declare enum StepFlags {
@@ -607,10 +614,10 @@ declare enum StepFlags {
     BS_FAR_FROM_ORIGIN,
     BS_IN_VIEW_OF_ORIGIN,
     BS_IN_PASSABLE_VIEW_OF_ORIGIN,
-    BS_MONSTER_TAKE_ITEM,
-    BS_MONSTER_SLEEPING,
-    BS_MONSTER_FLEEING,
-    BS_MONSTERS_DORMANT,
+    BS_HORDE_TAKES_ITEM,
+    BS_HORDE_SLEEPING,
+    BS_HORDE_FLEEING,
+    BS_HORDES_DORMANT,
     BS_ITEM_IS_KEY,
     BS_ITEM_IDENTIFIED,
     BS_ITEM_PLAYER_AVOIDS,
@@ -633,7 +640,7 @@ declare class BuildStep {
     pad: number;
     count: GWU.range.Range;
     item: Partial<ItemOptions> | null;
-    horde: any | null;
+    horde: Partial<HordeOptions> | null;
     effect: GWM.effect.EffectInfo | null;
     chance: number;
     constructor(cfg?: Partial<StepOptions>);
@@ -651,6 +658,7 @@ declare class BuildStep {
     get outsourceItem(): boolean;
     get impregnable(): boolean;
     get buildVestibule(): boolean;
+    get hordeTakesItem(): boolean;
     get generateEverywhere(): boolean;
     get buildAtOrigin(): boolean;
     get buildsInstances(): boolean;
@@ -935,70 +943,75 @@ declare class Builder {
     _buildStep(data: BuildData, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): Promise<boolean>;
     _buildStepInstance(data: BuildData, buildStep: BuildStep, x: number, y: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
 }
+declare function build(blueprint: BlueType, map: GWM.map.Map, x: number, y: number, opts?: Partial<BuilderOptions>): Promise<BuildResult>;
 
-type index_d$1_BuildData = BuildData;
-declare const index_d$1_BuildData: typeof BuildData;
-type index_d$1_ItemOptions = ItemOptions;
-type index_d$1_StepOptions = StepOptions;
-type index_d$1_StepFlags = StepFlags;
-declare const index_d$1_StepFlags: typeof StepFlags;
-type index_d$1_BuildStep = BuildStep;
-declare const index_d$1_BuildStep: typeof BuildStep;
-declare const index_d$1_updateViewMap: typeof updateViewMap;
-declare const index_d$1_calcDistanceBound: typeof calcDistanceBound;
-type index_d$1_CandidateType = CandidateType;
-declare const index_d$1_CandidateType: typeof CandidateType;
-declare const index_d$1_cellIsCandidate: typeof cellIsCandidate;
-type index_d$1_BlueType = BlueType;
-type index_d$1_BuilderOptions = BuilderOptions;
-type index_d$1_BuildInfo = BuildInfo;
-type index_d$1_BuildResult = BuildResult;
-type index_d$1_Builder = Builder;
-declare const index_d$1_Builder: typeof Builder;
-type index_d$1_Flags = Flags;
-declare const index_d$1_Flags: typeof Flags;
-type index_d$1_BlueprintOptions = BlueprintOptions;
-type index_d$1_Blueprint = Blueprint;
-declare const index_d$1_Blueprint: typeof Blueprint;
-declare const index_d$1_markCandidates: typeof markCandidates;
-declare const index_d$1_pickCandidateLoc: typeof pickCandidateLoc;
-declare const index_d$1_computeVestibuleInterior: typeof computeVestibuleInterior;
-declare const index_d$1_maximizeInterior: typeof maximizeInterior;
-declare const index_d$1_prepareInterior: typeof prepareInterior;
-declare const index_d$1_blueprints: typeof blueprints;
-declare const index_d$1_install: typeof install;
-declare const index_d$1_random: typeof random;
-declare const index_d$1_get: typeof get;
-declare const index_d$1_make: typeof make;
-declare namespace index_d$1 {
+type index_d$2_BuildData = BuildData;
+declare const index_d$2_BuildData: typeof BuildData;
+type index_d$2_ItemOptions = ItemOptions;
+type index_d$2_HordeOptions = HordeOptions;
+type index_d$2_StepOptions = StepOptions;
+type index_d$2_StepFlags = StepFlags;
+declare const index_d$2_StepFlags: typeof StepFlags;
+type index_d$2_BuildStep = BuildStep;
+declare const index_d$2_BuildStep: typeof BuildStep;
+declare const index_d$2_updateViewMap: typeof updateViewMap;
+declare const index_d$2_calcDistanceBound: typeof calcDistanceBound;
+type index_d$2_CandidateType = CandidateType;
+declare const index_d$2_CandidateType: typeof CandidateType;
+declare const index_d$2_cellIsCandidate: typeof cellIsCandidate;
+type index_d$2_BlueType = BlueType;
+type index_d$2_BuilderOptions = BuilderOptions;
+type index_d$2_BuildInfo = BuildInfo;
+type index_d$2_BuildResult = BuildResult;
+type index_d$2_Builder = Builder;
+declare const index_d$2_Builder: typeof Builder;
+declare const index_d$2_build: typeof build;
+type index_d$2_Flags = Flags;
+declare const index_d$2_Flags: typeof Flags;
+type index_d$2_BlueprintOptions = BlueprintOptions;
+type index_d$2_Blueprint = Blueprint;
+declare const index_d$2_Blueprint: typeof Blueprint;
+declare const index_d$2_markCandidates: typeof markCandidates;
+declare const index_d$2_pickCandidateLoc: typeof pickCandidateLoc;
+declare const index_d$2_computeVestibuleInterior: typeof computeVestibuleInterior;
+declare const index_d$2_maximizeInterior: typeof maximizeInterior;
+declare const index_d$2_prepareInterior: typeof prepareInterior;
+declare const index_d$2_blueprints: typeof blueprints;
+declare const index_d$2_install: typeof install;
+declare const index_d$2_random: typeof random;
+declare const index_d$2_get: typeof get;
+declare const index_d$2_make: typeof make;
+declare namespace index_d$2 {
   export {
-    index_d$1_BuildData as BuildData,
-    index_d$1_ItemOptions as ItemOptions,
-    index_d$1_StepOptions as StepOptions,
-    index_d$1_StepFlags as StepFlags,
-    index_d$1_BuildStep as BuildStep,
-    index_d$1_updateViewMap as updateViewMap,
-    index_d$1_calcDistanceBound as calcDistanceBound,
-    index_d$1_CandidateType as CandidateType,
-    index_d$1_cellIsCandidate as cellIsCandidate,
-    index_d$1_BlueType as BlueType,
-    index_d$1_BuilderOptions as BuilderOptions,
-    index_d$1_BuildInfo as BuildInfo,
-    index_d$1_BuildResult as BuildResult,
-    index_d$1_Builder as Builder,
-    index_d$1_Flags as Flags,
-    index_d$1_BlueprintOptions as BlueprintOptions,
-    index_d$1_Blueprint as Blueprint,
-    index_d$1_markCandidates as markCandidates,
-    index_d$1_pickCandidateLoc as pickCandidateLoc,
-    index_d$1_computeVestibuleInterior as computeVestibuleInterior,
-    index_d$1_maximizeInterior as maximizeInterior,
-    index_d$1_prepareInterior as prepareInterior,
-    index_d$1_blueprints as blueprints,
-    index_d$1_install as install,
-    index_d$1_random as random,
-    index_d$1_get as get,
-    index_d$1_make as make,
+    index_d$2_BuildData as BuildData,
+    index_d$2_ItemOptions as ItemOptions,
+    index_d$2_HordeOptions as HordeOptions,
+    index_d$2_StepOptions as StepOptions,
+    index_d$2_StepFlags as StepFlags,
+    index_d$2_BuildStep as BuildStep,
+    index_d$2_updateViewMap as updateViewMap,
+    index_d$2_calcDistanceBound as calcDistanceBound,
+    index_d$2_CandidateType as CandidateType,
+    index_d$2_cellIsCandidate as cellIsCandidate,
+    index_d$2_BlueType as BlueType,
+    index_d$2_BuilderOptions as BuilderOptions,
+    index_d$2_BuildInfo as BuildInfo,
+    index_d$2_BuildResult as BuildResult,
+    index_d$2_Builder as Builder,
+    index_d$2_build as build,
+    index_d$2_Flags as Flags,
+    index_d$2_BlueprintOptions as BlueprintOptions,
+    index_d$2_Blueprint as Blueprint,
+    index_d$2_markCandidates as markCandidates,
+    index_d$2_pickCandidateLoc as pickCandidateLoc,
+    index_d$2_computeVestibuleInterior as computeVestibuleInterior,
+    index_d$2_maximizeInterior as maximizeInterior,
+    index_d$2_prepareInterior as prepareInterior,
+    index_d$2_blueprints as blueprints,
+    index_d$2_install as install,
+    index_d$2_random as random,
+    index_d$2_get as get,
+    index_d$2_make as make,
   };
 }
 
@@ -1053,20 +1066,39 @@ declare class Visualizer implements Logger {
     onStepFail(_data: BuildData, _step: BuildStep, _error: string): Promise<any>;
 }
 
-type index_d_Logger = Logger;
-type index_d_NullLogger = NullLogger;
-declare const index_d_NullLogger: typeof NullLogger;
-type index_d_ConsoleLogger = ConsoleLogger;
-declare const index_d_ConsoleLogger: typeof ConsoleLogger;
-type index_d_Visualizer = Visualizer;
-declare const index_d_Visualizer: typeof Visualizer;
-declare namespace index_d {
+type index_d$1_Logger = Logger;
+type index_d$1_NullLogger = NullLogger;
+declare const index_d$1_NullLogger: typeof NullLogger;
+type index_d$1_ConsoleLogger = ConsoleLogger;
+declare const index_d$1_ConsoleLogger: typeof ConsoleLogger;
+type index_d$1_Visualizer = Visualizer;
+declare const index_d$1_Visualizer: typeof Visualizer;
+declare namespace index_d$1 {
   export {
-    index_d_Logger as Logger,
-    index_d_NullLogger as NullLogger,
-    index_d_ConsoleLogger as ConsoleLogger,
-    index_d_Visualizer as Visualizer,
+    index_d$1_Logger as Logger,
+    index_d$1_NullLogger as NullLogger,
+    index_d$1_ConsoleLogger as ConsoleLogger,
+    index_d$1_Visualizer as Visualizer,
   };
 }
 
-export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, index_d$1 as blueprint, bridge_d as bridge, hall_d as hall, lake_d as lake, index_d as log, loop_d as loop, makeHall, room_d as room, index_d$2 as site, stairs_d as stairs };
+interface MachineHordeConfig extends GWM.horde.HordeConfig {
+    blueprint: BlueType;
+}
+declare class MachineHorde extends GWM.horde.Horde {
+    machine: BlueType | null;
+    constructor(config: MachineHordeConfig);
+    _addLeader(leader: GWM.actor.Actor, map: GWM.map.Map, x: number, y: number, opts: GWM.horde.SpawnOptions): Promise<boolean>;
+}
+
+type index_d_MachineHordeConfig = MachineHordeConfig;
+type index_d_MachineHorde = MachineHorde;
+declare const index_d_MachineHorde: typeof MachineHorde;
+declare namespace index_d {
+  export {
+    index_d_MachineHordeConfig as MachineHordeConfig,
+    index_d_MachineHorde as MachineHorde,
+  };
+}
+
+export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, index_d$2 as blueprint, bridge_d as bridge, hall_d as hall, index_d as horde, lake_d as lake, index_d$1 as log, loop_d as loop, makeHall, room_d as room, index_d$3 as site, stairs_d as stairs };
