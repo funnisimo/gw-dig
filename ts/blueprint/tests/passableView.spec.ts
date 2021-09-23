@@ -12,7 +12,7 @@ describe('inPassableViewOfOrigin', () => {
     });
 
     test('notInHallway', async () => {
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
 
         GWM.tile.install('PORTCULLIS_CLOSED', {
             extends: 'WALL',

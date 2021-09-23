@@ -200,17 +200,17 @@ export class MapSite implements BUILD.BuildSite {
         return this.map.cell(x, y).isStairs();
     }
     isSet(x: number, y: number): boolean {
-        return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
+        return this.hasXY(x, y) && !this.map.cell(x, y).isNull();
     }
     isDiggable(x: number, y: number): boolean {
         if (!this.hasXY(x, y)) return false;
         const cell = this.map.cell(x, y);
-        if (cell.isEmpty()) return true;
+        if (cell.isNull()) return true;
         if (cell.isWall()) return true;
         return false;
     }
     isNothing(x: number, y: number): boolean {
-        return this.hasXY(x, y) && this.map.cell(x, y).isEmpty();
+        return this.hasXY(x, y) && this.map.cell(x, y).isNull();
     }
     isFloor(x: number, y: number): boolean {
         return this.isPassable(x, y);
