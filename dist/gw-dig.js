@@ -699,7 +699,7 @@
             return this.map.isBoundaryXY(x, y);
         }
         hasCellFlag(x, y, flag) {
-            return this.map.cellInfo(x, y).hasCellFlag(flag);
+            return this.map.cell(x, y).hasCellFlag(flag);
         }
         setCellFlag(x, y, flag) {
             this.needsAnalysis = true;
@@ -710,7 +710,7 @@
             this.map.cell(x, y).clearCellFlag(flag);
         }
         hasTile(x, y, tile) {
-            return this.map.cellInfo(x, y).hasTile(tile);
+            return this.map.cell(x, y).hasTile(tile);
         }
         setTile(x, y, tile, opts) {
             this.needsAnalysis = true;
@@ -733,7 +733,7 @@
             this.map.cells.forEach((c) => c.clear());
         }
         hasItem(x, y) {
-            return this.map.cellInfo(x, y).hasItem();
+            return this.map.cell(x, y).hasItem();
         }
         makeItem(id, makeOptions) {
             return GWM__namespace.item.make(id, makeOptions);
@@ -753,36 +753,36 @@
             return horde.spawn(this.map, x, y, opts);
         }
         blocksMove(x, y) {
-            return this.map.cellInfo(x, y).blocksMove();
+            return this.map.cell(x, y).blocksMove();
         }
         blocksVision(x, y) {
-            return this.map.cellInfo(x, y).blocksVision();
+            return this.map.cell(x, y).blocksVision();
         }
         blocksDiagonal(x, y) {
             return this.map
-                .cellInfo(x, y)
+                .cell(x, y)
                 .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_DIAGONAL);
         }
         blocksPathing(x, y) {
-            const info = this.map.cellInfo(x, y);
+            const info = this.map.cell(x, y);
             return (info.hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_MOVE) ||
                 info.hasTileFlag(GWM__namespace.tile.flags.Tile.T_PATHING_BLOCKER));
         }
         blocksItems(x, y) {
             return this.map
-                .cellInfo(x, y)
+                .cell(x, y)
                 .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_ITEMS);
         }
         blocksEffects(x, y) {
             return this.map
-                .cellInfo(x, y)
+                .cell(x, y)
                 .hasEntityFlag(GWM__namespace.flags.Entity.L_BLOCKS_EFFECTS);
         }
         isWall(x, y) {
-            return this.map.cellInfo(x, y).isWall();
+            return this.map.cell(x, y).isWall();
         }
         isStairs(x, y) {
-            return this.map.cellInfo(x, y).isStairs();
+            return this.map.cell(x, y).isStairs();
         }
         isSet(x, y) {
             return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
@@ -804,23 +804,19 @@
             return this.isPassable(x, y);
         }
         isBridge(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_BRIDGE);
+            return this.map.cell(x, y).hasTileFlag(GWM__namespace.tile.flags.Tile.T_BRIDGE);
         }
         isDoor(x, y) {
-            return this.map
-                .cellInfo(x, y)
-                .hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DOOR);
+            return this.map.cell(x, y).hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DOOR);
         }
         isSecretDoor(x, y) {
             return this.map
-                .cellInfo(x, y)
+                .cell(x, y)
                 .hasEntityFlag(GWM__namespace.flags.Entity.L_SECRETLY_PASSABLE);
         }
         isDeep(x, y) {
             return this.map
-                .cellInfo(x, y)
+                .cell(x, y)
                 .hasTileFlag(GWM__namespace.tile.flags.Tile.T_DEEP_WATER);
         }
         isShallow(x, y) {
@@ -841,7 +837,7 @@
             return this.hasItem(x, y) || this.hasActor(x, y);
         }
         isPassable(x, y) {
-            const info = this.map.cellInfo(x, y);
+            const info = this.map.cell(x, y);
             return !(info.blocksMove() || info.blocksPathing());
         }
         // tileBlocksMove(tile: number): boolean {

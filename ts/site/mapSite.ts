@@ -84,7 +84,7 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     hasCellFlag(x: number, y: number, flag: number): boolean {
-        return this.map.cellInfo(x, y).hasCellFlag(flag);
+        return this.map.cell(x, y).hasCellFlag(flag);
     }
     setCellFlag(x: number, y: number, flag: number): void {
         this.needsAnalysis = true;
@@ -100,7 +100,7 @@ export class MapSite implements BUILD.BuildSite {
         y: number,
         tile: string | number | GWM.tile.Tile
     ): boolean {
-        return this.map.cellInfo(x, y).hasTile(tile);
+        return this.map.cell(x, y).hasTile(tile);
     }
 
     setTile(
@@ -135,7 +135,7 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     hasItem(x: number, y: number): boolean {
-        return this.map.cellInfo(x, y).hasItem();
+        return this.map.cell(x, y).hasItem();
     }
     makeItem(id: string, makeOptions?: any): GWM.item.Item {
         return GWM.item.make(id, makeOptions);
@@ -165,18 +165,18 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     blocksMove(x: number, y: number): boolean {
-        return this.map.cellInfo(x, y).blocksMove();
+        return this.map.cell(x, y).blocksMove();
     }
     blocksVision(x: number, y: number): boolean {
-        return this.map.cellInfo(x, y).blocksVision();
+        return this.map.cell(x, y).blocksVision();
     }
     blocksDiagonal(x: number, y: number): boolean {
         return this.map
-            .cellInfo(x, y)
+            .cell(x, y)
             .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_DIAGONAL);
     }
     blocksPathing(x: number, y: number): boolean {
-        const info = this.map.cellInfo(x, y);
+        const info = this.map.cell(x, y);
         return (
             info.hasEntityFlag(GWM.flags.Entity.L_BLOCKS_MOVE) ||
             info.hasTileFlag(GWM.tile.flags.Tile.T_PATHING_BLOCKER)
@@ -184,20 +184,20 @@ export class MapSite implements BUILD.BuildSite {
     }
     blocksItems(x: number, y: number): boolean {
         return this.map
-            .cellInfo(x, y)
+            .cell(x, y)
             .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_ITEMS);
     }
     blocksEffects(x: number, y: number): boolean {
         return this.map
-            .cellInfo(x, y)
+            .cell(x, y)
             .hasEntityFlag(GWM.flags.Entity.L_BLOCKS_EFFECTS);
     }
 
     isWall(x: number, y: number): boolean {
-        return this.map.cellInfo(x, y).isWall();
+        return this.map.cell(x, y).isWall();
     }
     isStairs(x: number, y: number): boolean {
-        return this.map.cellInfo(x, y).isStairs();
+        return this.map.cell(x, y).isStairs();
     }
     isSet(x: number, y: number): boolean {
         return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
@@ -216,23 +216,19 @@ export class MapSite implements BUILD.BuildSite {
         return this.isPassable(x, y);
     }
     isBridge(x: number, y: number): boolean {
-        return this.map
-            .cellInfo(x, y)
-            .hasTileFlag(GWM.tile.flags.Tile.T_BRIDGE);
+        return this.map.cell(x, y).hasTileFlag(GWM.tile.flags.Tile.T_BRIDGE);
     }
     isDoor(x: number, y: number): boolean {
-        return this.map
-            .cellInfo(x, y)
-            .hasTileFlag(GWM.tile.flags.Tile.T_IS_DOOR);
+        return this.map.cell(x, y).hasTileFlag(GWM.tile.flags.Tile.T_IS_DOOR);
     }
     isSecretDoor(x: number, y: number): boolean {
         return this.map
-            .cellInfo(x, y)
+            .cell(x, y)
             .hasEntityFlag(GWM.flags.Entity.L_SECRETLY_PASSABLE);
     }
     isDeep(x: number, y: number): boolean {
         return this.map
-            .cellInfo(x, y)
+            .cell(x, y)
             .hasTileFlag(GWM.tile.flags.Tile.T_DEEP_WATER);
     }
     isShallow(x: number, y: number): boolean {
@@ -256,7 +252,7 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     isPassable(x: number, y: number): boolean {
-        const info = this.map.cellInfo(x, y);
+        const info = this.map.cell(x, y);
         return !(info.blocksMove() || info.blocksPathing());
     }
 

@@ -1102,7 +1102,7 @@
     }
     const random = new Random();
     const cosmetic = new Random();
-    function make$9(seed) {
+    function make$a(seed) {
         return new Random(seed);
     }
 
@@ -1113,7 +1113,7 @@
         Random: Random,
         random: random,
         cosmetic: cosmetic,
-        make: make$9
+        make: make$a
     });
 
     class Range {
@@ -1150,7 +1150,7 @@
             return `${this.lo}-${this.hi}`;
         }
     }
-    function make$8(config) {
+    function make$9(config) {
         if (!config)
             return new Range(0, 0, 0);
         if (config instanceof Range)
@@ -1202,16 +1202,16 @@
         }
         throw new Error('Not a valid range - ' + config);
     }
-    const from$4 = make$8;
+    const from$4 = make$9;
     function asFn(config) {
-        const range = make$8(config);
+        const range = make$9(config);
         return () => range.value();
     }
 
     var range = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Range: Range,
-        make: make$8,
+        make: make$9,
         from: from$4,
         asFn: asFn
     });
@@ -1298,12 +1298,36 @@
         }
         return result;
     }
+    function make$8(obj) {
+        const out = {};
+        Object.entries(obj).forEach(([key, value]) => {
+            if (typeof value === 'string') {
+                const parts = value.split(/[,|]/).map((t) => t.trim());
+                const flag = parts.reduce((result, id) => result | out[id], 0);
+                out[key] = flag;
+            }
+            else if (Array.isArray(value)) {
+                const flag = value.reduce((result, v) => {
+                    if (typeof v === 'string') {
+                        return result | out[v];
+                    }
+                    return result | v;
+                }, 0);
+                out[key] = flag;
+            }
+            else if (value) {
+                out[key] = value;
+            }
+        });
+        return out;
+    }
 
     var flag = /*#__PURE__*/Object.freeze({
         __proto__: null,
         fl: fl,
         toString: toString,
-        from: from$3
+        from: from$3,
+        make: make$8
     });
 
     const DIRS$1 = DIRS$2;
@@ -2338,7 +2362,7 @@
             this._hasXY = strategy.hasXY || TRUE;
             this._debug = strategy.debug || NOOP;
         }
-        calculate(x, y, maxRadius = 10, setVisible) {
+        calculate(x, y, maxRadius, setVisible) {
             this._setVisible = setVisible;
             this._setVisible(x, y, 1);
             this._startX = x;
@@ -2427,7 +2451,18 @@
         constructor(site, opts = {}) {
             this.isEnabled = false;
             this.site = site;
-            this.flags = make$7(site.width, site.height, FovFlags.VISIBLE);
+            let flag = 0;
+            if (opts.revealed)
+                flag |= FovFlags.REVEALED;
+            if (opts.visible)
+                flag |= FovFlags.VISIBLE;
+            if (flag === 0 &&
+                opts.fov !== true &&
+                opts.revealed === undefined &&
+                opts.visible === undefined) {
+                flag = FovFlags.VISIBLE | FovFlags.REVEALED;
+            }
+            this.flags = make$7(site.width, site.height, flag);
             this.needsUpdate = true;
             this._changed = true;
             this.fov = new FOV({
@@ -2440,18 +2475,13 @@
             });
             // we want fov, so do not reveal the map initially
             if (opts.fov === true) {
-                this.flags.fill(0);
                 this.isEnabled = true;
             }
             if (opts.visible) {
                 this.makeAlwaysVisible();
             }
             else if (opts.visible === false) {
-                this.flags.fill(0);
                 this.isEnabled = true;
-            }
-            else if (opts.revealed) {
-                this.revealAll();
             }
         }
         isVisible(x, y) {
@@ -2488,8 +2518,9 @@
             this.flags[x][y] |= FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED;
             this.changed = true;
         }
-        revealAll() {
-            this.flags.update((v) => v | FovFlags.REVEALED | FovFlags.VISIBLE);
+        revealAll(makeVisibleToo = true) {
+            const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
+            this.flags.update((v) => v | flag);
             this.changed = true;
         }
         revealCell(x, y) {
@@ -2585,9 +2616,13 @@
                     // }
                     this.flags[x][y] |= FovFlags.REVEALED;
                 }
+                this.site.redrawCell(x, y);
+            }
+            else if (!isVisible && wasVisible) {
+                // if the cell ceased being visible this move
+                this.site.storeMemory(x, y);
                 // this.site.redrawCell(x, y);
             }
-            else ;
             return isVisible;
         }
         updateCellClairyvoyance(flag, x, y) {
@@ -2597,7 +2632,7 @@
             else if (!isClairy && wasClairy) {
                 // ceased being clairvoyantly visible
                 this.site.storeMemory(x, y);
-                this.site.redrawCell(x, y);
+                // this.site.redrawCell(x, y);
             }
             else if (!wasClairy && isClairy) {
                 // became clairvoyantly visible
@@ -2612,7 +2647,7 @@
             else if (!isTele && wasTele) {
                 // ceased being telepathically visible
                 this.site.storeMemory(x, y);
-                this.site.redrawCell(x, y);
+                // this.site.redrawCell(x, y);
             }
             else if (!wasTele && isTele) {
                 // became telepathically visible
@@ -2658,7 +2693,7 @@
             if (this.updateCellDetect(flag, x, y))
                 return;
         }
-        update(cx, cy, cr) {
+        update(cx, cy, cr = 10) {
             // if (!this.site.usesFov()) return false;
             if (!this.needsUpdate &&
                 cx === undefined &&
@@ -4956,6 +4991,11 @@ void main() {
         get height() {
             return this._height;
         }
+        clone() {
+            const other = new DataBuffer(this._width, this._height);
+            other.copy(this);
+            return other;
+        }
         resize(width, height) {
             const orig = this._data;
             this._width = width;
@@ -5018,8 +5058,26 @@ void main() {
             return this.draw(args[0], args[1], 0, 0, 0);
         }
         fill(glyph = 0, fg = 0xfff, bg = 0) {
-            if (typeof glyph == 'string') {
-                glyph = this.toGlyph(glyph);
+            if (arguments.length == 1) {
+                bg = from$2(glyph).toInt();
+                glyph = 0;
+                fg = 0;
+            }
+            else {
+                if (typeof glyph !== 'number') {
+                    if (typeof glyph === 'string') {
+                        glyph = this.toGlyph(glyph);
+                    }
+                    else {
+                        throw new Error('glyph must be number or char');
+                    }
+                }
+                if (typeof fg !== 'number') {
+                    fg = from$2(fg).toInt();
+                }
+                if (typeof bg !== 'number') {
+                    bg = from$2(bg).toInt();
+                }
             }
             glyph = glyph & 0xff;
             fg = fg & 0xfff;
@@ -5150,6 +5208,11 @@ void main() {
             canvas.copyTo(this._data);
         }
         // get canvas() { return this._target; }
+        clone() {
+            const other = new Buffer(this._target);
+            other.copy(this);
+            return other;
+        }
         toGlyph(ch) {
             return this._target.toGlyph(ch);
         }
@@ -5887,9 +5950,7 @@ void main() {
             return this.NEEDS_UPDATE;
         }
         set needsUpdate(needs) {
-            if (needs) {
-                this.NEEDS_UPDATE = true;
-            }
+            this.NEEDS_UPDATE = needs;
         }
         // function messageWithoutCaps(msg, requireAcknowledgment) {
         addMessageLine(msg) {
@@ -6132,7 +6193,7 @@ void main() {
             this.passThroughActors = false;
             this.id = null;
             this.color = from$2(color); /* color */
-            this.radius = make$8(radius);
+            this.radius = make$9(radius);
             this.fadeTo = fadeTo;
             this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
         }
@@ -6319,6 +6380,9 @@ void main() {
             if (light instanceof Color) {
                 light = light.toLight();
             }
+            else if (!Array.isArray(light)) {
+                light = from$2(light);
+            }
             for (let i = 0; i < 3; ++i) {
                 this.ambient[i] = light[i];
             }
@@ -6445,7 +6509,7 @@ void main() {
             const PLAYER = data.player;
             if (PLAYER) {
                 const PLAYERS_LIGHT = lights.PLAYERS_LIGHT;
-                if (PLAYERS_LIGHT && PLAYERS_LIGHT.radius) {
+                if (PLAYERS_LIGHT) {
                     PLAYERS_LIGHT.paint(this, PLAYER.x, PLAYER.y, true, true);
                 }
             }
@@ -6514,15 +6578,15 @@ void main() {
         }
         // PaintSite
         calcFov(x, y, radius, passThroughActors, cb) {
-            const map = this.site;
+            const site = this.site;
             const fov = new FOV({
                 isBlocked(x, y) {
-                    if (!passThroughActors && map.hasActor(x, y))
+                    if (!passThroughActors && site.hasActor(x, y))
                         return false;
-                    return map.blocksVision(x, y);
+                    return site.blocksVision(x, y);
                 },
                 hasXY(x, y) {
-                    return map.hasXY(x, y);
+                    return site.hasXY(x, y);
                 },
             });
             fov.calculate(x, y, radius, cb);

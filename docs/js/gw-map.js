@@ -205,8 +205,8 @@
         Cell[Cell["IS_IN_AREA_MACHINE"] = Fl$3(10)] = "IS_IN_AREA_MACHINE";
         Cell[Cell["IMPREGNABLE"] = Fl$3(11)] = "IMPREGNABLE";
         Cell[Cell["NEEDS_REDRAW"] = Fl$3(13)] = "NEEDS_REDRAW";
-        Cell[Cell["LIGHT_CHANGED"] = Fl$3(14)] = "LIGHT_CHANGED";
-        Cell[Cell["FOV_CHANGED"] = Fl$3(15)] = "FOV_CHANGED";
+        Cell[Cell["STABLE_MEMORY"] = Fl$3(14)] = "STABLE_MEMORY";
+        Cell[Cell["STABLE_SNAPSHOT"] = Fl$3(15)] = "STABLE_SNAPSHOT";
         // These are to help memory
         Cell[Cell["HAS_SURFACE"] = Fl$3(16)] = "HAS_SURFACE";
         Cell[Cell["HAS_LIQUID"] = Fl$3(17)] = "HAS_LIQUID";
@@ -217,12 +217,11 @@
         Cell[Cell["HAS_ITEM"] = Fl$3(22)] = "HAS_ITEM";
         Cell[Cell["IS_IN_PATH"] = Fl$3(23)] = "IS_IN_PATH";
         Cell[Cell["IS_CURSOR"] = Fl$3(24)] = "IS_CURSOR";
-        Cell[Cell["STABLE_MEMORY"] = Fl$3(25)] = "STABLE_MEMORY";
         Cell[Cell["IS_WIRED"] = Fl$3(26)] = "IS_WIRED";
         Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl$3(27)] = "IS_CIRCUIT_BREAKER";
         Cell[Cell["IS_POWERED"] = Fl$3(28)] = "IS_POWERED";
         Cell[Cell["COLORS_DANCE"] = Fl$3(30)] = "COLORS_DANCE";
-        Cell[Cell["CHANGED"] = Cell.NEEDS_REDRAW | Cell.LIGHT_CHANGED | Cell.FOV_CHANGED] = "CHANGED";
+        Cell[Cell["CHANGED"] = Cell.NEEDS_REDRAW] = "CHANGED";
         Cell[Cell["IS_IN_MACHINE"] = Cell.IS_IN_ROOM_MACHINE | Cell.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
         Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.HAS_ITEM |
             Cell.HAS_DORMANT_MONSTER |
@@ -237,7 +236,7 @@
             Cell.IMPREGNABLE] = "PERMANENT_CELL_FLAGS";
         Cell[Cell["HAS_ANY_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_ACTOR] = "HAS_ANY_ACTOR";
         Cell[Cell["HAS_ANY_OBJECT"] = Cell.HAS_ITEM | Cell.HAS_ANY_ACTOR] = "HAS_ANY_OBJECT";
-        Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW | Cell.LIGHT_CHANGED] = "CELL_DEFAULT";
+        Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW] = "CELL_DEFAULT";
     })(Cell$1 || (Cell$1 = {}));
 
     const Fl$2 = GWU__namespace.flag.fl;
@@ -253,6 +252,7 @@
         Map[Map["MAP_CALC_FOV"] = Fl$2(7)] = "MAP_CALC_FOV";
         Map[Map["MAP_FOV_CHANGED"] = Fl$2(8)] = "MAP_FOV_CHANGED";
         Map[Map["MAP_DANCES"] = Fl$2(9)] = "MAP_DANCES";
+        Map[Map["MAP_SIDEBAR_TILES_CHANGED"] = Fl$2(10)] = "MAP_SIDEBAR_TILES_CHANGED";
         Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
     })(Map$1 || (Map$1 = {}));
 
@@ -386,6 +386,9 @@
         get isDestroyed() {
             return this.hasEntityFlag(Entity$1.L_DESTROYED);
         }
+        canBeSeen() {
+            return this.kind.canBeSeen(this);
+        }
         destroy() {
             this.flags.entity |= Entity$1.L_DESTROYED;
         }
@@ -416,14 +419,14 @@
         avoidsCell(cell) {
             return this.kind.avoidsCell(cell, this);
         }
-        getName() {
-            return this.kind.getName(this);
+        getName(opts) {
+            return this.kind.getName(this, opts);
         }
-        getDescription() {
-            return this.kind.getDescription(this);
+        getDescription(opts) {
+            return this.kind.getDescription(this, opts);
         }
-        getFlavor() {
-            return this.kind.getFlavor(this);
+        getFlavor(opts) {
+            return this.kind.getFlavor(this, opts);
         }
         getVerb(verb) {
             return this.kind.getVerb(this, verb);
@@ -470,6 +473,9 @@
                 entity.machineHome = opts.machineHome;
             }
         }
+        canBeSeen(_entity) {
+            return true;
+        }
         forbidsCell(cell, _entity) {
             if (this.requiredTileTags.length &&
                 !cell.hasAllTileTags(this.requiredTileTags))
@@ -482,13 +488,13 @@
                 return true;
             return false;
         }
-        getName(_entity) {
+        getName(_entity, _opts) {
             return this.name;
         }
-        getDescription(_entity) {
+        getDescription(_entity, _opts) {
             return this.description;
         }
-        getFlavor(_entity) {
+        getFlavor(_entity, _opts) {
             return this.flavor;
         }
         getVerb(_entity, verb) {
@@ -562,6 +568,13 @@
             if (cell.blocksPathing())
                 return true;
             return false;
+        }
+        getFlavor(actor, opts) {
+            const flavor = actor.isPlayer() ? 'yourself' : this.flavor;
+            if (opts && opts.action) {
+                return flavor + ' standing';
+            }
+            return flavor;
         }
         async pickupItem(actor, item, _opts) {
             if (!GWU__namespace.list.push(actor, 'items', item))
@@ -984,7 +997,7 @@
         }
         getName(arg) {
             let opts = {};
-            if (arg === true || arg === false) {
+            if (typeof arg === 'boolean') {
                 opts.article = arg;
             }
             else if (typeof arg === 'string') {
@@ -1014,11 +1027,11 @@
             }
             return result;
         }
-        getDescription() {
-            return this.description || this.getName();
+        getDescription(opts) {
+            return this.description || this.getName(opts);
         }
-        getFlavor() {
-            return this.flavor || this.getName();
+        getFlavor(opts) {
+            return this.flavor || this.getName(opts);
         }
     }
     function make$1(options) {
@@ -1161,6 +1174,7 @@
         bg: [2, 2, 10, 0, 2, 2, 0],
         priority: 10,
         article: 'the',
+        flavor: 'the stone floor',
     });
     install$1('DOOR', {
         ch: '+',
@@ -1173,6 +1187,7 @@
             enter: { tile: 'DOOR_OPEN' },
             open: { tile: 'DOOR_OPEN_ALWAYS' },
         },
+        flavor: 'a closed door',
     });
     install$1('DOOR_OPEN', 'DOOR', {
         ch: "'",
@@ -1192,12 +1207,14 @@
             open: null,
             close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
         },
+        flavor: 'an open door',
     });
     install$1('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
         effects: {
             tick: null,
             close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
         },
+        flavor: 'an open door',
     });
     install$1('UP_STAIRS', {
         ch: '<',
@@ -1210,6 +1227,7 @@
         effects: {
             player: { emit: 'UP_STAIRS' },
         },
+        flavor: 'stairs leading upwards',
     });
     install$1('DOWN_STAIRS', {
         ch: '>',
@@ -1222,6 +1240,7 @@
         effects: {
             player: { emit: 'DOWN_STAIRS' },
         },
+        flavor: 'downward leading stairs',
     });
     install$1('WALL', {
         ch: '#',
@@ -1243,7 +1262,7 @@
         article: 'a',
         name: 'impregnable wall',
         description: 'A wall made from very hard stone.',
-        flavor: 'an impregnable wall',
+        flavor: 'a very hard wall',
     });
     install$1('LAKE', {
         ch: '~',
@@ -1253,6 +1272,7 @@
         flags: 'T_DEEP_WATER',
         name: 'deep water',
         article: 'the',
+        flavor: 'some deep water',
     });
     install$1('SHALLOW', {
         ch: '\u00b7',
@@ -1261,7 +1281,8 @@
         priority: 20,
         name: 'shallow water',
         article: 'the',
-        depth: 'SURFACE', // 'LIQUID'?
+        depth: 'SURFACE',
+        flavor: 'some shallow water',
     });
     install$1('BRIDGE', {
         ch: '=',
@@ -1271,6 +1292,7 @@
         flags: 'T_BRIDGE, L_VISUALLY_DISTINCT',
         article: 'a',
         groundTile: 'LAKE',
+        flavor: 'a bridge',
     });
 
     const flags = { Tile: Tile$1, TileMech };
@@ -1371,6 +1393,10 @@
             if (current.light !== tile.light) {
                 this.map.light.glowLightChanged = true;
             }
+            if (current.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR) !==
+                tile.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR)) {
+                this.map.setMapFlag(Map$1.MAP_SIDEBAR_TILES_CHANGED);
+            }
             if (tile.hasTileFlag(Tile$1.T_IS_FIRE)) {
                 cell.setCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN);
             }
@@ -1452,17 +1478,17 @@
             actor.map = this.map;
             return true;
         }
-        async removeActor(obj) {
-            const x = obj.x;
-            const y = obj.y;
+        async removeActor(actor) {
+            const x = actor.x;
+            const y = actor.y;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.list.remove(cell, 'actor', obj))
+            if (!GWU__namespace.list.remove(cell, 'actor', actor))
                 return false;
-            if (obj.isPlayer()) {
+            if (actor.isPlayer()) {
                 cell.clearCellFlag(Cell$1.HAS_PLAYER);
             }
-            if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-                await cell.fire('key', this.map, x, y);
+            if (actor.key && actor.key.matches(x, y) && cell.hasEffect('nokey')) {
+                await cell.fire('nokey', this.map, x, y);
             }
             return true;
         }
@@ -2525,9 +2551,6 @@
         constructor(map, x, y, groundTile) {
             this.chokeCount = 0;
             this.machineId = 0;
-            // keyId = 0;
-            // gasVolume: number = 0;
-            // liquidVolume: number = 0;
             this._actor = null;
             this._item = null;
             this.x = -1;
@@ -2550,10 +2573,12 @@
             for (let i = 0; i < this.tiles.length; ++i) {
                 this.tiles[i] = other.tiles[i];
             }
+            this.machineId = other.machineId;
             this._actor = other._actor;
             this._item = other._item;
-            // this.keyId = other.keyId;
-            this.machineId = other.machineId;
+            this.map = other.map;
+            this.x = other.x;
+            this.y = other.y;
         }
         hasCellFlag(flag) {
             return !!(this.flags.cell & flag);
@@ -2744,12 +2769,12 @@
                 return false;
             this.tiles[tile.depth] = tile;
             this.needsRedraw = true;
-            if (current.light !== tile.light) {
-                this.setCellFlag(Cell$1.LIGHT_CHANGED);
-            }
-            if (current.blocksVision() !== tile.blocksVision()) {
-                this.setCellFlag(Cell$1.FOV_CHANGED);
-            }
+            // if (current.light !== tile.light) {
+            //     this.setCellFlag(Flags.Cell.LIGHT_CHANGED);
+            // }
+            // if (current.blocksVision() !== tile.blocksVision()) {
+            //     this.setCellFlag(Flags.Cell.FOV_CHANGED);
+            // }
             // if (volume) {
             //     if (tile.depth === Depth.GAS) {
             //         this.gasVolume = volume;
@@ -2915,175 +2940,24 @@
         }
     }
 
-    class CellMemory {
-        constructor() {
-            this.chokeCount = 0;
-            this.machineId = 0;
-            this.keyId = 0;
-            this.flags = {
-                cell: 0,
-                item: 0,
-                actor: 0,
-                tile: 0,
-                tileMech: 0,
-                object: 0,
-            };
-            this.blocks = {
-                vision: false,
-                effects: false,
-                move: false,
-                pathing: false,
-            };
-            this._tile = tiles.NULL;
-            this._item = null;
-            this._actor = null;
-            this._hasKey = false;
+    class CellMemory extends Cell {
+        constructor(map, x, y) {
+            super(map, x, y);
             this.snapshot = new GWU__namespace.sprite.Mixer();
+            this.snapshot.copy(tiles.NULL.sprite);
         }
         clear() {
+            super.clear();
             this.snapshot.blackOut();
-            this._item = null;
-            this._actor = null;
-            this._tile = tiles.NULL;
-            this.flags.cell = 0;
-            this.flags.object = 0;
-            this.flags.tile = 0;
-            this.flags.tileMech = 0;
-            this.blocks.effects = false;
-            this.blocks.move = false;
-            this.blocks.pathing = false;
-            this.blocks.vision = false;
-            this.machineId = 0;
-            this.chokeCount = 0;
         }
         store(cell) {
-            this._item = null;
-            if (cell.hasItem()) {
-                this._item = cell.item;
-            }
-            this._actor = null;
-            if (cell.hasActor()) {
-                this._actor = cell.actor;
-            }
-            this._tile = cell.tile;
-            this.flags.cell = cell.cellFlags();
-            this.flags.tile = cell.tileFlags();
-            this.flags.tileMech = cell.tileMechFlags();
-            this.flags.object = cell.entityFlags();
-            this.flags.item = cell.itemFlags();
-            this.flags.actor = cell.actorFlags();
-            this.blocks.effects = cell.blocksEffects();
-            this.blocks.move = cell.blocksMove();
-            this.blocks.pathing = cell.blocksPathing();
-            this.blocks.vision = cell.blocksVision();
-            this.chokeCount = cell.chokeCount;
-            this.machineId = cell.machineId;
+            this.copy(cell);
         }
         getSnapshot(dest) {
             dest.copy(this.snapshot);
         }
         putSnapshot(src) {
             this.snapshot.copy(src);
-        }
-        get needsRedraw() {
-            return this.hasCellFlag(Cell$1.NEEDS_REDRAW);
-        }
-        hasCellFlag(flag) {
-            return !!(this.flags.cell & flag);
-        }
-        hasTileFlag(flag) {
-            return !!(this.flags.tile & flag);
-        }
-        hasAllTileFlags(flags) {
-            return (this.flags.tile & flags) == flags;
-        }
-        hasEntityFlag(flag) {
-            return !!(this.flags.object & flag);
-        }
-        hasAllEntityFlags(flags) {
-            return (this.flags.object & flags) == flags;
-        }
-        hasTileMechFlag(flag) {
-            return !!(this.flags.tileMech & flag);
-        }
-        cellFlags() {
-            return this.flags.cell;
-        }
-        entityFlags() {
-            return this.flags.object;
-        }
-        tileFlags() {
-            return this.flags.tile;
-        }
-        tileMechFlags() {
-            return this.flags.tileMech;
-        }
-        itemFlags() {
-            return this.flags.item;
-        }
-        actorFlags() {
-            return this.flags.actor;
-        }
-        blocksVision() {
-            return this.blocks.vision;
-        }
-        blocksPathing() {
-            return this.blocks.pathing;
-        }
-        blocksMove() {
-            return this.blocks.move;
-        }
-        blocksEffects() {
-            return this.blocks.effects;
-        }
-        isWall() {
-            return this.blocksVision() && this.blocksMove();
-        }
-        isStairs() {
-            return this.hasTileFlag(Tile$1.T_HAS_STAIRS);
-        }
-        isFloor() {
-            return (!this.hasEntityFlag(Entity$1.L_BLOCKS_EVERYTHING) &&
-                !this.hasTileFlag(Tile$1.T_PATHING_BLOCKER));
-        }
-        isPassable() {
-            return !this.hasEntityFlag(Entity$1.L_BLOCKS_MOVE);
-        }
-        isSecretlyPassable() {
-            return this.hasEntityFlag(Entity$1.L_SECRETLY_PASSABLE);
-        }
-        get tile() {
-            return this._tile;
-        }
-        hasTile(tile) {
-            if (!(tile instanceof Tile)) {
-                tile = get(tile);
-            }
-            return this._tile === tile;
-        }
-        hasItem() {
-            return !!this._item;
-        }
-        get item() {
-            return this._item;
-        }
-        hasActor() {
-            return !!this._actor;
-        }
-        hasPlayer() {
-            return !!(this.flags.cell & Cell$1.HAS_PLAYER);
-        }
-        get actor() {
-            return this._actor;
-        }
-        getDescription() {
-            throw new Error('Method not implemented.');
-        }
-        getFlavor() {
-            throw new Error('Method not implemented.');
-        }
-        getName(_opts) {
-            throw new Error('Method not implemented.');
         }
     }
 
@@ -3097,7 +2971,7 @@
             this.flags = { map: 0 };
             this.layers = [];
             this.cells = GWU__namespace.grid.make(width, height, (x, y) => new Cell(this, x, y));
-            this.memory = GWU__namespace.grid.make(width, height, () => new CellMemory());
+            this._memory = GWU__namespace.grid.make(width, height, (x, y) => new CellMemory(this, x, y));
             if (opts.seed) {
                 this._seed = opts.seed;
                 this.rng = GWU__namespace.rng.make(opts.seed);
@@ -3115,8 +2989,9 @@
             this.rng = GWU__namespace.rng.make(v);
         }
         cellInfo(x, y, useMemory = false) {
-            if (useMemory)
-                return this.memory[x][y];
+            if (useMemory && !this.fov.isAnyKindOfVisible(x, y)) {
+                return this._memory[x][y];
+            }
             return this.cell(x, y);
         }
         // LAYERS
@@ -3225,7 +3100,11 @@
             const layer = this.layers[item.depth];
             if (!(await layer.removeItem(item)))
                 return false;
-            return this.addItem(x, y, item);
+            if (!(await this.addItem(x, y, item))) {
+                layer.forceItem(item.x, item.y, item);
+                return false;
+            }
+            return true;
         }
         // Actors
         hasPlayer(x, y) {
@@ -3269,7 +3148,11 @@
             const layer = this.layers[actor.depth];
             if (!(await layer.removeActor(actor)))
                 return false;
-            return this.addActor(x, y, actor);
+            if (!(await layer.addActor(x, y, actor))) {
+                layer.forceActor(actor.x, actor.y, actor);
+                return false;
+            }
+            return true;
         }
         // Information
         isVisible(x, y) {
@@ -3474,7 +3357,8 @@
             dest.blackOut();
             const cell = this.cell(x, y);
             const isVisible = this.fov.isAnyKindOfVisible(x, y);
-            if (cell.needsRedraw && isVisible) {
+            const needSnapshot = !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT);
+            if (needSnapshot || (cell.needsRedraw && isVisible)) {
                 this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
                 if (dest.dances) {
                     cell.setCellFlag(Cell$1.COLORS_DANCE);
@@ -3483,11 +3367,12 @@
                     cell.clearCellFlag(Cell$1.COLORS_DANCE);
                 }
                 dest.bake();
-                this.memory[x][y].putSnapshot(dest);
+                this._memory[x][y].putSnapshot(dest);
                 cell.needsRedraw = false;
+                cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
             }
             else {
-                this.memory[x][y].getSnapshot(dest);
+                this._memory[x][y].getSnapshot(dest);
             }
             if (isVisible) {
                 const light = this.light.getLight(x, y);
@@ -3510,7 +3395,7 @@
         eachGlowLight(cb) {
             this.cells.forEach((cell, x, y) => {
                 cell.eachGlowLight((light) => cb(x, y, light));
-                cell.clearCellFlag(Cell$1.LIGHT_CHANGED);
+                // cell.clearCellFlag(Flags.Cell.LIGHT_CHANGED);
             });
         }
         eachDynamicLight(_cb) { }
@@ -3572,11 +3457,20 @@
             this.cells[x][y].needsRedraw = true;
         }
         clearMemory(x, y) {
-            this.memory[x][y].clear();
+            this._memory[x][y].clear();
         }
-        storeMemory(x, y) {
+        storeMemory(x, y, updateSnapshot = false) {
             const cell = this.cell(x, y);
-            this.memory[x][y].store(cell);
+            const memory = this._memory[x][y];
+            memory.store(cell);
+            cell.setCellFlag(Cell$1.STABLE_MEMORY);
+            if (updateSnapshot || !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT)) {
+                const dest = memory.snapshot;
+                dest.blackOut();
+                this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
+                dest.bake();
+                cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
+            }
         }
     }
     function make(w, h, opts = {}, boundary) {
@@ -3595,11 +3489,17 @@
         const map = new Map(w, h, opts);
         if (opts.tile) {
             map.fill(opts.tile, opts.boundary);
+            map.light.update();
         }
-        map.light.update();
         // if (!DATA.map) {
         //     DATA.map = map;
         // }
+        // In case we reveal the map or make it all visible we need our memory set correctly
+        map.cells.forEach((_c, x, y) => {
+            if (map.fov.isRevealed(x, y)) {
+                map.storeMemory(x, y, true); // with snapshot
+            }
+        });
         return map;
     }
     function isString(value) {
