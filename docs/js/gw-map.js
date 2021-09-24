@@ -2,7 +2,7 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gw-utils')) :
     typeof define === 'function' && define.amd ? define(['exports', 'gw-utils'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GWM = {}, global.GWU));
-}(this, (function (exports, GWU) { 'use strict';
+})(this, (function (exports, GWU) { 'use strict';
 
     function _interopNamespace(e) {
         if (e && e.__esModule) return e;
@@ -13,14 +13,12 @@
                     var d = Object.getOwnPropertyDescriptor(e, k);
                     Object.defineProperty(n, k, d.get ? d : {
                         enumerable: true,
-                        get: function () {
-                            return e[k];
-                        }
+                        get: function () { return e[k]; }
                     });
                 }
             });
         }
-        n['default'] = e;
+        n["default"] = e;
         return Object.freeze(n);
     }
 
@@ -338,7 +336,7 @@
         //     HORDE_SACRIFICE_TARGET,
     })(Horde$1 || (Horde$1 = {}));
 
-    var index$8 = /*#__PURE__*/Object.freeze({
+    var index$9 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get Depth () { return Depth$1; },
         get Entity () { return Entity$1; },
@@ -367,6 +365,7 @@
         return new KeyInfo(x, y, disposable);
     }
 
+    let lastId = 0;
     class Entity {
         constructor(kind) {
             this.map = null;
@@ -379,12 +378,31 @@
             this.x = -1;
             this.y = -1;
             this.kind = kind;
+            this.id = '' + ++lastId;
         }
         get sprite() {
             return this.kind.sprite;
         }
         get isDestroyed() {
             return this.hasEntityFlag(Entity$1.L_DESTROYED);
+        }
+        isAt(x, y) {
+            return this.x === x && this.y === y;
+        }
+        clone() {
+            const other = new this.constructor(this.kind);
+            other.copy(this);
+            return other;
+        }
+        copy(other) {
+            this.depth = other.depth;
+            this.light = other.light;
+            Object.assign(this.flags, other.flags);
+            this.next = other.next;
+            this.x = other.x;
+            this.y = other.y;
+            this.kind = other.kind;
+            this.id = other.id;
         }
         canBeSeen() {
             return this.kind.canBeSeen(this);
@@ -413,6 +431,9 @@
         blocksEffects() {
             return this.hasEntityFlag(Entity$1.L_BLOCKS_EFFECTS);
         }
+        isKey(x, y) {
+            return this.key && this.key.matches(x, y);
+        }
         forbidsCell(cell) {
             return this.kind.forbidsCell(cell, this);
         }
@@ -430,6 +451,9 @@
         }
         getVerb(verb) {
             return this.kind.getVerb(this, verb);
+        }
+        toString() {
+            return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
         }
     }
 
@@ -502,7 +526,7 @@
         }
     }
 
-    var index$7 = /*#__PURE__*/Object.freeze({
+    var index$8 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         KeyInfo: KeyInfo,
         makeKeyInfo: makeKeyInfo,
@@ -516,6 +540,7 @@
             this.next = null;
             this.leader = null;
             this.items = null;
+            this.fov = null;
             // @ts-ignore - initialized in Entity
             this.flags.actor = 0;
             this.depth = Depth$1.ACTOR;
@@ -533,6 +558,38 @@
         isPlayer() {
             return this.hasActorFlag(Actor$1.IS_PLAYER);
         }
+        canSee(x, y) {
+            if (x instanceof Entity) {
+                return this.canSee(x.x, x.y) && this.kind.isAbleToSee(this, x);
+            }
+            if (this.fov) {
+                return this.fov.isDirectlyVisible(x, y);
+            }
+            else if (this.map) {
+                return GWU__namespace.xy.forLineBetween(this.x, this.y, x, y, (i, j) => !this.map.cell(i, j).blocksVision());
+            }
+            else {
+                return false; // need a map or an fov
+            }
+        }
+        canSeeOrSense(x, y) {
+            if (x instanceof Entity) {
+                return (this.canSeeOrSense(x.x, x.y) &&
+                    (this.kind.isAbleToSee(this, x) ||
+                        this.kind.isAbleToSense(this, x)));
+            }
+            if (this.fov) {
+                return this.fov.isAnyKindOfVisible(x, y);
+            }
+            return this.canSee(x, y);
+        }
+        isAbleToSee(entity) {
+            return this.kind.isAbleToSee(this, entity);
+        }
+        isAbleToSense(entity) {
+            return this.kind.isAbleToSense(this, entity);
+        }
+        ////////////////// INVENTORY
         async pickupItem(item, opts) {
             return this.kind.pickupItem(this, item, opts);
         }
@@ -552,6 +609,16 @@
         }
         init(actor, options = {}) {
             super.init(actor, options);
+            actor.fov = options.fov || null;
+        }
+        canSeeEntity(_actor, _entity) {
+            return true;
+        }
+        isAbleToSee(_actor, _entity) {
+            return true;
+        }
+        isAbleToSense(_actor, _entity) {
+            return true;
         }
         forbidsCell(cell, actor) {
             if (super.forbidsCell(cell, actor))
@@ -591,7 +658,7 @@
     }
 
     function make$4(id, makeOptions) {
-        const kind = get$2(id);
+        const kind = get$3(id);
         if (!kind)
             throw new Error('Failed to find item kind - ' + id);
         return kind.make(makeOptions);
@@ -606,7 +673,7 @@
         let kind;
         if (typeof info === 'string') {
             // @ts-ignore
-            kind = get$2(info);
+            kind = get$3(info);
             if (!kind)
                 throw new Error('Failed to find item kind - ' + info);
         }
@@ -629,7 +696,7 @@
         kinds$1[id] = made;
         return made;
     }
-    function get$2(id) {
+    function get$3(id) {
         if (id instanceof ActorKind)
             return id;
         return kinds$1[id];
@@ -681,7 +748,7 @@
         return rng.item(matches) || null;
     }
 
-    var index$6 = /*#__PURE__*/Object.freeze({
+    var index$7 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         ActorKind: ActorKind,
         Actor: Actor,
@@ -690,7 +757,7 @@
         from: from$4,
         kinds: kinds$1,
         install: install$4,
-        get: get$2,
+        get: get$3,
         makeKind: makeKind$1,
         randomKind: randomKind$1
     });
@@ -704,6 +771,10 @@
             this.flags.item = 0;
             this.depth = Depth$1.ITEM;
             this.kind = kind;
+        }
+        copy(other) {
+            super.copy(other);
+            this.quantity = other.quantity;
         }
         itemFlags() {
             return this.flags.item;
@@ -728,11 +799,12 @@
         }
         init(item, options = {}) {
             super.init(item, options);
+            item.quantity = options.quantity || 1;
         }
     }
 
     function make$3(id, makeOptions) {
-        const kind = get$1(id);
+        const kind = get$2(id);
         if (!kind)
             throw new Error('Failed to find item kind - ' + id);
         return kind.make(makeOptions);
@@ -747,7 +819,7 @@
         let kind;
         if (typeof info === 'string') {
             // @ts-ignore
-            kind = get$1(info);
+            kind = get$2(info);
             if (!kind)
                 throw new Error('Failed to find item kind - ' + info);
         }
@@ -770,7 +842,7 @@
         kinds[id] = made;
         return made;
     }
-    function get$1(id) {
+    function get$2(id) {
         if (id instanceof ItemKind)
             return id;
         return kinds[id];
@@ -822,7 +894,7 @@
         return rng.item(matches) || null;
     }
 
-    var index$5 = /*#__PURE__*/Object.freeze({
+    var index$6 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         ItemKind: ItemKind,
         Item: Item,
@@ -831,7 +903,7 @@
         from: from$3,
         kinds: kinds,
         install: install$3,
-        get: get$1,
+        get: get$2,
         makeKind: makeKind,
         randomKind: randomKind
     });
@@ -1132,7 +1204,7 @@
     }
     const tiles = {};
     const all = [];
-    function get(id) {
+    function get$1(id) {
         if (id instanceof Tile)
             return id;
         if (typeof id === 'string')
@@ -1297,14 +1369,14 @@
 
     const flags = { Tile: Tile$1, TileMech };
 
-    var index$4 = /*#__PURE__*/Object.freeze({
+    var index$5 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         flags: flags,
         Tile: Tile,
         make: make$1,
         tiles: tiles,
         all: all,
-        get: get,
+        get: get$1,
         install: install$1,
         installAll: installAll$1
     });
@@ -1347,6 +1419,7 @@
         tick(_dt) {
             return false;
         }
+        putAppearance(_dest, _cell) { }
     }
 
     class TileLayer extends MapLayer {
@@ -1378,7 +1451,7 @@
             if (tile.depth > Depth$1.GROUND && tile.groundTile) {
                 const ground = cell.depthTile(Depth$1.GROUND);
                 if (!ground || ground === tiles.NULL) {
-                    this.setTile(x, y, get(tile.groundTile));
+                    this.setTile(x, y, get$1(tile.groundTile));
                 }
             }
             // if nothing changed... return false
@@ -1397,6 +1470,11 @@
                 tile.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR)) {
                 this.map.setMapFlag(Map$1.MAP_SIDEBAR_TILES_CHANGED);
             }
+            // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            //     cell.clearCellFlag(
+            //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            //     );
+            // }
             if (tile.hasTileFlag(Tile$1.T_IS_FIRE)) {
                 cell.setCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN);
             }
@@ -1409,6 +1487,14 @@
             //     }
             // }
             return true;
+        }
+        clear() {
+            for (let x = 0; x < this.map.width; ++x) {
+                for (let y = 0; y < this.map.height; ++y) {
+                    const cell = this.map.cell(x, y);
+                    cell.clearDepth(this.depth);
+                }
+            }
         }
         clearTile(x, y) {
             const cell = this.map.cell(x, y);
@@ -1431,8 +1517,7 @@
             }
             return true;
         }
-        putAppearance(dest, x, y) {
-            const cell = this.map.cell(x, y);
+        putAppearance(dest, cell) {
             const tile = cell.depthTile(this.depth);
             if (tile) {
                 dest.drawSprite(tile.sprite);
@@ -1444,6 +1529,15 @@
         constructor(map, name = 'actor') {
             super(map, name);
         }
+        clear() {
+            for (let x = 0; x < this.map.width; ++x) {
+                for (let y = 0; y < this.map.height; ++y) {
+                    const cell = this.map.cell(x, y);
+                    cell.clearCellFlag(Cell$1.HAS_ACTOR | Cell$1.HAS_PLAYER);
+                }
+            }
+            this.map.actors = [];
+        }
         async addActor(x, y, obj, _opts) {
             const actor = obj;
             if (actor.isDestroyed)
@@ -1451,52 +1545,45 @@
             const cell = this.map.cell(x, y);
             if (actor.forbidsCell(cell))
                 return false;
-            if (!GWU__namespace.list.push(cell, 'actor', obj))
-                return false;
-            if (obj.isPlayer()) {
-                cell.setCellFlag(Cell$1.HAS_PLAYER);
-            }
-            obj.x = x;
-            obj.y = y;
-            obj.map = this.map;
+            cell.addActor(actor);
             if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
-                await cell.fire('key', this.map, x, y);
+                await cell.fire('key', this.map, x, y, { actor });
             }
             return true;
         }
         forceActor(x, y, actor, _opts) {
             if (actor.isDestroyed)
                 return false;
-            const cell = this.map.cell(x, y);
-            if (!GWU__namespace.list.push(cell, 'actor', actor))
-                return false;
-            if (actor.isPlayer()) {
-                cell.setCellFlag(Cell$1.HAS_PLAYER);
+            if (this.map.actors.includes(actor)) {
+                const oldCell = this.map.cell(actor.x, actor.y);
+                oldCell.removeActor(actor);
             }
-            actor.x = x;
-            actor.y = y;
-            actor.map = this.map;
+            const cell = this.map.cell(x, y);
+            cell.addActor(actor);
+            actor.depth = this.depth;
             return true;
         }
         async removeActor(actor) {
             const x = actor.x;
             const y = actor.y;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.list.remove(cell, 'actor', actor))
+            if (!cell.removeActor(actor))
                 return false;
-            if (actor.isPlayer()) {
-                cell.clearCellFlag(Cell$1.HAS_PLAYER);
-            }
             if (actor.key && actor.key.matches(x, y) && cell.hasEffect('nokey')) {
-                await cell.fire('nokey', this.map, x, y);
+                await cell.fire('nokey', this.map, x, y, { actor });
+            }
+            if (cell.hasEffect('removeActor')) {
+                await cell.fire('removeActor', this.map, x, y, { actor });
             }
             return true;
         }
-        putAppearance(dest, x, y) {
-            const cell = this.map.cell(x, y);
-            if (!cell.actor)
+        putAppearance(dest, cell) {
+            if (!cell.hasActor())
                 return;
-            dest.drawSprite(cell.actor.sprite);
+            const actor = this.map.actorAt(cell.x, cell.y);
+            if (actor) {
+                dest.drawSprite(actor.sprite);
+            }
         }
     }
 
@@ -1504,68 +1591,70 @@
         constructor(map, name = 'item') {
             super(map, name);
         }
-        async addItem(x, y, obj, _opts) {
-            const item = obj;
+        clear() {
+            for (let x = 0; x < this.map.width; ++x) {
+                for (let y = 0; y < this.map.height; ++y) {
+                    const cell = this.map.cell(x, y);
+                    cell.clearCellFlag(Cell$1.HAS_ITEM);
+                }
+            }
+            this.map.items = [];
+        }
+        async addItem(x, y, item, _opts) {
             if (item.isDestroyed)
                 return false;
             const cell = this.map.cell(x, y);
             if (item.forbidsCell(cell))
                 return false;
-            if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
-                await cell.fire('key', this.map, x, y);
-                if (obj.key.disposable) {
-                    obj.destroy();
-                    return true; // ??? didSomething?
+            cell.addItem(item);
+            item.depth = this.depth;
+            if (item.key && item.key.matches(x, y) && cell.hasEffect('key')) {
+                await cell.fire('key', this.map, x, y, { item });
+                if (item.key.disposable) {
+                    cell.removeItem(item);
+                    item.destroy();
+                    return true; // TODO - ??? Is this correct!?!?
                 }
             }
-            if (!GWU__namespace.list.push(cell, 'item', obj))
-                return false;
-            obj.x = x;
-            obj.y = y;
-            obj.depth = this.depth;
-            obj.map = this.map;
             if (cell.hasEffect('addItem')) {
                 await cell.fire('addItem', this.map, x, y, { item });
             }
             return true;
         }
-        forceItem(x, y, obj, _opts) {
+        forceItem(x, y, item, _opts) {
             if (!this.map.hasXY(x, y))
                 return false;
-            if (this.map.hasXY(obj.x, obj.y)) {
-                const oldCell = this.map.cell(obj.x, obj.y);
-                GWU__namespace.list.remove(oldCell, 'item', obj);
-                obj.x = -1;
-                obj.y = -1;
+            // If item is already in map.items, then this is a move
+            if (this.map.items.includes(item)) {
+                const oldCell = this.map.cell(item.x, item.y);
+                oldCell.removeItem(item);
             }
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.list.push(cell, 'item', obj))
-                return false;
-            obj.x = x;
-            obj.y = y;
-            obj.depth = this.depth;
-            obj.map = this.map;
+            cell.addItem(item);
+            item.depth = this.depth;
             return true;
         }
-        async removeItem(obj) {
-            const x = obj.x;
-            const y = obj.y;
+        async removeItem(item) {
+            const x = item.x;
+            const y = item.y;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.list.remove(cell, 'item', obj))
+            if (!cell.removeItem(item))
                 return false;
-            if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-                await cell.fire('nokey', this.map, x, y);
+            if (item.key && item.key.matches(x, y) && cell.hasEffect('nokey')) {
+                await cell.fire('nokey', this.map, x, y, { item });
             }
-            else if (cell.hasEffect('removeItem')) {
-                await cell.fire('removeItem', this.map, x, y);
+            if (cell.hasEffect('removeItem')) {
+                await cell.fire('removeItem', this.map, x, y, { item });
             }
             return true;
         }
-        putAppearance(dest, x, y) {
-            const cell = this.map.cell(x, y);
-            if (!cell.item)
+        putAppearance(dest, cell) {
+            if (!cell.hasItem())
                 return;
-            dest.drawSprite(cell.item.sprite);
+            const item = this.map.itemAt(cell.x, cell.y);
+            if (item) {
+                dest.drawSprite(item.sprite);
+            }
         }
     }
 
@@ -1683,11 +1772,10 @@
                 }
             }
         }
-        putAppearance(dest, x, y) {
-            const volume = this.volume[x][y];
+        putAppearance(dest, cell) {
+            const volume = this.volume[cell.x][cell.y];
             if (!volume)
                 return;
-            const cell = this.map.cell(x, y);
             const tile = cell.depthTile(this.depth);
             if (tile) {
                 const opacity = this.calcOpacity(volume);
@@ -1736,7 +1824,7 @@
         }
         // bookkeeping
         if (didSomething &&
-            map.isVisible(x, y) &&
+            // map.isVisible(x, y) &&
             !(effect.flags & Effect.E_NO_MARK_FIRED)) {
             effect.flags |= Effect.E_FIRED;
         }
@@ -1808,14 +1896,15 @@
             dest.message = src.message;
             return true;
         }
-        async fire(config, map, x, y, ctx) {
+        async fire(config, _map, x, y, ctx) {
             if (!config.message)
                 return false;
             const fired = !!(config.flags & Effect.E_FIRED);
             if (config.message &&
                 config.message.length &&
-                !fired &&
-                map.isVisible(x, y)) {
+                !fired
+            // && map.isVisible(x, y)
+            ) {
                 GWU__namespace.message.addAt(x, y, config.message, ctx);
                 return true;
             }
@@ -1967,11 +2056,11 @@
                 const lakeX = i + blockingToMapX;
                 const lakeY = j + blockingToMapY;
                 if (blockingGrid.get(lakeX, lakeY)) {
-                    if (map.cellInfo(i, j).isStairs()) {
+                    if (map.cell(i, j).isStairs()) {
                         disrupts = true;
                     }
                 }
-                else if (!map.cellInfo(i, j).blocksMove()) {
+                else if (!map.cell(i, j).blocksMove()) {
                     walkableGrid[i][j] = 1;
                 }
             });
@@ -2055,13 +2144,13 @@
             return false;
         }
         if (effect.flags & Effect.E_BUILD_IN_WALLS) {
-            if (!map.cellInfo(x, y).isWall())
+            if (!map.cell(x, y).isWall())
                 return false;
         }
         else if (effect.flags & Effect.E_MUST_TOUCH_WALLS) {
             let ok = false;
             GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
-                if (map.cellInfo(i, j).isWall()) {
+                if (map.cell(i, j).isWall()) {
                     ok = true;
                 }
             }, true);
@@ -2070,10 +2159,10 @@
         }
         else if (effect.flags & Effect.E_NO_TOUCH_WALLS) {
             let ok = true;
-            if (map.cellInfo(x, y).isWall())
+            if (map.cell(x, y).isWall())
                 return false; // or on wall
             GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
-                if (map.cellInfo(i, j).isWall()) {
+                if (map.cell(i, j).isWall()) {
                     ok = false;
                 }
             }, true);
@@ -2245,63 +2334,44 @@
         return didSomething;
     }
     function evacuateCreatures(map, blockingMap) {
-        let i = 0, j = 0;
         let didSomething = false;
-        for (i = 0; i < map.width; i++) {
-            for (j = 0; j < map.height; j++) {
-                if (!blockingMap[i][j])
-                    continue;
-                const cell = map.cell(i, j);
-                if (!cell.hasActor())
-                    continue;
-                GWU__namespace.list.forEach(cell.actor, (obj) => {
-                    if (!(obj instanceof Actor))
-                        return;
-                    const monst = obj;
-                    const loc = map.rng.matchingLocNear(i, j, (x, y) => {
-                        if (!map.hasXY(x, y))
-                            return false;
-                        if (blockingMap[x][y])
-                            return false;
-                        const c = map.cell(x, y);
-                        return !monst.forbidsCell(c);
-                    });
-                    if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                        map.moveActor(loc[0], loc[1], monst);
-                        // map.redrawXY(loc[0], loc[1]);
-                        didSomething = true;
-                    }
-                });
+        map.eachActor((a) => {
+            if (!blockingMap[a.x][a.y])
+                return;
+            const loc = map.rng.matchingLocNear(a.x, a.y, (x, y) => {
+                if (!map.hasXY(x, y))
+                    return false;
+                if (blockingMap[x][y])
+                    return false;
+                const c = map.cell(x, y);
+                return !a.forbidsCell(c);
+            });
+            if (loc && loc[0] >= 0 && loc[1] >= 0) {
+                map.forceActor(loc[0], loc[1], a);
+                // map.redrawXY(loc[0], loc[1]);
+                didSomething = true;
             }
-        }
+        });
         return didSomething;
     }
     function evacuateItems(map, blockingMap) {
         let didSomething = false;
-        blockingMap.forEach((v, i, j) => {
-            if (!v)
+        map.eachItem((i) => {
+            if (!blockingMap[i.x][i.y])
                 return;
-            const cell = map.cell(i, j);
-            if (!cell.hasItem())
-                return;
-            GWU__namespace.list.forEach(cell.item, (obj) => {
-                if (!(obj instanceof Item))
-                    return;
-                const item = obj;
-                const loc = map.rng.matchingLocNear(i, j, (x, y) => {
-                    if (!map.hasXY(x, y))
-                        return false;
-                    if (blockingMap[x][y])
-                        return false;
-                    const dest = map.cell(x, y);
-                    return !item.forbidsCell(dest);
-                });
-                if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                    map.moveItem(loc[0], loc[1], item);
-                    // map.redrawXY(loc[0], loc[1]);
-                    didSomething = true;
-                }
+            const loc = map.rng.matchingLocNear(i.x, i.y, (x, y) => {
+                if (!map.hasXY(x, y))
+                    return false;
+                if (blockingMap[x][y])
+                    return false;
+                const dest = map.cell(x, y);
+                return !i.forbidsCell(dest);
             });
+            if (loc && loc[0] >= 0 && loc[1] >= 0) {
+                map.forceItem(loc[0], loc[1], i);
+                // map.redrawXY(loc[0], loc[1]);
+                didSomething = true;
+            }
         });
         return didSomething;
     }
@@ -2351,7 +2421,7 @@
     }
     installHandler('clear', new ClearTileEffect());
 
-    var index$3 = /*#__PURE__*/Object.freeze({
+    var index$4 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Handler: Handler,
         handlers: handlers,
@@ -2476,7 +2546,7 @@
         }
     }
 
-    var index$2 = /*#__PURE__*/Object.freeze({
+    var index$3 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         MapLayer: MapLayer,
         TileLayer: TileLayer,
@@ -2486,85 +2556,93 @@
         FireLayer: FireLayer
     });
 
-    class CellObjects {
-        constructor(cell) {
-            this.cell = cell;
-        }
-        eachItem(cb) {
-            let object = this.cell._item;
-            while (object) {
-                cb(object);
-                object = object.next;
-            }
-        }
-        eachActor(cb) {
-            let object = this.cell._actor;
-            while (object) {
-                cb(object);
-                object = object.next;
-            }
-        }
-        forEach(cb) {
-            this.eachItem(cb);
-            this.eachActor(cb);
-        }
-        some(cb) {
-            let object = this.cell._item;
-            while (object) {
-                if (cb(object))
-                    return true;
-                object = object.next;
-            }
-            object = this.cell._actor;
-            while (object) {
-                if (cb(object))
-                    return true;
-                object = object.next;
-            }
-            return false;
-        }
-        reduce(cb, start) {
-            let object = this.cell._item;
-            while (object) {
-                if (start === undefined) {
-                    start = object;
-                }
-                else {
-                    start = cb(start, object);
-                }
-                object = object.next;
-            }
-            object = this.cell._actor;
-            while (object) {
-                if (start === undefined) {
-                    start = object;
-                }
-                else {
-                    start = cb(start, object);
-                }
-                object = object.next;
-            }
-            return start;
-        }
-    }
+    // class CellEntities {
+    //     cell: Cell;
+    //     constructor(cell: Cell) {
+    //         this.cell = cell;
+    //     }
+    //     eachItem(cb: EachCb<Item>): void {
+    //         let object: Item | null = this.cell._item;
+    //         while (object) {
+    //             cb(object);
+    //             object = object.next;
+    //         }
+    //     }
+    //     eachActor(cb: EachCb<Actor>): void {
+    //         let object: Actor | null = this.cell._actor;
+    //         while (object) {
+    //             cb(object);
+    //             object = object.next;
+    //         }
+    //     }
+    //     forEach(cb: EachCb<Entity>): void {
+    //         this.eachItem(cb);
+    //         this.eachActor(cb);
+    //     }
+    //     some(cb: MatchCb<Entity>): boolean {
+    //         let object: Entity | null = this.cell._item;
+    //         while (object) {
+    //             if (cb(object)) return true;
+    //             object = object.next;
+    //         }
+    //         object = this.cell._actor;
+    //         while (object) {
+    //             if (cb(object)) return true;
+    //             object = object.next;
+    //         }
+    //         return false;
+    //     }
+    //     reduce(cb: ReduceCb<Entity>, start?: any): any {
+    //         let object: Entity | null = this.cell._item;
+    //         while (object) {
+    //             if (start === undefined) {
+    //                 start = object;
+    //             } else {
+    //                 start = cb(start, object);
+    //             }
+    //             object = object.next;
+    //         }
+    //         object = this.cell._actor;
+    //         while (object) {
+    //             if (start === undefined) {
+    //                 start = object;
+    //             } else {
+    //                 start = cb(start, object);
+    //             }
+    //             object = object.next;
+    //         }
+    //         return start;
+    //     }
+    // }
     class Cell {
         constructor(map, x, y, groundTile) {
             this.chokeCount = 0;
             this.machineId = 0;
-            this._actor = null;
-            this._item = null;
             this.x = -1;
             this.y = -1;
-            this._objects = new CellObjects(this);
+            // this._entities = new CellEntities(this);
             this.flags = { cell: Cell$1.NEEDS_REDRAW };
             this.tiles = [tiles.NULL];
             this.map = map;
             this.x = x;
             this.y = y;
+            this.snapshot = GWU__namespace.sprite.makeMixer();
             if (groundTile) {
-                const tile = get(groundTile);
+                const tile = get$1(groundTile);
                 this.setTile(tile);
             }
+        }
+        getSnapshot(dest) {
+            dest.copy(this.snapshot);
+        }
+        putSnapshot(src) {
+            this.snapshot.copy(src);
+        }
+        get hasStableSnapshot() {
+            return this.hasCellFlag(Cell$1.STABLE_SNAPSHOT);
+        }
+        get hasStableMemory() {
+            return this.hasCellFlag(Cell$1.STABLE_MEMORY);
         }
         copy(other) {
             Object.assign(this.flags, other.flags);
@@ -2574,11 +2652,12 @@
                 this.tiles[i] = other.tiles[i];
             }
             this.machineId = other.machineId;
-            this._actor = other._actor;
-            this._item = other._item;
+            // this._actor = other.actor;
+            // this._item = other.item;
             this.map = other.map;
             this.x = other.x;
             this.y = other.y;
+            other.getSnapshot(this.snapshot);
         }
         hasCellFlag(flag) {
             return !!(this.flags.cell & flag);
@@ -2590,8 +2669,7 @@
             this.flags.cell &= ~flag;
         }
         hasEntityFlag(flag) {
-            return (this.tiles.some((t) => t && t.flags.entity & flag) ||
-                this._objects.some((o) => !!(o.flags.entity & flag)));
+            return this.tiles.some((t) => t && t.flags.entity & flag);
         }
         hasAllEntityFlags(flags) {
             return (this.entityFlags() & flags) == flags;
@@ -2625,28 +2703,13 @@
             return this.flags.cell;
         }
         entityFlags() {
-            return (this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
-                this._objects.reduce((out, o) => out | o.flags.entity, 0));
+            return this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0);
         }
         tileFlags() {
             return this.tiles.reduce((out, t) => out | (t ? t.flags.tile : 0), 0);
         }
         tileMechFlags() {
             return this.tiles.reduce((out, t) => out | (t ? t.flags.tileMech : 0), 0);
-        }
-        itemFlags() {
-            let flags = 0;
-            this._objects.eachItem((i) => {
-                flags |= i.flags.item;
-            });
-            return flags;
-        }
-        actorFlags() {
-            let flags = 0;
-            this._objects.eachActor((a) => {
-                flags |= a.flags.actor;
-            });
-            return flags;
         }
         get needsRedraw() {
             return !!(this.flags.cell & Cell$1.NEEDS_REDRAW);
@@ -2676,7 +2739,7 @@
             if (!tile)
                 return this.tiles.some((t) => t);
             if (!(tile instanceof Tile)) {
-                tile = get(tile);
+                tile = get$1(tile);
             }
             return this.tiles.includes(tile);
         }
@@ -2709,20 +2772,16 @@
             return this.tiles.find((t) => t && t.flags.tileMech & flag) || null;
         }
         blocksVision() {
-            return (this.tiles.some((t) => t && t.blocksVision()) ||
-                this._objects.some((o) => o.blocksVision()));
+            return this.tiles.some((t) => t && t.blocksVision());
         }
         blocksPathing() {
-            return (this.tiles.some((t) => t && t.blocksPathing()) ||
-                this._objects.some((o) => o.blocksPathing()));
+            return this.tiles.some((t) => t && t.blocksPathing());
         }
         blocksMove() {
-            return (this.tiles.some((t) => t && t.blocksMove()) ||
-                this._objects.some((o) => o.blocksMove()));
+            return this.tiles.some((t) => t && t.blocksMove());
         }
         blocksEffects() {
-            return (this.tiles.some((t) => t && t.blocksEffects()) ||
-                this._objects.some((o) => o.blocksEffects()));
+            return this.tiles.some((t) => t && t.blocksEffects());
         }
         blocksLayer(depth) {
             return this.tiles.some((t) => t &&
@@ -2730,10 +2789,8 @@
                 t.depth != depth);
         }
         // Tests
-        isEmpty() {
-            return (this.tiles.every((t) => !t || t === tiles.NULL) &&
-                this._actor == null &&
-                this._item == null);
+        isNull() {
+            return this.tiles.every((t) => !t || t === tiles.NULL);
         }
         isPassable() {
             return !this.blocksMove();
@@ -2755,12 +2812,17 @@
         isSecretlyPassable() {
             return this.hasEntityFlag(Entity$1.L_SECRETLY_PASSABLE);
         }
+        // hasKey(): boolean {
+        //     return this._entities.some(
+        //         (e) => !!e.key && e.key.matches(this.x, this.y)
+        //     );
+        // }
         // @returns - whether or not the change results in a change to the cell tiles.
         //          - If there is a change to cell lighting, the cell will have the
         //          - LIGHT_CHANGED flag set.
         setTile(tile) {
             if (!(tile instanceof Tile)) {
-                tile = get(tile);
+                tile = get$1(tile);
                 if (!tile)
                     return false;
             }
@@ -2793,6 +2855,7 @@
             if (tile) {
                 this.setTile(tile);
             }
+            this.needsRedraw = true;
         }
         clear(tile) {
             this.tiles = [tiles.NULL];
@@ -2800,11 +2863,10 @@
             this.needsRedraw = true;
             this.chokeCount = 0;
             this.machineId = 0;
-            this._actor = null;
-            this._item = null;
             if (tile) {
                 this.setTile(tile);
             }
+            this.snapshot.blackOut();
         }
         clearDepth(depth) {
             if (depth == 0) {
@@ -2888,18 +2950,33 @@
         hasItem() {
             return this.hasCellFlag(Cell$1.HAS_ITEM);
         }
-        get item() {
-            return this._item;
+        addItem(item) {
+            this.setCellFlag(Cell$1.HAS_ITEM);
+            item.x = this.x;
+            item.y = this.y;
+            item.map = this.map;
+            this.map.items.push(item);
+            this.needsRedraw = true;
         }
-        set item(val) {
-            this._item = val;
-            if (val) {
-                this.setCellFlag(Cell$1.HAS_ITEM);
-            }
-            else {
+        removeItem(item) {
+            let hasItems = false;
+            let foundIndex = -1;
+            this.map.items.forEach((obj, index) => {
+                if (obj === item) {
+                    foundIndex = index;
+                }
+                else if (obj.x === this.x && obj.y === this.y) {
+                    hasItems = true;
+                }
+            });
+            if (!hasItems) {
                 this.clearCellFlag(Cell$1.HAS_ITEM);
             }
+            if (foundIndex < 0)
+                return false;
+            this.map.items.splice(foundIndex, 1); // delete the item
             this.needsRedraw = true;
+            return true;
         }
         // // Actors
         hasActor() {
@@ -2908,18 +2985,36 @@
         hasPlayer() {
             return this.hasCellFlag(Cell$1.HAS_PLAYER);
         }
-        get actor() {
-            return this._actor;
-        }
-        set actor(val) {
-            this._actor = val;
-            if (val) {
-                this.setCellFlag(Cell$1.HAS_ACTOR);
+        addActor(actor) {
+            this.setCellFlag(Cell$1.HAS_ACTOR);
+            if (actor.isPlayer()) {
+                this.setCellFlag(Cell$1.HAS_PLAYER);
             }
-            else {
-                this.clearCellFlag(Cell$1.HAS_ACTOR);
-            }
+            actor.x = this.x;
+            actor.y = this.y;
+            actor.map = this.map;
+            this.map.actors.push(actor);
             this.needsRedraw = true;
+        }
+        removeActor(actor) {
+            let hasActor = false;
+            let foundIndex = -1;
+            this.map.actors.forEach((obj, index) => {
+                if (obj === actor) {
+                    foundIndex = index;
+                }
+                else if (obj.x === this.x && obj.y === this.y) {
+                    hasActor = true;
+                }
+            });
+            if (!hasActor) {
+                this.clearCellFlag(Cell$1.HAS_ACTOR | Cell$1.HAS_PLAYER);
+            }
+            if (foundIndex < 0)
+                return false;
+            this.map.actors.splice(foundIndex, 1); // delete the actor
+            this.needsRedraw = true;
+            return true;
         }
         getDescription() {
             return this.highestPriorityTile().description;
@@ -2931,53 +3026,41 @@
             return this.highestPriorityTile().getName(opts);
         }
         dump() {
-            var _a, _b, _c, _d;
-            if ((_b = (_a = this._actor) === null || _a === void 0 ? void 0 : _a.sprite) === null || _b === void 0 ? void 0 : _b.ch)
-                return this._actor.sprite.ch;
-            if ((_d = (_c = this._item) === null || _c === void 0 ? void 0 : _c.sprite) === null || _d === void 0 ? void 0 : _d.ch)
-                return this._item.sprite.ch;
             return this.highestPriorityTile().sprite.ch || ' ';
         }
-    }
-
-    class CellMemory extends Cell {
-        constructor(map, x, y) {
-            super(map, x, y);
-            this.snapshot = new GWU__namespace.sprite.Mixer();
-            this.snapshot.copy(tiles.NULL.sprite);
-        }
-        clear() {
-            super.clear();
-            this.snapshot.blackOut();
-        }
-        store(cell) {
-            this.copy(cell);
-        }
-        getSnapshot(dest) {
-            dest.copy(this.snapshot);
-        }
-        putSnapshot(src) {
-            this.snapshot.copy(src);
+        toString() {
+            return `Cell @ ${this.x},${this.y}`;
         }
     }
 
     class Map {
         constructor(width, height, opts = {}) {
+            // _memory: GWU.grid.Grid<CellMemory>;
             this.machineCount = 0;
             this._seed = 0;
             this.rng = GWU__namespace.rng.random;
+            this.id = 'MAP';
+            this.actors = [];
+            this.items = [];
             this.width = width;
             this.height = height;
             this.flags = { map: 0 };
             this.layers = [];
+            if (opts.id) {
+                this.id = opts.id;
+            }
             this.cells = GWU__namespace.grid.make(width, height, (x, y) => new Cell(this, x, y));
-            this._memory = GWU__namespace.grid.make(width, height, (x, y) => new CellMemory(this, x, y));
+            // this._memory = GWU.grid.make(
+            //     width,
+            //     height,
+            //     (x, y) => new CellMemory(this, x, y)
+            // );
             if (opts.seed) {
                 this._seed = opts.seed;
                 this.rng = GWU__namespace.rng.make(opts.seed);
             }
             this.light = new GWU__namespace.light.LightSystem(this, opts);
-            this.fov = new GWU__namespace.fov.FovSystem(this, opts);
+            // this.fov = new GWU.fov.FovSystem(this, opts);
             this.properties = {};
             this.initLayers();
         }
@@ -2988,12 +3071,13 @@
             this._seed = v;
             this.rng = GWU__namespace.rng.make(v);
         }
-        cellInfo(x, y, useMemory = false) {
-            if (useMemory && !this.fov.isAnyKindOfVisible(x, y)) {
-                return this._memory[x][y];
-            }
-            return this.cell(x, y);
-        }
+        // memory(x: number, y: number): CellMemory {
+        //     return this._memory[x][y];
+        // }
+        // knowledge(x: number, y: number): CellInfoType {
+        //     if (this.fov.isAnyKindOfVisible(x, y)) return this.cell(x,y);
+        //     return this._memory[x][y];
+        // }
         // LAYERS
         initLayers() {
             this.addLayer(Depth$1.GROUND, new TileLayer(this, 'ground'));
@@ -3038,43 +3122,22 @@
         eachCell(cb) {
             this.cells.forEach((cell, x, y) => cb(cell, x, y, this));
         }
-        // DRAW
-        drawInto(dest, opts = {}) {
-            const buffer = dest instanceof GWU__namespace.canvas.Canvas ? dest.buffer : dest;
-            if (typeof opts === 'boolean')
-                opts = { force: opts };
-            const mixer = new GWU__namespace.sprite.Mixer();
-            for (let x = 0; x < buffer.width; ++x) {
-                for (let y = 0; y < buffer.height; ++y) {
-                    // const cell = this.cell(x, y);
-                    // if (
-                    //     cell.needsRedraw ||
-                    //     this.light.lightChanged(x, y) ||
-                    //     this.fov.fovChanged(x, y)
-                    // ) {
-                    this.getAppearanceAt(x, y, mixer);
-                    buffer.drawSprite(x, y, mixer);
-                    // }
-                }
-            }
-        }
         // items
         hasItem(x, y) {
             return this.cell(x, y).hasItem();
         }
         itemAt(x, y) {
-            return this.cell(x, y).item;
+            return this.items.find((i) => i.isAt(x, y)) || null;
         }
         eachItem(cb) {
-            this.cells.forEach((cell) => {
-                GWU__namespace.list.forEach(cell.item, cb);
-            });
+            this.items.forEach(cb);
         }
         async addItem(x, y, item) {
             if (!this.hasXY(x, y))
                 return false;
             for (let layer of this.layers) {
                 if (layer && (await layer.addItem(x, y, item))) {
+                    // this.items.push(item);
                     return true;
                 }
             }
@@ -3085,6 +3148,7 @@
                 return false;
             for (let layer of this.layers) {
                 if (layer && layer.forceItem(x, y, item)) {
+                    // this.items.push(item);
                     return true;
                 }
             }
@@ -3092,9 +3156,20 @@
         }
         async removeItem(item) {
             const layer = this.layers[item.depth];
-            return layer.removeItem(item);
+            if (await layer.removeItem(item)) {
+                // GWU.arrayDelete(this.items, item);
+                return true;
+            }
+            return false;
         }
-        async moveItem(x, y, item) {
+        async moveItem(item, dir) {
+            if (typeof dir === 'number') {
+                dir = GWU__namespace.xy.DIRS[dir];
+            }
+            const oldX = item.x;
+            const oldY = item.y;
+            const x = oldX + dir[0];
+            const y = oldY + dir[1];
             if (!this.hasXY(x, y))
                 return false;
             const layer = this.layers[item.depth];
@@ -3104,6 +3179,24 @@
                 layer.forceItem(item.x, item.y, item);
                 return false;
             }
+            // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+            // const isVisible = this.fov.isAnyKindOfVisible(x, y);
+            // if (isVisible && !wasVisible) {
+            //     if (item.lastSeen) {
+            //         this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
+            //         this.clearCellFlag(
+            //             item.lastSeen.x,
+            //             item.lastSeen.y,
+            //             Flags.Cell.STABLE_SNAPSHOT
+            //         );
+            //         item.lastSeen = null;
+            //     }
+            // } else if (wasVisible && !isVisible) {
+            //     const mem = this._memory[x][y];
+            //     mem.item = item;
+            //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+            //     item.lastSeen = this.cell(x, y);
+            // }
             return true;
         }
         // Actors
@@ -3111,18 +3204,17 @@
             return this.cell(x, y).hasPlayer();
         }
         actorAt(x, y) {
-            return this.cell(x, y).actor;
+            return this.actors.find((a) => a.isAt(x, y)) || null;
         }
         eachActor(cb) {
-            this.cells.forEach((cell) => {
-                GWU__namespace.list.forEach(cell.actor, cb);
-            });
+            this.actors.forEach(cb);
         }
         async addActor(x, y, actor) {
             if (!this.hasXY(x, y))
                 return false;
             for (let layer of this.layers) {
                 if (layer && (await layer.addActor(x, y, actor))) {
+                    // this.actors.push(actor);
                     return true;
                 }
             }
@@ -3133,6 +3225,7 @@
                 return false;
             for (let layer of this.layers) {
                 if (layer && layer.forceActor(x, y, actor)) {
+                    // this.actors.push(actor);
                     return true;
                 }
             }
@@ -3140,9 +3233,20 @@
         }
         async removeActor(actor) {
             const layer = this.layers[actor.depth];
-            return layer.removeActor(actor);
+            if (await layer.removeActor(actor)) {
+                // GWU.arrayDelete(this.actors, actor);
+                return true;
+            }
+            return false;
         }
-        async moveActor(x, y, actor) {
+        async moveActor(actor, dir) {
+            if (typeof dir === 'number') {
+                dir = GWU__namespace.xy.DIRS[dir];
+            }
+            const oldX = actor.x;
+            const oldY = actor.y;
+            const x = oldX + dir[0];
+            const y = oldY + dir[1];
             if (!this.hasXY(x, y))
                 return false;
             const layer = this.layers[actor.depth];
@@ -3152,17 +3256,40 @@
                 layer.forceActor(actor.x, actor.y, actor);
                 return false;
             }
+            // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+            // const isVisible = this.fov.isAnyKindOfVisible(x, y);
+            // if (isVisible && !wasVisible) {
+            //     if (actor.lastSeen) {
+            //         this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(
+            //             actor
+            //         );
+            //         this.clearCellFlag(
+            //             actor.lastSeen.x,
+            //             actor.lastSeen.y,
+            //             Flags.Cell.STABLE_SNAPSHOT
+            //         );
+            //         actor.lastSeen = null;
+            //     }
+            // } else if (wasVisible && !isVisible) {
+            //     const mem = this._memory[x][y];
+            //     mem.actor = actor;
+            //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+            //     actor.lastSeen = this.cell(x, y);
+            // }
             return true;
         }
         // Information
-        isVisible(x, y) {
-            return this.fov.isAnyKindOfVisible(x, y);
-        }
+        // isVisible(x: number, y: number): boolean {
+        //     return this.fov.isAnyKindOfVisible(x, y);
+        // }
         hasKey(x, y) {
-            if (!this.hasXY(x, y))
-                return false;
-            const cell = this.cells[x][y];
-            return cell._objects.some((e) => !!e.key && e.key.matches(x, y));
+            const actor = this.actorAt(x, y);
+            if (actor && actor.isKey(x, y))
+                return true;
+            const item = this.itemAt(x, y);
+            if (item && item.isKey(x, y))
+                return true;
+            return false;
         }
         count(cb) {
             return this.cells.count((cell, x, y) => cb(cell, x, y, this));
@@ -3195,7 +3322,7 @@
         }
         clear() {
             this.light.glowLightChanged = true;
-            this.fov.needsUpdate = true;
+            // this.fov.needsUpdate = true;
             this.layers.forEach((l) => l.clear());
         }
         clearCell(x, y, tile) {
@@ -3204,25 +3331,29 @@
         }
         // Skips all the logic checks and just forces a clean cell with the given tile
         fill(tile, boundary) {
-            tile = get(tile);
-            boundary = get(boundary || tile);
+            tile = get$1(tile);
+            boundary = get$1(boundary || tile);
             let i, j;
             for (i = 0; i < this.width; ++i) {
                 for (j = 0; j < this.height; ++j) {
-                    const cell = this.cell(i, j);
+                    const cell = this.cells[i][j];
                     cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
                 }
             }
         }
-        hasTile(x, y, tile, useMemory = false) {
-            return this.cellInfo(x, y, useMemory).hasTile(tile);
+        hasTile(x, y, tile
+        // useMemory = false
+        ) {
+            return this.cell(x, y).hasTile(tile);
+            // if (!useMemory) return this.cell(x, y).hasTile(tile);
+            // return this.memory(x, y).hasTile(tile);
         }
         forceTile(x, y, tile) {
             return this.setTile(x, y, tile, { superpriority: true });
         }
         setTile(x, y, tile, opts) {
             if (!(tile instanceof Tile)) {
-                tile = get(tile);
+                tile = get$1(tile);
                 if (!tile)
                     return false;
             }
@@ -3254,13 +3385,15 @@
             if (this.width !== src.width || this.height !== src.height)
                 throw new Error('Maps must be same size to copy');
             this.cells.forEach((c, x, y) => {
-                c.copy(src.cells[x][y]);
+                c.copy(src.cell(x, y));
             });
             this.layers.forEach((l, depth) => {
                 l.copy(src.layers[depth]);
             });
+            this.actors = src.actors.slice();
+            this.items = src.items.slice();
             this.flags.map = src.flags.map;
-            this.fov.needsUpdate = true;
+            // this.fov.needsUpdate = true;
             this.light.copy(src.light);
             this.rng = src.rng;
             this.machineCount = src.machineCount;
@@ -3341,7 +3474,7 @@
             ctx.originY = originY;
             for (let x = 0; x < this.width; ++x) {
                 for (let y = 0; y < this.height; ++y) {
-                    const cell = this.cells[x][y];
+                    const cell = this.cell(x, y);
                     if (cell.machineId !== machineId)
                         continue;
                     if (cell.hasEffect('machine')) {
@@ -3353,13 +3486,25 @@
             }
             return didSomething;
         }
-        getAppearanceAt(x, y, dest) {
+        // DRAW
+        drawInto(dest, opts = {}) {
+            const buffer = dest instanceof GWU__namespace.canvas.Canvas ? dest.buffer : dest;
+            if (typeof opts === 'boolean')
+                opts = { force: opts };
+            const mixer = new GWU__namespace.sprite.Mixer();
+            for (let x = 0; x < buffer.width; ++x) {
+                for (let y = 0; y < buffer.height; ++y) {
+                    this.getAppearanceAt(x, y, mixer);
+                    buffer.drawSprite(x, y, mixer);
+                }
+            }
+        }
+        getCellAppearance(cell, dest) {
             dest.blackOut();
-            const cell = this.cell(x, y);
-            const isVisible = this.fov.isAnyKindOfVisible(x, y);
+            const isVisible = true; // this.fov.isAnyKindOfVisible(x, y);
             const needSnapshot = !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT);
             if (needSnapshot || (cell.needsRedraw && isVisible)) {
-                this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
+                this.layers.forEach((layer) => layer.putAppearance(dest, cell));
                 if (dest.dances) {
                     cell.setCellFlag(Cell$1.COLORS_DANCE);
                 }
@@ -3367,26 +3512,24 @@
                     cell.clearCellFlag(Cell$1.COLORS_DANCE);
                 }
                 dest.bake();
-                this._memory[x][y].putSnapshot(dest);
+                cell.putSnapshot(dest);
                 cell.needsRedraw = false;
                 cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
             }
             else {
-                this._memory[x][y].getSnapshot(dest);
+                cell.getSnapshot(dest);
             }
-            if (isVisible) {
-                const light = this.light.getLight(x, y);
+            {
+                const light = this.light.getLight(cell.x, cell.y);
                 dest.multiply(light);
-            }
-            else if (this.fov.isRevealed(x, y)) {
-                dest.scale(50);
-            }
-            else {
-                dest.blackOut();
             }
             if (cell.hasEntityFlag(Entity$1.L_VISUALLY_DISTINCT)) {
                 GWU__namespace.color.separate(dest.fg, dest.bg);
             }
+        }
+        getAppearanceAt(x, y, dest) {
+            const cell = this.cell(x, y);
+            return this.getCellAppearance(cell, dest);
         }
         // // LightSystemSite
         hasActor(x, y) {
@@ -3450,27 +3593,11 @@
             //     }
             // }
         }
-        redrawCell(x, y, clearMemory) {
-            if (clearMemory) {
-                this.clearMemory(x, y);
-            }
-            this.cells[x][y].needsRedraw = true;
-        }
-        clearMemory(x, y) {
-            this._memory[x][y].clear();
-        }
-        storeMemory(x, y, updateSnapshot = false) {
-            const cell = this.cell(x, y);
-            const memory = this._memory[x][y];
-            memory.store(cell);
-            cell.setCellFlag(Cell$1.STABLE_MEMORY);
-            if (updateSnapshot || !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT)) {
-                const dest = memory.snapshot;
-                dest.blackOut();
-                this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
-                dest.bake();
-                cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
-            }
+        redrawCell(x, y) {
+            // if (clearMemory) {
+            //     this.clearMemory(x, y);
+            // }
+            this.cell(x, y).needsRedraw = true;
         }
     }
     function make(w, h, opts = {}, boundary) {
@@ -3494,12 +3621,12 @@
         // if (!DATA.map) {
         //     DATA.map = map;
         // }
-        // In case we reveal the map or make it all visible we need our memory set correctly
-        map.cells.forEach((_c, x, y) => {
-            if (map.fov.isRevealed(x, y)) {
-                map.storeMemory(x, y, true); // with snapshot
-            }
-        });
+        // // In case we reveal the map or make it all visible we need our memory set correctly
+        // map.cells.forEach((_c, x, y) => {
+        //     if (map.fov.isRevealed(x, y)) {
+        //         map.storeMemory(x, y, true); // with snapshot
+        //     }
+        // });
         return map;
     }
     function isString(value) {
@@ -3864,7 +3991,7 @@
             this.version = 0;
             this.layerVersion = [];
             this.lightVersion = 0;
-            this.fovVersion = 0;
+            // fovVersion = 0;
             this.free = [];
             this.map = map;
             this.cellVersion = GWU__namespace.grid.make(map.width, map.height);
@@ -3895,13 +4022,13 @@
             if (snap.version !== this.lightVersion) {
                 snap.map.light.copy(this.map.light);
             }
-            if (this.map.fov.changed) {
-                this.fovVersion = this.version;
-                this.map.fov.changed = false;
-            }
-            if (snap.version !== this.fovVersion) {
-                snap.map.fov.copy(this.map.fov);
-            }
+            // if (this.map.fov.changed) {
+            //     this.fovVersion = this.version;
+            //     this.map.fov.changed = false;
+            // }
+            // if (snap.version !== this.fovVersion) {
+            //     snap.map.fov.copy(this.map.fov);
+            // }
             // layers
             this.map.layers.forEach((layer, index) => {
                 const snapLayer = snap.map.layers[index];
@@ -3932,10 +4059,10 @@
                 this.map.light.copy(snap.map.light);
                 this.lightVersion = snap.version;
             }
-            if (snap.version < this.fovVersion || this.map.fov.changed) {
-                this.map.fov.copy(snap.map.fov);
-                this.fovVersion = snap.version;
-            }
+            // if (snap.version < this.fovVersion || this.map.fov.changed) {
+            //     this.map.fov.copy(snap.map.fov);
+            //     this.fovVersion = snap.version;
+            // }
             // layers
             this.layerVersion.forEach((v, index) => {
                 if (v < snap.version)
@@ -3960,7 +4087,7 @@
         }) > 1);
     }
 
-    var index$1 = /*#__PURE__*/Object.freeze({
+    var index$2 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Cell: Cell,
         Map: Map,
@@ -3974,7 +4101,6 @@
         checkLoopiness: checkLoopiness,
         fillInnerLoopGrid: fillInnerLoopGrid,
         cleanLoopiness: cleanLoopiness,
-        CellMemory: CellMemory,
         Snapshot: Snapshot,
         SnapshotManager: SnapshotManager,
         isHallway: isHallway
@@ -4038,13 +4164,10 @@
             // if (config.requiredTile) this.requiredTile = config.requiredTile;
         }
         async spawn(map, x = -1, y = -1, opts = {}) {
-            var _a, _b;
-            if (typeof opts === 'boolean') {
-                opts = { canBeVisible: opts };
-            }
-            opts.canBeVisible = (_a = opts.canBeVisible) !== null && _a !== void 0 ? _a : !map.fov.isEnabled;
+            var _a;
+            opts.canSpawn = opts.canSpawn || GWU__namespace.TRUE;
             opts.rng = opts.rng || map.rng;
-            opts.machine = (_b = opts.machine) !== null && _b !== void 0 ? _b : 0;
+            opts.machine = (_a = opts.machine) !== null && _a !== void 0 ? _a : 0;
             const leader = await this._spawnLeader(map, x, y, opts);
             if (!leader)
                 return null;
@@ -4052,7 +4175,7 @@
             return leader;
         }
         async _spawnLeader(map, x, y, opts) {
-            const leaderKind = get$2(this.leader);
+            const leaderKind = get$3(this.leader);
             if (!leaderKind) {
                 throw new Error('Failed to find leader kind = ' + this.leader);
             }
@@ -4096,7 +4219,7 @@
             return count;
         }
         async _spawnMember(kindId, map, leader, opts) {
-            const kind = get$2(kindId);
+            const kind = get$3(kindId);
             if (!kind) {
                 throw new Error('Failed to find member kind = ' + kindId);
             }
@@ -4121,7 +4244,7 @@
                 const cell = map.cell(x, y);
                 if (cell.hasActor())
                     return false; // Brogue kills existing actors, but lets do this instead
-                if (!opts.canBeVisible && map.fov.isAnyKindOfVisible(x, y))
+                if (!opts.canSpawn(x, y))
                     return false;
                 if (leader.avoidsCell(cell))
                     return false;
@@ -4264,7 +4387,7 @@
         return matches[index];
     }
 
-    var index = /*#__PURE__*/Object.freeze({
+    var index$1 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Horde: Horde,
         hordes: hordes,
@@ -4274,18 +4397,166 @@
         random: random
     });
 
-    exports.actor = index$6;
-    exports.effect = index$3;
-    exports.entity = index$7;
-    exports.flags = index$8;
-    exports.horde = index;
-    exports.item = index$5;
-    exports.layer = index$2;
-    exports.map = index$1;
+    class Memory extends Map {
+        constructor(map) {
+            super(map.width, map.height);
+            // this.actor = actor;
+            this.source = map;
+            this.cells.forEach((c) => c.setCellFlag(Cell$1.STABLE_MEMORY));
+        }
+        cell(x, y) {
+            let cell = this.cells[x][y];
+            if (!cell.hasCellFlag(Cell$1.STABLE_MEMORY)) {
+                cell = this.source.cell(x, y);
+            }
+            return cell;
+        }
+        memory(x, y) {
+            return this.cells[x][y];
+        }
+        isMemory(x, y) {
+            return this.cells[x][y].hasCellFlag(Cell$1.STABLE_MEMORY);
+        }
+        setTile() {
+            throw new Error('Cannot set tiles on memory.');
+        }
+        async addItem() {
+            throw new Error('Cannot add Items to memory!');
+        }
+        forceItem() {
+            throw new Error('Cannot force Items in memory!');
+        }
+        async removeItem() {
+            throw new Error('Cannot remove Items from memory!');
+        }
+        async moveItem() {
+            throw new Error('Cannot move Items on memory!');
+        }
+        eachItem(cb) {
+            this.source.eachItem((i) => {
+                if (!this.isMemory(i.x, i.y)) {
+                    cb(i);
+                    const i2 = this.items.find((other) => other.id == i.id);
+                    if (i2) {
+                        const mem = this.cell(i2.x, i2.y);
+                        mem.clearCellFlag(Cell$1.HAS_ITEM | Cell$1.STABLE_SNAPSHOT);
+                        GWU__namespace.arrayDelete(this.items, i2);
+                    }
+                }
+            });
+            this.items.forEach(cb);
+        }
+        async addActor() {
+            throw new Error('Cannot add Actors to memory!');
+        }
+        forceActor() {
+            throw new Error('Cannot force Actors in memory!');
+        }
+        async removeActor() {
+            throw new Error('Cannot remove Actors from memory!');
+        }
+        async moveActor() {
+            throw new Error('Cannot move Actors on memory!');
+        }
+        eachActor(cb) {
+            this.source.eachActor((a) => {
+                if (!this.isMemory(a.x, a.y)) {
+                    cb(a);
+                    const a2 = this.actors.find((other) => other.id == a.id);
+                    if (a2) {
+                        const mem = this.cell(a2.x, a2.y);
+                        mem.clearCellFlag(Cell$1.HAS_ACTOR | Cell$1.STABLE_SNAPSHOT);
+                        GWU__namespace.arrayDelete(this.actors, a2);
+                    }
+                }
+            });
+            this.actors.forEach(cb);
+        }
+        storeMemory(x, y) {
+            const mem = this.memory(x, y);
+            // cleanup any old items+actors
+            if (mem.hasItem()) {
+                this.items = this.items.filter((i) => i.x !== x || i.y !== y);
+            }
+            if (mem.hasActor()) {
+                this.actors = this.actors.filter((a) => a.x !== x || a.y !== y);
+            }
+            const cell = this.source.cell(x, y);
+            mem.copy(cell);
+            mem.setCellFlag(Cell$1.STABLE_MEMORY);
+            // add any current items+actors
+            if (cell.hasItem()) {
+                const item = this.source.itemAt(x, y);
+                if (item) {
+                    this.items.push(item.clone());
+                }
+            }
+            if (cell.hasActor()) {
+                const actor = this.source.actorAt(x, y);
+                if (actor) {
+                    this.actors.push(actor.clone());
+                }
+            }
+        }
+        forget(x, y) {
+            const mem = this.memory(x, y);
+            // cleanup any old items+actors
+            if (mem.hasItem()) {
+                this.items = this.items.filter((i) => i.x !== x || i.y !== y);
+            }
+            if (mem.hasActor()) {
+                this.actors = this.actors.filter((a) => a.x !== x || a.y !== y);
+            }
+            mem.clearCellFlag(Cell$1.STABLE_MEMORY);
+        }
+        onFovChange(x, y, isVisible) {
+            if (!isVisible) {
+                this.storeMemory(x, y);
+            }
+            else {
+                this.forget(x, y);
+            }
+        }
+    }
+
+    const cache = {};
+    function store(actor, map, memory) {
+        let actorMemory = cache[actor.id];
+        if (!actorMemory) {
+            cache[actor.id] = actorMemory = {};
+        }
+        actorMemory[map.id] = memory;
+    }
+    function get(actor, map) {
+        let actorMemory = cache[actor.id];
+        if (actorMemory) {
+            const memory = actorMemory[map.id];
+            if (memory)
+                return memory;
+        }
+        return new Memory(map);
+    }
+
+    var index = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Memory: Memory,
+        store: store,
+        get: get
+    });
+
+    exports.actor = index$7;
+    exports.effect = index$4;
+    exports.entity = index$8;
+    exports.flags = index$9;
+    exports.horde = index$1;
+    exports.item = index$6;
+    exports.layer = index$3;
+    exports.map = index$2;
+    exports.memory = index;
     exports.path = path;
-    exports.tile = index$4;
+    exports.tile = index$5;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));
 //# sourceMappingURL=gw-map.js.map

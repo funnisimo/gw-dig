@@ -128,7 +128,7 @@ describe('Mixed Item Library', () => {
     });
 
     test('simple item', async () => {
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
 
         const digger = new GWD.Digger({
             seed: 12345,

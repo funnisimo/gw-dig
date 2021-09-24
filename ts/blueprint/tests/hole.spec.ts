@@ -125,7 +125,7 @@ describe('Blueprint - hole', () => {
             lakes: false,
         });
 
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
         digger.create(map);
 
         const builder = new GWD.blueprint.Builder();

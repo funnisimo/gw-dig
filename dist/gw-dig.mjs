@@ -759,20 +759,20 @@ class MapSite {
         return this.map.cell(x, y).isStairs();
     }
     isSet(x, y) {
-        return this.hasXY(x, y) && !this.map.cell(x, y).isEmpty();
+        return this.hasXY(x, y) && !this.map.cell(x, y).isNull();
     }
     isDiggable(x, y) {
         if (!this.hasXY(x, y))
             return false;
         const cell = this.map.cell(x, y);
-        if (cell.isEmpty())
+        if (cell.isNull())
             return true;
         if (cell.isWall())
             return true;
         return false;
     }
     isNothing(x, y) {
-        return this.hasXY(x, y) && this.map.cell(x, y).isEmpty();
+        return this.hasXY(x, y) && this.map.cell(x, y).isNull();
     }
     isFloor(x, y) {
         return this.isPassable(x, y);

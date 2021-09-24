@@ -56,6 +56,13 @@
     function arraysIntersect(a, b) {
         return a.some((av) => b.includes(av));
     }
+    function arrayDelete(a, b) {
+        const index = a.indexOf(b);
+        if (index < 0)
+            return false;
+        a.splice(index, 1);
+        return true;
+    }
     function sum(arr) {
         return arr.reduce((a, b) => a + b);
     }
@@ -294,7 +301,7 @@
         let largerTargetComponent, i;
         let currentLoc = [-1, -1], previousLoc = [-1, -1];
         if (fromX == toX && fromY == toY) {
-            return;
+            return true;
         }
         const originLoc = [fromX, fromY];
         const targetLoc = [toX, toY];
@@ -328,9 +335,11 @@
                 }
                 currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
             }
-            if (stepFn(...currentLoc)) {
-                break;
+            if (stepFn(...currentLoc) === false) {
+                return false;
             }
+            if (currentLoc[0] === toX && currentLoc[1] === toY)
+                return true;
         } while (true);
     }
     // ADAPTED FROM BROGUE 1.7.5
@@ -343,7 +352,6 @@
         const line = [];
         forLineBetween(fromX, fromY, toX, toY, (x, y) => {
             line.push([x, y]);
-            return x == toX && y == toY;
         });
         return line;
     }
@@ -357,9 +365,8 @@
         const line = [];
         forLineBetween(fromX, fromY, toX, toY, (x, y) => {
             if (x < 0 || y < 0 || x >= width || y >= height)
-                return true;
+                return false;
             line.push([x, y]);
-            return false;
         });
         return line;
     }
@@ -2446,25 +2453,26 @@
         }
     }
 
-    // import * as GW from 'gw-utils';
+    // import * as GWU from 'gw-utils';
     class FovSystem {
         constructor(site, opts = {}) {
-            this.isEnabled = false;
+            this.onFovChange = { onFovChange: NOOP };
             this.site = site;
             let flag = 0;
-            if (opts.revealed)
+            const visible = opts.visible || opts.alwaysVisible;
+            if (opts.revealed || (visible && opts.revealed !== false))
                 flag |= FovFlags.REVEALED;
-            if (opts.visible)
+            if (visible)
                 flag |= FovFlags.VISIBLE;
-            if (flag === 0 &&
-                opts.fov !== true &&
-                opts.revealed === undefined &&
-                opts.visible === undefined) {
-                flag = FovFlags.VISIBLE | FovFlags.REVEALED;
-            }
             this.flags = make$7(site.width, site.height, flag);
             this.needsUpdate = true;
             this._changed = true;
+            if (typeof opts.onFovChange === 'function') {
+                this.onFovChange.onFovChange = opts.onFovChange;
+            }
+            else if (opts.onFovChange) {
+                this.onFovChange = opts.onFovChange;
+            }
             this.fov = new FOV({
                 isBlocked(x, y) {
                     return site.blocksVision(x, y);
@@ -2474,14 +2482,11 @@
                 },
             });
             // we want fov, so do not reveal the map initially
-            if (opts.fov === true) {
-                this.isEnabled = true;
-            }
-            if (opts.visible) {
+            if (opts.alwaysVisible) {
                 this.makeAlwaysVisible();
             }
-            else if (opts.visible === false) {
-                this.isEnabled = true;
+            if (opts.visible || opts.alwaysVisible) {
+                forRect(site.width, site.height, (x, y) => this.onFovChange.onFovChange(x, y, true));
             }
         }
         isVisible(x, y) {
@@ -2529,7 +2534,10 @@
             this.changed = true;
         }
         hideCell(x, y) {
-            this.flags[x][y] &= ~(FovFlags.MAGIC_MAPPED | FovFlags.REVEALED);
+            this.flags[x][y] &= ~(FovFlags.MAGIC_MAPPED |
+                FovFlags.REVEALED |
+                FovFlags.ALWAYS_VISIBLE);
+            this.flags[x][y] = this.demoteCellVisibility(this.flags[x][y]); // clears visible, etc...
             this.changed = true;
         }
         magicMapCell(x, y) {
@@ -2577,51 +2585,12 @@
             if (isVisible && wasVisible) ;
             else if (isVisible && !wasVisible) {
                 // if the cell became visible this move
-                if (!(flag & FovFlags.REVEALED) /* && DATA.automationActive */) {
-                    this.site.onCellRevealed(x, y);
-                    // if (cell.item) {
-                    //     const theItem: GW.types.ItemType = cell.item;
-                    //     if (
-                    //         theItem.hasLayerFlag(ObjectFlags.L_INTERRUPT_WHEN_SEEN)
-                    //     ) {
-                    //         GW.message.add(
-                    //             '§you§ §see§ ΩitemMessageColorΩ§item§∆.',
-                    //             {
-                    //                 item: theItem,
-                    //                 actor: DATA.player,
-                    //             }
-                    //         );
-                    //     }
-                    // }
-                    // if (
-                    //     !(flag & FovFlags.MAGIC_MAPPED) &&
-                    //     this.site.hasObjectFlag(
-                    //         x,
-                    //         y,
-                    //         ObjectFlags.L_INTERRUPT_WHEN_SEEN
-                    //     )
-                    // ) {
-                    //     const tile = cell.tileWithLayerFlag(
-                    //         ObjectFlags.L_INTERRUPT_WHEN_SEEN
-                    //     );
-                    //     if (tile) {
-                    //         GW.message.add(
-                    //             '§you§ §see§ ΩbackgroundMessageColorΩ§item§∆.',
-                    //             {
-                    //                 actor: DATA.player,
-                    //                 item: tile.name,
-                    //             }
-                    //         );
-                    //     }
-                    // }
-                    this.flags[x][y] |= FovFlags.REVEALED;
-                }
-                this.site.redrawCell(x, y);
+                this.flags[x][y] |= FovFlags.REVEALED;
+                this.onFovChange.onFovChange(x, y, isVisible);
             }
             else if (!isVisible && wasVisible) {
                 // if the cell ceased being visible this move
-                this.site.storeMemory(x, y);
-                // this.site.redrawCell(x, y);
+                this.onFovChange.onFovChange(x, y, isVisible);
             }
             return isVisible;
         }
@@ -2631,12 +2600,11 @@
             if (isClairy && wasClairy) ;
             else if (!isClairy && wasClairy) {
                 // ceased being clairvoyantly visible
-                this.site.storeMemory(x, y);
-                // this.site.redrawCell(x, y);
+                this.onFovChange.onFovChange(x, y, isClairy);
             }
             else if (!wasClairy && isClairy) {
                 // became clairvoyantly visible
-                this.site.redrawCell(x, y, true);
+                this.onFovChange.onFovChange(x, y, isClairy);
             }
             return isClairy;
         }
@@ -2646,18 +2614,11 @@
             if (isTele && wasTele) ;
             else if (!isTele && wasTele) {
                 // ceased being telepathically visible
-                this.site.storeMemory(x, y);
-                // this.site.redrawCell(x, y);
+                this.onFovChange.onFovChange(x, y, isTele);
             }
             else if (!wasTele && isTele) {
                 // became telepathically visible
-                // if (
-                //     !(flag & FovFlags.REVEALED) &&
-                //     !cell.hasTileFlag(Flags.Tile.T_PATHING_BLOCKER)
-                // ) {
-                //     DATA.xpxpThisTurn++;
-                // }
-                this.site.redrawCell(x, y, true);
+                this.onFovChange.onFovChange(x, y, isTele);
             }
             return isTele;
         }
@@ -2667,13 +2628,11 @@
             if (isMonst && wasMonst) ;
             else if (!isMonst && wasMonst) {
                 // ceased being detected visible
-                this.site.redrawCell(x, y, true);
-                // cell.storeMemory();
+                this.onFovChange.onFovChange(x, y, isMonst);
             }
             else if (!wasMonst && isMonst) {
                 // became detected visible
-                this.site.redrawCell(x, y, true);
-                // cell.storeMemory();
+                this.onFovChange.onFovChange(x, y, isMonst);
             }
             return isMonst;
         }
@@ -2700,7 +2659,6 @@
                 !this.site.lightingChanged()) {
                 return false;
             }
-            this.isEnabled = true; // you called update so you must want it enabled...
             this.needsUpdate = false;
             this._changed = false;
             this.flags.update(this.demoteCellVisibility.bind(this));
@@ -6627,6 +6585,7 @@ void main() {
     exports.TRUE = TRUE;
     exports.WARN = WARN;
     exports.ZERO = ZERO;
+    exports.arrayDelete = arrayDelete;
     exports.arraysIntersect = arraysIntersect;
     exports.blob = blob;
     exports.canvas = index$2;
