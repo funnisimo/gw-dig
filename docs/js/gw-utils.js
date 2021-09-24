@@ -56,6 +56,13 @@
     function arraysIntersect(a, b) {
         return a.some((av) => b.includes(av));
     }
+    function arrayDelete(a, b) {
+        const index = a.indexOf(b);
+        if (index < 0)
+            return false;
+        a.splice(index, 1);
+        return true;
+    }
     function sum(arr) {
         return arr.reduce((a, b) => a + b);
     }
@@ -294,7 +301,7 @@
         let largerTargetComponent, i;
         let currentLoc = [-1, -1], previousLoc = [-1, -1];
         if (fromX == toX && fromY == toY) {
-            return;
+            return true;
         }
         const originLoc = [fromX, fromY];
         const targetLoc = [toX, toY];
@@ -328,9 +335,11 @@
                 }
                 currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
             }
-            if (stepFn(...currentLoc)) {
-                break;
+            if (stepFn(...currentLoc) === false) {
+                return false;
             }
+            if (currentLoc[0] === toX && currentLoc[1] === toY)
+                return true;
         } while (true);
     }
     // ADAPTED FROM BROGUE 1.7.5
@@ -343,7 +352,6 @@
         const line = [];
         forLineBetween(fromX, fromY, toX, toY, (x, y) => {
             line.push([x, y]);
-            return x == toX && y == toY;
         });
         return line;
     }
@@ -357,9 +365,8 @@
         const line = [];
         forLineBetween(fromX, fromY, toX, toY, (x, y) => {
             if (x < 0 || y < 0 || x >= width || y >= height)
-                return true;
+                return false;
             line.push([x, y]);
-            return false;
         });
         return line;
     }
@@ -2452,9 +2459,10 @@
             this.onFovChange = { onFovChange: NOOP };
             this.site = site;
             let flag = 0;
-            if (opts.revealed)
+            const visible = opts.visible || opts.alwaysVisible;
+            if (opts.revealed || (visible && opts.revealed !== false))
                 flag |= FovFlags.REVEALED;
-            if (opts.visible || opts.alwaysVisible)
+            if (visible)
                 flag |= FovFlags.VISIBLE;
             this.flags = make$7(site.width, site.height, flag);
             this.needsUpdate = true;
@@ -6577,6 +6585,7 @@ void main() {
     exports.TRUE = TRUE;
     exports.WARN = WARN;
     exports.ZERO = ZERO;
+    exports.arrayDelete = arrayDelete;
     exports.arraysIntersect = arraysIntersect;
     exports.blob = blob;
     exports.canvas = index$2;

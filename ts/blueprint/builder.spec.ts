@@ -6,7 +6,7 @@ import { Digger } from '../digger';
 
 describe('Builder', () => {
     test.only('Build Vestiblue', async () => {
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
         ROOM.install('ENTRANCE', new ROOM.BrogueEntrance());
         ROOM.install(
@@ -77,7 +77,7 @@ describe('Builder', () => {
         // [0,			PORTCULLIS_CLOSED,DUNGEON,  [1,1],      1,			0,			0,			0,				3,				0,			0,			(MF_BUILD_AT_ORIGIN | MF_PERMIT_BLOCKING | MF_IMPREGNABLE | MF_ALTERNATIVE)],
         // [0,			WALL_LEVER,DUNGEON,  [1,1],      1,			0,			-1,			0,				1,				0,			0,			(MF_BUILD_IN_WALLS | MF_IN_PASSABLE_VIEW_OF_ORIGIN | MF_BUILD_ANYWHERE_ON_LEVEL)]]],
 
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
 
         const portcullis = GWM.tile.install('PORTCULLIS_CLOSED', {
             extends: 'WALL',

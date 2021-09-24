@@ -110,7 +110,7 @@ describe('Blueprint', () => {
     });
 
     test('carpet', async () => {
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
 
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%' });
         DIG.room.install('ENTRANCE', new DIG.room.BrogueEntrance());
@@ -174,7 +174,7 @@ describe('Blueprint', () => {
             steps: [{ tile: 'CARPET', flags: 'BS_EVERYWHERE' }],
         });
 
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
         await digger.create(map);
 
         // map.dump();

@@ -147,7 +147,7 @@ describe('Level', () => {
             new Dig.room.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
 
         const digger = new Dig.Digger({
             seed: 12345,

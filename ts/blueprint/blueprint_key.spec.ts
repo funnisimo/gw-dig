@@ -65,7 +65,7 @@ describe('Blueprint - key', () => {
             steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
         });
 
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
         await digger.create(map);
         const builder = new GWD.blueprint.Builder();
 
@@ -127,7 +127,7 @@ describe('Blueprint - key', () => {
             steps: [{ flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE' }],
         });
 
-        const map = GWM.map.make(80, 34, { visible: true });
+        const map = GWM.map.make(80, 34);
         await digger.create(map);
 
         const builder = new GWD.blueprint.Builder();
