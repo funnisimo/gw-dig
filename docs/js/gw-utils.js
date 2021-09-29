@@ -115,6 +115,9 @@
         // @ts-ignore
         return src.y || src[1] || 0;
     }
+    function contains(size, x, y) {
+        return x >= 0 && y >= 0 && x < size.width && y < size.height;
+    }
     class Bounds {
         constructor(x, y, w, h) {
             this.x = x;
@@ -465,6 +468,7 @@
         CLOCK_DIRS: CLOCK_DIRS,
         x: x,
         y: y,
+        contains: contains,
         Bounds: Bounds,
         copyXY: copyXY,
         addXY: addXY,
@@ -2330,8 +2334,8 @@
         FovFlags[FovFlags["WAS_TELEPATHIC_VISIBLE"] = fl(5)] = "WAS_TELEPATHIC_VISIBLE";
         FovFlags[FovFlags["ITEM_DETECTED"] = fl(6)] = "ITEM_DETECTED";
         FovFlags[FovFlags["WAS_ITEM_DETECTED"] = fl(7)] = "WAS_ITEM_DETECTED";
-        FovFlags[FovFlags["MONSTER_DETECTED"] = fl(8)] = "MONSTER_DETECTED";
-        FovFlags[FovFlags["WAS_MONSTER_DETECTED"] = fl(9)] = "WAS_MONSTER_DETECTED";
+        FovFlags[FovFlags["ACTOR_DETECTED"] = fl(8)] = "ACTOR_DETECTED";
+        FovFlags[FovFlags["WAS_ACTOR_DETECTED"] = fl(9)] = "WAS_ACTOR_DETECTED";
         FovFlags[FovFlags["REVEALED"] = fl(10)] = "REVEALED";
         FovFlags[FovFlags["MAGIC_MAPPED"] = fl(11)] = "MAGIC_MAPPED";
         FovFlags[FovFlags["IN_FOV"] = fl(12)] = "IN_FOV";
@@ -2347,6 +2351,8 @@
         FovFlags[FovFlags["WAS_ANY_KIND_OF_VISIBLE"] = FovFlags.WAS_VISIBLE |
             FovFlags.WAS_CLAIRVOYANT_VISIBLE |
             FovFlags.WAS_TELEPATHIC_VISIBLE] = "WAS_ANY_KIND_OF_VISIBLE";
+        FovFlags[FovFlags["WAS_DETECTED"] = FovFlags.WAS_ITEM_DETECTED | FovFlags.WAS_ACTOR_DETECTED] = "WAS_DETECTED";
+        FovFlags[FovFlags["IS_DETECTED"] = FovFlags.ITEM_DETECTED | FovFlags.ACTOR_DETECTED] = "IS_DETECTED";
         FovFlags[FovFlags["PLAYER"] = FovFlags.IN_FOV] = "PLAYER";
         FovFlags[FovFlags["CLAIRVOYANT"] = FovFlags.CLAIRVOYANT_VISIBLE] = "CLAIRVOYANT";
         FovFlags[FovFlags["TELEPATHIC"] = FovFlags.TELEPATHIC_VISIBLE] = "TELEPATHIC";
@@ -2354,7 +2360,7 @@
             FovFlags.CLAIRVOYANT |
             FovFlags.TELEPATHIC |
             FovFlags.ITEM_DETECTED |
-            FovFlags.MONSTER_DETECTED] = "VIEWPORT_TYPES";
+            FovFlags.ACTOR_DETECTED] = "VIEWPORT_TYPES";
     })(FovFlags || (FovFlags = {}));
 
     // CREDIT - This is adapted from: http://roguebasin.roguelikedevelopment.org/index.php?title=Improved_Shadowcasting_in_Java
@@ -2488,6 +2494,9 @@
             if (opts.visible || opts.alwaysVisible) {
                 forRect(site.width, site.height, (x, y) => this.onFovChange.onFovChange(x, y, true));
             }
+        }
+        getFlag(x, y) {
+            return this.flags[x][y];
         }
         isVisible(x, y) {
             return !!((this.flags.get(x, y) || 0) & FovFlags.VISIBLE);
@@ -2627,8 +2636,8 @@
             return isTele;
         }
         updateCellDetect(flag, x, y) {
-            const isMonst = !!(flag & FovFlags.MONSTER_DETECTED);
-            const wasMonst = !!(flag & FovFlags.WAS_MONSTER_DETECTED);
+            const isMonst = !!(flag & FovFlags.ACTOR_DETECTED);
+            const wasMonst = !!(flag & FovFlags.WAS_ACTOR_DETECTED);
             if (isMonst && wasMonst) ;
             else if (!isMonst && wasMonst) {
                 // ceased being detected visible
@@ -2656,12 +2665,15 @@
             if (this.updateCellDetect(flag, x, y))
                 return;
         }
-        update(cx, cy, cr = 10) {
+        update(cx, cy, cr) {
             // if (!this.site.usesFov()) return false;
             if (!this.needsUpdate &&
                 cx === undefined &&
                 !this.site.lightingChanged()) {
                 return false;
+            }
+            if (cr === undefined) {
+                cr = this.site.width + this.site.height;
             }
             this.needsUpdate = false;
             this._changed = false;
@@ -6361,6 +6373,12 @@ void main() {
         }
         getLight(x, y) {
             return this.light[x][y];
+        }
+        setLight(x, y, light) {
+            const val = this.light[x][y];
+            for (let i = 0; i < 3; ++i) {
+                val[i] = light[i];
+            }
         }
         isLit(x, y) {
             return !!(this.flags[x][y] & LightFlags.LIT);

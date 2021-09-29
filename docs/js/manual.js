@@ -18,7 +18,8 @@ const _st = setTimeout;
 const _si = setInterval;
 
 class Example {
-    constructor(node) {
+    constructor(node, globals) {
+        this._globals = globals;
         this._source = $(node);
         this._source.attr('data-syntax', 'js');
 
@@ -132,6 +133,7 @@ class Example {
             return r;
         };
 
+        const GLOBAL = this._globals;
         const LOOP = this._loop;
         const ELEMENT = this._result.get(0);
 
@@ -149,6 +151,8 @@ class Example {
 var Manual = {
     _examples: [],
     _hash: '',
+    _global: {},
+
     _hashChange: function (e) {
         var hash = location.hash || 'intro';
         if (hash.charAt(0) == '#') {
@@ -198,9 +202,10 @@ var Manual = {
         let html = converter.makeHtml(data);
         $('#content').html(html);
 
+        const GLOBAL = this._global;
         const examples = (this._examples = []);
         $('#content pre code.js').each(function (i) {
-            examples.push(new Example(this));
+            examples.push(new Example(this, GLOBAL));
         });
     },
 

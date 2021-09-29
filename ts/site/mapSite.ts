@@ -149,7 +149,7 @@ export class MapSite implements BUILD.BuildSite {
     }
     addItem(x: number, y: number, item: GWM.item.Item): boolean {
         this.needsAnalysis = true;
-        return this.map.forceItem(x, y, item);
+        return this.map.addItem(x, y, item);
     }
 
     hasActor(x: number, y: number): boolean {

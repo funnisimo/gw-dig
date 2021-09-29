@@ -744,7 +744,7 @@
         }
         addItem(x, y, item) {
             this.needsAnalysis = true;
-            return this.map.forceItem(x, y, item);
+            return this.map.addItem(x, y, item);
         }
         hasActor(x, y) {
             return this.map.hasActor(x, y);
