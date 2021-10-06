@@ -58,6 +58,8 @@
         Entity[Entity["L_BRIGHT_MEMORY"] = Fl$7(15)] = "L_BRIGHT_MEMORY";
         Entity[Entity["L_INVERT_WHEN_HIGHLIGHTED"] = Fl$7(16)] = "L_INVERT_WHEN_HIGHLIGHTED";
         Entity[Entity["L_ON_MAP"] = Fl$7(17)] = "L_ON_MAP";
+        Entity[Entity["DEFAULT_ACTOR"] = Entity.L_LIST_IN_SIDEBAR] = "DEFAULT_ACTOR";
+        Entity[Entity["DEFAULT_ITEM"] = Entity.L_LIST_IN_SIDEBAR] = "DEFAULT_ITEM";
         Entity[Entity["L_BLOCKED_BY_STAIRS"] = Entity.L_BLOCKS_ITEMS |
             Entity.L_BLOCKS_SURFACE |
             Entity.L_BLOCKS_GAS |
@@ -85,10 +87,12 @@
         Actor[Actor["IS_PLAYER"] = Fl$6(0)] = "IS_PLAYER";
         Actor[Actor["HAS_MEMORY"] = Fl$6(1)] = "HAS_MEMORY";
         Actor[Actor["USES_FOV"] = Fl$6(2)] = "USES_FOV";
+        Actor[Actor["DEFAULT"] = 0] = "DEFAULT";
     })(Actor$1 || (Actor$1 = {}));
 
     var Item$1;
     (function (Item) {
+        Item[Item["DEFAULT"] = 0] = "DEFAULT";
     })(Item$1 || (Item$1 = {}));
 
     const Fl$5 = GWU__namespace.flag.fl;
@@ -478,8 +482,8 @@
         getVerb(verb) {
             return this.kind.getVerb(this, verb);
         }
-        drawStatus(sidebar) {
-            this.kind.drawStatus(this, sidebar);
+        drawStatus(buffer, bounds) {
+            return this.kind.drawStatus(this, buffer, bounds);
         }
         drawInto(dest, _observer) {
             dest.drawSprite(this.sprite);
@@ -558,13 +562,16 @@
         getVerb(_entity, verb) {
             return verb;
         }
-        drawStatus(entity, sidebar) {
+        drawStatus(entity, buffer, bounds) {
             if (!entity.map)
-                return;
+                return 0;
             if (entity.isDestroyed)
-                return;
-            entity.map.getAppearanceAt(entity.x, entity.y, sidebar.mixer);
-            sidebar.drawTitle(sidebar.mixer, entity.getName());
+                return 0;
+            const mixer = new GWU__namespace.sprite.Mixer();
+            entity.map.getAppearanceAt(entity.x, entity.y, mixer);
+            buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
+            buffer.wrapText(bounds.x + 3, bounds.y, bounds.width - 3, entity.getName(), 'purple');
+            return 1;
         }
     }
 
@@ -1790,6 +1797,7 @@
         evacuateItems: evacuateItems
     });
 
+    GWU__namespace.color.install('cellStatusName', 'light_blue');
     // class CellEntities {
     //     cell: Cell;
     //     constructor(cell: Cell) {
@@ -2450,11 +2458,9 @@
             }
             return this.highestPriorityTile().sprite.ch || ' ';
         }
-        drawStatus(sidebar) {
-            if (!this.map)
-                return;
-            this.map.getAppearanceAt(this.x, this.y, sidebar.mixer);
-            sidebar.drawTitle(sidebar.mixer, this.getName());
+        drawStatus(buffer, bounds) {
+            const lines = buffer.wrapText(bounds.x + 1, bounds.y, bounds.width - 1, this.getName(), 'cellStatusName');
+            return lines;
         }
         toString() {
             return `Cell @ ${this.x},${this.y}`;
@@ -3581,10 +3587,14 @@
     class ActorKind extends EntityKind {
         constructor(opts) {
             super(opts);
-            this.flags = { actor: 0 };
+            this.flags = {
+                actor: Actor$1.DEFAULT,
+                entity: Entity$1.DEFAULT_ACTOR,
+            };
             this.vision = {};
             if (opts.flags) {
-                this.flags.actor = GWU__namespace.flag.from(Actor$1, opts.flags);
+                this.flags.actor = GWU__namespace.flag.from(Actor$1, this.flags.actor, opts.flags);
+                this.flags.entity = GWU__namespace.flag.from(Entity$1, this.flags.entity, opts.flags);
             }
             if (opts.vision) {
                 this.vision.normal = opts.vision;
@@ -3597,6 +3607,7 @@
         }
         init(actor, options = {}) {
             super.init(actor, options);
+            Object.assign(actor.flags, this.flags);
             if (options.fov) {
                 actor.fov = options.fov;
             }
@@ -3805,10 +3816,17 @@
         }
     }
 
-    // import * as GWU from 'gw-utils';
     class ItemKind extends EntityKind {
         constructor(config) {
             super(config);
+            this.flags = {
+                item: Item$1.DEFAULT,
+                entity: Entity$1.DEFAULT_ACTOR,
+            };
+            if (config.flags) {
+                this.flags.item = GWU__namespace.flag.from(Item$1, this.flags.item, config.flags);
+                this.flags.entity = GWU__namespace.flag.from(Entity$1, this.flags.entity, config.flags);
+            }
         }
         make(options) {
             const item = new Item(this);
@@ -3817,6 +3835,7 @@
         }
         init(item, options = {}) {
             super.init(item, options);
+            Object.assign(item.flags, this.flags);
             item.quantity = options.quantity || 1;
         }
     }

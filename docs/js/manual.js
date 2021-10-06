@@ -64,6 +64,7 @@ class Example {
 
     close() {
         CURRENT_EXAMPLE = null;
+        this._loop.start();
         const code = this._ta.val();
         this._useCode(code);
     }
@@ -71,7 +72,7 @@ class Example {
     stop() {
         this._timers.forEach((t) => clearTimeout(t));
         this._timers = [];
-        this._loop.stop();
+        this._loop.end();
     }
 
     /**

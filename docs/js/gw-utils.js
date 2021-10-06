@@ -74,6 +74,26 @@
     function sum(arr) {
         return arr.reduce((a, b) => a + b);
     }
+    function arrayNext(a, current, fn, wrap = true, forward = true) {
+        const len = a.length;
+        if (len <= 1)
+            return undefined;
+        const startIndex = a.indexOf(current);
+        if (startIndex < 0)
+            return undefined;
+        const dx = forward ? 1 : -1;
+        let startI = wrap ? (startIndex + dx) % len : startIndex + dx;
+        let endI = wrap ? startIndex : forward ? len : -1;
+        for (let index = startI; index !== endI; index = wrap ? (len + index + dx) % len : index + dx) {
+            const e = a[index];
+            if (fn(e))
+                return e;
+        }
+        return undefined;
+    }
+    function arrayPrev(a, current, fn, wrap = true) {
+        return arrayNext(a, current, fn, wrap, false);
+    }
 
     // DIRS are organized clockwise
     // - first 4 are arrow directions
@@ -136,14 +156,29 @@
         get left() {
             return this.x;
         }
+        set left(v) {
+            this.x = v;
+        }
         get right() {
             return this.x + this.width - 1;
+        }
+        set right(v) {
+            this.x = v - this.width + 1;
         }
         get top() {
             return this.y;
         }
+        set top(v) {
+            this.y = v;
+        }
         get bottom() {
             return this.y + this.height - 1;
+        }
+        set bottom(v) {
+            this.y = v - this.height + 1;
+        }
+        clone() {
+            return new Bounds(this.x, this.y, this.width, this.height);
         }
         contains(...args) {
             let i = args[0];
@@ -1287,7 +1322,11 @@
                 value.forEach((v) => {
                     if (typeof v == 'string') {
                         v = v.trim();
-                        if (v.startsWith('!')) {
+                        const parts = v.split(/[,|]/);
+                        if (parts.length > 1) {
+                            result = from$3(obj, result, parts);
+                        }
+                        else if (v.startsWith('!')) {
                             // @ts-ignore
                             const f = obj[v.substring(1)];
                             result &= ~f;
@@ -1320,23 +1359,7 @@
     function make$8(obj) {
         const out = {};
         Object.entries(obj).forEach(([key, value]) => {
-            if (typeof value === 'string') {
-                const parts = value.split(/[,|]/).map((t) => t.trim());
-                const flag = parts.reduce((result, id) => result | out[id], 0);
-                out[key] = flag;
-            }
-            else if (Array.isArray(value)) {
-                const flag = value.reduce((result, v) => {
-                    if (typeof v === 'string') {
-                        return result | out[v];
-                    }
-                    return result | v;
-                }, 0);
-                out[key] = flag;
-            }
-            else if (value) {
-                out[key] = value;
-            }
+            out[key] = from$3(out, value);
         });
         return out;
     }
@@ -1956,6 +1979,7 @@
     const CLICK = 'click';
     const TICK = 'tick';
     const MOUSEUP = 'mouseup';
+    const STOP = 'stop';
     const CONTROL_CODES = [
         'ShiftLeft',
         'ShiftRight',
@@ -1973,6 +1997,10 @@
         let result;
         let command;
         km = km || KEYMAP;
+        if (ev.type === STOP) {
+            recycleEvent(ev);
+            return true; // Should stop loops, etc...
+        }
         if (typeof km === 'function') {
             command = km;
         }
@@ -2005,6 +2033,12 @@
     }
     function recycleEvent(ev) {
         DEAD_EVENTS.push(ev);
+    }
+    // STOP
+    function makeStopEvent() {
+        const ev = makeTickEvent(0);
+        ev.type = STOP;
+        return ev;
     }
     // TICK
     function makeTickEvent(dt) {
@@ -2099,12 +2133,15 @@
     }
     class Loop {
         constructor() {
-            this.running = false;
+            this.running = true;
             this.events = [];
             this.mouse = { x: -1, y: -1 };
             this.CURRENT_HANDLER = null;
             this.PAUSED = null;
             this.LAST_CLICK = { x: -1, y: -1 };
+            this.interval = 0;
+            this.intervalCount = 0;
+            this.ended = false;
         }
         hasEvents() {
             return this.events.length;
@@ -2115,7 +2152,27 @@
                 DEAD_EVENTS.push(ev);
             }
         }
+        _startTicks() {
+            ++this.intervalCount;
+            if (this.interval)
+                return;
+            this.interval = setInterval(() => {
+                const e = makeTickEvent(16);
+                this.pushEvent(e);
+            }, 16);
+        }
+        _stopTicks() {
+            if (!this.intervalCount)
+                return; // too many calls to stop
+            --this.intervalCount;
+            if (this.intervalCount)
+                return; // still have a loop running
+            clearInterval(this.interval);
+            this.interval = 0;
+        }
         pushEvent(ev) {
+            if (this.ended)
+                return;
             if (this.PAUSED) {
                 console.log('PAUSED EVENT', ev.type);
             }
@@ -2179,10 +2236,10 @@
             if (ms === undefined) {
                 ms = -1; // wait forever
             }
-            if (ms == 0)
+            if (ms == 0 || this.ended)
                 return Promise.resolve(null);
             if (this.CURRENT_HANDLER) {
-                console.warn('OVERWRITE HANDLER - nextEvent');
+                throw new Error('OVERWRITE HANDLER -- Check for a missing await around Loop function calls.');
             }
             else if (this.events.length) {
                 console.warn('SET HANDLER WITH QUEUED EVENTS - nextEvent');
@@ -2207,33 +2264,45 @@
             return new Promise((resolve) => (done = resolve));
         }
         async run(keymap, ms = -1) {
-            const interval = setInterval(() => {
-                const e = makeTickEvent(16);
-                this.pushEvent(e);
-            }, 16);
+            if (this.ended)
+                return;
+            this.running = true;
+            this.clearEvents(); // ??? Should we do this?
+            this._startTicks();
             if (keymap.start && typeof keymap.start === 'function') {
-                // @ts-ignore
                 await keymap.start();
             }
-            this.running = true;
-            while (this.running) {
+            let running = true;
+            while (this.running && running) {
+                if (keymap.draw && typeof keymap.draw === 'function') {
+                    keymap.draw();
+                }
                 const ev = await this.nextEvent(ms);
                 if (ev && (await dispatchEvent(ev, keymap))) {
-                    this.running = false;
-                }
-                if (keymap.draw && typeof keymap.draw === 'function') {
-                    // @ts-ignore
-                    keymap.draw();
+                    running = false;
                 }
             }
             if (keymap.stop && typeof keymap.stop === 'function') {
-                // @ts-ignore
                 await keymap.stop();
             }
-            clearInterval(interval);
+            this._stopTicks();
         }
         stop() {
+            this.clearEvents();
             this.running = false;
+            this.pushEvent(makeStopEvent());
+            if (this.interval) {
+                clearInterval(this.interval);
+                this.interval = 0;
+            }
+            this.CURRENT_HANDLER = null;
+        }
+        end() {
+            this.stop();
+            this.ended = true;
+        }
+        start() {
+            this.ended = false;
         }
         pauseEvents() {
             if (this.PAUSED)
@@ -2320,8 +2389,10 @@
         CLICK: CLICK,
         TICK: TICK,
         MOUSEUP: MOUSEUP,
+        STOP: STOP,
         setKeymap: setKeymap,
         dispatchEvent: dispatchEvent,
+        makeStopEvent: makeStopEvent,
         makeTickEvent: makeTickEvent,
         makeKeyEvent: makeKeyEvent,
         keyCodeDirection: keyCodeDirection,
@@ -2498,7 +2569,6 @@
                     return x >= 0 && y >= 0 && x < site.width && y < site.height;
                 },
             });
-            // we want fov, so do not reveal the map initially
             if (opts.alwaysVisible) {
                 this.makeAlwaysVisible();
             }
@@ -2537,20 +2607,24 @@
         makeAlwaysVisible() {
             this.flags.update((v) => v |
                 (FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE));
+            // TODO - onFovChange?
             this.changed = true;
         }
         makeCellAlwaysVisible(x, y) {
-            this.flags[x][y] |= FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED;
+            this.flags[x][y] |= FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
+            // TODO - onFovChange?
             this.changed = true;
         }
         revealAll(makeVisibleToo = true) {
             const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
             this.flags.update((v) => v | flag);
+            // TODO - onFovChange?
             this.changed = true;
         }
-        revealCell(x, y) {
-            const flag = FovFlags.REVEALED;
+        revealCell(x, y, makeVisibleToo = true) {
+            const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
             this.flags[x][y] |= flag;
+            // TODO - onFovChange?
             this.changed = true;
         }
         hideCell(x, y) {
@@ -2558,15 +2632,18 @@
                 FovFlags.REVEALED |
                 FovFlags.ALWAYS_VISIBLE);
             this.flags[x][y] = this.demoteCellVisibility(this.flags[x][y]); // clears visible, etc...
+            // TODO - onFovChange?
             this.changed = true;
         }
         magicMapCell(x, y) {
             this.flags[x][y] |= FovFlags.MAGIC_MAPPED;
             this.changed = true;
+            // TODO - onFovChange?
         }
         reset() {
             this.flags.fill(0);
             this.changed = true;
+            // TODO - onFovChange?
         }
         get changed() {
             return this._changed;
@@ -4404,7 +4481,7 @@ void main() {
         defaultBg: null,
     };
     // const RE_RGB = /^[a-fA-F0-9]*$/;
-    // 
+    //
     // export function parseColor(color:string) {
     //   if (color.startsWith('#')) {
     //     color = color.substring(1);
@@ -4429,12 +4506,12 @@ void main() {
     //   return 0xFFF;
     // }
     var helpers = {
-        eachColor: (() => { }),
-        default: ((name, _, value) => {
+        eachColor: () => { },
+        default: (name, _, value) => {
             if (value !== undefined)
                 return `${value}.!!${name}!!`;
             return `!!${name}!!`;
-        }),
+        },
     };
     function addHelper(name, fn) {
         helpers[name] = fn;
@@ -4662,9 +4739,11 @@ void main() {
         }
         return len;
     }
+    let inColor = false;
     function advanceChars(text, start, count) {
         const CS = options.colorStart;
         const CE = options.colorEnd;
+        inColor = false;
         let i = start;
         while (count > 0 && i < text.length) {
             const ch = text[i];
@@ -4676,6 +4755,7 @@ void main() {
                 else {
                     while (text[i] !== CS)
                         ++i;
+                    inColor = true;
                 }
                 ++i;
             }
@@ -4683,6 +4763,9 @@ void main() {
                 if (text[i + 1] === CE) {
                     --count;
                     ++i;
+                }
+                else {
+                    inColor = false;
                 }
                 ++i;
             }
@@ -4740,6 +4823,16 @@ void main() {
             return text;
         const left = Math.floor(padLen / 2);
         return text.padStart(rawLen + left, pad).padEnd(rawLen + padLen, pad);
+    }
+    function truncate(text, width) {
+        const len = length(text);
+        if (len <= width)
+            return text;
+        const index = advanceChars(text, 0, width);
+        if (!inColor)
+            return text.substring(0, index);
+        const CE = options.colorEnd;
+        return text.substring(0, index) + CE;
     }
     function capitalize(text) {
         const CS = options.colorStart;
@@ -4801,6 +4894,17 @@ void main() {
             return text;
         out += text.substring(start);
         return out;
+    }
+    function spliceRaw(msg, begin, deleteLength, add = '') {
+        const maxLen = msg.length;
+        if (begin >= maxLen)
+            return msg;
+        const preText = msg.substring(0, begin);
+        if (begin + deleteLength >= maxLen) {
+            return preText;
+        }
+        const postText = msg.substring(begin + deleteLength);
+        return preText + add + postText;
     }
 
     function nextBreak(text, start) {
@@ -5012,7 +5116,9 @@ void main() {
         splitIntoLines: splitIntoLines,
         configure: configure,
         addHelper: addHelper,
-        options: options
+        options: options,
+        spliceRaw: spliceRaw,
+        truncate: truncate
     });
 
     class DataBuffer {
@@ -5132,12 +5238,16 @@ void main() {
             if (typeof bg !== 'number')
                 bg = from$2(bg);
             maxWidth = maxWidth || this.width;
+            const len = length(text);
+            if (len > maxWidth) {
+                text = truncate(text, len);
+            }
             eachChar(text, (ch, fg0, bg0, i) => {
                 if (x + i >= this.width || i > maxWidth)
                     return;
                 this.draw(i + x, y, ch, fg0, bg0);
             }, fg, bg);
-            return ++y;
+            return 1; // used 1 line
         }
         wrapText(x, y, width, text, fg = 0xfff, bg = -1, indent = 0) {
             if (typeof fg !== 'number')
@@ -5146,22 +5256,23 @@ void main() {
                 bg = from$2(bg);
             width = Math.min(width, this.width - x);
             text = wordWrap(text, width, indent);
+            let lineCount = 0;
             let xi = x;
             eachChar(text, (ch, fg0, bg0) => {
                 if (ch == '\n') {
                     while (xi < x + width) {
-                        this.draw(xi++, y, 0, 0x000, bg0);
+                        this.draw(xi++, y + lineCount, 0, 0x000, bg0);
                     }
-                    ++y;
+                    ++lineCount;
                     xi = x + indent;
                     return;
                 }
-                this.draw(xi++, y, ch, fg0, bg0);
+                this.draw(xi++, y + lineCount, ch, fg0, bg0);
             }, fg, bg);
             while (xi < x + width) {
-                this.draw(xi++, y, 0, 0x000, bg);
+                this.draw(xi++, y + lineCount, 0, 0x000, bg);
             }
-            return ++y;
+            return lineCount + 1;
         }
         fillRect(x, y, w, h, ch = -1, fg = -1, bg = -1) {
             if (ch === null)
@@ -5182,7 +5293,7 @@ void main() {
         blackOutRect(x, y, w, h, bg = 0) {
             if (typeof bg !== 'number')
                 bg = from$2(bg);
-            return this.fillRect(x, y, w, h, 0, 0, bg);
+            return this.fillRect(x, y, w, h, 0, bg, bg);
         }
         highlight(x, y, color, strength) {
             if (typeof color !== 'number') {
@@ -5196,20 +5307,26 @@ void main() {
             this.drawSprite(x, y, mixer);
             return this;
         }
-        // mix(color: Color.ColorBase, percent: number) {
-        //     if (typeof color !== 'number') color = Color.from(color);
-        //     const mixer = new Mixer();
-        //     for (let x = 0; x < this.width; ++x) {
-        //         for (let y = 0; y < this.height; ++y) {
-        //             const data = this.get(x, y);
-        //             mixer.drawSprite(data);
-        //             mixer.fg.mix(color, percent);
-        //             mixer.bg.mix(color, percent);
-        //             this.drawSprite(x, y, mixer);
-        //         }
-        //     }
-        //     return this;
-        // }
+        mix(color, percent, x = 0, y = 0, width = 0, height = 0) {
+            color = from$2(color);
+            const mixer = new Mixer();
+            if (x && !width)
+                width = 1;
+            if (y && !height)
+                height = 1;
+            const endX = width ? width + x : this.width;
+            const endY = height ? height + y : this.height;
+            for (let i = x; i < endX; ++i) {
+                for (let j = y; j < endY; ++j) {
+                    const data = this.get(i, j);
+                    mixer.drawSprite(data);
+                    mixer.fg.mix(color, percent);
+                    mixer.bg.mix(color, percent);
+                    this.drawSprite(i, j, mixer);
+                }
+            }
+            return this;
+        }
         dump() {
             const data = [];
             let header = '    ';
@@ -5941,6 +6058,9 @@ void main() {
     function installAll$1(config) {
         Object.entries(config).forEach(([id, msg]) => install$1(id, msg));
     }
+    function get(msgOrId) {
+        return templates[msgOrId] || null;
+    }
     const handlers = [];
     function add(msg, args) {
         return addAt(-1, -1, msg, args);
@@ -5974,6 +6094,7 @@ void main() {
             this.NEXT_WRITE_INDEX = 0;
             this.NEEDS_UPDATE = true;
             this.COMBAT_MESSAGE = null;
+            this.matchFn = opts.match || TRUE;
             this.ARCHIVE_LINES = opts.length || 30;
             this.MSG_WIDTH = opts.width || 80;
             for (let i = 0; i < this.ARCHIVE_LINES; ++i) {
@@ -5989,7 +6110,7 @@ void main() {
             this.NEEDS_UPDATE = needs;
         }
         // function messageWithoutCaps(msg, requireAcknowledgment) {
-        addMessageLine(msg) {
+        _addMessageLine(msg) {
             if (!length(msg)) {
                 return;
             }
@@ -5999,12 +6120,14 @@ void main() {
             this.NEXT_WRITE_INDEX =
                 (this.NEXT_WRITE_INDEX + 1) % this.ARCHIVE_LINES;
         }
-        addMessage(_x, _y, msg) {
+        addMessage(x, y, msg) {
+            if (!this.matchFn(x, y))
+                return;
+            this.commitCombatMessage();
             this._addMessage(msg);
         }
         _addMessage(msg) {
             var _a;
-            this.commitCombatMessage();
             msg = capitalize(msg);
             // // Implement the American quotation mark/period/comma ordering rule.
             // for (i=0; text.text[i] && text.text[i+1]; i++) {
@@ -6021,14 +6144,16 @@ void main() {
             if ((_a = config$1.message) === null || _a === void 0 ? void 0 : _a.reverseMultiLine) {
                 lines.reverse();
             }
-            lines.forEach((l) => this.addMessageLine(l));
+            lines.forEach((l) => this._addMessageLine(l));
             // display the message:
             this.NEEDS_UPDATE = true;
             // if (GAME.playbackMode) {
             // 	GAME.playbackDelayThisTurn += GAME.playbackDelayPerTurn * 5;
             // }
         }
-        addCombatMessage(_x, _y, msg) {
+        addCombatMessage(x, y, msg) {
+            if (!this.matchFn(x, y))
+                return;
             this._addCombatMessage(msg);
         }
         _addCombatMessage(msg) {
@@ -6065,6 +6190,11 @@ void main() {
                     return;
             }
         }
+        get length() {
+            let count = 0;
+            this.forEach(() => ++count);
+            return count;
+        }
     }
 
     var message = /*#__PURE__*/Object.freeze({
@@ -6072,6 +6202,7 @@ void main() {
         templates: templates,
         install: install$1,
         installAll: installAll$1,
+        get: get,
         handlers: handlers,
         add: add,
         addAt: addAt,
@@ -6671,6 +6802,8 @@ void main() {
     exports.ZERO = ZERO;
     exports.arrayDelete = arrayDelete;
     exports.arrayFindRight = arrayFindRight;
+    exports.arrayNext = arrayNext;
+    exports.arrayPrev = arrayPrev;
     exports.arraysIntersect = arraysIntersect;
     exports.blob = blob;
     exports.canvas = index$2;
