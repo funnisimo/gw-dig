@@ -9,8 +9,11 @@ export class Visualizer implements Logger {
     dest: GWU.canvas.Buffer;
     io: GWU.io.Loop;
 
-    constructor(dest: GWU.canvas.Canvas | GWU.canvas.Buffer, io?: GWU.io.Loop) {
-        this.dest = dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
+    constructor(
+        dest: GWU.canvas.BaseCanvas | GWU.canvas.Buffer,
+        io?: GWU.io.Loop
+    ) {
+        this.dest = dest instanceof GWU.canvas.BaseCanvas ? dest.buffer : dest;
         this.io = io || GWU.loop;
     }
 

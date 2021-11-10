@@ -131,12 +131,10 @@
     -webkit-transition: all 0.5s;
     -moz-transition: all 0.5s;
     transition: all 0.5s;
+    display: none;
 }
 
 #menu li:hover ul {
     display: block;
-}
-
-#menu li:hover ul {
     left: 180px;
 }

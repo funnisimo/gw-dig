@@ -4609,7 +4609,7 @@
 
     class Visualizer {
         constructor(dest, io) {
-            this.dest = dest instanceof GWU__namespace.canvas.Canvas ? dest.buffer : dest;
+            this.dest = dest instanceof GWU__namespace.canvas.BaseCanvas ? dest.buffer : dest;
             this.io = io || GWU__namespace.loop;
         }
         async onDigFirstRoom(site) {

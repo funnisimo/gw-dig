@@ -1042,7 +1042,7 @@ declare class ConsoleLogger implements Logger {
 declare class Visualizer implements Logger {
     dest: GWU.canvas.Buffer;
     io: GWU.io.Loop;
-    constructor(dest: GWU.canvas.Canvas | GWU.canvas.Buffer, io?: GWU.io.Loop);
+    constructor(dest: GWU.canvas.BaseCanvas | GWU.canvas.Buffer, io?: GWU.io.Loop);
     onDigFirstRoom(site: DigSite): Promise<any>;
     onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
     onRoomFailed(_site: DigSite, _room: Room, _roomSite: DigSite, error: string): Promise<any>;

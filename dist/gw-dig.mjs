@@ -4583,7 +4583,7 @@ var index$2 = /*#__PURE__*/Object.freeze({
 
 class Visualizer {
     constructor(dest, io) {
-        this.dest = dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
+        this.dest = dest instanceof GWU.canvas.BaseCanvas ? dest.buffer : dest;
         this.io = io || GWU.loop;
     }
     async onDigFirstRoom(site) {

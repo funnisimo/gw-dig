@@ -56,12 +56,28 @@
     function arraysIntersect(a, b) {
         return a.some((av) => b.includes(av));
     }
+    function arrayIncludesAll(a, b) {
+        return b.every((av) => a.includes(av));
+    }
     function arrayDelete(a, b) {
         const index = a.indexOf(b);
         if (index < 0)
             return false;
         a.splice(index, 1);
         return true;
+    }
+    function arrayInsert(a, b, beforeFn) {
+        if (!beforeFn) {
+            a.push(b);
+            return;
+        }
+        const index = a.findIndex(beforeFn);
+        if (index < 0) {
+            a.push(b);
+        }
+        else {
+            a.splice(index, 0, b);
+        }
     }
     function arrayFindRight(a, fn) {
         for (let i = a.length - 1; i >= 0; --i) {
@@ -82,7 +98,7 @@
         if (startIndex < 0)
             return undefined;
         const dx = forward ? 1 : -1;
-        let startI = wrap ? (startIndex + dx) % len : startIndex + dx;
+        let startI = wrap ? (len + startIndex + dx) % len : startIndex + dx;
         let endI = wrap ? startIndex : forward ? len : -1;
         for (let index = startI; index !== endI; index = wrap ? (len + index + dx) % len : index + dx) {
             const e = a[index];
@@ -93,6 +109,26 @@
     }
     function arrayPrev(a, current, fn, wrap = true) {
         return arrayNext(a, current, fn, wrap, false);
+    }
+    function nextIndex(index, length, wrap = true) {
+        ++index;
+        if (index >= length) {
+            if (wrap)
+                return index % length;
+            return -1;
+        }
+        return index;
+    }
+    function prevIndex(index, length, wrap = true) {
+        if (index < 0)
+            return length - 1; // start in back
+        --index;
+        if (index < 0) {
+            if (wrap)
+                return length - 1;
+            return -1;
+        }
+        return index;
     }
 
     // DIRS are organized clockwise
@@ -147,7 +183,7 @@
         return x >= 0 && y >= 0 && x < size.width && y < size.height;
     }
     class Bounds {
-        constructor(x, y, w, h) {
+        constructor(x = 0, y = 0, w = 0, h = 0) {
             this.x = x;
             this.y = y;
             this.width = w;
@@ -160,10 +196,10 @@
             this.x = v;
         }
         get right() {
-            return this.x + this.width - 1;
+            return this.x + this.width;
         }
         set right(v) {
-            this.x = v - this.width + 1;
+            this.x = v - this.width;
         }
         get top() {
             return this.y;
@@ -172,10 +208,10 @@
             this.y = v;
         }
         get bottom() {
-            return this.y + this.height - 1;
+            return this.y + this.height;
         }
         set bottom(v) {
-            this.y = v - this.height + 1;
+            this.y = v - this.height;
         }
         clone() {
             return new Bounds(this.x, this.y, this.width, this.height);
@@ -292,14 +328,14 @@
         return DIRS$2.findIndex((a) => a[0] == x0 && a[1] == y0);
     }
     function isOppositeDir(a, b) {
-        if (a[0] + b[0] != 0)
+        if (Math.sign(a[0]) + Math.sign(b[0]) != 0)
             return false;
-        if (a[1] + b[1] != 0)
+        if (Math.sign(a[1]) + Math.sign(b[1]) != 0)
             return false;
         return true;
     }
     function isSameDir(a, b) {
-        return a[0] == b[0] && a[1] == b[1];
+        return (Math.sign(a[0]) == Math.sign(b[0]) && Math.sign(a[1]) == Math.sign(b[1]));
     }
     function dirSpread(dir) {
         const result = [dir];
@@ -405,8 +441,6 @@
     // Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
     // that extends all the way to the edge of the map based on an originLoc (which is not included
     // in the list of coordinates) and a targetLoc.
-    // Returns the number of entries in the list, and includes (-1, -1) as an additional
-    // terminus indicator after the end of the list.
     function getLineThru(fromX, fromY, toX, toY, width, height) {
         const line = [];
         forLineBetween(fromX, fromY, toX, toY, (x, y) => {
@@ -550,6 +584,13 @@
         }
         return count;
     }
+    function at(root, index) {
+        while (root && index) {
+            root = root.next;
+            --index;
+        }
+        return root;
+    }
     function includes(root, entry) {
         while (root && root !== entry) {
             root = root.next;
@@ -588,7 +629,7 @@
                 current = prev.next;
             }
             if (current === entry) {
-                prev.next = current.next || null;
+                prev.next = current.next;
                 entry.next = null;
                 return true;
             }
@@ -605,13 +646,13 @@
         let root = obj[name];
         sort = sort || (() => -1); // always insert first
         if (!root || sort(root, entry) < 0) {
-            obj.next = root;
+            entry.next = root;
             obj[name] = entry;
             return true;
         }
         let prev = root;
         let current = root.next;
-        while (current && sort(current, entry) < 0) {
+        while (current && sort(current, entry) > 0) {
             prev = current;
             current = current.next;
         }
@@ -621,9 +662,9 @@
     }
     function reduce(root, cb, out) {
         let current = root;
-        if (!current)
-            return out;
         if (out === undefined) {
+            if (!current)
+                throw new TypeError('Empty list reduce without initial value not allowed.');
             out = current;
             current = current.next;
         }
@@ -655,6 +696,7 @@
     var list = /*#__PURE__*/Object.freeze({
         __proto__: null,
         length: length$1,
+        at: at,
         includes: includes,
         forEach: forEach,
         push: push,
@@ -1156,7 +1198,7 @@
     }
     const random = new Random();
     const cosmetic = new Random();
-    function make$a(seed) {
+    function make$b(seed) {
         return new Random(seed);
     }
 
@@ -1167,7 +1209,7 @@
         Random: Random,
         random: random,
         cosmetic: cosmetic,
-        make: make$a
+        make: make$b
     });
 
     class Range {
@@ -1204,7 +1246,7 @@
             return `${this.lo}-${this.hi}`;
         }
     }
-    function make$9(config) {
+    function make$a(config) {
         if (!config)
             return new Range(0, 0, 0);
         if (config instanceof Range)
@@ -1227,7 +1269,7 @@
         }
         if (config.length == 0)
             return new Range(0, 0, 0);
-        const RE = /^(?:([+-]?\d*)[Dd](\d+)([+-]?\d*)|([+-]?\d+)-(\d+):?(\d+)?|([+-]?\d+)~(\d+)|([+-]?\d+\.?\d*))/g;
+        const RE = /^(?:([+-]?\d*)[Dd](\d+)([+-]?\d*)|([+-]?\d+)-(\d+):?(\d+)?|([+-]?\d+)~(\d+)|([+-]?\d+)\+|([+-]?\d+))$/g;
         let results;
         while ((results = RE.exec(config)) !== null) {
             if (results[2]) {
@@ -1250,22 +1292,26 @@
                 return new Range(base - 2 * std, base + 2 * std, 3);
             }
             else if (results[9]) {
-                const v = Number.parseFloat(results[9]);
+                const v = Number.parseInt(results[9]);
+                return new Range(v, Number.MAX_SAFE_INTEGER, 1);
+            }
+            else if (results[10]) {
+                const v = Number.parseInt(results[10]);
                 return new Range(v, v, 1);
             }
         }
         throw new Error('Not a valid range - ' + config);
     }
-    const from$4 = make$9;
+    const from$4 = make$a;
     function asFn(config) {
-        const range = make$9(config);
+        const range = make$a(config);
         return () => range.value();
     }
 
     var range = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Range: Range,
-        make: make$9,
+        make: make$a,
         from: from$4,
         asFn: asFn
     });
@@ -1356,7 +1402,7 @@
         }
         return result;
     }
-    function make$8(obj) {
+    function make$9(obj) {
         const out = {};
         Object.entries(obj).forEach(([key, value]) => {
             out[key] = from$3(out, value);
@@ -1369,17 +1415,23 @@
         fl: fl,
         toString: toString,
         from: from$3,
-        make: make$8
+        make: make$9
     });
 
     const DIRS$1 = DIRS$2;
     function makeArray(l, fn) {
         if (fn === undefined)
             return new Array(l).fill(0);
-        fn = fn || (() => 0);
+        let initFn;
+        if (typeof fn !== 'function') {
+            initFn = () => fn;
+        }
+        else {
+            initFn = fn;
+        }
         const arr = new Array(l);
         for (let i = 0; i < l; ++i) {
-            arr[i] = fn(i);
+            arr[i] = initFn(i);
         }
         return arr;
     }
@@ -1489,11 +1541,14 @@
         }
         randomEach(fn) {
             const sequence = random.sequence(this.width * this.height);
-            sequence.forEach((n) => {
+            for (let i = 0; i < sequence.length; ++i) {
+                const n = sequence[i];
                 const x = n % this.width;
                 const y = Math.floor(n / this.width);
-                fn(this[x][y], x, y, this);
-            });
+                if (fn(this[x][y], x, y, this) === true)
+                    return true;
+            }
+            return false;
         }
         /**
          * Returns a new Grid with the cells mapped according to the supplied function.
@@ -1559,8 +1614,7 @@
         }
         update(fn) {
             forRect(this.width, this.height, (i, j) => {
-                if (this.hasXY(i, j))
-                    this[i][j] = fn(this[i][j], i, j, this);
+                this[i][j] = fn(this[i][j], i, j, this);
             });
         }
         updateRect(x, y, width, height, fn) {
@@ -1762,7 +1816,7 @@
                 --stats.active;
             }
         }
-        _resize(width, height, v = 0) {
+        _resize(width, height, v) {
             const fn = typeof v === 'function' ? v : () => v;
             while (this.length < width)
                 this.push([]);
@@ -1793,7 +1847,7 @@
         }
         // Flood-fills the grid from (x, y) along cells that are within the eligible range.
         // Returns the total count of filled cells.
-        floodFillRange(x, y, eligibleValueMin = 0, eligibleValueMax = 0, fillValue = 0) {
+        floodFillRange(x, y, eligibleValueMin, eligibleValueMax, fillValue) {
             let dir;
             let newX, newY, fillCount = 1;
             if (fillValue >= eligibleValueMin && fillValue <= eligibleValueMax) {
@@ -1920,7 +1974,7 @@
     // Grid.fillBlob = fillBlob;
     const alloc = NumGrid.alloc.bind(NumGrid);
     const free = NumGrid.free.bind(NumGrid);
-    function make$7(w, h, v) {
+    function make$8(w, h, v) {
         if (v === undefined)
             return new NumGrid(w, h, 0);
         if (typeof v === 'number')
@@ -1962,17 +2016,1745 @@
         NumGrid: NumGrid,
         alloc: alloc,
         free: free,
-        make: make$7,
+        make: make$8,
         offsetZip: offsetZip,
         intersection: intersection,
         unite: unite
     });
 
-    var commands = {};
-    function addCommand(id, fn) {
-        commands[id] = fn;
+    function toColorInt(r, g, b, base256) {
+        if (base256) {
+            r = Math.max(0, Math.min(255, Math.round(r * 2.550001)));
+            g = Math.max(0, Math.min(255, Math.round(g * 2.550001)));
+            b = Math.max(0, Math.min(255, Math.round(b * 2.550001)));
+            return (r << 16) + (g << 8) + b;
+        }
+        r = Math.max(0, Math.min(15, Math.round((r / 100) * 15)));
+        g = Math.max(0, Math.min(15, Math.round((g / 100) * 15)));
+        b = Math.max(0, Math.min(15, Math.round((b / 100) * 15)));
+        return (r << 8) + (g << 4) + b;
     }
-    let KEYMAP = {};
+    const colors = {};
+    class Color {
+        constructor(r = -1, g = 0, b = 0, rand = 0, redRand = 0, greenRand = 0, blueRand = 0, dances = false) {
+            this.dances = false;
+            this._const = false;
+            this._data = new Int16Array([
+                r,
+                g,
+                b,
+                rand,
+                redRand,
+                greenRand,
+                blueRand,
+            ]);
+            this.dances = dances;
+        }
+        get r() {
+            return Math.round(this._data[0] * 2.550001);
+        }
+        get _r() {
+            return this._data[0];
+        }
+        set _r(v) {
+            this._data[0] = v;
+        }
+        get g() {
+            return Math.round(this._data[1] * 2.550001);
+        }
+        get _g() {
+            return this._data[1];
+        }
+        set _g(v) {
+            this._data[1] = v;
+        }
+        get b() {
+            return Math.round(this._data[2] * 2.550001);
+        }
+        get _b() {
+            return this._data[2];
+        }
+        set _b(v) {
+            this._data[2] = v;
+        }
+        get _rand() {
+            return this._data[3];
+        }
+        get _redRand() {
+            return this._data[4];
+        }
+        get _greenRand() {
+            return this._data[5];
+        }
+        get _blueRand() {
+            return this._data[6];
+        }
+        // luminosity (0-100)
+        get l() {
+            return Math.round(0.5 *
+                (Math.min(this._r, this._g, this._b) +
+                    Math.max(this._r, this._g, this._b)));
+        }
+        // saturation (0-100)
+        get s() {
+            if (this.l >= 100)
+                return 0;
+            return Math.round(((Math.max(this._r, this._g, this._b) -
+                Math.min(this._r, this._g, this._b)) *
+                (100 - Math.abs(this.l * 2 - 100))) /
+                100);
+        }
+        // hue (0-360)
+        get h() {
+            let H = 0;
+            let R = this.r;
+            let G = this.g;
+            let B = this.b;
+            if (R >= G && G >= B) {
+                H = 60 * ((G - B) / (R - B));
+            }
+            else if (G > R && R >= B) {
+                H = 60 * (2 - (R - B) / (G - B));
+            }
+            else if (G >= B && B > R) {
+                H = 60 * (2 + (B - R) / (G - R));
+            }
+            else if (B > G && G > R) {
+                H = 60 * (4 - (G - R) / (B - R));
+            }
+            else if (B > R && R >= G) {
+                H = 60 * (4 + (R - G) / (B - G));
+            }
+            else {
+                H = 60 * (6 - (B - G) / (R - G));
+            }
+            return Math.round(H);
+        }
+        isNull() {
+            return this._r < 0;
+        }
+        isConst() {
+            return this._const;
+        }
+        equals(other) {
+            if (typeof other === 'string') {
+                if (!other.startsWith('#'))
+                    return this.name == other;
+                return this.css(other.length > 4) == other;
+            }
+            else if (typeof other === 'number') {
+                return this.toInt() == other || this.toInt(true) == other;
+            }
+            const O = from$2(other);
+            if (this.isNull())
+                return O.isNull();
+            return this._data.every((v, i) => {
+                return v == O._data[i];
+            });
+        }
+        copy(other) {
+            if (this.isConst())
+                return this.clone().copy(other);
+            if (other instanceof Color) {
+                this.dances = other.dances;
+            }
+            else if (Array.isArray(other)) {
+                if (other.length === 8) {
+                    this.dances = other[7];
+                }
+            }
+            else {
+                other = from$2(other);
+                this.dances = other.dances;
+            }
+            if (other instanceof Color) {
+                this.name = other.name;
+                for (let i = 0; i < this._data.length; ++i) {
+                    this._data[i] = other._data[i] || 0;
+                }
+            }
+            else {
+                for (let i = 0; i < this._data.length; ++i) {
+                    this._data[i] = other[i] || 0;
+                }
+                this._changed();
+            }
+            return this;
+        }
+        set(other) {
+            if (this.isConst())
+                return this.clone().set(other);
+            return this.copy(other);
+        }
+        _changed() {
+            this.name = undefined;
+            return this;
+        }
+        clone() {
+            // @ts-ignore
+            const other = new this.constructor();
+            other.copy(this);
+            return other;
+        }
+        assign(_r = -1, _g = 0, _b = 0, _rand = 0, _redRand = 0, _greenRand = 0, _blueRand = 0, dances) {
+            if (this.isConst())
+                return this.clone().assign(...arguments);
+            for (let i = 0; i < this._data.length; ++i) {
+                this._data[i] = arguments[i] || 0;
+            }
+            if (dances !== undefined) {
+                this.dances = dances;
+            }
+            return this._changed();
+        }
+        assignRGB(_r = -1, _g = 0, _b = 0, _rand = 0, _redRand = 0, _greenRand = 0, _blueRand = 0, dances) {
+            if (this.isConst())
+                return this.clone().assignRGB(...arguments);
+            for (let i = 0; i < this._data.length; ++i) {
+                this._data[i] = Math.round((arguments[i] || 0) / 2.55);
+            }
+            if (dances !== undefined) {
+                this.dances = dances;
+            }
+            return this._changed();
+        }
+        nullify() {
+            if (this.isConst())
+                return this.clone().nullify();
+            this._data[0] = -1;
+            this.dances = false;
+            return this._changed();
+        }
+        blackOut() {
+            if (this.isConst())
+                return this.clone().blackOut();
+            for (let i = 0; i < this._data.length; ++i) {
+                this._data[i] = 0;
+            }
+            this.dances = false;
+            return this._changed();
+        }
+        toInt(base256 = false) {
+            if (this.isNull())
+                return -1;
+            if (!this.dances) {
+                return toColorInt(this._r, this._g, this._b, base256);
+            }
+            const rand = cosmetic.number(this._rand);
+            const redRand = cosmetic.number(this._redRand);
+            const greenRand = cosmetic.number(this._greenRand);
+            const blueRand = cosmetic.number(this._blueRand);
+            const r = this._r + rand + redRand;
+            const g = this._g + rand + greenRand;
+            const b = this._b + rand + blueRand;
+            return toColorInt(r, g, b, base256);
+        }
+        toLight() {
+            return [this._r, this._g, this._b];
+        }
+        clamp() {
+            if (this.isNull())
+                return this;
+            if (this.isConst())
+                return this.clone().clamp();
+            this._r = Math.min(100, Math.max(0, this._r));
+            this._g = Math.min(100, Math.max(0, this._g));
+            this._b = Math.min(100, Math.max(0, this._b));
+            return this._changed();
+        }
+        mix(other, percent) {
+            if (this.isConst())
+                return this.clone().mix(other, percent);
+            const O = from$2(other);
+            if (O.isNull())
+                return this;
+            if (this.isNull()) {
+                this.blackOut();
+            }
+            percent = Math.min(100, Math.max(0, percent));
+            const keepPct = 100 - percent;
+            for (let i = 0; i < this._data.length; ++i) {
+                this._data[i] = Math.round((this._data[i] * keepPct + O._data[i] * percent) / 100);
+            }
+            this.dances = this.dances || O.dances;
+            return this._changed();
+        }
+        // Only adjusts r,g,b
+        lighten(percent) {
+            if (this.isNull())
+                return this;
+            if (this.isConst())
+                return this.clone().lighten(percent);
+            percent = Math.min(100, Math.max(0, percent));
+            if (percent <= 0)
+                return this;
+            const keepPct = 100 - percent;
+            for (let i = 0; i < 3; ++i) {
+                this._data[i] = Math.round((this._data[i] * keepPct + 100 * percent) / 100);
+            }
+            return this._changed();
+        }
+        // Only adjusts r,g,b
+        darken(percent) {
+            if (this.isNull())
+                return this;
+            if (this.isConst())
+                return this.clone().darken(percent);
+            percent = Math.min(100, Math.max(0, percent));
+            if (percent <= 0)
+                return this;
+            const keepPct = 100 - percent;
+            for (let i = 0; i < 3; ++i) {
+                this._data[i] = Math.round((this._data[i] * keepPct + 0 * percent) / 100);
+            }
+            return this._changed();
+        }
+        bake(clearDancing = false) {
+            if (this.isNull())
+                return this;
+            if (this.isConst())
+                return this.clone().bake(clearDancing);
+            if (this.dances && !clearDancing)
+                return this;
+            this.dances = false;
+            const d = this._data;
+            if (d[3] + d[4] + d[5] + d[6]) {
+                const rand = cosmetic.number(this._rand);
+                const redRand = cosmetic.number(this._redRand);
+                const greenRand = cosmetic.number(this._greenRand);
+                const blueRand = cosmetic.number(this._blueRand);
+                this._r += rand + redRand;
+                this._g += rand + greenRand;
+                this._b += rand + blueRand;
+                for (let i = 3; i < d.length; ++i) {
+                    d[i] = 0;
+                }
+                return this._changed();
+            }
+            return this;
+        }
+        // Adds a color to this one
+        add(other, percent = 100) {
+            if (this.isConst())
+                return this.clone().add(other, percent);
+            const O = from$2(other);
+            if (O.isNull())
+                return this;
+            if (this.isNull()) {
+                this.blackOut();
+            }
+            for (let i = 0; i < this._data.length; ++i) {
+                this._data[i] += Math.round((O._data[i] * percent) / 100);
+            }
+            this.dances = this.dances || O.dances;
+            return this._changed();
+        }
+        scale(percent) {
+            if (this.isNull() || percent == 100)
+                return this;
+            if (this.isConst())
+                return this.clone().scale(percent);
+            percent = Math.max(0, percent);
+            for (let i = 0; i < this._data.length; ++i) {
+                this._data[i] = Math.round((this._data[i] * percent) / 100);
+            }
+            return this._changed();
+        }
+        multiply(other) {
+            if (this.isNull())
+                return this;
+            if (this.isConst())
+                return this.clone().multiply(other);
+            let data;
+            if (Array.isArray(other)) {
+                data = other;
+            }
+            else {
+                if (other.isNull())
+                    return this;
+                data = other._data;
+            }
+            const len = Math.max(3, Math.min(this._data.length, data.length));
+            for (let i = 0; i < len; ++i) {
+                this._data[i] = Math.round((this._data[i] * (data[i] || 0)) / 100);
+            }
+            return this._changed();
+        }
+        // scales rgb down to a max of 100
+        normalize() {
+            if (this.isNull())
+                return this;
+            if (this.isConst())
+                return this.clone().normalize();
+            const max = Math.max(this._r, this._g, this._b);
+            if (max <= 100)
+                return this;
+            this._r = Math.round((100 * this._r) / max);
+            this._g = Math.round((100 * this._g) / max);
+            this._b = Math.round((100 * this._b) / max);
+            return this._changed();
+        }
+        /**
+         * Returns the css code for the current RGB values of the color.
+         * @param base256 - Show in base 256 (#abcdef) instead of base 16 (#abc)
+         */
+        css(base256 = false) {
+            const v = this.toInt(base256);
+            if (v < 0)
+                return 'transparent';
+            return '#' + v.toString(16).padStart(base256 ? 6 : 3, '0');
+        }
+        toString(base256 = false) {
+            if (this.name)
+                return this.name;
+            if (this.isNull())
+                return 'null color';
+            return this.css(base256);
+        }
+    }
+    function fromArray(vals, base256 = false) {
+        while (vals.length < 3)
+            vals.push(0);
+        if (base256) {
+            for (let i = 0; i < 7; ++i) {
+                vals[i] = Math.round(((vals[i] || 0) * 100) / 255);
+            }
+        }
+        return new Color(...vals);
+    }
+    function fromCss(css) {
+        if (!css.startsWith('#')) {
+            throw new Error('Color CSS strings must be of form "#abc" or "#abcdef" - received: [' +
+                css +
+                ']');
+        }
+        const c = Number.parseInt(css.substring(1), 16);
+        let r, g, b;
+        if (css.length == 4) {
+            r = Math.round(((c >> 8) / 15) * 100);
+            g = Math.round((((c & 0xf0) >> 4) / 15) * 100);
+            b = Math.round(((c & 0xf) / 15) * 100);
+        }
+        else {
+            r = Math.round(((c >> 16) / 255) * 100);
+            g = Math.round((((c & 0xff00) >> 8) / 255) * 100);
+            b = Math.round(((c & 0xff) / 255) * 100);
+        }
+        return new Color(r, g, b);
+    }
+    function fromName(name) {
+        const c = colors[name];
+        if (!c) {
+            throw new Error('Unknown color name: ' + name);
+        }
+        return c;
+    }
+    function fromNumber(val, base256 = false) {
+        const c = new Color(0, 0, 0);
+        if (val < 0) {
+            c.assign(-1);
+        }
+        else if (base256 || val > 0xfff) {
+            c.assign(Math.round((((val & 0xff0000) >> 16) * 100) / 255), Math.round((((val & 0xff00) >> 8) * 100) / 255), Math.round(((val & 0xff) * 100) / 255));
+        }
+        else {
+            c.assign(Math.round((((val & 0xf00) >> 8) * 100) / 15), Math.round((((val & 0xf0) >> 4) * 100) / 15), Math.round(((val & 0xf) * 100) / 15));
+        }
+        return c;
+    }
+    function make$7(...args) {
+        let arg = args[0];
+        let base256 = args[1];
+        if (args.length == 0)
+            return new Color();
+        if (args.length > 2) {
+            arg = args;
+            base256 = false; // TODO - Change this!!!
+        }
+        if (arg === undefined || arg === null)
+            return new Color(-1);
+        if (arg instanceof Color) {
+            return arg.clone();
+        }
+        if (typeof arg === 'string') {
+            if (arg.startsWith('#')) {
+                return fromCss(arg);
+            }
+            return fromName(arg).clone();
+        }
+        else if (Array.isArray(arg)) {
+            return fromArray(arg, base256);
+        }
+        else if (typeof arg === 'number') {
+            return fromNumber(arg, base256);
+        }
+        throw new Error('Failed to make color - unknown argument: ' + JSON.stringify(arg));
+    }
+    function from$2(...args) {
+        const arg = args[0];
+        if (arg instanceof Color)
+            return arg;
+        if (arg === undefined)
+            return new Color(-1);
+        if (typeof arg === 'string') {
+            if (!arg.startsWith('#')) {
+                return fromName(arg);
+            }
+        }
+        return make$7(arg, args[1]);
+    }
+    // adjusts the luminosity of 2 colors to ensure there is enough separation between them
+    function separate(a, b) {
+        if (a.isNull() || b.isNull())
+            return;
+        const A = a.clone().clamp();
+        const B = b.clone().clamp();
+        // console.log('separate');
+        // console.log('- a=%s, h=%d, s=%d, l=%d', A.toString(), A.h, A.s, A.l);
+        // console.log('- b=%s, h=%d, s=%d, l=%d', B.toString(), B.h, B.s, B.l);
+        let hDiff = Math.abs(A.h - B.h);
+        if (hDiff > 180) {
+            hDiff = 360 - hDiff;
+        }
+        if (hDiff > 45)
+            return; // colors are far enough apart in hue to be distinct
+        const dist = 40;
+        if (Math.abs(A.l - B.l) >= dist)
+            return;
+        // Get them sorted by saturation ( we will darken the more saturated color and lighten the other)
+        const [lo, hi] = [A, B].sort((a, b) => a.s - b.s);
+        // console.log('- lo=%s, hi=%s', lo.toString(), hi.toString());
+        while (hi.l - lo.l < dist) {
+            hi.mix(WHITE, 5);
+            lo.mix(BLACK, 5);
+        }
+        a.copy(A);
+        b.copy(B);
+        // console.log('=>', a.toString(), b.toString());
+    }
+    function swap(a, b) {
+        const temp = a.clone();
+        a.copy(b);
+        b.copy(temp);
+    }
+    function relativeLuminance(a, b) {
+        return Math.round((100 *
+            ((a.r - b.r) * (a.r - b.r) * 0.2126 +
+                (a.g - b.g) * (a.g - b.g) * 0.7152 +
+                (a.b - b.b) * (a.b - b.b) * 0.0722)) /
+            65025);
+    }
+    function distance(a, b) {
+        return Math.round((100 *
+            ((a.r - b.r) * (a.r - b.r) * 0.3333 +
+                (a.g - b.g) * (a.g - b.g) * 0.3333 +
+                (a.b - b.b) * (a.b - b.b) * 0.3333)) /
+            65025);
+    }
+    // Draws the smooth gradient that appears on a button when you hover over or depress it.
+    // Returns the percentage by which the current tile should be averaged toward a hilite color.
+    function smoothScalar(rgb, maxRgb = 255) {
+        return Math.floor(100 * Math.sin((Math.PI * rgb) / maxRgb));
+    }
+    function install$3(name, ...args) {
+        let info = args;
+        if (args.length == 1) {
+            info = args[0];
+        }
+        const c = info instanceof Color ? info : make$7(info);
+        // @ts-ignore
+        c._const = true;
+        colors[name] = c;
+        c.name = name;
+        return c;
+    }
+    function installSpread(name, ...args) {
+        let c;
+        if (args.length == 1) {
+            c = install$3(name, args[0]);
+        }
+        else {
+            c = install$3(name, ...args);
+        }
+        install$3('light_' + name, c.clone().lighten(25));
+        install$3('lighter_' + name, c.clone().lighten(50));
+        install$3('lightest_' + name, c.clone().lighten(75));
+        install$3('dark_' + name, c.clone().darken(25));
+        install$3('darker_' + name, c.clone().darken(50));
+        install$3('darkest_' + name, c.clone().darken(75));
+        return c;
+    }
+    const NONE = install$3('NONE', -1);
+    const BLACK = install$3('black', 0x000);
+    const WHITE = install$3('white', 0xfff);
+    installSpread('teal', [30, 100, 100]);
+    installSpread('brown', [60, 40, 0]);
+    installSpread('tan', [80, 70, 55]); // 80, 67,		15);
+    installSpread('pink', [100, 60, 66]);
+    installSpread('gray', [50, 50, 50]);
+    installSpread('yellow', [100, 100, 0]);
+    installSpread('purple', [100, 0, 100]);
+    installSpread('green', [0, 100, 0]);
+    installSpread('orange', [100, 50, 0]);
+    installSpread('blue', [0, 0, 100]);
+    installSpread('red', [100, 0, 0]);
+    installSpread('amber', [100, 75, 0]);
+    installSpread('flame', [100, 25, 0]);
+    installSpread('fuchsia', [100, 0, 100]);
+    installSpread('magenta', [100, 0, 75]);
+    installSpread('crimson', [100, 0, 25]);
+    installSpread('lime', [75, 100, 0]);
+    installSpread('chartreuse', [50, 100, 0]);
+    installSpread('sepia', [50, 40, 25]);
+    installSpread('violet', [50, 0, 100]);
+    installSpread('han', [25, 0, 100]);
+    installSpread('cyan', [0, 100, 100]);
+    installSpread('turquoise', [0, 100, 75]);
+    installSpread('sea', [0, 100, 50]);
+    installSpread('sky', [0, 75, 100]);
+    installSpread('azure', [0, 50, 100]);
+    installSpread('silver', [75, 75, 75]);
+    installSpread('gold', [100, 85, 0]);
+
+    var index$5 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        colors: colors,
+        Color: Color,
+        fromArray: fromArray,
+        fromCss: fromCss,
+        fromName: fromName,
+        fromNumber: fromNumber,
+        make: make$7,
+        from: from$2,
+        separate: separate,
+        swap: swap,
+        relativeLuminance: relativeLuminance,
+        distance: distance,
+        smoothScalar: smoothScalar,
+        install: install$3,
+        installSpread: installSpread,
+        NONE: NONE
+    });
+
+    class Mixer {
+        constructor(base) {
+            this.ch = first(base === null || base === void 0 ? void 0 : base.ch, -1);
+            this.fg = make$7(base === null || base === void 0 ? void 0 : base.fg);
+            this.bg = make$7(base === null || base === void 0 ? void 0 : base.bg);
+        }
+        _changed() {
+            return this;
+        }
+        copy(other) {
+            this.ch = other.ch || -1;
+            this.fg.copy(other.fg || -1);
+            this.bg.copy(other.bg || -1);
+            return this._changed();
+        }
+        clone() {
+            const other = new Mixer();
+            other.copy(this);
+            return other;
+        }
+        equals(other) {
+            return (this.ch == other.ch &&
+                this.fg.equals(other.fg) &&
+                this.bg.equals(other.bg));
+        }
+        get dances() {
+            return this.fg.dances || this.bg.dances;
+        }
+        nullify() {
+            this.ch = -1;
+            this.fg.nullify();
+            this.bg.nullify();
+            return this._changed();
+        }
+        blackOut() {
+            this.ch = -1;
+            this.fg.blackOut();
+            this.bg.blackOut();
+            return this._changed();
+        }
+        draw(ch = -1, fg = -1, bg = -1) {
+            if (ch && ch !== -1) {
+                this.ch = ch;
+            }
+            if (fg !== -1 && fg !== null) {
+                fg = from$2(fg);
+                this.fg.copy(fg);
+            }
+            if (bg !== -1 && bg !== null) {
+                bg = from$2(bg);
+                this.bg.copy(bg);
+            }
+            return this._changed();
+        }
+        drawSprite(src, opacity) {
+            if (src === this)
+                return this;
+            // @ts-ignore
+            if (opacity === undefined)
+                opacity = src.opacity;
+            if (opacity === undefined)
+                opacity = 100;
+            if (opacity <= 0)
+                return;
+            if (src.ch)
+                this.ch = src.ch;
+            if ((src.fg && src.fg !== -1) || src.fg === 0)
+                this.fg.mix(src.fg, opacity);
+            if ((src.bg && src.bg !== -1) || src.bg === 0)
+                this.bg.mix(src.bg, opacity);
+            return this._changed();
+        }
+        invert() {
+            [this.bg, this.fg] = [this.fg, this.bg];
+            return this._changed();
+        }
+        multiply(color, fg = true, bg = true) {
+            color = from$2(color);
+            if (fg) {
+                this.fg.multiply(color);
+            }
+            if (bg) {
+                this.bg.multiply(color);
+            }
+            return this._changed();
+        }
+        scale(multiplier, fg = true, bg = true) {
+            if (fg)
+                this.fg.scale(multiplier);
+            if (bg)
+                this.bg.scale(multiplier);
+            return this._changed();
+        }
+        mix(color, fg = 50, bg = fg) {
+            color = from$2(color);
+            if (fg > 0) {
+                this.fg.mix(color, fg);
+            }
+            if (bg > 0) {
+                this.bg.mix(color, bg);
+            }
+            return this._changed();
+        }
+        add(color, fg = 100, bg = fg) {
+            color = from$2(color);
+            if (fg > 0) {
+                this.fg.add(color, fg);
+            }
+            if (bg > 0) {
+                this.bg.add(color, bg);
+            }
+            return this._changed();
+        }
+        separate() {
+            separate(this.fg, this.bg);
+            return this._changed();
+        }
+        bake(clearDancing = false) {
+            this.fg.bake(clearDancing);
+            this.bg.bake(clearDancing);
+            this._changed();
+            return {
+                ch: this.ch,
+                fg: this.fg.toInt(),
+                bg: this.bg.toInt(),
+            };
+        }
+        toString() {
+            // prettier-ignore
+            return `{ ch: ${this.ch}, fg: ${this.fg.toString(true)}, bg: ${this.bg.toString(true)} }`;
+        }
+    }
+    function makeMixer(base) {
+        return new Mixer(base);
+    }
+
+    var options = {
+        colorStart: 'Ω',
+        colorEnd: '∆',
+        field: '§',
+        defaultFg: null,
+        defaultBg: null,
+    };
+    var helpers = {
+        default: (_name, _, _value) => {
+            return '';
+        },
+        debug: (name, _, value) => {
+            if (value !== undefined)
+                return `${value}.!!${name}!!`;
+            return `!!${name}!!`;
+        },
+    };
+    function addHelper(name, fn) {
+        helpers[name] = fn;
+    }
+
+    function compile(template, opts = {}) {
+        const F = opts.field || options.field;
+        const parts = template.split(F);
+        const sections = parts.map((part, i) => {
+            if (i % 2 == 0)
+                return textSegment(part);
+            if (part.length == 0)
+                return textSegment(F);
+            return makeVariable(part, opts);
+        });
+        return function (args = {}) {
+            if (typeof args === 'string') {
+                args = { value: args };
+            }
+            return sections.map((f) => f(args)).join('');
+        };
+    }
+    function apply(template, args = {}) {
+        const fn = compile(template);
+        const result = fn(args);
+        return result;
+    }
+    function textSegment(value) {
+        return () => value;
+    }
+    function baseValue(name, debug = false) {
+        return function (args) {
+            let h = helpers[name];
+            if (h) {
+                return h(name, args);
+            }
+            const v = args[name];
+            if (v !== undefined)
+                return v;
+            h = debug ? helpers.debug : helpers.default;
+            return h(name, args);
+        };
+    }
+    function fieldValue(name, source, debug = false) {
+        const helper = debug ? helpers.debug : helpers.default;
+        return function (args) {
+            const obj = source(args);
+            if (!obj)
+                return helper(name, args, obj);
+            const value = obj[name];
+            if (value === undefined)
+                return helper(name, args, obj);
+            return value;
+        };
+    }
+    function helperValue(name, source, debug = false) {
+        const helper = helpers[name] ||
+            (debug ? helpers.debug : helpers.default);
+        return function (args) {
+            const base = source(args);
+            return helper(name, args, base);
+        };
+    }
+    function stringFormat(format, source) {
+        const data = /%(-?\d*)s/.exec(format) || [];
+        const length = Number.parseInt(data[1] || '0');
+        return function (args) {
+            let text = '' + source(args);
+            if (length < 0) {
+                text = text.padEnd(-length);
+            }
+            else if (length) {
+                text = text.padStart(length);
+            }
+            return text;
+        };
+    }
+    function intFormat(format, source) {
+        const data = /%([\+-]*)(\d*)d/.exec(format) || ['', '', '0'];
+        let length = Number.parseInt(data[2] || '0');
+        const wantSign = data[1].includes('+');
+        const left = data[1].includes('-');
+        return function (args) {
+            const value = Number.parseInt(source(args) || 0);
+            let text = '' + value;
+            if (value > 0 && wantSign) {
+                text = '+' + text;
+            }
+            if (length && left) {
+                return text.padEnd(length);
+            }
+            else if (length) {
+                return text.padStart(length);
+            }
+            return text;
+        };
+    }
+    function floatFormat(format, source) {
+        const data = /%([\+-]*)(\d*)(\.(\d+))?f/.exec(format) || ['', '', '0'];
+        let length = Number.parseInt(data[2] || '0');
+        const wantSign = data[1].includes('+');
+        const left = data[1].includes('-');
+        const fixed = Number.parseInt(data[4]) || 0;
+        return function (args) {
+            const value = Number.parseFloat(source(args) || 0);
+            let text;
+            if (fixed) {
+                text = value.toFixed(fixed);
+            }
+            else {
+                text = '' + value;
+            }
+            if (value > 0 && wantSign) {
+                text = '+' + text;
+            }
+            if (length && left) {
+                return text.padEnd(length);
+            }
+            else if (length) {
+                return text.padStart(length);
+            }
+            return text;
+        };
+    }
+    function makeVariable(pattern, opts = {}) {
+        const data = /((\w+) )?(\w+)(\.(\w+))?(%[\+\.\-\d]*[dsf])?/.exec(pattern) || [];
+        const helper = data[2];
+        const base = data[3];
+        const field = data[5];
+        const format = data[6];
+        let result = baseValue(base, opts.debug);
+        if (field && field.length) {
+            result = fieldValue(field, result, opts.debug);
+        }
+        if (helper && helper.length) {
+            result = helperValue(helper, result, opts.debug);
+        }
+        if (format && format.length) {
+            if (format.endsWith('s')) {
+                result = stringFormat(format, result);
+            }
+            else if (format.endsWith('d')) {
+                result = intFormat(format, result);
+            }
+            else {
+                result = floatFormat(format, result);
+            }
+        }
+        return result;
+    }
+
+    function eachChar(text, fn, opts = {}) {
+        if (text === null || text === undefined)
+            return;
+        if (!fn)
+            return;
+        text = '' + text; // force string
+        if (!text.length)
+            return;
+        const colors = [];
+        const colorFn = opts.eachColor || NOOP;
+        let fg = opts.fg || options.defaultFg;
+        let bg = opts.bg || options.defaultBg;
+        const ctx = {
+            fg,
+            bg,
+        };
+        const CS = opts.colorStart || options.colorStart;
+        const CE = opts.colorEnd || options.colorEnd;
+        colorFn(ctx);
+        let n = 0;
+        for (let i = 0; i < text.length; ++i) {
+            const ch = text[i];
+            if (ch == CS) {
+                let j = i + 1;
+                while (j < text.length && text[j] != CS) {
+                    ++j;
+                }
+                if (j == text.length) {
+                    console.warn(`Reached end of string while seeking end of color start section.\n- text: ${text}\n- start @: ${i}`);
+                    return; // reached end - done (error though)
+                }
+                if (j == i + 1) {
+                    // next char
+                    ++i; // fall through
+                }
+                else {
+                    colors.push([ctx.fg, ctx.bg]);
+                    const color = text.substring(i + 1, j);
+                    const newColors = color.split('|');
+                    ctx.fg = newColors[0] || ctx.fg;
+                    ctx.bg = newColors[1] || ctx.bg;
+                    colorFn(ctx);
+                    i = j;
+                    continue;
+                }
+            }
+            else if (ch == CE) {
+                if (text[i + 1] == CE) {
+                    ++i;
+                }
+                else {
+                    const c = colors.pop(); // if you pop too many times colors still revert to what you passed in
+                    [ctx.fg, ctx.bg] = c || [fg, bg];
+                    // colorFn(ctx);
+                    continue;
+                }
+            }
+            fn(ch, ctx.fg, ctx.bg, n, i);
+            ++n;
+        }
+    }
+
+    function length(text) {
+        if (!text || text.length == 0)
+            return 0;
+        let len = 0;
+        const CS = options.colorStart;
+        const CE = options.colorEnd;
+        for (let i = 0; i < text.length; ++i) {
+            const ch = text[i];
+            if (ch == CS) {
+                const end = text.indexOf(CS, i + 1);
+                i = end;
+            }
+            else if (ch == CE) ;
+            else {
+                ++len;
+            }
+        }
+        return len;
+    }
+    let inColor = false;
+    function advanceChars(text, start, count) {
+        const CS = options.colorStart;
+        const CE = options.colorEnd;
+        inColor = false;
+        let i = start;
+        while (count > 0 && i < text.length) {
+            const ch = text[i];
+            if (ch === CS) {
+                ++i;
+                if (text[i] === CS) {
+                    --count;
+                }
+                else {
+                    while (text[i] !== CS)
+                        ++i;
+                    inColor = true;
+                }
+                ++i;
+            }
+            else if (ch === CE) {
+                if (text[i + 1] === CE) {
+                    --count;
+                    ++i;
+                }
+                else {
+                    inColor = false;
+                }
+                ++i;
+            }
+            else {
+                --count;
+                ++i;
+            }
+        }
+        return i;
+    }
+    function firstChar(text) {
+        const CS = options.colorStart;
+        const CE = options.colorEnd;
+        let i = 0;
+        while (i < text.length) {
+            const ch = text[i];
+            if (ch === CS) {
+                if (text[i + 1] === CS)
+                    return CS;
+                ++i;
+                while (text[i] !== CS)
+                    ++i;
+                ++i;
+            }
+            else if (ch === CE) {
+                if (text[i + 1] === CE)
+                    return CE;
+                ++i;
+            }
+            else {
+                return ch;
+            }
+        }
+        return null;
+    }
+    function padStart(text, width, pad = ' ') {
+        const len = length(text);
+        if (len >= width)
+            return text;
+        const colorLen = text.length - len;
+        return text.padStart(width + colorLen, pad);
+    }
+    function padEnd(text, width, pad = ' ') {
+        const len = length(text);
+        if (len >= width)
+            return text;
+        const colorLen = text.length - len;
+        return text.padEnd(width + colorLen, pad);
+    }
+    function center(text, width, pad = ' ') {
+        const rawLen = text.length;
+        const len = length(text);
+        const padLen = width - len;
+        if (padLen <= 0)
+            return text;
+        const left = Math.floor(padLen / 2);
+        return text.padStart(rawLen + left, pad).padEnd(rawLen + padLen, pad);
+    }
+    function truncate(text, width) {
+        const len = length(text);
+        if (len <= width)
+            return text;
+        const index = advanceChars(text, 0, width);
+        if (!inColor)
+            return text.substring(0, index);
+        const CE = options.colorEnd;
+        return text.substring(0, index) + CE;
+    }
+    function capitalize(text) {
+        const CS = options.colorStart;
+        const CE = options.colorEnd;
+        let i = 0;
+        while (i < text.length) {
+            const ch = text[i];
+            if (ch == CS) {
+                ++i;
+                while (text[i] != CS && i < text.length) {
+                    ++i;
+                }
+                ++i;
+            }
+            else if (ch == CE) {
+                ++i;
+                while (text[i] == CE && i < text.length) {
+                    ++i;
+                }
+            }
+            else if (/[A-Za-z]/.test(ch)) {
+                return (text.substring(0, i) + ch.toUpperCase() + text.substring(i + 1));
+            }
+            else {
+                ++i;
+            }
+        }
+        return text;
+    }
+    function removeColors(text) {
+        const CS = options.colorStart;
+        const CE = options.colorEnd;
+        let out = '';
+        let start = 0;
+        for (let i = 0; i < text.length; ++i) {
+            const k = text[i];
+            if (k === CS) {
+                if (text[i + 1] == CS) {
+                    ++i;
+                    continue;
+                }
+                out += text.substring(start, i);
+                ++i;
+                while (text[i] != CS && i < text.length) {
+                    ++i;
+                }
+                start = i + 1;
+            }
+            else if (k === CE) {
+                if (text[i + 1] == CE) {
+                    ++i;
+                    continue;
+                }
+                out += text.substring(start, i);
+                start = i + 1;
+            }
+        }
+        if (start == 0)
+            return text;
+        out += text.substring(start);
+        return out;
+    }
+    function spliceRaw(msg, begin, deleteLength, add = '') {
+        const maxLen = msg.length;
+        if (begin >= maxLen)
+            return msg;
+        const preText = msg.substring(0, begin);
+        if (begin + deleteLength >= maxLen) {
+            return preText;
+        }
+        const postText = msg.substring(begin + deleteLength);
+        return preText + add + postText;
+    }
+    // https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
+    function hash(str) {
+        let hash = 0;
+        const len = str.length;
+        for (let i = 0; i < len; i++) {
+            hash = (hash << 5) - hash + str.charCodeAt(i);
+            hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+    }
+
+    function nextBreak(text, start) {
+        const CS = options.colorStart;
+        const CE = options.colorEnd;
+        let i = start;
+        let l = 0;
+        let count = true;
+        while (i < text.length) {
+            const ch = text[i];
+            if (ch == ' ') {
+                while (text[i + 1] == ' ') {
+                    ++i;
+                    ++l; // need to count the extra spaces as part of the word
+                }
+                return [i, l];
+            }
+            if (ch == '-') {
+                return [i, l];
+            }
+            if (ch == '\n') {
+                return [i, l];
+            }
+            if (ch == CS) {
+                if (text[i + 1] == CS && count) {
+                    l += 1;
+                    i += 2;
+                    continue;
+                }
+                count = !count;
+                ++i;
+                continue;
+            }
+            else if (ch == CE) {
+                if (text[i + 1] == CE) {
+                    l += 1;
+                    ++i;
+                }
+                i++;
+                continue;
+            }
+            l += count ? 1 : 0;
+            ++i;
+        }
+        return [i, l];
+    }
+    function splice(text, start, len, add = '') {
+        return text.substring(0, start) + add + text.substring(start + len);
+    }
+    function hyphenate(text, lineWidth, start, end, wordWidth, spaceLeftOnLine) {
+        while (start < end) {
+            // do not need to hyphenate
+            if (spaceLeftOnLine >= wordWidth)
+                return [text, end];
+            // not much room left and word fits on next line
+            if (spaceLeftOnLine < 4 && wordWidth <= lineWidth) {
+                text = splice(text, start - 1, 1, '\n');
+                return [text, end + 1];
+            }
+            // if will fit on this line and next...
+            if (wordWidth < spaceLeftOnLine + lineWidth) {
+                const w = advanceChars(text, start, spaceLeftOnLine - 1);
+                text = splice(text, w, 0, '-\n');
+                return [text, end + 2];
+            }
+            if (spaceLeftOnLine < 5) {
+                text = splice(text, start - 1, 1, '\n');
+                spaceLeftOnLine = lineWidth;
+                continue;
+            }
+            // one hyphen will work...
+            const hyphenAt = Math.min(spaceLeftOnLine - 1, Math.floor(wordWidth / 2));
+            const w = advanceChars(text, start, hyphenAt);
+            text = splice(text, w, 0, '-\n');
+            start = w + 2;
+            end += 2;
+            wordWidth -= hyphenAt;
+        }
+        return [text, end];
+    }
+    function wordWrap(text, width, indent = 0) {
+        if (!width)
+            throw new Error('Need string and width');
+        if (text.length < width)
+            return text;
+        if (length(text) < width)
+            return text;
+        if (text.indexOf('\n') == -1) {
+            return wrapLine(text, width, indent);
+        }
+        const lines = text.split('\n');
+        const split = lines.map((line, i) => wrapLine(line, width, i ? indent : 0));
+        return split.join('\n');
+    }
+    // Returns the number of lines, including the newlines already in the text.
+    // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
+    function wrapLine(text, width, indent) {
+        if (text.length < width)
+            return text;
+        if (length(text) < width)
+            return text;
+        let spaceLeftOnLine = width;
+        width = width - indent;
+        let printString = text;
+        // Now go through and replace spaces with newlines as needed.
+        // console.log('wordWrap - ', text, width, indent);
+        let removeSpace = true;
+        let i = -1;
+        while (i < printString.length) {
+            // wordWidth counts the word width of the next word without color escapes.
+            // w indicates the position of the space or newline or null terminator that terminates the word.
+            let [w, wordWidth] = nextBreak(printString, i + (removeSpace ? 1 : 0));
+            let hyphen = false;
+            if (printString[w] == '-') {
+                w++;
+                wordWidth++;
+                hyphen = true;
+            }
+            // console.log('- w=%d, width=%d, space=%d, word=%s', w, wordWidth, spaceLeftOnLine, printString.substring(i, w));
+            if (wordWidth > width) {
+                [printString, w] = hyphenate(printString, width, i + 1, w, wordWidth, spaceLeftOnLine);
+            }
+            else if (wordWidth == spaceLeftOnLine) {
+                const nl = w < printString.length ? '\n' : '';
+                const remove = hyphen ? 0 : 1;
+                printString = splice(printString, w, remove, nl); // [i] = '\n';
+                w += 1 - remove; // if we change the length we need to advance our pointer
+                spaceLeftOnLine = width;
+            }
+            else if (wordWidth > spaceLeftOnLine) {
+                const remove = removeSpace ? 1 : 0;
+                printString = splice(printString, i, remove, '\n'); // [i] = '\n';
+                w += 1 - remove; // if we change the length we need to advance our pointer
+                const extra = hyphen ? 0 : 1;
+                spaceLeftOnLine = width - wordWidth - extra; // line width minus the width of the word we just wrapped and the space
+                //printf("\n\n%s", printString);
+            }
+            else {
+                const extra = hyphen ? 0 : 1;
+                spaceLeftOnLine -= wordWidth + extra;
+            }
+            removeSpace = !hyphen;
+            i = w; // Advance to the terminator that follows the word.
+        }
+        return printString;
+    }
+    // Returns the number of lines, including the newlines already in the text.
+    // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
+    function splitIntoLines(source, width = 200, indent = 0) {
+        const CS = options.colorStart;
+        const output = [];
+        if (!source)
+            return output;
+        if (width <= 0)
+            width = 200;
+        let text = wordWrap(source, width, indent);
+        let start = 0;
+        let fg0 = null;
+        let bg0 = null;
+        eachChar(text, (ch, fg, bg, _, n) => {
+            if (ch == '\n') {
+                let color = fg0 || bg0
+                    ? `${CS}${fg0 ? fg0 : ''}${bg0 ? '|' + bg0 : ''}${CS}`
+                    : '';
+                output.push(color + text.substring(start, n));
+                start = n + 1;
+                fg0 = fg;
+                bg0 = bg;
+            }
+        });
+        let color = fg0 || bg0 ? `${CS}${fg0 ? fg0 : ''}${bg0 ? '|' + bg0 : ''}${CS}` : '';
+        if (start < text.length) {
+            output.push(color + text.substring(start));
+        }
+        return output;
+    }
+
+    function configure(opts = {}) {
+        if (opts.fg !== undefined) {
+            options.defaultFg = opts.fg;
+        }
+        if (opts.bg !== undefined) {
+            options.defaultBg = opts.bg;
+        }
+        if (opts.colorStart) {
+            options.colorStart = opts.colorStart;
+        }
+        if (opts.colorEnd) {
+            options.colorEnd = opts.colorEnd;
+        }
+        if (opts.field) {
+            options.field = opts.field;
+        }
+    }
+
+    var index$4 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        configure: configure,
+        compile: compile,
+        apply: apply,
+        eachChar: eachChar,
+        wordWrap: wordWrap,
+        splitIntoLines: splitIntoLines,
+        addHelper: addHelper,
+        options: options,
+        length: length,
+        advanceChars: advanceChars,
+        firstChar: firstChar,
+        padStart: padStart,
+        padEnd: padEnd,
+        center: center,
+        truncate: truncate,
+        capitalize: capitalize,
+        removeColors: removeColors,
+        spliceRaw: spliceRaw,
+        hash: hash
+    });
+
+    class Buffer$1 {
+        constructor(width, height) {
+            this.changed = false;
+            this._width = width;
+            this._height = height;
+            this._data = this._makeData();
+        }
+        _makeData() {
+            return new Uint32Array(this.width * this.height);
+        }
+        get width() {
+            return this._width;
+        }
+        get height() {
+            return this._height;
+        }
+        hasXY(x, y) {
+            return x >= 0 && y >= 0 && x < this.width && y < this.height;
+        }
+        clone() {
+            const other = new Buffer$1(this._width, this._height);
+            other.copy(this);
+            return other;
+        }
+        resize(width, height) {
+            const orig = this._data;
+            this._width = width;
+            this._height = height;
+            if (orig.length < width * height) {
+                this._data = new Uint32Array(width * height);
+                this._data.set(orig, 0);
+            }
+            else {
+                this._data = orig.slice(width * height);
+            }
+            this.changed = true;
+        }
+        _index(x, y) {
+            return y * this.width + x;
+        }
+        get(x, y) {
+            if (!this.hasXY(x, y))
+                return 0;
+            let index = this._index(x, y);
+            return this._data[index] || 0;
+        }
+        info(x, y) {
+            const style = this.get(x, y);
+            const glyph = style >> 24;
+            const bg = (style >> 12) & 0xfff;
+            const fg = style & 0xfff;
+            return { glyph, fg, bg };
+        }
+        set(x, y, style) {
+            if (!this.hasXY(x, y))
+                return;
+            let index = this._index(x, y);
+            const current = this._data[index];
+            if (current !== style) {
+                this._data[index] = style;
+                return true;
+            }
+            return false;
+        }
+        toGlyph(ch) {
+            if (typeof ch === 'number')
+                return ch;
+            if (!ch || !ch.length)
+                return -1; // 0 handled elsewhere
+            return ch.charCodeAt(0);
+        }
+        draw(x, y, glyph = -1, fg = -1, // TODO - White?
+        bg = -1 // TODO - Black?
+        ) {
+            if (!this.hasXY(x, y))
+                return this;
+            const current = this.get(x, y);
+            if (typeof glyph !== 'number') {
+                glyph = this.toGlyph(glyph);
+            }
+            if (typeof fg !== 'number') {
+                fg = from$2(fg).toInt();
+            }
+            if (typeof bg !== 'number') {
+                bg = from$2(bg).toInt();
+            }
+            glyph = glyph >= 0 ? glyph & 0xff : current >> 24;
+            bg = bg >= 0 ? bg & 0xfff : (current >> 12) & 0xfff;
+            fg = fg >= 0 ? fg & 0xfff : current & 0xfff;
+            const style = (glyph << 24) + (bg << 12) + fg;
+            this.set(x, y, style);
+            if (style !== current)
+                this.changed = true;
+            return this;
+        }
+        // This is without opacity - opacity must be done in Mixer
+        drawSprite(x, y, sprite) {
+            const ch = sprite.ch === null ? -1 : sprite.ch;
+            const fg = sprite.fg === null ? -1 : sprite.fg;
+            const bg = sprite.bg === null ? -1 : sprite.bg;
+            return this.draw(x, y, ch, fg, bg);
+        }
+        blackOut(...args) {
+            if (args.length == 0) {
+                return this.fill(0, 0, 0);
+            }
+            return this.draw(args[0], args[1], 0, 0, 0);
+        }
+        fill(glyph = 0, fg = 0xfff, bg = 0) {
+            if (arguments.length == 1) {
+                bg = from$2(glyph).toInt();
+                glyph = 0;
+                fg = 0;
+            }
+            else {
+                if (typeof glyph !== 'number') {
+                    if (typeof glyph === 'string') {
+                        glyph = this.toGlyph(glyph);
+                    }
+                    else {
+                        throw new Error('glyph must be number or char');
+                    }
+                }
+                if (typeof fg !== 'number') {
+                    fg = from$2(fg).toInt();
+                }
+                if (typeof bg !== 'number') {
+                    bg = from$2(bg).toInt();
+                }
+            }
+            glyph = glyph & 0xff;
+            fg = fg & 0xfff;
+            bg = bg & 0xfff;
+            const style = (glyph << 24) + (bg << 12) + fg;
+            this._data.fill(style);
+            this.changed = true;
+            return this;
+        }
+        copy(other) {
+            this._width = other._width;
+            this._height = other._height;
+            this._data.set(other._data);
+            this.changed = true;
+            return this;
+        }
+        drawText(x, y, text, fg = 0xfff, bg = -1, maxWidth = 0, align = 'left') {
+            if (!this.hasXY(x, y))
+                return 0;
+            if (typeof fg !== 'number')
+                fg = from$2(fg);
+            if (typeof bg !== 'number')
+                bg = from$2(bg);
+            maxWidth = Math.min(maxWidth || this.width, this.width - x);
+            if (align == 'right') {
+                const len = length(text);
+                x += maxWidth - len;
+            }
+            else if (align == 'center') {
+                const len = length(text);
+                x += Math.floor((maxWidth - len) / 2);
+            }
+            eachChar(text, (ch, fg0, bg0, i) => {
+                if (x + i >= this.width || i >= maxWidth)
+                    return;
+                this.draw(i + x, y, ch, fg0, bg0);
+            }, { fg, bg });
+            return 1; // used 1 line
+        }
+        wrapText(x, y, width, text, fg = 0xfff, bg = -1, indent = 0) {
+            if (!this.hasXY(x, y))
+                return 0;
+            if (typeof fg !== 'number')
+                fg = from$2(fg);
+            if (typeof bg !== 'number')
+                bg = from$2(bg);
+            width = Math.min(width, this.width - x);
+            text = wordWrap(text, width, indent);
+            let lineCount = 0;
+            let xi = x;
+            eachChar(text, (ch, fg0, bg0) => {
+                if (ch == '\n') {
+                    while (xi < x + width) {
+                        this.draw(xi++, y + lineCount, 0, 0x000, bg0);
+                    }
+                    ++lineCount;
+                    xi = x + indent;
+                    return;
+                }
+                this.draw(xi++, y + lineCount, ch, fg0, bg0);
+            }, { fg, bg });
+            while (xi < x + width) {
+                this.draw(xi++, y + lineCount, 0, 0x000, bg);
+            }
+            return lineCount + 1;
+        }
+        fillRect(x, y, w, h, ch = -1, fg = -1, bg = -1) {
+            if (ch === null)
+                ch = -1;
+            if (typeof ch !== 'number')
+                ch = this.toGlyph(ch);
+            if (typeof fg !== 'number')
+                fg = from$2(fg).toInt();
+            if (typeof bg !== 'number')
+                bg = from$2(bg).toInt();
+            const xw = Math.min(x + w, this.width);
+            const yh = Math.min(y + h, this.height);
+            for (let i = x; i < xw; ++i) {
+                for (let j = y; j < yh; ++j) {
+                    this.draw(i, j, ch, fg, bg);
+                }
+            }
+            return this;
+        }
+        blackOutRect(x, y, w, h, bg = 0) {
+            if (typeof bg !== 'number')
+                bg = from$2(bg);
+            return this.fillRect(x, y, w, h, 0, bg, bg);
+        }
+        highlight(x, y, color, strength) {
+            if (!this.hasXY(x, y))
+                return this;
+            if (typeof color !== 'number') {
+                color = from$2(color);
+            }
+            const mixer = new Mixer();
+            const data = this.info(x, y);
+            mixer.drawSprite(data);
+            mixer.fg.add(color, strength);
+            mixer.bg.add(color, strength);
+            this.drawSprite(x, y, mixer);
+            return this;
+        }
+        mix(color, percent, x = 0, y = 0, width = 0, height = 0) {
+            color = from$2(color);
+            const mixer = new Mixer();
+            if (!width)
+                width = x ? 1 : this.width;
+            if (!height)
+                height = y ? 1 : this.height;
+            const endX = Math.min(width + x, this.width);
+            const endY = Math.min(height + y, this.height);
+            for (let i = x; i < endX; ++i) {
+                for (let j = y; j < endY; ++j) {
+                    const data = this.info(i, j);
+                    mixer.drawSprite(data);
+                    mixer.fg.mix(color, percent);
+                    mixer.bg.mix(color, percent);
+                    this.drawSprite(i, j, mixer);
+                }
+            }
+            return this;
+        }
+        dump() {
+            const data = [];
+            let header = '    ';
+            for (let x = 0; x < this.width; ++x) {
+                if (x % 10 == 0)
+                    header += ' ';
+                header += x % 10;
+            }
+            data.push(header);
+            data.push('');
+            for (let y = 0; y < this.height; ++y) {
+                let line = `${('' + y).padStart(2)}] `;
+                for (let x = 0; x < this.width; ++x) {
+                    if (x % 10 == 0)
+                        line += ' ';
+                    const data = this.info(x, y);
+                    const glyph = data.glyph;
+                    line += String.fromCharCode(glyph || 32);
+                }
+                data.push(line);
+            }
+            console.log(data.join('\n'));
+        }
+    }
+    function make$6(width, height) {
+        return new Buffer$1(width, height);
+    }
+
+    var buffer = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Buffer: Buffer$1,
+        make: make$6
+    });
+
+    class Event {
+        constructor(type, opts) {
+            this.target = null;
+            // Used in UI
+            this.defaultPrevented = false;
+            this.propagationStopped = false;
+            this.immediatePropagationStopped = false;
+            // Key Event
+            this.key = '';
+            this.code = '';
+            this.shiftKey = false;
+            this.ctrlKey = false;
+            this.altKey = false;
+            this.metaKey = false;
+            // Dir Event extends KeyEvent
+            this.dir = null;
+            // Mouse Event
+            this.x = -1;
+            this.y = -1;
+            this.clientX = -1;
+            this.clientY = -1;
+            // Tick Event
+            this.dt = 0;
+            this.reset(type, opts);
+        }
+        preventDefault() {
+            this.defaultPrevented = true;
+        }
+        stopPropagation() {
+            this.propagationStopped = true;
+        }
+        stopImmediatePropagation() {
+            this.immediatePropagationStopped = true;
+        }
+        reset(type, opts) {
+            this.type = type;
+            this.target = null;
+            this.defaultPrevented = false;
+            this.shiftKey = false;
+            this.ctrlKey = false;
+            this.altKey = false;
+            this.metaKey = false;
+            this.key = '';
+            this.code = '';
+            this.x = -1;
+            this.y = -1;
+            this.dir = null;
+            this.dt = 0;
+            this.target = null;
+            if (opts) {
+                Object.assign(this, opts);
+            }
+        }
+    }
+    let IOMAP = {};
     const DEAD_EVENTS = [];
     const KEYPRESS = 'keypress';
     const MOUSEMOVE = 'mousemove';
@@ -1991,43 +3773,45 @@
         'MetaRight',
     ];
     function setKeymap(keymap) {
-        KEYMAP = keymap;
+        IOMAP = keymap;
+    }
+    function handlerFor(ev, km) {
+        let c;
+        if (ev.dir) {
+            c = km.dir || km.keypress;
+        }
+        else if (ev.type === KEYPRESS) {
+            c = km[ev.key] || km[ev.code] || km.keypress;
+        }
+        else if (km[ev.type]) {
+            c = km[ev.type];
+        }
+        if (!c) {
+            c = km.dispatch;
+        }
+        return c || null;
     }
     async function dispatchEvent(ev, km) {
         let result;
-        let command;
-        km = km || KEYMAP;
+        km = km || IOMAP;
         if (ev.type === STOP) {
             recycleEvent(ev);
             return true; // Should stop loops, etc...
         }
-        if (typeof km === 'function') {
-            command = km;
+        const handler = handlerFor(ev, km);
+        if (handler) {
+            // if (typeof c === 'function') {
+            result = await handler.call(km, ev);
+            // } else if (commands[c]) {
+            //     result = await commands[c](ev);
+            // } else {
+            //     Utils.WARN('No command found: ' + c);
+            // }
         }
-        else if (ev.dir) {
-            command = km.dir;
-        }
-        else if (ev.type === KEYPRESS) {
-            // @ts-ignore
-            command = km[ev.key] || km[ev.code] || km.keypress;
-        }
-        else if (km[ev.type]) {
-            command = km[ev.type];
-        }
-        if (command) {
-            if (typeof command === 'function') {
-                result = await command.call(km, ev);
-            }
-            else if (commands[command]) {
-                result = await commands[command](ev);
-            }
-            else {
-                WARN('No command found: ' + command);
-            }
-        }
-        if ('next' in km && km.next === false) {
-            result = false;
-        }
+        // TODO - what is this here for?
+        // if ('next' in km && km.next === false) {
+        //     result = false;
+        // }
         recycleEvent(ev);
         return result;
     }
@@ -2036,23 +3820,19 @@
     }
     // STOP
     function makeStopEvent() {
-        const ev = makeTickEvent(0);
-        ev.type = STOP;
+        return makeCustomEvent(STOP);
+    }
+    // CUSTOM
+    function makeCustomEvent(type, opts) {
+        const ev = DEAD_EVENTS.pop() || null;
+        if (!ev)
+            return new Event(type, opts);
+        ev.reset(type, opts);
         return ev;
     }
     // TICK
     function makeTickEvent(dt) {
-        const ev = DEAD_EVENTS.pop() || {};
-        ev.shiftKey = false;
-        ev.ctrlKey = false;
-        ev.altKey = false;
-        ev.metaKey = false;
-        ev.type = TICK;
-        ev.key = null;
-        ev.code = null;
-        ev.x = -1;
-        ev.y = -1;
-        ev.dir = null;
+        const ev = makeCustomEvent(TICK);
         ev.dt = dt;
         return ev;
     }
@@ -2075,12 +3855,13 @@
         if (e.altKey) {
             code = '/' + code;
         }
-        const ev = DEAD_EVENTS.pop() || {};
+        const ev = DEAD_EVENTS.pop() || new Event(KEYPRESS);
         ev.shiftKey = e.shiftKey;
         ev.ctrlKey = e.ctrlKey;
         ev.altKey = e.altKey;
         ev.metaKey = e.metaKey;
         ev.type = KEYPRESS;
+        ev.defaultPrevented = false;
         ev.key = key;
         ev.code = code;
         ev.x = -1;
@@ -2089,6 +3870,7 @@
         ev.clientY = -1;
         ev.dir = keyCodeDirection(e.code);
         ev.dt = 0;
+        ev.target = null;
         return ev;
     }
     function keyCodeDirection(key) {
@@ -2112,7 +3894,7 @@
     }
     // MOUSE
     function makeMouseEvent(e, x, y) {
-        const ev = DEAD_EVENTS.pop() || {};
+        const ev = DEAD_EVENTS.pop() || new Event(e.type);
         ev.shiftKey = e.shiftKey;
         ev.ctrlKey = e.ctrlKey;
         ev.altKey = e.altKey;
@@ -2121,14 +3903,16 @@
         if (e.buttons && e.type !== 'mouseup') {
             ev.type = CLICK;
         }
-        ev.key = null;
-        ev.code = null;
+        ev.defaultPrevented = false;
+        ev.key = '';
+        ev.code = '';
         ev.x = x;
         ev.y = y;
         ev.clientX = e.clientX;
         ev.clientY = e.clientY;
         ev.dir = null;
         ev.dt = 0;
+        ev.target = null;
         return ev;
     }
     class Loop {
@@ -2218,7 +4002,7 @@
                 this.events.push(ev);
             }
         }
-        nextEvent(ms, match) {
+        nextEvent(ms = -1, match) {
             match = match || TRUE;
             let elapsed = 0;
             while (this.events.length) {
@@ -2233,9 +4017,6 @@
                 recycleEvent(e);
             }
             let done;
-            if (ms === undefined) {
-                ms = -1; // wait forever
-            }
             if (ms == 0 || this.ended)
                 return Promise.resolve(null);
             if (this.CURRENT_HANDLER) {
@@ -2254,11 +4035,11 @@
                     if (elapsed < ms) {
                         return;
                     }
+                    e.dt = elapsed;
                 }
                 else if (!match(e))
                     return;
                 this.CURRENT_HANDLER = null;
-                e.dt = elapsed;
                 done(e);
             };
             return new Promise((resolve) => (done = resolve));
@@ -2290,10 +4071,12 @@
         stop() {
             this.clearEvents();
             this.running = false;
-            this.pushEvent(makeStopEvent());
             if (this.interval) {
                 clearInterval(this.interval);
                 this.interval = 0;
+            }
+            if (this.CURRENT_HANDLER) {
+                this.pushEvent(makeStopEvent());
             }
             this.CURRENT_HANDLER = null;
         }
@@ -2374,16 +4157,15 @@
             e.preventDefault();
         }
     }
-    function make$6() {
+    function make$5() {
         return new Loop();
     }
     // Makes a default global loop that you access through these funcitons...
-    const loop = make$6();
+    const loop = make$5();
 
     var io = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        commands: commands,
-        addCommand: addCommand,
+        Event: Event,
         KEYPRESS: KEYPRESS,
         MOUSEMOVE: MOUSEMOVE,
         CLICK: CLICK,
@@ -2391,15 +4173,17 @@
         MOUSEUP: MOUSEUP,
         STOP: STOP,
         setKeymap: setKeymap,
+        handlerFor: handlerFor,
         dispatchEvent: dispatchEvent,
         makeStopEvent: makeStopEvent,
+        makeCustomEvent: makeCustomEvent,
         makeTickEvent: makeTickEvent,
         makeKeyEvent: makeKeyEvent,
         keyCodeDirection: keyCodeDirection,
         ignoreKeyEvent: ignoreKeyEvent,
         makeMouseEvent: makeMouseEvent,
         Loop: Loop,
-        make: make$6,
+        make: make$5,
         loop: loop
     });
 
@@ -2437,7 +4221,7 @@
         FovFlags[FovFlags["PLAYER"] = FovFlags.IN_FOV] = "PLAYER";
         FovFlags[FovFlags["CLAIRVOYANT"] = FovFlags.CLAIRVOYANT_VISIBLE] = "CLAIRVOYANT";
         FovFlags[FovFlags["TELEPATHIC"] = FovFlags.TELEPATHIC_VISIBLE] = "TELEPATHIC";
-        FovFlags[FovFlags["VIEWPORT_TYPES"] = FovFlags.PLAYER |
+        FovFlags[FovFlags["VIEWPORT_TYPES"] = FovFlags.PLAYER | FovFlags.VISIBLE |
             FovFlags.CLAIRVOYANT |
             FovFlags.TELEPATHIC |
             FovFlags.ITEM_DETECTED |
@@ -2543,7 +4327,9 @@
     // import * as GWU from 'gw-utils';
     class FovSystem {
         constructor(site, opts = {}) {
-            this.onFovChange = { onFovChange: NOOP };
+            // needsUpdate: boolean;
+            this.changed = true;
+            this._callback = NOOP;
             this.follow = null;
             this.site = site;
             let flag = 0;
@@ -2552,28 +4338,41 @@
                 flag |= FovFlags.REVEALED;
             if (visible)
                 flag |= FovFlags.VISIBLE;
-            this.flags = make$7(site.width, site.height, flag);
-            this.needsUpdate = true;
-            this._changed = true;
-            if (typeof opts.onFovChange === 'function') {
-                this.onFovChange.onFovChange = opts.onFovChange;
-            }
-            else if (opts.onFovChange) {
-                this.onFovChange = opts.onFovChange;
+            this.flags = make$8(site.width, site.height, flag);
+            // this.needsUpdate = true;
+            if (opts.callback) {
+                this.callback = opts.callback;
             }
             this.fov = new FOV({
-                isBlocked(x, y) {
-                    return site.blocksVision(x, y);
+                isBlocked: (x, y) => {
+                    return this.site.blocksVision(x, y);
                 },
-                hasXY(x, y) {
-                    return x >= 0 && y >= 0 && x < site.width && y < site.height;
+                hasXY: (x, y) => {
+                    return (x >= 0 &&
+                        y >= 0 &&
+                        x < this.site.width &&
+                        y < this.site.height);
                 },
             });
             if (opts.alwaysVisible) {
                 this.makeAlwaysVisible();
             }
             if (opts.visible || opts.alwaysVisible) {
-                forRect(site.width, site.height, (x, y) => this.onFovChange.onFovChange(x, y, true));
+                forRect(site.width, site.height, (x, y) => this._callback(x, y, true));
+            }
+        }
+        get callback() {
+            return this._callback;
+        }
+        set callback(v) {
+            if (!v) {
+                this._callback = NOOP;
+            }
+            else if (typeof v === 'function') {
+                this._callback = v;
+            }
+            else {
+                this._callback = v.onFovChange.bind(v);
             }
         }
         getFlag(x, y) {
@@ -2585,12 +4384,24 @@
         isAnyKindOfVisible(x, y) {
             return !!((this.flags.get(x, y) || 0) & FovFlags.ANY_KIND_OF_VISIBLE);
         }
+        isClairvoyantVisible(x, y) {
+            return !!((this.flags.get(x, y) || 0) & FovFlags.CLAIRVOYANT_VISIBLE);
+        }
+        isTelepathicVisible(x, y) {
+            return !!((this.flags.get(x, y) || 0) & FovFlags.TELEPATHIC_VISIBLE);
+        }
         isInFov(x, y) {
             return !!((this.flags.get(x, y) || 0) & FovFlags.IN_FOV);
         }
         isDirectlyVisible(x, y) {
             const flags = FovFlags.VISIBLE | FovFlags.IN_FOV;
             return ((this.flags.get(x, y) || 0) & flags) === flags;
+        }
+        isActorDetected(x, y) {
+            return !!((this.flags.get(x, y) || 0) & FovFlags.ACTOR_DETECTED);
+        }
+        isItemDetected(x, y) {
+            return !!((this.flags.get(x, y) || 0) & FovFlags.ITEM_DETECTED);
         }
         isMagicMapped(x, y) {
             return !!((this.flags.get(x, y) || 0) & FovFlags.MAGIC_MAPPED);
@@ -2604,6 +4415,9 @@
             const wasVisible = !!(flags & FovFlags.WAS_ANY_KIND_OF_VISIBLE);
             return isVisible !== wasVisible;
         }
+        wasAnyKindOfVisible(x, y) {
+            return !!((this.flags.get(x, y) || 0) & FovFlags.WAS_ANY_KIND_OF_VISIBLE);
+        }
         makeAlwaysVisible() {
             this.flags.update((v) => v |
                 (FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE));
@@ -2611,7 +4425,8 @@
             this.changed = true;
         }
         makeCellAlwaysVisible(x, y) {
-            this.flags[x][y] |= FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
+            this.flags[x][y] |=
+                FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
             // TODO - onFovChange?
             this.changed = true;
         }
@@ -2645,19 +4460,20 @@
             this.changed = true;
             // TODO - onFovChange?
         }
-        get changed() {
-            return this._changed;
-        }
-        set changed(v) {
-            this._changed = v;
-            this.needsUpdate = this.needsUpdate || v;
-        }
+        // get changed(): boolean {
+        //     return this._changed;
+        // }
+        // set changed(v: boolean) {
+        //     this._changed = v;
+        //     this.needsUpdate = this.needsUpdate || v;
+        // }
         // CURSOR
         setCursor(x, y, keep = false) {
             if (!keep) {
                 this.flags.update((f) => f & ~FovFlags.IS_CURSOR);
             }
             this.flags[x][y] |= FovFlags.IS_CURSOR;
+            this.changed = true;
         }
         clearCursor(x, y) {
             if (x === undefined || y === undefined) {
@@ -2666,6 +4482,7 @@
             else {
                 this.flags[x][y] &= ~FovFlags.IS_CURSOR;
             }
+            this.changed = true;
         }
         isCursor(x, y) {
             return !!(this.flags[x][y] & FovFlags.IS_CURSOR);
@@ -2676,6 +4493,7 @@
                 this.flags.update((f) => f & ~FovFlags.IS_HIGHLIGHTED);
             }
             this.flags[x][y] |= FovFlags.IS_HIGHLIGHTED;
+            this.changed = true;
         }
         clearHighlight(x, y) {
             if (x === undefined || y === undefined) {
@@ -2684,20 +4502,25 @@
             else {
                 this.flags[x][y] &= ~FovFlags.IS_HIGHLIGHTED;
             }
+            this.changed = true;
         }
         isHighlight(x, y) {
             return !!(this.flags[x][y] & FovFlags.IS_HIGHLIGHTED);
         }
         // COPY
-        copy(other) {
-            this.flags.copy(other.flags);
-            this.needsUpdate = other.needsUpdate;
-            this._changed = other._changed;
-        }
+        // copy(other: FovSystem) {
+        //     this.site = other.site;
+        //     this.flags.copy(other.flags);
+        //     this.fov = other.fov;
+        //     this.follow = other.follow;
+        //     this.onFovChange = other.onFovChange;
+        //     // this.needsUpdate = other.needsUpdate;
+        //     // this._changed = other._changed;
+        // }
         //////////////////////////
         // UPDATE
         demoteCellVisibility(flag) {
-            flag &= ~(FovFlags.WAS_ANY_KIND_OF_VISIBLE | FovFlags.WAS_IN_FOV);
+            flag &= ~(FovFlags.WAS_ANY_KIND_OF_VISIBLE | FovFlags.WAS_IN_FOV | FovFlags.WAS_DETECTED);
             if (flag & FovFlags.IN_FOV) {
                 flag &= ~FovFlags.IN_FOV;
                 flag |= FovFlags.WAS_IN_FOV;
@@ -2717,65 +4540,97 @@
             if (flag & FovFlags.ALWAYS_VISIBLE) {
                 flag |= FovFlags.VISIBLE;
             }
+            if (flag & FovFlags.ITEM_DETECTED) {
+                flag &= ~FovFlags.ITEM_DETECTED;
+                flag |= FovFlags.WAS_ITEM_DETECTED;
+            }
+            if (flag & FovFlags.ACTOR_DETECTED) {
+                flag &= ~FovFlags.ACTOR_DETECTED;
+                flag |= FovFlags.WAS_ACTOR_DETECTED;
+            }
             return flag;
         }
         updateCellVisibility(flag, x, y) {
-            const isVisible = !!(flag & FovFlags.VISIBLE);
+            const isVisible = !!(flag & FovFlags.ANY_KIND_OF_VISIBLE);
             const wasVisible = !!(flag & FovFlags.WAS_ANY_KIND_OF_VISIBLE);
             if (isVisible && wasVisible) ;
             else if (isVisible && !wasVisible) {
                 // if the cell became visible this move
                 this.flags[x][y] |= FovFlags.REVEALED;
-                this.onFovChange.onFovChange(x, y, isVisible);
+                this._callback(x, y, isVisible);
             }
             else if (!isVisible && wasVisible) {
                 // if the cell ceased being visible this move
-                this.onFovChange.onFovChange(x, y, isVisible);
+                this._callback(x, y, isVisible);
             }
             return isVisible;
         }
-        updateCellClairyvoyance(flag, x, y) {
-            const isClairy = !!(flag & FovFlags.CLAIRVOYANT_VISIBLE);
-            const wasClairy = !!(flag & FovFlags.WAS_CLAIRVOYANT_VISIBLE);
-            if (isClairy && wasClairy) ;
-            else if (!isClairy && wasClairy) {
-                // ceased being clairvoyantly visible
-                this.onFovChange.onFovChange(x, y, isClairy);
-            }
-            else if (!wasClairy && isClairy) {
-                // became clairvoyantly visible
-                this.onFovChange.onFovChange(x, y, isClairy);
-            }
-            return isClairy;
-        }
-        updateCellTelepathy(flag, x, y) {
-            const isTele = !!(flag & FovFlags.TELEPATHIC_VISIBLE);
-            const wasTele = !!(flag & FovFlags.WAS_TELEPATHIC_VISIBLE);
-            if (isTele && wasTele) ;
-            else if (!isTele && wasTele) {
-                // ceased being telepathically visible
-                this.onFovChange.onFovChange(x, y, isTele);
-            }
-            else if (!wasTele && isTele) {
-                // became telepathically visible
-                this.onFovChange.onFovChange(x, y, isTele);
-            }
-            return isTele;
-        }
+        // protected updateCellClairyvoyance(
+        //     flag: number,
+        //     x: number,
+        //     y: number
+        // ): boolean {
+        //     const isClairy = !!(flag & FovFlags.CLAIRVOYANT_VISIBLE);
+        //     const wasClairy = !!(flag & FovFlags.WAS_CLAIRVOYANT_VISIBLE);
+        //     if (isClairy && wasClairy) {
+        //         // if (this.site.lightChanged(x, y)) {
+        //         //     this.site.redrawCell(x, y);
+        //         // }
+        //     } else if (!isClairy && wasClairy) {
+        //         // ceased being clairvoyantly visible
+        //         this._callback(x, y, isClairy);
+        //     } else if (!wasClairy && isClairy) {
+        //         // became clairvoyantly visible
+        //         this._callback(x, y, isClairy);
+        //     }
+        //     return isClairy;
+        // }
+        // protected updateCellTelepathy(flag: number, x: number, y: number): boolean {
+        //     const isTele = !!(flag & FovFlags.TELEPATHIC_VISIBLE);
+        //     const wasTele = !!(flag & FovFlags.WAS_TELEPATHIC_VISIBLE);
+        //     if (isTele && wasTele) {
+        //         // if (this.site.lightChanged(x, y)) {
+        //         //     this.site.redrawCell(x, y);
+        //         // }
+        //     } else if (!isTele && wasTele) {
+        //         // ceased being telepathically visible
+        //         this._callback(x, y, isTele);
+        //     } else if (!wasTele && isTele) {
+        //         // became telepathically visible
+        //         this._callback(x, y, isTele);
+        //     }
+        //     return isTele;
+        // }
         updateCellDetect(flag, x, y) {
-            const isMonst = !!(flag & FovFlags.ACTOR_DETECTED);
-            const wasMonst = !!(flag & FovFlags.WAS_ACTOR_DETECTED);
-            if (isMonst && wasMonst) ;
-            else if (!isMonst && wasMonst) {
+            const isDetect = !!(flag & FovFlags.IS_DETECTED);
+            const wasDetect = !!(flag & FovFlags.WAS_DETECTED);
+            if (isDetect && wasDetect) ;
+            else if (!isDetect && wasDetect) {
                 // ceased being detected visible
-                this.onFovChange.onFovChange(x, y, isMonst);
+                this._callback(x, y, isDetect);
             }
-            else if (!wasMonst && isMonst) {
+            else if (!wasDetect && isDetect) {
                 // became detected visible
-                this.onFovChange.onFovChange(x, y, isMonst);
+                this._callback(x, y, isDetect);
             }
-            return isMonst;
+            return isDetect;
         }
+        // protected updateItemDetect(flag: number, x: number, y: number): boolean {
+        //     const isItem = !!(flag & FovFlags.ITEM_DETECTED);
+        //     const wasItem = !!(flag & FovFlags.WAS_ITEM_DETECTED);
+        //     if (isItem && wasItem) {
+        //         // if (this.site.lightChanged(x, y)) {
+        //         //     this.site.redrawCell(x, y);
+        //         // }
+        //     } else if (!isItem && wasItem) {
+        //         // ceased being detected visible
+        //         this._callback(x, y, isItem);
+        //     } else if (!wasItem && isItem) {
+        //         // became detected visible
+        //         this._callback(x, y, isItem);
+        //     }
+        //     return isItem;
+        // }
         promoteCellVisibility(flag, x, y) {
             if (flag & FovFlags.IN_FOV &&
                 this.site.hasVisibleLight(x, y) // &&
@@ -2785,36 +4640,40 @@
             }
             if (this.updateCellVisibility(flag, x, y))
                 return;
-            if (this.updateCellClairyvoyance(flag, x, y))
-                return;
-            if (this.updateCellTelepathy(flag, x, y))
-                return;
+            // if (this.updateCellClairyvoyance(flag, x, y)) return;
+            // if (this.updateCellTelepathy(flag, x, y)) return;
             if (this.updateCellDetect(flag, x, y))
                 return;
+            // if (this.updateItemDetect(flag, x, y)) return;
         }
         updateFor(subject) {
             return this.update(subject.x, subject.y, subject.visionDistance);
         }
         update(cx, cy, cr) {
-            // if (!this.site.usesFov()) return false;
-            if (arguments.length == 0 && this.follow) {
-                return this.updateFor(this.follow);
+            if (cx === undefined) {
+                if (this.follow) {
+                    return this.updateFor(this.follow);
+                }
             }
-            if (!this.needsUpdate &&
-                cx === undefined &&
-                !this.site.lightingChanged()) {
-                return false;
-            }
+            // if (
+            //     // !this.needsUpdate &&
+            //     cx === undefined &&
+            //     !this.site.lightingChanged()
+            // ) {
+            //     return false;
+            // }
             if (cr === undefined) {
                 cr = this.site.width + this.site.height;
             }
-            this.needsUpdate = false;
-            this._changed = false;
+            // this.needsUpdate = false;
+            this.changed = true; // we updated something...
             this.flags.update(this.demoteCellVisibility.bind(this));
             this.site.eachViewport((x, y, radius, type) => {
-                const flag = type & FovFlags.VIEWPORT_TYPES;
+                let flag = type & FovFlags.VIEWPORT_TYPES;
                 if (!flag)
-                    throw new Error('Received invalid viewport type: ' + type);
+                    flag = FovFlags.VISIBLE;
+                // if (!flag)
+                //     throw new Error('Received invalid viewport type: ' + Flag.toString(FovFlags, type));
                 if (radius == 0) {
                     this.flags[x][y] |= flag;
                     return;
@@ -2860,7 +4719,7 @@
         }
     }
 
-    var index$5 = /*#__PURE__*/Object.freeze({
+    var index$3 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get FovFlags () { return FovFlags; },
         FOV: FOV,
@@ -3291,7 +5150,7 @@
         emit: emit
     });
 
-    function make$5(v) {
+    function make$4(v) {
         if (v === undefined)
             return () => 100;
         if (v === null)
@@ -3344,7 +5203,7 @@
 
     var frequency = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        make: make$5
+        make: make$4
     });
 
     class Scheduler {
@@ -3423,56 +5282,30 @@
         Scheduler: Scheduler
     });
 
-    // Based on: https://github.com/ondras/fastiles/blob/master/ts/shaders.ts (v2.1.0)
-    const VS = `
-#version 300 es
-in uvec2 position;
-in uvec2 uv;
-in uint style;
-out vec2 fsUv;
-flat out uint fsStyle;
-uniform highp uvec2 tileSize;
-uniform uvec2 viewportSize;
-void main() {
-	ivec2 positionPx = ivec2(position * tileSize);
-	vec2 positionNdc = (vec2(positionPx * 2) / vec2(viewportSize))-1.0;
-	positionNdc.y *= -1.0;
-	gl_Position = vec4(positionNdc, 0.0, 1.0);
-	fsUv = vec2(uv);
-	fsStyle = style;
-}`.trim();
-    const FS = `
-#version 300 es
-precision highp float;
-in vec2 fsUv;
-flat in uint fsStyle;
-out vec4 fragColor;
-uniform sampler2D font;
-uniform highp uvec2 tileSize;
-void main() {
-	uvec2 fontTiles = uvec2(textureSize(font, 0)) / tileSize;
-
-	uint glyph = (fsStyle & uint(0xFF000000)) >> 24;
-	uint glyphX = (glyph & uint(0xF));
-	uint glyphY = (glyph >> 4);
-	uvec2 fontPosition = uvec2(glyphX, glyphY);
-
-	uvec2 fontPx = (tileSize * fontPosition) + uvec2(vec2(tileSize) * fsUv);
-	vec3 texel = texelFetch(font, ivec2(fontPx), 0).rgb;
-
-	float s = 15.0;
-	uint fr = (fsStyle & uint(0xF00)) >> 8;
-	uint fg = (fsStyle & uint(0x0F0)) >> 4;
-	uint fb = (fsStyle & uint(0x00F)) >> 0;
-	vec3 fgRgb = vec3(fr, fg, fb) / s;
-  
-	uint br = (fsStyle & uint(0xF00000)) >> 20;
-	uint bg = (fsStyle & uint(0x0F0000)) >> 16;
-	uint bb = (fsStyle & uint(0x00F000)) >> 12;
-	vec3 bgRgb = vec3(br, bg, bb) / s;
-  
-	fragColor = vec4(mix(bgRgb, fgRgb, texel), 1.0);
-}`.trim();
+    class Buffer extends Buffer$1 {
+        constructor(canvas) {
+            super(canvas.width, canvas.height);
+            this._target = canvas;
+            canvas.copyTo(this);
+        }
+        // get canvas() { return this._target; }
+        clone() {
+            const other = new (this.constructor)(this._target);
+            other.copy(this);
+            return other;
+        }
+        toGlyph(ch) {
+            return this._target.toGlyph(ch);
+        }
+        render() {
+            this._target.draw(this);
+            return this;
+        }
+        load() {
+            this._target.copyTo(this);
+            return this;
+        }
+    }
 
     class Glyphs {
         constructor(opts = {}) {
@@ -3549,7 +5382,7 @@ void main() {
             this._ctx.fillStyle = 'white';
         }
         draw(n, ch) {
-            if (n > 256)
+            if (n >= 256)
                 throw new Error('Cannot draw more than 256 glyphs.');
             const x = (n % 16) * this.tileWidth;
             const y = Math.floor(n / 16) * this.tileHeight;
@@ -3587,29 +5420,29 @@ void main() {
                 '\u2660',
                 '\u263c',
                 '\u2600',
-                '\u2605',
                 '\u2606',
-                '\u2642',
-                '\u2640',
-                '\u266a',
-                '\u266b',
-                '\u2638',
-                '\u25b6',
-                '\u25c0',
-                '\u2195',
-                '\u203c',
-                '\u204b',
-                '\u262f',
-                '\u2318',
-                '\u2616',
+                '\u2605',
+                '\u2023',
+                '\u2219',
+                '\u2043',
+                '\u2022',
+                '\u2690',
+                '\u2691',
+                '\u2610',
+                '\u2611',
+                '\u2612',
+                '\u26ac',
+                '\u29bf',
                 '\u2191',
-                '\u2193',
                 '\u2192',
+                '\u2193',
                 '\u2190',
-                '\u2126',
                 '\u2194',
+                '\u2195',
                 '\u25b2',
+                '\u25b6',
                 '\u25bc',
+                '\u25c0', // big left arrow
             ].forEach((ch, i) => {
                 this.draw(i, ch);
             });
@@ -3772,1620 +5605,6 @@ void main() {
         }
     }
 
-    function toColorInt(r, g, b, base256) {
-        if (base256) {
-            r = Math.max(0, Math.min(255, Math.round(r * 2.550001)));
-            g = Math.max(0, Math.min(255, Math.round(g * 2.550001)));
-            b = Math.max(0, Math.min(255, Math.round(b * 2.550001)));
-            return (r << 16) + (g << 8) + b;
-        }
-        r = Math.max(0, Math.min(15, Math.round((r / 100) * 15)));
-        g = Math.max(0, Math.min(15, Math.round((g / 100) * 15)));
-        b = Math.max(0, Math.min(15, Math.round((b / 100) * 15)));
-        return (r << 8) + (g << 4) + b;
-    }
-    const colors = {};
-    class Color extends Int16Array {
-        constructor(r = -1, g = 0, b = 0, rand = 0, redRand = 0, greenRand = 0, blueRand = 0, dances = false) {
-            super(7);
-            this.dances = false;
-            this.set([r, g, b, rand, redRand, greenRand, blueRand]);
-            this.dances = dances;
-        }
-        get r() {
-            return Math.round(this[0] * 2.550001);
-        }
-        get _r() {
-            return this[0];
-        }
-        set _r(v) {
-            this[0] = v;
-        }
-        get g() {
-            return Math.round(this[1] * 2.550001);
-        }
-        get _g() {
-            return this[1];
-        }
-        set _g(v) {
-            this[1] = v;
-        }
-        get b() {
-            return Math.round(this[2] * 2.550001);
-        }
-        get _b() {
-            return this[2];
-        }
-        set _b(v) {
-            this[2] = v;
-        }
-        get _rand() {
-            return this[3];
-        }
-        get _redRand() {
-            return this[4];
-        }
-        get _greenRand() {
-            return this[5];
-        }
-        get _blueRand() {
-            return this[6];
-        }
-        // luminosity (0-100)
-        get l() {
-            return Math.round(0.5 *
-                (Math.min(this._r, this._g, this._b) +
-                    Math.max(this._r, this._g, this._b)));
-        }
-        // saturation (0-100)
-        get s() {
-            if (this.l >= 100)
-                return 0;
-            return Math.round(((Math.max(this._r, this._g, this._b) -
-                Math.min(this._r, this._g, this._b)) *
-                (100 - Math.abs(this.l * 2 - 100))) /
-                100);
-        }
-        // hue (0-360)
-        get h() {
-            let H = 0;
-            let R = this.r;
-            let G = this.g;
-            let B = this.b;
-            if (R >= G && G >= B) {
-                H = 60 * ((G - B) / (R - B));
-            }
-            else if (G > R && R >= B) {
-                H = 60 * (2 - (R - B) / (G - B));
-            }
-            else if (G >= B && B > R) {
-                H = 60 * (2 + (B - R) / (G - R));
-            }
-            else if (B > G && G > R) {
-                H = 60 * (4 - (G - R) / (B - R));
-            }
-            else if (B > R && R >= G) {
-                H = 60 * (4 + (R - G) / (B - G));
-            }
-            else {
-                H = 60 * (6 - (B - G) / (R - G));
-            }
-            return Math.round(H);
-        }
-        isNull() {
-            return this._r < 0;
-        }
-        equals(other) {
-            if (typeof other === 'string') {
-                if (!other.startsWith('#'))
-                    return this.name == other;
-                return this.css(other.length > 4) == other;
-            }
-            else if (typeof other === 'number') {
-                return this.toInt() == other || this.toInt(true) == other;
-            }
-            const O = from$2(other);
-            if (this.isNull())
-                return O.isNull();
-            return this.every((v, i) => {
-                return v == O[i];
-            });
-        }
-        copy(other) {
-            if (other instanceof Color) {
-                this.dances = other.dances;
-            }
-            else if (Array.isArray(other)) {
-                if (other.length === 8) {
-                    this.dances = other[7];
-                }
-            }
-            else {
-                other = from$2(other);
-                this.dances = other.dances;
-            }
-            for (let i = 0; i < this.length; ++i) {
-                this[i] = other[i] || 0;
-            }
-            if (other instanceof Color) {
-                this.name = other.name;
-            }
-            else {
-                this._changed();
-            }
-            return this;
-        }
-        _changed() {
-            this.name = undefined;
-            return this;
-        }
-        clone() {
-            // @ts-ignore
-            const other = new this.constructor();
-            other.copy(this);
-            return other;
-        }
-        assign(_r = -1, _g = 0, _b = 0, _rand = 0, _redRand = 0, _greenRand = 0, _blueRand = 0, dances) {
-            for (let i = 0; i < this.length; ++i) {
-                this[i] = arguments[i] || 0;
-            }
-            if (dances !== undefined) {
-                this.dances = dances;
-            }
-            return this._changed();
-        }
-        assignRGB(_r = -1, _g = 0, _b = 0, _rand = 0, _redRand = 0, _greenRand = 0, _blueRand = 0, dances) {
-            for (let i = 0; i < this.length; ++i) {
-                this[i] = Math.round((arguments[i] || 0) / 2.55);
-            }
-            if (dances !== undefined) {
-                this.dances = dances;
-            }
-            return this._changed();
-        }
-        nullify() {
-            this[0] = -1;
-            this.dances = false;
-            return this._changed();
-        }
-        blackOut() {
-            for (let i = 0; i < this.length; ++i) {
-                this[i] = 0;
-            }
-            this.dances = false;
-            return this._changed();
-        }
-        toInt(base256 = false) {
-            if (this.isNull())
-                return -1;
-            if (!this.dances) {
-                return toColorInt(this._r, this._g, this._b, base256);
-            }
-            const rand = cosmetic.number(this._rand);
-            const redRand = cosmetic.number(this._redRand);
-            const greenRand = cosmetic.number(this._greenRand);
-            const blueRand = cosmetic.number(this._blueRand);
-            const r = this._r + rand + redRand;
-            const g = this._g + rand + greenRand;
-            const b = this._b + rand + blueRand;
-            return toColorInt(r, g, b, base256);
-        }
-        toLight() {
-            return [this._r, this._g, this._b];
-        }
-        clamp() {
-            if (this.isNull())
-                return this;
-            this._r = Math.min(100, Math.max(0, this._r));
-            this._g = Math.min(100, Math.max(0, this._g));
-            this._b = Math.min(100, Math.max(0, this._b));
-            return this._changed();
-        }
-        mix(other, percent) {
-            const O = from$2(other);
-            if (O.isNull())
-                return this;
-            if (this.isNull()) {
-                this.blackOut();
-            }
-            percent = Math.min(100, Math.max(0, percent));
-            const keepPct = 100 - percent;
-            for (let i = 0; i < this.length; ++i) {
-                this[i] = Math.round((this[i] * keepPct + O[i] * percent) / 100);
-            }
-            this.dances = this.dances || O.dances;
-            return this._changed();
-        }
-        // Only adjusts r,g,b
-        lighten(percent) {
-            if (this.isNull())
-                return this;
-            percent = Math.min(100, Math.max(0, percent));
-            if (percent <= 0)
-                return;
-            const keepPct = 100 - percent;
-            for (let i = 0; i < 3; ++i) {
-                this[i] = Math.round((this[i] * keepPct + 100 * percent) / 100);
-            }
-            return this._changed();
-        }
-        // Only adjusts r,g,b
-        darken(percent) {
-            if (this.isNull())
-                return this;
-            percent = Math.min(100, Math.max(0, percent));
-            if (percent <= 0)
-                return;
-            const keepPct = 100 - percent;
-            for (let i = 0; i < 3; ++i) {
-                this[i] = Math.round((this[i] * keepPct + 0 * percent) / 100);
-            }
-            return this._changed();
-        }
-        bake(clearDancing = false) {
-            if (this.isNull())
-                return this;
-            if (this.dances && !clearDancing)
-                return;
-            this.dances = false;
-            const d = this;
-            if (d[3] + d[4] + d[5] + d[6]) {
-                const rand = cosmetic.number(this._rand);
-                const redRand = cosmetic.number(this._redRand);
-                const greenRand = cosmetic.number(this._greenRand);
-                const blueRand = cosmetic.number(this._blueRand);
-                this._r += rand + redRand;
-                this._g += rand + greenRand;
-                this._b += rand + blueRand;
-                for (let i = 3; i < this.length; ++i) {
-                    this[i] = 0;
-                }
-                return this._changed();
-            }
-            return this;
-        }
-        // Adds a color to this one
-        add(other, percent = 100) {
-            const O = from$2(other);
-            if (O.isNull())
-                return this;
-            if (this.isNull()) {
-                this.blackOut();
-            }
-            for (let i = 0; i < this.length; ++i) {
-                this[i] += Math.round((O[i] * percent) / 100);
-            }
-            this.dances = this.dances || O.dances;
-            return this._changed();
-        }
-        scale(percent) {
-            if (this.isNull() || percent == 100)
-                return this;
-            percent = Math.max(0, percent);
-            for (let i = 0; i < this.length; ++i) {
-                this[i] = Math.round((this[i] * percent) / 100);
-            }
-            return this._changed();
-        }
-        multiply(other) {
-            if (this.isNull())
-                return this;
-            let data = other;
-            if (!Array.isArray(other)) {
-                if (other.isNull())
-                    return this;
-                data = other;
-            }
-            const len = Math.max(3, Math.min(this.length, data.length));
-            for (let i = 0; i < len; ++i) {
-                this[i] = Math.round((this[i] * (data[i] || 0)) / 100);
-            }
-            return this._changed();
-        }
-        // scales rgb down to a max of 100
-        normalize() {
-            if (this.isNull())
-                return this;
-            const max = Math.max(this._r, this._g, this._b);
-            if (max <= 100)
-                return this;
-            this._r = Math.round((100 * this._r) / max);
-            this._g = Math.round((100 * this._g) / max);
-            this._b = Math.round((100 * this._b) / max);
-            return this._changed();
-        }
-        /**
-         * Returns the css code for the current RGB values of the color.
-         * @param base256 - Show in base 256 (#abcdef) instead of base 16 (#abc)
-         */
-        css(base256 = false) {
-            const v = this.toInt(base256);
-            if (v < 0)
-                return 'transparent';
-            return '#' + v.toString(16).padStart(base256 ? 6 : 3, '0');
-        }
-        toString(base256 = false) {
-            if (this.name)
-                return this.name;
-            if (this.isNull())
-                return 'null color';
-            return this.css(base256);
-        }
-    }
-    function fromArray(vals, base256 = false) {
-        while (vals.length < 3)
-            vals.push(0);
-        if (base256) {
-            for (let i = 0; i < 7; ++i) {
-                vals[i] = Math.round(((vals[i] || 0) * 100) / 255);
-            }
-        }
-        return new Color(...vals);
-    }
-    function fromCss(css) {
-        if (!css.startsWith('#')) {
-            throw new Error('Color CSS strings must be of form "#abc" or "#abcdef" - received: [' +
-                css +
-                ']');
-        }
-        const c = Number.parseInt(css.substring(1), 16);
-        let r, g, b;
-        if (css.length == 4) {
-            r = Math.round(((c >> 8) / 15) * 100);
-            g = Math.round((((c & 0xf0) >> 4) / 15) * 100);
-            b = Math.round(((c & 0xf) / 15) * 100);
-        }
-        else {
-            r = Math.round(((c >> 16) / 255) * 100);
-            g = Math.round((((c & 0xff00) >> 8) / 255) * 100);
-            b = Math.round(((c & 0xff) / 255) * 100);
-        }
-        return new Color(r, g, b);
-    }
-    function fromName(name) {
-        const c = colors[name];
-        if (!c) {
-            throw new Error('Unknown color name: ' + name);
-        }
-        return c;
-    }
-    function fromNumber(val, base256 = false) {
-        const c = new Color();
-        for (let i = 0; i < c.length; ++i) {
-            c[i] = 0;
-        }
-        if (val < 0) {
-            c.assign(-1);
-        }
-        else if (base256 || val > 0xfff) {
-            c.assign(Math.round((((val & 0xff0000) >> 16) * 100) / 255), Math.round((((val & 0xff00) >> 8) * 100) / 255), Math.round(((val & 0xff) * 100) / 255));
-        }
-        else {
-            c.assign(Math.round((((val & 0xf00) >> 8) * 100) / 15), Math.round((((val & 0xf0) >> 4) * 100) / 15), Math.round(((val & 0xf) * 100) / 15));
-        }
-        return c;
-    }
-    function make$4(...args) {
-        let arg = args[0];
-        let base256 = args[1];
-        if (args.length == 0)
-            return new Color();
-        if (args.length > 2) {
-            arg = args;
-            base256 = false; // TODO - Change this!!!
-        }
-        if (arg === undefined || arg === null)
-            return new Color(-1);
-        if (arg instanceof Color) {
-            return arg.clone();
-        }
-        if (typeof arg === 'string') {
-            if (arg.startsWith('#')) {
-                return fromCss(arg);
-            }
-            return fromName(arg).clone();
-        }
-        else if (Array.isArray(arg)) {
-            return fromArray(arg, base256);
-        }
-        else if (typeof arg === 'number') {
-            return fromNumber(arg, base256);
-        }
-        throw new Error('Failed to make color - unknown argument: ' + JSON.stringify(arg));
-    }
-    function from$2(...args) {
-        const arg = args[0];
-        if (arg instanceof Color)
-            return arg;
-        if (arg === undefined)
-            return new Color(-1);
-        if (typeof arg === 'string') {
-            if (!arg.startsWith('#')) {
-                return fromName(arg);
-            }
-        }
-        return make$4(arg, args[1]);
-    }
-    // adjusts the luminosity of 2 colors to ensure there is enough separation between them
-    function separate(a, b) {
-        if (a.isNull() || b.isNull())
-            return;
-        const A = a.clone().clamp();
-        const B = b.clone().clamp();
-        // console.log('separate');
-        // console.log('- a=%s, h=%d, s=%d, l=%d', A.toString(), A.h, A.s, A.l);
-        // console.log('- b=%s, h=%d, s=%d, l=%d', B.toString(), B.h, B.s, B.l);
-        let hDiff = Math.abs(A.h - B.h);
-        if (hDiff > 180) {
-            hDiff = 360 - hDiff;
-        }
-        if (hDiff > 45)
-            return; // colors are far enough apart in hue to be distinct
-        const dist = 40;
-        if (Math.abs(A.l - B.l) >= dist)
-            return;
-        // Get them sorted by saturation ( we will darken the more saturated color and lighten the other)
-        const [lo, hi] = [A, B].sort((a, b) => a.s - b.s);
-        // console.log('- lo=%s, hi=%s', lo.toString(), hi.toString());
-        while (hi.l - lo.l < dist) {
-            hi.mix(WHITE, 5);
-            lo.mix(BLACK, 5);
-        }
-        a.copy(A);
-        b.copy(B);
-        // console.log('=>', a.toString(), b.toString());
-    }
-    function swap(a, b) {
-        const temp = a.clone();
-        a.copy(b);
-        b.copy(temp);
-    }
-    function relativeLuminance(a, b) {
-        return Math.round((100 *
-            ((a.r - b.r) * (a.r - b.r) * 0.2126 +
-                (a.g - b.g) * (a.g - b.g) * 0.7152 +
-                (a.b - b.b) * (a.b - b.b) * 0.0722)) /
-            65025);
-    }
-    function distance(a, b) {
-        return Math.round((100 *
-            ((a.r - b.r) * (a.r - b.r) * 0.3333 +
-                (a.g - b.g) * (a.g - b.g) * 0.3333 +
-                (a.b - b.b) * (a.b - b.b) * 0.3333)) /
-            65025);
-    }
-    // Draws the smooth gradient that appears on a button when you hover over or depress it.
-    // Returns the percentage by which the current tile should be averaged toward a hilite color.
-    function smoothScalar(rgb, maxRgb = 255) {
-        return Math.floor(100 * Math.sin((Math.PI * rgb) / maxRgb));
-    }
-    function install$3(name, ...args) {
-        let info = args;
-        if (args.length == 1) {
-            info = args[0];
-        }
-        const c = info instanceof Color ? info : make$4(info);
-        colors[name] = c;
-        c.name = name;
-        return c;
-    }
-    function installSpread(name, ...args) {
-        let c;
-        if (args.length == 1) {
-            c = install$3(name, args[0]);
-        }
-        else {
-            c = install$3(name, ...args);
-        }
-        install$3('light_' + name, c.clone().lighten(25));
-        install$3('lighter_' + name, c.clone().lighten(50));
-        install$3('lightest_' + name, c.clone().lighten(75));
-        install$3('dark_' + name, c.clone().darken(25));
-        install$3('darker_' + name, c.clone().darken(50));
-        install$3('darkest_' + name, c.clone().darken(75));
-        return c;
-    }
-    const NONE = install$3('NONE', -1);
-    const BLACK = install$3('black', 0x000);
-    const WHITE = install$3('white', 0xfff);
-    installSpread('teal', [30, 100, 100]);
-    installSpread('brown', [60, 40, 0]);
-    installSpread('tan', [80, 70, 55]); // 80, 67,		15);
-    installSpread('pink', [100, 60, 66]);
-    installSpread('gray', [50, 50, 50]);
-    installSpread('yellow', [100, 100, 0]);
-    installSpread('purple', [100, 0, 100]);
-    installSpread('green', [0, 100, 0]);
-    installSpread('orange', [100, 50, 0]);
-    installSpread('blue', [0, 0, 100]);
-    installSpread('red', [100, 0, 0]);
-    installSpread('amber', [100, 75, 0]);
-    installSpread('flame', [100, 25, 0]);
-    installSpread('fuchsia', [100, 0, 100]);
-    installSpread('magenta', [100, 0, 75]);
-    installSpread('crimson', [100, 0, 25]);
-    installSpread('lime', [75, 100, 0]);
-    installSpread('chartreuse', [50, 100, 0]);
-    installSpread('sepia', [50, 40, 25]);
-    installSpread('violet', [50, 0, 100]);
-    installSpread('han', [25, 0, 100]);
-    installSpread('cyan', [0, 100, 100]);
-    installSpread('turquoise', [0, 100, 75]);
-    installSpread('sea', [0, 100, 50]);
-    installSpread('sky', [0, 75, 100]);
-    installSpread('azure', [0, 50, 100]);
-    installSpread('silver', [75, 75, 75]);
-    installSpread('gold', [100, 85, 0]);
-
-    var index$4 = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        colors: colors,
-        Color: Color,
-        fromArray: fromArray,
-        fromCss: fromCss,
-        fromName: fromName,
-        fromNumber: fromNumber,
-        make: make$4,
-        from: from$2,
-        separate: separate,
-        swap: swap,
-        relativeLuminance: relativeLuminance,
-        distance: distance,
-        smoothScalar: smoothScalar,
-        install: install$3,
-        installSpread: installSpread,
-        NONE: NONE
-    });
-
-    class Mixer {
-        constructor(base) {
-            this.ch = first(base === null || base === void 0 ? void 0 : base.ch, -1);
-            this.fg = make$4(base === null || base === void 0 ? void 0 : base.fg);
-            this.bg = make$4(base === null || base === void 0 ? void 0 : base.bg);
-        }
-        _changed() {
-            return this;
-        }
-        copy(other) {
-            this.ch = other.ch || -1;
-            this.fg.copy(other.fg || -1);
-            this.bg.copy(other.bg || -1);
-            return this._changed();
-        }
-        clone() {
-            const other = new Mixer();
-            other.copy(this);
-            return other;
-        }
-        equals(other) {
-            return (this.ch == other.ch &&
-                this.fg.equals(other.fg) &&
-                this.bg.equals(other.bg));
-        }
-        get dances() {
-            return this.fg.dances || this.bg.dances;
-        }
-        nullify() {
-            this.ch = -1;
-            this.fg.nullify();
-            this.bg.nullify();
-            return this._changed();
-        }
-        blackOut() {
-            this.ch = -1;
-            this.fg.blackOut();
-            this.bg.blackOut();
-            return this._changed();
-        }
-        draw(ch = -1, fg = -1, bg = -1) {
-            if (ch && ch !== -1) {
-                this.ch = ch;
-            }
-            if (fg !== -1 && fg !== null) {
-                fg = from$2(fg);
-                this.fg.copy(fg);
-            }
-            if (bg !== -1 && bg !== null) {
-                bg = from$2(bg);
-                this.bg.copy(bg);
-            }
-            return this._changed();
-        }
-        drawSprite(src, opacity) {
-            if (src === this)
-                return this;
-            // @ts-ignore
-            if (opacity === undefined)
-                opacity = src.opacity;
-            if (opacity === undefined)
-                opacity = 100;
-            if (opacity <= 0)
-                return;
-            if (src.ch)
-                this.ch = src.ch;
-            if ((src.fg && src.fg !== -1) || src.fg === 0)
-                this.fg.mix(src.fg, opacity);
-            if ((src.bg && src.bg !== -1) || src.bg === 0)
-                this.bg.mix(src.bg, opacity);
-            return this._changed();
-        }
-        invert() {
-            [this.bg, this.fg] = [this.fg, this.bg];
-            return this._changed();
-        }
-        multiply(color, fg = true, bg = true) {
-            color = from$2(color);
-            if (fg) {
-                this.fg.multiply(color);
-            }
-            if (bg) {
-                this.bg.multiply(color);
-            }
-            return this._changed();
-        }
-        scale(multiplier, fg = true, bg = true) {
-            if (fg)
-                this.fg.scale(multiplier);
-            if (bg)
-                this.bg.scale(multiplier);
-            return this._changed();
-        }
-        mix(color, fg = 50, bg = fg) {
-            color = from$2(color);
-            if (fg > 0) {
-                this.fg.mix(color, fg);
-            }
-            if (bg > 0) {
-                this.bg.mix(color, bg);
-            }
-            return this._changed();
-        }
-        add(color, fg = 100, bg = fg) {
-            color = from$2(color);
-            if (fg > 0) {
-                this.fg.add(color, fg);
-            }
-            if (bg > 0) {
-                this.bg.add(color, bg);
-            }
-            return this._changed();
-        }
-        separate() {
-            separate(this.fg, this.bg);
-            return this._changed();
-        }
-        bake(clearDancing = false) {
-            this.fg.bake(clearDancing);
-            this.bg.bake(clearDancing);
-            this._changed();
-            return {
-                ch: this.ch,
-                fg: this.fg.toInt(),
-                bg: this.bg.toInt(),
-            };
-        }
-        toString() {
-            // prettier-ignore
-            return `{ ch: ${this.ch}, fg: ${this.fg.toString(true)}, bg: ${this.bg.toString(true)} }`;
-        }
-    }
-    function makeMixer(base) {
-        return new Mixer(base);
-    }
-
-    var options = {
-        colorStart: 'Ω',
-        colorEnd: '∆',
-        field: '§',
-        defaultFg: null,
-        defaultBg: null,
-    };
-    // const RE_RGB = /^[a-fA-F0-9]*$/;
-    //
-    // export function parseColor(color:string) {
-    //   if (color.startsWith('#')) {
-    //     color = color.substring(1);
-    //   }
-    //   else if (color.startsWith('0x')) {
-    //     color = color.substring(2);
-    //   }
-    //   if (color.length == 3) {
-    //     if (RE_RGB.test(color)) {
-    //       return Number.parseInt(color, 16);
-    //     }
-    //   }
-    //   if (color.length == 6) {
-    //     if (RE_RGB.test(color)) {
-    //       const v = Number.parseInt(color, 16);
-    //       const r = Math.round( ((v & 0xFF0000) >> 16) / 17);
-    //       const g = Math.round( ((v & 0xFF00) >> 8) / 17);
-    //       const b = Math.round((v & 0xFF) / 17);
-    //       return (r << 8) + (g << 4) + b;
-    //     }
-    //   }
-    //   return 0xFFF;
-    // }
-    var helpers = {
-        eachColor: () => { },
-        default: (name, _, value) => {
-            if (value !== undefined)
-                return `${value}.!!${name}!!`;
-            return `!!${name}!!`;
-        },
-    };
-    function addHelper(name, fn) {
-        helpers[name] = fn;
-    }
-
-    function compile(template) {
-        const F = options.field;
-        const parts = template.split(F);
-        const sections = parts.map((part, i) => {
-            if (i % 2 == 0)
-                return textSegment(part);
-            if (part.length == 0)
-                return textSegment(F);
-            return makeVariable(part);
-        });
-        return function (args = {}) {
-            return sections.map((f) => f(args)).join("");
-        };
-    }
-    function apply(template, args = {}) {
-        const fn = compile(template);
-        const result = fn(args);
-        return result;
-    }
-    function textSegment(value) {
-        return () => value;
-    }
-    function baseValue(name) {
-        return function (args) {
-            const h = helpers[name];
-            if (h)
-                return h(name, args);
-            const v = args[name];
-            if (v !== undefined)
-                return v;
-            return helpers.default(name, args);
-        };
-    }
-    function fieldValue(name, source) {
-        return function (args) {
-            const obj = source(args);
-            if (!obj)
-                return helpers.default(name, args, obj);
-            const value = obj[name];
-            if (value === undefined)
-                return helpers.default(name, args, obj);
-            return value;
-        };
-    }
-    function helperValue(name, source) {
-        const helper = helpers[name] || helpers.default;
-        return function (args) {
-            const base = source(args);
-            return helper(name, args, base);
-        };
-    }
-    function stringFormat(format, source) {
-        const data = /%(-?\d*)s/.exec(format) || [];
-        const length = Number.parseInt(data[1] || "0");
-        return function (args) {
-            let text = "" + source(args);
-            if (length < 0) {
-                text = text.padEnd(-length);
-            }
-            else if (length) {
-                text = text.padStart(length);
-            }
-            return text;
-        };
-    }
-    function intFormat(format, source) {
-        const data = /%([\+-]*)(\d*)d/.exec(format) || ["", "", "0"];
-        let length = Number.parseInt(data[2] || "0");
-        const wantSign = data[1].includes("+");
-        const left = data[1].includes("-");
-        return function (args) {
-            const value = Number.parseInt(source(args) || 0);
-            let text = "" + value;
-            if (value > 0 && wantSign) {
-                text = "+" + text;
-            }
-            if (length && left) {
-                return text.padEnd(length);
-            }
-            else if (length) {
-                return text.padStart(length);
-            }
-            return text;
-        };
-    }
-    function floatFormat(format, source) {
-        const data = /%([\+-]*)(\d*)(\.(\d+))?f/.exec(format) || ["", "", "0"];
-        let length = Number.parseInt(data[2] || "0");
-        const wantSign = data[1].includes("+");
-        const left = data[1].includes("-");
-        const fixed = Number.parseInt(data[4]) || 0;
-        return function (args) {
-            const value = Number.parseFloat(source(args) || 0);
-            let text;
-            if (fixed) {
-                text = value.toFixed(fixed);
-            }
-            else {
-                text = "" + value;
-            }
-            if (value > 0 && wantSign) {
-                text = "+" + text;
-            }
-            if (length && left) {
-                return text.padEnd(length);
-            }
-            else if (length) {
-                return text.padStart(length);
-            }
-            return text;
-        };
-    }
-    function makeVariable(pattern) {
-        const data = /((\w+) )?(\w+)(\.(\w+))?(%[\+\.\-\d]*[dsf])?/.exec(pattern) || [];
-        const helper = data[2];
-        const base = data[3];
-        const field = data[5];
-        const format = data[6];
-        let result = baseValue(base);
-        if (field && field.length) {
-            result = fieldValue(field, result);
-        }
-        if (helper && helper.length) {
-            result = helperValue(helper, result);
-        }
-        if (format && format.length) {
-            if (format.endsWith("s")) {
-                result = stringFormat(format, result);
-            }
-            else if (format.endsWith("d")) {
-                result = intFormat(format, result);
-            }
-            else {
-                result = floatFormat(format, result);
-            }
-        }
-        return result;
-    }
-
-    function eachChar(text, fn, fg, bg) {
-        if (text === null || text === undefined)
-            return;
-        if (!fn)
-            return;
-        text = "" + text; // force string
-        if (!text.length)
-            return;
-        const colors = [];
-        const colorFn = helpers.eachColor;
-        if (fg === undefined)
-            fg = options.defaultFg;
-        if (bg === undefined)
-            bg = options.defaultBg;
-        const ctx = {
-            fg,
-            bg,
-        };
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        colorFn(ctx);
-        let n = 0;
-        for (let i = 0; i < text.length; ++i) {
-            const ch = text[i];
-            if (ch == CS) {
-                let j = i + 1;
-                while (j < text.length && text[j] != CS) {
-                    ++j;
-                }
-                if (j == text.length) {
-                    console.warn(`Reached end of string while seeking end of color start section.\n- text: ${text}\n- start @: ${i}`);
-                    return; // reached end - done (error though)
-                }
-                if (j == i + 1) {
-                    // next char
-                    ++i; // fall through
-                }
-                else {
-                    colors.push([ctx.fg, ctx.bg]);
-                    const color = text.substring(i + 1, j);
-                    const newColors = color.split("|");
-                    ctx.fg = newColors[0] || ctx.fg;
-                    ctx.bg = newColors[1] || ctx.bg;
-                    colorFn(ctx);
-                    i = j;
-                    continue;
-                }
-            }
-            else if (ch == CE) {
-                if (text[i + 1] == CE) {
-                    ++i;
-                }
-                else {
-                    const c = colors.pop(); // if you pop too many times colors still revert to what you passed in
-                    [ctx.fg, ctx.bg] = c || [fg, bg];
-                    // colorFn(ctx);
-                    continue;
-                }
-            }
-            fn(ch, ctx.fg, ctx.bg, n, i);
-            ++n;
-        }
-    }
-
-    function length(text) {
-        if (!text || text.length == 0)
-            return 0;
-        let len = 0;
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        for (let i = 0; i < text.length; ++i) {
-            const ch = text[i];
-            if (ch == CS) {
-                const end = text.indexOf(CS, i + 1);
-                i = end;
-            }
-            else if (ch == CE) ;
-            else {
-                ++len;
-            }
-        }
-        return len;
-    }
-    let inColor = false;
-    function advanceChars(text, start, count) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        inColor = false;
-        let i = start;
-        while (count > 0 && i < text.length) {
-            const ch = text[i];
-            if (ch === CS) {
-                ++i;
-                if (text[i] === CS) {
-                    --count;
-                }
-                else {
-                    while (text[i] !== CS)
-                        ++i;
-                    inColor = true;
-                }
-                ++i;
-            }
-            else if (ch === CE) {
-                if (text[i + 1] === CE) {
-                    --count;
-                    ++i;
-                }
-                else {
-                    inColor = false;
-                }
-                ++i;
-            }
-            else {
-                --count;
-                ++i;
-            }
-        }
-        return i;
-    }
-    function firstChar(text) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let i = 0;
-        while (i < text.length) {
-            const ch = text[i];
-            if (ch === CS) {
-                if (text[i + 1] === CS)
-                    return CS;
-                ++i;
-                while (text[i] !== CS)
-                    ++i;
-                ++i;
-            }
-            else if (ch === CE) {
-                if (text[i + 1] === CE)
-                    return CE;
-                ++i;
-            }
-            else {
-                return ch;
-            }
-        }
-        return null;
-    }
-    function padStart(text, width, pad = ' ') {
-        const len = length(text);
-        if (len >= width)
-            return text;
-        const colorLen = text.length - len;
-        return text.padStart(width + colorLen, pad);
-    }
-    function padEnd(text, width, pad = ' ') {
-        const len = length(text);
-        if (len >= width)
-            return text;
-        const colorLen = text.length - len;
-        return text.padEnd(width + colorLen, pad);
-    }
-    function center(text, width, pad = ' ') {
-        const rawLen = text.length;
-        const len = length(text);
-        const padLen = width - len;
-        if (padLen <= 0)
-            return text;
-        const left = Math.floor(padLen / 2);
-        return text.padStart(rawLen + left, pad).padEnd(rawLen + padLen, pad);
-    }
-    function truncate(text, width) {
-        const len = length(text);
-        if (len <= width)
-            return text;
-        const index = advanceChars(text, 0, width);
-        if (!inColor)
-            return text.substring(0, index);
-        const CE = options.colorEnd;
-        return text.substring(0, index) + CE;
-    }
-    function capitalize(text) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let i = 0;
-        while (i < text.length) {
-            const ch = text[i];
-            if (ch == CS) {
-                ++i;
-                while (text[i] != CS && i < text.length) {
-                    ++i;
-                }
-                ++i;
-            }
-            else if (ch == CE) {
-                ++i;
-                while (text[i] == CE && i < text.length) {
-                    ++i;
-                }
-            }
-            else if (/[A-Za-z]/.test(ch)) {
-                return (text.substring(0, i) + ch.toUpperCase() + text.substring(i + 1));
-            }
-            else {
-                ++i;
-            }
-        }
-        return text;
-    }
-    function removeColors(text) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let out = '';
-        let start = 0;
-        for (let i = 0; i < text.length; ++i) {
-            const k = text[i];
-            if (k === CS) {
-                if (text[i + 1] == CS) {
-                    ++i;
-                    continue;
-                }
-                out += text.substring(start, i);
-                ++i;
-                while (text[i] != CS && i < text.length) {
-                    ++i;
-                }
-                start = i + 1;
-            }
-            else if (k === CE) {
-                if (text[i + 1] == CE) {
-                    ++i;
-                    continue;
-                }
-                out += text.substring(start, i);
-                start = i + 1;
-            }
-        }
-        if (start == 0)
-            return text;
-        out += text.substring(start);
-        return out;
-    }
-    function spliceRaw(msg, begin, deleteLength, add = '') {
-        const maxLen = msg.length;
-        if (begin >= maxLen)
-            return msg;
-        const preText = msg.substring(0, begin);
-        if (begin + deleteLength >= maxLen) {
-            return preText;
-        }
-        const postText = msg.substring(begin + deleteLength);
-        return preText + add + postText;
-    }
-
-    function nextBreak(text, start) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let i = start;
-        let l = 0;
-        let count = true;
-        while (i < text.length) {
-            const ch = text[i];
-            if (ch == " ") {
-                while (text[i + 1] == " ") {
-                    ++i;
-                    ++l; // need to count the extra spaces as part of the word
-                }
-                return [i, l];
-            }
-            if (ch == "-") {
-                return [i, l];
-            }
-            if (ch == "\n") {
-                return [i, l];
-            }
-            if (ch == CS) {
-                if (text[i + 1] == CS && count) {
-                    l += 1;
-                    i += 2;
-                    continue;
-                }
-                count = !count;
-                ++i;
-                continue;
-            }
-            else if (ch == CE) {
-                if (text[i + 1] == CE) {
-                    l += 1;
-                    ++i;
-                }
-                i++;
-                continue;
-            }
-            l += count ? 1 : 0;
-            ++i;
-        }
-        return [i, l];
-    }
-    function splice(text, start, len, add = "") {
-        return text.substring(0, start) + add + text.substring(start + len);
-    }
-    function hyphenate(text, width, start, end, wordWidth, spaceLeftOnLine) {
-        // do not need to hyphenate
-        if (spaceLeftOnLine >= wordWidth)
-            return [text, end];
-        // do not have a strategy for this right now...
-        if (wordWidth + 1 > width * 2) {
-            throw new Error("Cannot hyphenate - word length > 2 * width");
-        }
-        // not much room left and word fits on next line
-        if (spaceLeftOnLine < 4 && wordWidth <= width) {
-            text = splice(text, start - 1, 1, "\n");
-            return [text, end + 1];
-        }
-        // will not fit on this line + next, but will fit on next 2 lines...
-        // so end this line and reset for placing on next 2 lines.
-        if (spaceLeftOnLine + width <= wordWidth) {
-            text = splice(text, start - 1, 1, "\n");
-            spaceLeftOnLine = width;
-        }
-        // one hyphen will work...
-        // if (spaceLeftOnLine + width > wordWidth) {
-        const hyphenAt = Math.min(Math.floor(wordWidth / 2), spaceLeftOnLine - 1);
-        const w = advanceChars(text, start, hyphenAt);
-        text = splice(text, w, 0, "-\n");
-        return [text, end + 2];
-        // }
-        // if (width >= wordWidth) {
-        //     return [text, end];
-        // }
-        // console.log('hyphenate', { text, start, end, width, wordWidth, spaceLeftOnLine });
-        // throw new Error('Did not expect to get here...');
-        // wordWidth >= spaceLeftOnLine + width
-        // text = splice(text, start - 1, 1, "\n");
-        // spaceLeftOnLine = width;
-        // const hyphenAt = Math.min(wordWidth, width - 1);
-        // const w = Utils.advanceChars(text, start, hyphenAt);
-        // text = splice(text, w, 0, "-\n");
-        // return [text, end + 2];
-    }
-    function wordWrap(text, width, indent = 0) {
-        if (!width)
-            throw new Error("Need string and width");
-        if (text.length < width)
-            return text;
-        if (length(text) < width)
-            return text;
-        if (text.indexOf("\n") == -1) {
-            return wrapLine(text, width, indent);
-        }
-        const lines = text.split("\n");
-        const split = lines.map((line, i) => wrapLine(line, width, i ? indent : 0));
-        return split.join("\n");
-    }
-    // Returns the number of lines, including the newlines already in the text.
-    // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
-    function wrapLine(text, width, indent) {
-        if (text.length < width)
-            return text;
-        if (length(text) < width)
-            return text;
-        let spaceLeftOnLine = width;
-        width = width - indent;
-        let printString = text;
-        // Now go through and replace spaces with newlines as needed.
-        // console.log('wordWrap - ', text, width, indent);
-        let removeSpace = true;
-        let i = -1;
-        while (i < printString.length) {
-            // wordWidth counts the word width of the next word without color escapes.
-            // w indicates the position of the space or newline or null terminator that terminates the word.
-            let [w, wordWidth] = nextBreak(printString, i + (removeSpace ? 1 : 0));
-            let hyphen = false;
-            if (printString[w] == "-") {
-                w++;
-                wordWidth++;
-                hyphen = true;
-            }
-            // console.log('- w=%d, width=%d, space=%d, word=%s', w, wordWidth, spaceLeftOnLine, printString.substring(i, w));
-            if (wordWidth > width) {
-                [printString, w] = hyphenate(printString, width, i + 1, w, wordWidth, spaceLeftOnLine);
-            }
-            else if (wordWidth == spaceLeftOnLine) {
-                const nl = w < printString.length ? "\n" : "";
-                const remove = hyphen ? 0 : 1;
-                printString = splice(printString, w, remove, nl); // [i] = '\n';
-                w += 1 - remove; // if we change the length we need to advance our pointer
-                spaceLeftOnLine = width;
-            }
-            else if (wordWidth > spaceLeftOnLine) {
-                const remove = removeSpace ? 1 : 0;
-                printString = splice(printString, i, remove, "\n"); // [i] = '\n';
-                w += 1 - remove; // if we change the length we need to advance our pointer
-                const extra = hyphen ? 0 : 1;
-                spaceLeftOnLine = width - wordWidth - extra; // line width minus the width of the word we just wrapped and the space
-                //printf("\n\n%s", printString);
-            }
-            else {
-                const extra = hyphen ? 0 : 1;
-                spaceLeftOnLine -= wordWidth + extra;
-            }
-            removeSpace = !hyphen;
-            i = w; // Advance to the terminator that follows the word.
-        }
-        return printString;
-    }
-    // Returns the number of lines, including the newlines already in the text.
-    // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
-    function splitIntoLines(source, width, indent = 0) {
-        const CS = options.colorStart;
-        const output = [];
-        let text = wordWrap(source, width, indent);
-        let start = 0;
-        let fg0 = null;
-        let bg0 = null;
-        eachChar(text, (ch, fg, bg, _, n) => {
-            if (ch == "\n") {
-                let color = fg0 || bg0 ? `${CS}${fg0 ? fg0 : ""}${bg0 ? "|" + bg0 : ""}${CS}` : "";
-                output.push(color + text.substring(start, n));
-                start = n + 1;
-                fg0 = fg;
-                bg0 = bg;
-            }
-        });
-        let color = fg0 || bg0 ? `${CS}${fg0 ? fg0 : ""}${bg0 ? "|" + bg0 : ""}${CS}` : "";
-        output.push(color + text.substring(start));
-        return output;
-    }
-
-    function configure(opts = {}) {
-        if (opts.fg !== undefined) {
-            options.defaultFg = opts.fg;
-        }
-        if (opts.bg !== undefined) {
-            options.defaultBg = opts.bg;
-        }
-        if (opts.colorStart) {
-            options.colorStart = opts.colorStart;
-        }
-        if (opts.colorEnd) {
-            options.colorEnd = opts.colorEnd;
-        }
-        if (opts.field) {
-            options.field = opts.field;
-        }
-    }
-
-    var index$3 = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        compile: compile,
-        apply: apply,
-        eachChar: eachChar,
-        length: length,
-        padStart: padStart,
-        padEnd: padEnd,
-        center: center,
-        firstChar: firstChar,
-        capitalize: capitalize,
-        removeColors: removeColors,
-        wordWrap: wordWrap,
-        splitIntoLines: splitIntoLines,
-        configure: configure,
-        addHelper: addHelper,
-        options: options,
-        spliceRaw: spliceRaw,
-        truncate: truncate
-    });
-
-    class DataBuffer {
-        constructor(width, height) {
-            this._width = width;
-            this._height = height;
-            this._data = new Uint32Array(width * height);
-        }
-        get width() {
-            return this._width;
-        }
-        get height() {
-            return this._height;
-        }
-        clone() {
-            const other = new DataBuffer(this._width, this._height);
-            other.copy(this);
-            return other;
-        }
-        resize(width, height) {
-            const orig = this._data;
-            this._width = width;
-            this._height = height;
-            if (orig.length < width * height) {
-                this._data = new Uint32Array(width * height);
-                this._data.set(orig, 0);
-            }
-            else {
-                this._data = orig.slice(width * height);
-            }
-        }
-        get(x, y) {
-            let index = y * this.width + x;
-            const style = this._data[index] || 0;
-            const glyph = style >> 24;
-            const bg = (style >> 12) & 0xfff;
-            const fg = style & 0xfff;
-            return { glyph, fg, bg };
-        }
-        toGlyph(ch) {
-            if (typeof ch === 'number')
-                return ch;
-            if (!ch || !ch.length)
-                return -1; // 0 handled elsewhere
-            return ch.charCodeAt(0);
-        }
-        draw(x, y, glyph = -1, fg = -1, // TODO - White?
-        bg = -1 // TODO - Black?
-        ) {
-            let index = y * this.width + x;
-            const current = this._data[index] || 0;
-            if (typeof glyph !== 'number') {
-                glyph = this.toGlyph(glyph);
-            }
-            if (typeof fg !== 'number') {
-                fg = from$2(fg).toInt();
-            }
-            if (typeof bg !== 'number') {
-                bg = from$2(bg).toInt();
-            }
-            glyph = glyph >= 0 ? glyph & 0xff : current >> 24;
-            bg = bg >= 0 ? bg & 0xfff : (current >> 12) & 0xfff;
-            fg = fg >= 0 ? fg & 0xfff : current & 0xfff;
-            const style = (glyph << 24) + (bg << 12) + fg;
-            this._data[index] = style;
-            return this;
-        }
-        // This is without opacity - opacity must be done in Mixer
-        drawSprite(x, y, sprite) {
-            const ch = sprite.ch === null ? -1 : sprite.ch;
-            const fg = sprite.fg === null ? -1 : sprite.fg;
-            const bg = sprite.bg === null ? -1 : sprite.bg;
-            return this.draw(x, y, ch, fg, bg);
-        }
-        blackOut(...args) {
-            if (args.length == 0) {
-                return this.fill(0, 0, 0);
-            }
-            return this.draw(args[0], args[1], 0, 0, 0);
-        }
-        fill(glyph = 0, fg = 0xfff, bg = 0) {
-            if (arguments.length == 1) {
-                bg = from$2(glyph).toInt();
-                glyph = 0;
-                fg = 0;
-            }
-            else {
-                if (typeof glyph !== 'number') {
-                    if (typeof glyph === 'string') {
-                        glyph = this.toGlyph(glyph);
-                    }
-                    else {
-                        throw new Error('glyph must be number or char');
-                    }
-                }
-                if (typeof fg !== 'number') {
-                    fg = from$2(fg).toInt();
-                }
-                if (typeof bg !== 'number') {
-                    bg = from$2(bg).toInt();
-                }
-            }
-            glyph = glyph & 0xff;
-            fg = fg & 0xfff;
-            bg = bg & 0xfff;
-            const style = (glyph << 24) + (bg << 12) + fg;
-            this._data.fill(style);
-            return this;
-        }
-        copy(other) {
-            this._data.set(other._data);
-            return this;
-        }
-        drawText(x, y, text, fg = 0xfff, bg = -1, maxWidth = 0) {
-            if (typeof fg !== 'number')
-                fg = from$2(fg);
-            if (typeof bg !== 'number')
-                bg = from$2(bg);
-            maxWidth = maxWidth || this.width;
-            const len = length(text);
-            if (len > maxWidth) {
-                text = truncate(text, len);
-            }
-            eachChar(text, (ch, fg0, bg0, i) => {
-                if (x + i >= this.width || i > maxWidth)
-                    return;
-                this.draw(i + x, y, ch, fg0, bg0);
-            }, fg, bg);
-            return 1; // used 1 line
-        }
-        wrapText(x, y, width, text, fg = 0xfff, bg = -1, indent = 0) {
-            if (typeof fg !== 'number')
-                fg = from$2(fg);
-            if (typeof bg !== 'number')
-                bg = from$2(bg);
-            width = Math.min(width, this.width - x);
-            text = wordWrap(text, width, indent);
-            let lineCount = 0;
-            let xi = x;
-            eachChar(text, (ch, fg0, bg0) => {
-                if (ch == '\n') {
-                    while (xi < x + width) {
-                        this.draw(xi++, y + lineCount, 0, 0x000, bg0);
-                    }
-                    ++lineCount;
-                    xi = x + indent;
-                    return;
-                }
-                this.draw(xi++, y + lineCount, ch, fg0, bg0);
-            }, fg, bg);
-            while (xi < x + width) {
-                this.draw(xi++, y + lineCount, 0, 0x000, bg);
-            }
-            return lineCount + 1;
-        }
-        fillRect(x, y, w, h, ch = -1, fg = -1, bg = -1) {
-            if (ch === null)
-                ch = -1;
-            if (typeof ch !== 'number')
-                ch = this.toGlyph(ch);
-            if (typeof fg !== 'number')
-                fg = from$2(fg).toInt();
-            if (typeof bg !== 'number')
-                bg = from$2(bg).toInt();
-            for (let i = x; i < x + w; ++i) {
-                for (let j = y; j < y + h; ++j) {
-                    this.draw(i, j, ch, fg, bg);
-                }
-            }
-            return this;
-        }
-        blackOutRect(x, y, w, h, bg = 0) {
-            if (typeof bg !== 'number')
-                bg = from$2(bg);
-            return this.fillRect(x, y, w, h, 0, bg, bg);
-        }
-        highlight(x, y, color, strength) {
-            if (typeof color !== 'number') {
-                color = from$2(color);
-            }
-            const mixer = new Mixer();
-            const data = this.get(x, y);
-            mixer.drawSprite(data);
-            mixer.fg.add(color, strength);
-            mixer.bg.add(color, strength);
-            this.drawSprite(x, y, mixer);
-            return this;
-        }
-        mix(color, percent, x = 0, y = 0, width = 0, height = 0) {
-            color = from$2(color);
-            const mixer = new Mixer();
-            if (x && !width)
-                width = 1;
-            if (y && !height)
-                height = 1;
-            const endX = width ? width + x : this.width;
-            const endY = height ? height + y : this.height;
-            for (let i = x; i < endX; ++i) {
-                for (let j = y; j < endY; ++j) {
-                    const data = this.get(i, j);
-                    mixer.drawSprite(data);
-                    mixer.fg.mix(color, percent);
-                    mixer.bg.mix(color, percent);
-                    this.drawSprite(i, j, mixer);
-                }
-            }
-            return this;
-        }
-        dump() {
-            const data = [];
-            let header = '    ';
-            for (let x = 0; x < this.width; ++x) {
-                if (x % 10 == 0)
-                    header += ' ';
-                header += x % 10;
-            }
-            data.push(header);
-            data.push('');
-            for (let y = 0; y < this.height; ++y) {
-                let line = `${('' + y).padStart(2)}] `;
-                for (let x = 0; x < this.width; ++x) {
-                    if (x % 10 == 0)
-                        line += ' ';
-                    const data = this.get(x, y);
-                    const glyph = data.glyph;
-                    line += String.fromCharCode(glyph || 32);
-                }
-                data.push(line);
-            }
-            console.log(data.join('\n'));
-        }
-    }
-    function makeDataBuffer(width, height) {
-        return new DataBuffer(width, height);
-    }
-    class Buffer extends DataBuffer {
-        constructor(canvas) {
-            super(canvas.width, canvas.height);
-            this._target = canvas;
-            canvas.copyTo(this._data);
-        }
-        // get canvas() { return this._target; }
-        clone() {
-            const other = new Buffer(this._target);
-            other.copy(this);
-            return other;
-        }
-        toGlyph(ch) {
-            return this._target.toGlyph(ch);
-        }
-        render() {
-            this._target.copy(this._data);
-            return this;
-        }
-        load() {
-            this._target.copyTo(this._data);
-            return this;
-        }
-    }
-    function makeBuffer(...args) {
-        if (args.length == 1) {
-            return new Buffer(args[0]);
-        }
-        return new DataBuffer(args[0], args[1]);
-    }
-
-    const VERTICES_PER_TILE = 6;
     class NotSupportedError extends Error {
         constructor(...params) {
             // Pass remaining arguments (including vendor specific ones) to parent constructor
@@ -5470,54 +5689,16 @@ void main() {
             node.width = this._width * this.tileWidth;
             node.height = this._height * this.tileHeight;
         }
-        // draw(x: number, y: number, glyph: number, fg: number, bg: number) {
-        //     glyph = glyph & 0xff;
-        //     bg = bg & 0xfff;
-        //     fg = fg & 0xfff;
-        //     const style = glyph * (1 << 24) + bg * (1 << 12) + fg;
-        //     this._set(x, y, style);
-        //     return this;
-        // }
-        // fill(bg: number): this;
-        // fill(glyph: number, fg: number, bg: number): this;
-        // fill(...args: number[]): this {
-        //     let g = 0,
-        //         fg = 0,
-        //         bg = 0;
-        //     if (args.length == 1) {
-        //         bg = args[0];
-        //     } else if (args.length == 3) {
-        //         [g, fg, bg] = args;
-        //     }
-        //     for (let x = 0; x < this._width; ++x) {
-        //         for (let y = 0; y < this._height; ++y) {
-        //             this.draw(x, y, g, fg, bg);
-        //         }
-        //     }
-        //     return this;
-        // }
         _requestRender() {
             if (this._renderRequested)
                 return;
             this._renderRequested = true;
             requestAnimationFrame(() => this._render());
         }
-        // protected _set(x: number, y: number, style: number) {
-        //     let index = y * this.width + x;
-        //     const current = this._data[index];
-        //     if (current !== style) {
-        //         this._data[index] = style;
-        //         this._requestRender();
-        //         return true;
-        //     }
-        //     return false;
-        // }
-        copy(data) {
-            this._data.set(data);
-            this._requestRender();
-        }
         copyTo(data) {
-            data.set(this._data);
+            if (!this.buffer)
+                return; // startup/constructor
+            data.copy(this.buffer);
         }
         render() {
             this.buffer.render();
@@ -5587,11 +5768,225 @@ void main() {
             return clamp(Math.floor(this.height * (offsetY / this.node.clientHeight)), 0, this.height - 1);
         }
     }
-    // Based on: https://github.com/ondras/fastiles/blob/master/ts/scene.ts (v2.1.0)
-    class Canvas extends BaseCanvas {
+    class Canvas2D extends BaseCanvas {
         constructor(width, height, glyphs) {
             super(width, height, glyphs);
         }
+        _createContext() {
+            const ctx = this.node.getContext('2d');
+            if (!ctx) {
+                throw new NotSupportedError('2d context not supported!');
+            }
+            this._ctx = ctx;
+        }
+        // protected _set(x: number, y: number, style: number) {
+        //     const result = super._set(x, y, style);
+        //     if (result) {
+        //         this._changed[y * this.width + x] = 1;
+        //     }
+        //     return result;
+        // }
+        resize(width, height) {
+            super.resize(width, height);
+            this._data = new Uint32Array(width * height);
+            this._changed = new Int8Array(width * height);
+        }
+        draw(data) {
+            // TODO - Remove?
+            if (data._data.every((style, i) => style === this._data[i]))
+                return false;
+            data.changed = false;
+            let changed = false;
+            const src = data._data;
+            const raw = this._data;
+            for (let i = 0; i < raw.length; ++i) {
+                if (raw[i] !== src[i]) {
+                    raw[i] = src[i];
+                    this._changed[i] = 1;
+                    changed = true;
+                }
+            }
+            if (!changed)
+                return false;
+            this.buffer.changed = true;
+            this._requestRender();
+            return true;
+        }
+        _render() {
+            this._renderRequested = false;
+            for (let i = 0; i < this._changed.length; ++i) {
+                if (this._changed[i])
+                    this._renderCell(i);
+                this._changed[i] = 0;
+            }
+            this.buffer.changed = false;
+        }
+        _renderCell(index) {
+            const x = index % this.width;
+            const y = Math.floor(index / this.width);
+            const style = this._data[index];
+            const glyph = (style / (1 << 24)) >> 0;
+            const bg = (style >> 12) & 0xfff;
+            const fg = style & 0xfff;
+            const px = x * this.tileWidth;
+            const py = y * this.tileHeight;
+            const gx = (glyph % 16) * this.tileWidth;
+            const gy = Math.floor(glyph / 16) * this.tileHeight;
+            const d = this.glyphs.ctx.getImageData(gx, gy, this.tileWidth, this.tileHeight);
+            for (let di = 0; di < d.width * d.height; ++di) {
+                const pct = d.data[di * 4] / 255;
+                const inv = 1.0 - pct;
+                d.data[di * 4 + 0] =
+                    pct * (((fg & 0xf00) >> 8) * 17) +
+                        inv * (((bg & 0xf00) >> 8) * 17);
+                d.data[di * 4 + 1] =
+                    pct * (((fg & 0xf0) >> 4) * 17) +
+                        inv * (((bg & 0xf0) >> 4) * 17);
+                d.data[di * 4 + 2] =
+                    pct * ((fg & 0xf) * 17) + inv * ((bg & 0xf) * 17);
+                d.data[di * 4 + 3] = 255; // not transparent anymore
+            }
+            this._ctx.putImageData(d, px, py);
+        }
+    }
+    // export function withImage(image: ImageOptions | HTMLImageElement | string) {
+    //     let opts = {} as CanvasOptions;
+    //     if (typeof image === 'string') {
+    //         opts.glyphs = Glyphs.fromImage(image);
+    //     } else if (image instanceof HTMLImageElement) {
+    //         opts.glyphs = Glyphs.fromImage(image);
+    //     } else {
+    //         if (!image.image) throw new Error('You must supply the image.');
+    //         Object.assign(opts, image);
+    //         opts.glyphs = Glyphs.fromImage(image.image);
+    //     }
+    //     let canvas;
+    //     try {
+    //         canvas = new Canvas(opts);
+    //     } catch (e) {
+    //         if (!(e instanceof NotSupportedError)) throw e;
+    //     }
+    //     if (!canvas) {
+    //         canvas = new Canvas2D(opts);
+    //     }
+    //     return canvas;
+    // }
+    // export function withFont(src: FontOptions | string) {
+    //     if (typeof src === 'string') {
+    //         src = { font: src } as FontOptions;
+    //     }
+    //     src.glyphs = Glyphs.fromFont(src);
+    //     let canvas;
+    //     try {
+    //         canvas = new Canvas(src);
+    //     } catch (e) {
+    //         if (!(e instanceof NotSupportedError)) throw e;
+    //     }
+    //     if (!canvas) {
+    //         canvas = new Canvas2D(src);
+    //     }
+    //     return canvas;
+    // }
+
+    // Based on: https://github.com/ondras/fastiles/blob/master/ts/shaders.ts (v2.1.0)
+    const VS = `
+#version 300 es
+in uvec2 position;
+in uvec2 uv;
+in uint style;
+out vec2 fsUv;
+flat out uint fsStyle;
+uniform highp uvec2 tileSize;
+uniform uvec2 viewportSize;
+void main() {
+	ivec2 positionPx = ivec2(position * tileSize);
+	vec2 positionNdc = (vec2(positionPx * 2) / vec2(viewportSize))-1.0;
+	positionNdc.y *= -1.0;
+	gl_Position = vec4(positionNdc, 0.0, 1.0);
+	fsUv = vec2(uv);
+	fsStyle = style;
+}`.trim();
+    const FS = `
+#version 300 es
+precision highp float;
+in vec2 fsUv;
+flat in uint fsStyle;
+out vec4 fragColor;
+uniform sampler2D font;
+uniform highp uvec2 tileSize;
+void main() {
+	uvec2 fontTiles = uvec2(textureSize(font, 0)) / tileSize;
+
+	uint glyph = (fsStyle & uint(0xFF000000)) >> 24;
+	uint glyphX = (glyph & uint(0xF));
+	uint glyphY = (glyph >> 4);
+	uvec2 fontPosition = uvec2(glyphX, glyphY);
+
+	uvec2 fontPx = (tileSize * fontPosition) + uvec2(vec2(tileSize) * fsUv);
+	vec3 texel = texelFetch(font, ivec2(fontPx), 0).rgb;
+
+	float s = 15.0;
+	uint fr = (fsStyle & uint(0xF00)) >> 8;
+	uint fg = (fsStyle & uint(0x0F0)) >> 4;
+	uint fb = (fsStyle & uint(0x00F)) >> 0;
+	vec3 fgRgb = vec3(fr, fg, fb) / s;
+  
+	uint br = (fsStyle & uint(0xF00000)) >> 20;
+	uint bg = (fsStyle & uint(0x0F0000)) >> 16;
+	uint bb = (fsStyle & uint(0x00F000)) >> 12;
+	vec3 bgRgb = vec3(br, bg, bb) / s;
+  
+	fragColor = vec4(mix(bgRgb, fgRgb, texel), 1.0);
+}`.trim();
+
+    const VERTICES_PER_TILE = 6;
+    // export class BufferGL extends Buffer.Buffer {
+    //     constructor(canvas: Buffer.BufferTarget) {
+    //         super(canvas);
+    //     }
+    //     protected _makeData(): Uint32Array {
+    //         return new Uint32Array(this.width * this.height * VERTICES_PER_TILE);
+    //     }
+    //     protected _index(x: number, y: number): number {
+    //         let index = y * this.width + x;
+    //         index *= VERTICES_PER_TILE;
+    //         return index;
+    //     }
+    //     set(x: number, y: number, style: number): boolean {
+    //         let index = this._index(x, y);
+    //         const current = this._data[index + 2];
+    //         if (current !== style) {
+    //             this._data[index + 2] = style;
+    //             this._data[index + 5] = style;
+    //             this.changed = true;
+    //             return true;
+    //         }
+    //         return false;
+    //     }
+    //     copy(other: Buffer.DataBuffer): this {
+    //         if (this.height !== other.height || this.width !== other.width)
+    //             throw new Error('Buffers must be same size!');
+    //         if (this._data.length === other._data.length) {
+    //             this._data.set(other._data);
+    //         } else {
+    //             for (let x = 0; x < this.width; ++x) {
+    //                 for (let y = 0; y < this.width; ++y) {
+    //                     this.set(x, y, other.get(x, y));
+    //                 }
+    //             }
+    //         }
+    //         this.changed = true;
+    //         return this;
+    //     }
+    // }
+    // Based on: https://github.com/ondras/fastiles/blob/master/ts/scene.ts (v2.1.0)
+    class CanvasGL extends BaseCanvas {
+        constructor(width, height, glyphs) {
+            super(width, height, glyphs);
+        }
+        // _createBuffer() {
+        //     return new BufferGL(this);
+        // }
         _createContext() {
             let gl = this.node.getContext('webgl2');
             if (!gl) {
@@ -5660,6 +6055,7 @@ void main() {
             const uniforms = this._uniforms;
             gl.viewport(0, 0, this.node.width, this.node.height);
             gl.uniform2ui(uniforms['viewportSize'], this.node.width, this.node.height);
+            // this._data = new Uint32Array(width * height * VERTICES_PER_TILE);
             this._createGeometry();
             this._createData();
         }
@@ -5675,19 +6071,29 @@ void main() {
         //     }
         //     return false;
         // }
-        copy(data) {
-            data.forEach((style, i) => {
+        draw(data) {
+            // TODO - remove?
+            if (data._data.every((style, i) => {
+                const index = 2 + i * VERTICES_PER_TILE;
+                return style === this._data[index];
+            })) {
+                return false;
+            }
+            data._data.forEach((style, i) => {
                 const index = i * VERTICES_PER_TILE;
                 this._data[index + 2] = style;
                 this._data[index + 5] = style;
             });
             this._requestRender();
+            data.changed = false;
+            return true;
         }
         copyTo(data) {
+            data.changed = false;
             const n = this.width * this.height;
             for (let i = 0; i < n; ++i) {
                 const index = i * VERTICES_PER_TILE;
-                data[i] = this._data[index + 2];
+                data._data[i] = this._data[index + 2];
             }
         }
         _render() {
@@ -5703,166 +6109,9 @@ void main() {
             gl.bindBuffer(gl.ARRAY_BUFFER, this._buffers.style);
             gl.bufferData(gl.ARRAY_BUFFER, this._data, gl.DYNAMIC_DRAW);
             gl.drawArrays(gl.TRIANGLES, 0, this._width * this._height * VERTICES_PER_TILE);
+            this.buffer.changed = false;
         }
     }
-    class Canvas2D extends BaseCanvas {
-        constructor(width, height, glyphs) {
-            super(width, height, glyphs);
-        }
-        _createContext() {
-            const ctx = this.node.getContext('2d');
-            if (!ctx) {
-                throw new NotSupportedError('2d context not supported!');
-            }
-            this._ctx = ctx;
-        }
-        // protected _set(x: number, y: number, style: number) {
-        //     const result = super._set(x, y, style);
-        //     if (result) {
-        //         this._changed[y * this.width + x] = 1;
-        //     }
-        //     return result;
-        // }
-        resize(width, height) {
-            super.resize(width, height);
-            this._data = new Uint32Array(width * height);
-            this._changed = new Int8Array(width * height);
-        }
-        copy(data) {
-            for (let i = 0; i < this._data.length; ++i) {
-                if (this._data[i] !== data[i]) {
-                    this._data[i] = data[i];
-                    this._changed[i] = 1;
-                }
-            }
-            this._requestRender();
-        }
-        _render() {
-            this._renderRequested = false;
-            for (let i = 0; i < this._changed.length; ++i) {
-                if (this._changed[i])
-                    this._renderCell(i);
-                this._changed[i] = 0;
-            }
-        }
-        _renderCell(index) {
-            const x = index % this.width;
-            const y = Math.floor(index / this.width);
-            const style = this._data[index];
-            const glyph = (style / (1 << 24)) >> 0;
-            const bg = (style >> 12) & 0xfff;
-            const fg = style & 0xfff;
-            const px = x * this.tileWidth;
-            const py = y * this.tileHeight;
-            const gx = (glyph % 16) * this.tileWidth;
-            const gy = Math.floor(glyph / 16) * this.tileHeight;
-            const d = this.glyphs.ctx.getImageData(gx, gy, this.tileWidth, this.tileHeight);
-            for (let di = 0; di < d.width * d.height; ++di) {
-                const pct = d.data[di * 4] / 255;
-                const inv = 1.0 - pct;
-                d.data[di * 4 + 0] =
-                    pct * (((fg & 0xf00) >> 8) * 17) +
-                        inv * (((bg & 0xf00) >> 8) * 17);
-                d.data[di * 4 + 1] =
-                    pct * (((fg & 0xf0) >> 4) * 17) +
-                        inv * (((bg & 0xf0) >> 4) * 17);
-                d.data[di * 4 + 2] =
-                    pct * ((fg & 0xf) * 17) + inv * ((bg & 0xf) * 17);
-                d.data[di * 4 + 3] = 255; // not transparent anymore
-            }
-            this._ctx.putImageData(d, px, py);
-        }
-    }
-    function make$3(...args) {
-        let width = args[0];
-        let height = args[1];
-        let opts = args[2];
-        if (args.length == 1) {
-            opts = args[0];
-            height = opts.height || 34;
-            width = opts.width || 80;
-        }
-        opts = opts || { font: 'monospace' };
-        let glyphs;
-        if (opts.image) {
-            glyphs = Glyphs.fromImage(opts.image);
-        }
-        else {
-            glyphs = Glyphs.fromFont(opts);
-        }
-        let canvas;
-        try {
-            canvas = new Canvas(width, height, glyphs);
-        }
-        catch (e) {
-            if (!(e instanceof NotSupportedError))
-                throw e;
-        }
-        if (!canvas) {
-            canvas = new Canvas2D(width, height, glyphs);
-        }
-        if (opts.div) {
-            let el;
-            if (typeof opts.div === 'string') {
-                el = document.getElementById(opts.div);
-                if (!el) {
-                    console.warn('Failed to find parent element by ID: ' + opts.div);
-                }
-            }
-            else {
-                el = opts.div;
-            }
-            if (el && el.appendChild) {
-                el.appendChild(canvas.node);
-            }
-        }
-        if (opts.io || opts.loop) {
-            let loop$1 = opts.loop || loop;
-            canvas.onclick = (e) => loop$1.pushEvent(e);
-            canvas.onmousemove = (e) => loop$1.pushEvent(e);
-            canvas.onmouseup = (e) => loop$1.pushEvent(e);
-            // canvas.onkeydown = (e) => loop.pushEvent(e); // Keyboard events require tabindex to be set, better to let user do this.
-        }
-        return canvas;
-    }
-    // export function withImage(image: ImageOptions | HTMLImageElement | string) {
-    //     let opts = {} as CanvasOptions;
-    //     if (typeof image === 'string') {
-    //         opts.glyphs = Glyphs.fromImage(image);
-    //     } else if (image instanceof HTMLImageElement) {
-    //         opts.glyphs = Glyphs.fromImage(image);
-    //     } else {
-    //         if (!image.image) throw new Error('You must supply the image.');
-    //         Object.assign(opts, image);
-    //         opts.glyphs = Glyphs.fromImage(image.image);
-    //     }
-    //     let canvas;
-    //     try {
-    //         canvas = new Canvas(opts);
-    //     } catch (e) {
-    //         if (!(e instanceof NotSupportedError)) throw e;
-    //     }
-    //     if (!canvas) {
-    //         canvas = new Canvas2D(opts);
-    //     }
-    //     return canvas;
-    // }
-    // export function withFont(src: FontOptions | string) {
-    //     if (typeof src === 'string') {
-    //         src = { font: src } as FontOptions;
-    //     }
-    //     src.glyphs = Glyphs.fromFont(src);
-    //     let canvas;
-    //     try {
-    //         canvas = new Canvas(src);
-    //     } catch (e) {
-    //         if (!(e instanceof NotSupportedError)) throw e;
-    //     }
-    //     if (!canvas) {
-    //         canvas = new Canvas2D(src);
-    //     }
-    //     return canvas;
-    // }
     // Copy of: https://github.com/ondras/fastiles/blob/master/ts/utils.ts (v2.1.0)
     const QUAD = [0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1];
     function createProgram(gl, ...sources) {
@@ -5914,18 +6163,68 @@ void main() {
         return { position, uv };
     }
 
+    function make$3(...args) {
+        let width = args[0];
+        let height = args[1];
+        let opts = args[2];
+        if (args.length == 1) {
+            opts = args[0];
+            height = opts.height || 34;
+            width = opts.width || 80;
+        }
+        opts = opts || { font: 'monospace' };
+        let glyphs;
+        if (opts.image) {
+            glyphs = Glyphs.fromImage(opts.image);
+        }
+        else {
+            glyphs = Glyphs.fromFont(opts);
+        }
+        let canvas;
+        try {
+            canvas = new CanvasGL(width, height, glyphs);
+        }
+        catch (e) {
+            if (!(e instanceof NotSupportedError))
+                throw e;
+        }
+        if (!canvas) {
+            canvas = new Canvas2D(width, height, glyphs);
+        }
+        if (opts.div) {
+            let el;
+            if (typeof opts.div === 'string') {
+                el = document.getElementById(opts.div);
+                if (!el) {
+                    console.warn('Failed to find parent element by ID: ' + opts.div);
+                }
+            }
+            else {
+                el = opts.div;
+            }
+            if (el && el.appendChild) {
+                el.appendChild(canvas.node);
+            }
+        }
+        if (opts.io || opts.loop) {
+            let loop$1 = opts.loop || loop;
+            canvas.onclick = (e) => loop$1.pushEvent(e);
+            canvas.onmousemove = (e) => loop$1.pushEvent(e);
+            canvas.onmouseup = (e) => loop$1.pushEvent(e);
+            // canvas.onkeydown = (e) => loop.pushEvent(e); // Keyboard events require tabindex to be set, better to let user do this.
+        }
+        return canvas;
+    }
+
     var index$2 = /*#__PURE__*/Object.freeze({
         __proto__: null,
+        Buffer: Buffer,
+        Glyphs: Glyphs,
         NotSupportedError: NotSupportedError,
         BaseCanvas: BaseCanvas,
-        Canvas: Canvas,
         Canvas2D: Canvas2D,
-        make: make$3,
-        Glyphs: Glyphs,
-        DataBuffer: DataBuffer,
-        makeDataBuffer: makeDataBuffer,
-        Buffer: Buffer,
-        makeBuffer: makeBuffer
+        CanvasGL: CanvasGL,
+        make: make$3
     });
 
     class Sprite {
@@ -5999,13 +6298,13 @@ void main() {
         if (typeof fg === 'string')
             fg = from$2(fg);
         else if (Array.isArray(fg))
-            fg = make$4(fg);
+            fg = make$7(fg);
         else if (fg === undefined || fg === null)
             fg = -1;
         if (typeof bg === 'string')
             bg = from$2(bg);
         else if (Array.isArray(bg))
-            bg = make$4(bg);
+            bg = make$7(bg);
         else if (bg === undefined || bg === null)
             bg = -1;
         return new Sprite(ch, fg, bg, opacity);
@@ -6353,14 +6652,14 @@ void main() {
         INTENSITY_DARK: 20,
         INTENSITY_SHADOW: 50,
     }); // less than 20% for highest color in rgb
-    const LIGHT_COMPONENTS = make$4();
+    const LIGHT_COMPONENTS = make$7();
     class Light {
         constructor(color, radius = 1, fadeTo = 0, pass = false) {
             this.fadeTo = 0;
             this.passThroughActors = false;
             this.id = null;
             this.color = from$2(color); /* color */
-            this.radius = make$9(radius);
+            this.radius = make$a(radius);
             this.fadeTo = fadeTo;
             this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
         }
@@ -6407,7 +6706,7 @@ void main() {
                     (100 - fadeToPercent) *
                         (distanceBetween(x, y, i, j) / radius));
                 for (k = 0; k < 3; ++k) {
-                    lightValue[k] = Math.floor((LIGHT_COMPONENTS[k] * lightMultiplier) / 100);
+                    lightValue[k] = Math.floor((LIGHT_COMPONENTS._data[k] * lightMultiplier) / 100);
                 }
                 site.addCellLight(i, j, lightValue, dispelShadows);
                 // if (dispelShadows) {
@@ -6427,7 +6726,11 @@ void main() {
         }
     }
     function intensity(light) {
-        return Math.max(light[0], light[1], light[2]);
+        let data = light;
+        if (light instanceof Color) {
+            data = light._data;
+        }
+        return Math.max(data[0], data[1], data[2]);
     }
     function isDarkLight(light, threshold = 20) {
         return intensity(light) <= threshold;
@@ -6526,10 +6829,10 @@ void main() {
             this.changed = false;
             this.glowLightChanged = false;
             this.dynamicLightChanged = false;
-            this.light = make$7(map.width, map.height, () => this.ambient.slice());
-            this.glowLight = make$7(map.width, map.height, () => this.ambient.slice());
-            this.oldLight = make$7(map.width, map.height, () => this.ambient.slice());
-            this.flags = make$7(map.width, map.height);
+            this.light = make$8(map.width, map.height, () => this.ambient.slice());
+            this.glowLight = make$8(map.width, map.height, () => this.ambient.slice());
+            this.oldLight = make$8(map.width, map.height, () => this.ambient.slice());
+            this.flags = make$8(map.width, map.height);
             this.finishLightUpdate();
         }
         copy(other) {
@@ -6548,7 +6851,7 @@ void main() {
                 light = light.toLight();
             }
             else if (!Array.isArray(light)) {
-                light = from$2(light);
+                light = from$2(light).toLight();
             }
             for (let i = 0; i < 3; ++i) {
                 this.ambient[i] = light[i];
@@ -6802,20 +7105,23 @@ void main() {
     exports.ZERO = ZERO;
     exports.arrayDelete = arrayDelete;
     exports.arrayFindRight = arrayFindRight;
+    exports.arrayIncludesAll = arrayIncludesAll;
+    exports.arrayInsert = arrayInsert;
     exports.arrayNext = arrayNext;
     exports.arrayPrev = arrayPrev;
     exports.arraysIntersect = arraysIntersect;
     exports.blob = blob;
+    exports.buffer = buffer;
     exports.canvas = index$2;
     exports.clamp = clamp;
-    exports.color = index$4;
+    exports.color = index$5;
     exports.colors = colors;
     exports.config = config$1;
     exports.data = data;
     exports.events = events;
     exports.first = first;
     exports.flag = flag;
-    exports.fov = index$5;
+    exports.fov = index$3;
     exports.frequency = frequency;
     exports.grid = grid;
     exports.io = io;
@@ -6823,15 +7129,17 @@ void main() {
     exports.list = list;
     exports.loop = loop;
     exports.message = message;
+    exports.nextIndex = nextIndex;
     exports.object = object;
     exports.path = path;
+    exports.prevIndex = prevIndex;
     exports.range = range;
     exports.rng = rng;
     exports.scheduler = scheduler;
     exports.sprite = index$1;
     exports.sprites = sprites;
     exports.sum = sum;
-    exports.text = index$3;
+    exports.text = index$4;
     exports.types = types;
     exports.xy = xy;
 
