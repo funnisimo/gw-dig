@@ -2,7 +2,7 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GWU = {}));
-}(this, (function (exports) { 'use strict';
+})(this, (function (exports) { 'use strict';
 
     /**
      * GW.utils
@@ -1047,6 +1047,22 @@
             const diff = hi - lo + 1;
             return lo + this.number(diff);
         }
+        /**
+         * @param mean Mean value
+         * @param stddev Standard deviation. ~95% of the absolute values will be lower than 2*stddev.
+         * @returns A normally distributed pseudorandom value
+         * @see: https://github.com/ondras/rot.js/blob/v2.2.0/src/rng.ts
+         */
+        normal(mean = 0, stddev = 1) {
+            let u, v, r;
+            do {
+                u = 2 * this.value() - 1;
+                v = 2 * this.value() - 1;
+                r = u * u + v * v;
+            } while (r > 1 || r == 0);
+            let gauss = u * Math.sqrt(-2 * Math.log(r) / r);
+            return mean + gauss * stddev;
+        }
         dice(count, sides, addend = 0) {
             let total = 0;
             let mult = 1;
@@ -1198,7 +1214,7 @@
     }
     const random = new Random();
     const cosmetic = new Random();
-    function make$b(seed) {
+    function make$c(seed) {
         return new Random(seed);
     }
 
@@ -1209,7 +1225,7 @@
         Random: Random,
         random: random,
         cosmetic: cosmetic,
-        make: make$b
+        make: make$c
     });
 
     class Range {
@@ -1246,7 +1262,7 @@
             return `${this.lo}-${this.hi}`;
         }
     }
-    function make$a(config) {
+    function make$b(config) {
         if (!config)
             return new Range(0, 0, 0);
         if (config instanceof Range)
@@ -1302,16 +1318,16 @@
         }
         throw new Error('Not a valid range - ' + config);
     }
-    const from$4 = make$a;
+    const from$4 = make$b;
     function asFn(config) {
-        const range = make$a(config);
+        const range = make$b(config);
         return () => range.value();
     }
 
     var range = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Range: Range,
-        make: make$a,
+        make: make$b,
         from: from$4,
         asFn: asFn
     });
@@ -1402,7 +1418,7 @@
         }
         return result;
     }
-    function make$9(obj) {
+    function make$a(obj) {
         const out = {};
         Object.entries(obj).forEach(([key, value]) => {
             out[key] = from$3(out, value);
@@ -1415,7 +1431,7 @@
         fl: fl,
         toString: toString,
         from: from$3,
-        make: make$9
+        make: make$a
     });
 
     const DIRS$1 = DIRS$2;
@@ -1974,7 +1990,7 @@
     // Grid.fillBlob = fillBlob;
     const alloc = NumGrid.alloc.bind(NumGrid);
     const free = NumGrid.free.bind(NumGrid);
-    function make$8(w, h, v) {
+    function make$9(w, h, v) {
         if (v === undefined)
             return new NumGrid(w, h, 0);
         if (typeof v === 'number')
@@ -2016,7 +2032,7 @@
         NumGrid: NumGrid,
         alloc: alloc,
         free: free,
-        make: make$8,
+        make: make$9,
         offsetZip: offsetZip,
         intersection: intersection,
         unite: unite
@@ -2035,20 +2051,20 @@
         return (r << 8) + (g << 4) + b;
     }
     const colors = {};
+    // All colors are const!!!
     class Color {
-        constructor(r = -1, g = 0, b = 0, rand = 0, redRand = 0, greenRand = 0, blueRand = 0, dances = false) {
+        // values are 0-100 for normal RGBA
+        constructor(r = -1, g = 0, b = 0, a = 100) {
+            this._rand = null;
             this.dances = false;
-            this._const = false;
-            this._data = new Int16Array([
-                r,
-                g,
-                b,
-                rand,
-                redRand,
-                greenRand,
-                blueRand,
-            ]);
-            this.dances = dances;
+            if (r < 0) {
+                a = 0;
+                r = 0;
+            }
+            this._data = [r, g, b, a];
+        }
+        rgb() {
+            return [this.r, this.g, this.b, this.a];
         }
         get r() {
             return Math.round(this._data[0] * 2.550001);
@@ -2056,8 +2072,8 @@
         get _r() {
             return this._data[0];
         }
-        set _r(v) {
-            this._data[0] = v;
+        get _ra() {
+            return Math.round((this._data[0] * this._data[3]) / 100);
         }
         get g() {
             return Math.round(this._data[1] * 2.550001);
@@ -2065,8 +2081,8 @@
         get _g() {
             return this._data[1];
         }
-        set _g(v) {
-            this._data[1] = v;
+        get _ga() {
+            return Math.round((this._data[1] * this._data[3]) / 100);
         }
         get b() {
             return Math.round(this._data[2] * 2.550001);
@@ -2074,20 +2090,30 @@
         get _b() {
             return this._data[2];
         }
-        set _b(v) {
-            this._data[2] = v;
+        get _ba() {
+            return Math.round((this._data[2] * this._data[3]) / 100);
         }
-        get _rand() {
+        get a() {
             return this._data[3];
         }
-        get _redRand() {
-            return this._data[4];
+        get _a() {
+            return this.a;
         }
-        get _greenRand() {
-            return this._data[5];
+        rand(all, r = 0, g = 0, b = 0) {
+            this._rand = [all, r, g, b];
+            this.dances = false;
+            return this;
         }
-        get _blueRand() {
-            return this._data[6];
+        dance(all, r, g, b) {
+            this.rand(all, r, g, b);
+            this.dances = true;
+            return this;
+        }
+        isNull() {
+            return this._data[3] === 0;
+        }
+        alpha(v) {
+            return new Color(this._data[0], this._data[1], this._data[2], clamp(v, 0, 100));
         }
         // luminosity (0-100)
         get l() {
@@ -2130,243 +2156,153 @@
             }
             return Math.round(H);
         }
-        isNull() {
-            return this._r < 0;
-        }
-        isConst() {
-            return this._const;
-        }
         equals(other) {
             if (typeof other === 'string') {
-                if (!other.startsWith('#'))
-                    return this.name == other;
-                return this.css(other.length > 4) == other;
+                if (other.startsWith('#')) {
+                    if (other.length == 4) {
+                        return this.css() === other;
+                    }
+                    return this.css(true) === other;
+                }
+                if (this.name)
+                    return this.name === other;
             }
             else if (typeof other === 'number') {
-                return this.toInt() == other || this.toInt(true) == other;
+                return this.toInt() === other || this.toInt(true) === other;
             }
             const O = from$2(other);
             if (this.isNull())
                 return O.isNull();
+            if (O.isNull())
+                return false;
             return this._data.every((v, i) => {
                 return v == O._data[i];
             });
         }
-        copy(other) {
-            if (this.isConst())
-                return this.clone().copy(other);
-            if (other instanceof Color) {
-                this.dances = other.dances;
-            }
-            else if (Array.isArray(other)) {
-                if (other.length === 8) {
-                    this.dances = other[7];
-                }
-            }
-            else {
-                other = from$2(other);
-                this.dances = other.dances;
-            }
-            if (other instanceof Color) {
-                this.name = other.name;
-                for (let i = 0; i < this._data.length; ++i) {
-                    this._data[i] = other._data[i] || 0;
-                }
-            }
-            else {
-                for (let i = 0; i < this._data.length; ++i) {
-                    this._data[i] = other[i] || 0;
-                }
-                this._changed();
-            }
-            return this;
-        }
-        set(other) {
-            if (this.isConst())
-                return this.clone().set(other);
-            return this.copy(other);
-        }
-        _changed() {
-            this.name = undefined;
-            return this;
-        }
-        clone() {
-            // @ts-ignore
-            const other = new this.constructor();
-            other.copy(this);
-            return other;
-        }
-        assign(_r = -1, _g = 0, _b = 0, _rand = 0, _redRand = 0, _greenRand = 0, _blueRand = 0, dances) {
-            if (this.isConst())
-                return this.clone().assign(...arguments);
-            for (let i = 0; i < this._data.length; ++i) {
-                this._data[i] = arguments[i] || 0;
-            }
-            if (dances !== undefined) {
-                this.dances = dances;
-            }
-            return this._changed();
-        }
-        assignRGB(_r = -1, _g = 0, _b = 0, _rand = 0, _redRand = 0, _greenRand = 0, _blueRand = 0, dances) {
-            if (this.isConst())
-                return this.clone().assignRGB(...arguments);
-            for (let i = 0; i < this._data.length; ++i) {
-                this._data[i] = Math.round((arguments[i] || 0) / 2.55);
-            }
-            if (dances !== undefined) {
-                this.dances = dances;
-            }
-            return this._changed();
-        }
-        nullify() {
-            if (this.isConst())
-                return this.clone().nullify();
-            this._data[0] = -1;
-            this.dances = false;
-            return this._changed();
-        }
-        blackOut() {
-            if (this.isConst())
-                return this.clone().blackOut();
-            for (let i = 0; i < this._data.length; ++i) {
-                this._data[i] = 0;
-            }
-            this.dances = false;
-            return this._changed();
-        }
         toInt(base256 = false) {
             if (this.isNull())
                 return -1;
-            if (!this.dances) {
-                return toColorInt(this._r, this._g, this._b, base256);
+            if (!this._rand || !this.dances) {
+                return toColorInt(this._ra, this._ga, this._ba, base256);
             }
-            const rand = cosmetic.number(this._rand);
-            const redRand = cosmetic.number(this._redRand);
-            const greenRand = cosmetic.number(this._greenRand);
-            const blueRand = cosmetic.number(this._blueRand);
-            const r = this._r + rand + redRand;
-            const g = this._g + rand + greenRand;
-            const b = this._b + rand + blueRand;
+            const rand = cosmetic.number(this._rand[0]);
+            const redRand = cosmetic.number(this._rand[1]);
+            const greenRand = cosmetic.number(this._rand[2]);
+            const blueRand = cosmetic.number(this._rand[3]);
+            const r = Math.round(((this._r + rand + redRand) * this._a) / 100);
+            const g = Math.round(((this._g + rand + greenRand) * this._a) / 100);
+            const b = Math.round(((this._b + rand + blueRand) * this._a) / 100);
             return toColorInt(r, g, b, base256);
         }
         toLight() {
-            return [this._r, this._g, this._b];
+            return [this._ra, this._ga, this._ba];
         }
         clamp() {
             if (this.isNull())
                 return this;
-            if (this.isConst())
-                return this.clone().clamp();
-            this._r = Math.min(100, Math.max(0, this._r));
-            this._g = Math.min(100, Math.max(0, this._g));
-            this._b = Math.min(100, Math.max(0, this._b));
-            return this._changed();
+            return make$8(this._data.map((v) => clamp(v, 0, 100)));
         }
-        mix(other, percent) {
-            if (this.isConst())
-                return this.clone().mix(other, percent);
+        blend(other) {
             const O = from$2(other);
             if (O.isNull())
                 return this;
-            if (this.isNull()) {
-                this.blackOut();
+            if (O.a === 100)
+                return O;
+            const pct = O.a / 100;
+            const keepPct = 1 - pct;
+            const newColor = make$8(Math.round(this._data[0] * keepPct + O._data[0] * pct), Math.round(this._data[1] * keepPct + O._data[1] * pct), Math.round(this._data[2] * keepPct + O._data[2] * pct), Math.round(O.a + this._data[3] * keepPct));
+            if (this._rand) {
+                newColor._rand = this._rand.map((v) => Math.round(v * keepPct));
+                newColor.dances = this.dances;
             }
-            percent = Math.min(100, Math.max(0, percent));
-            const keepPct = 100 - percent;
-            for (let i = 0; i < this._data.length; ++i) {
-                this._data[i] = Math.round((this._data[i] * keepPct + O._data[i] * percent) / 100);
+            if (O._rand) {
+                if (!newColor._rand) {
+                    newColor._rand = [0, 0, 0, 0];
+                }
+                for (let i = 0; i < 4; ++i) {
+                    newColor._rand[i] += Math.round(O._rand[i] * pct);
+                }
+                newColor.dances = newColor.dances || O.dances;
             }
-            this.dances = this.dances || O.dances;
-            return this._changed();
+            return newColor;
+        }
+        mix(other, percent) {
+            const O = from$2(other);
+            if (O.isNull())
+                return this;
+            const pct = clamp(percent, 0, 100) / 100;
+            const keepPct = 1 - pct;
+            const newColor = make$8(Math.round(this._data[0] * keepPct + O._data[0] * pct), Math.round(this._data[1] * keepPct + O._data[1] * pct), Math.round(this._data[2] * keepPct + O._data[2] * pct), (this.isNull() ? 100 : this._data[3]) * keepPct + O._data[3] * pct);
+            if (this._rand) {
+                newColor._rand = this._rand.slice();
+                newColor.dances = this.dances;
+            }
+            if (O._rand) {
+                if (!newColor._rand) {
+                    newColor._rand = O._rand.map((v) => Math.round(v * pct));
+                }
+                else {
+                    for (let i = 0; i < 4; ++i) {
+                        newColor._rand[i] = Math.round(newColor._rand[i] * keepPct + O._rand[i] * pct);
+                    }
+                }
+                newColor.dances = newColor.dances || O.dances;
+            }
+            return newColor;
         }
         // Only adjusts r,g,b
         lighten(percent) {
             if (this.isNull())
                 return this;
-            if (this.isConst())
-                return this.clone().lighten(percent);
-            percent = Math.min(100, Math.max(0, percent));
             if (percent <= 0)
                 return this;
-            const keepPct = 100 - percent;
-            for (let i = 0; i < 3; ++i) {
-                this._data[i] = Math.round((this._data[i] * keepPct + 100 * percent) / 100);
-            }
-            return this._changed();
+            const pct = clamp(percent, 0, 100) / 100;
+            const keepPct = 1 - pct;
+            return make$8(Math.round(this._data[0] * keepPct + 100 * pct), Math.round(this._data[1] * keepPct + 100 * pct), Math.round(this._data[2] * keepPct + 100 * pct), this._a);
         }
         // Only adjusts r,g,b
         darken(percent) {
             if (this.isNull())
                 return this;
-            if (this.isConst())
-                return this.clone().darken(percent);
-            percent = Math.min(100, Math.max(0, percent));
-            if (percent <= 0)
-                return this;
-            const keepPct = 100 - percent;
-            for (let i = 0; i < 3; ++i) {
-                this._data[i] = Math.round((this._data[i] * keepPct + 0 * percent) / 100);
-            }
-            return this._changed();
+            const pct = clamp(percent, 0, 100) / 100;
+            const keepPct = 1 - pct;
+            return make$8(Math.round(this._data[0] * keepPct + 0 * pct), Math.round(this._data[1] * keepPct + 0 * pct), Math.round(this._data[2] * keepPct + 0 * pct), this._a);
         }
         bake(clearDancing = false) {
             if (this.isNull())
                 return this;
-            if (this.isConst())
-                return this.clone().bake(clearDancing);
+            if (!this._rand)
+                return this;
             if (this.dances && !clearDancing)
                 return this;
-            this.dances = false;
-            const d = this._data;
-            if (d[3] + d[4] + d[5] + d[6]) {
-                const rand = cosmetic.number(this._rand);
-                const redRand = cosmetic.number(this._redRand);
-                const greenRand = cosmetic.number(this._greenRand);
-                const blueRand = cosmetic.number(this._blueRand);
-                this._r += rand + redRand;
-                this._g += rand + greenRand;
-                this._b += rand + blueRand;
-                for (let i = 3; i < d.length; ++i) {
-                    d[i] = 0;
-                }
-                return this._changed();
-            }
-            return this;
+            const d = this._rand;
+            const rand = cosmetic.number(d[0]);
+            const redRand = cosmetic.number(d[1]);
+            const greenRand = cosmetic.number(d[2]);
+            const blueRand = cosmetic.number(d[3]);
+            return make$8(this._r + rand + redRand, this._g + rand + greenRand, this._b + rand + blueRand, this._a);
         }
         // Adds a color to this one
         add(other, percent = 100) {
-            if (this.isConst())
-                return this.clone().add(other, percent);
             const O = from$2(other);
             if (O.isNull())
                 return this;
-            if (this.isNull()) {
-                this.blackOut();
-            }
-            for (let i = 0; i < this._data.length; ++i) {
-                this._data[i] += Math.round((O._data[i] * percent) / 100);
-            }
-            this.dances = this.dances || O.dances;
-            return this._changed();
+            const alpha = (O.a / 100) * (percent / 100);
+            return make$8(Math.round(this._data[0] + O._data[0] * alpha), Math.round(this._data[1] + O._data[1] * alpha), Math.round(this._data[2] + O._data[2] * alpha), clamp(Math.round(this._a + alpha * 100), 0, 100));
         }
         scale(percent) {
             if (this.isNull() || percent == 100)
                 return this;
-            if (this.isConst())
-                return this.clone().scale(percent);
-            percent = Math.max(0, percent);
-            for (let i = 0; i < this._data.length; ++i) {
-                this._data[i] = Math.round((this._data[i] * percent) / 100);
-            }
-            return this._changed();
+            const pct = Math.max(0, percent) / 100;
+            return make$8(Math.round(this._data[0] * pct), Math.round(this._data[1] * pct), Math.round(this._data[2] * pct), this._a);
         }
         multiply(other) {
             if (this.isNull())
                 return this;
-            if (this.isConst())
-                return this.clone().multiply(other);
             let data;
             if (Array.isArray(other)) {
+                if (other.length < 3)
+                    throw new Error('requires at least r,g,b values.');
                 data = other;
             }
             else {
@@ -2374,25 +2310,17 @@
                     return this;
                 data = other._data;
             }
-            const len = Math.max(3, Math.min(this._data.length, data.length));
-            for (let i = 0; i < len; ++i) {
-                this._data[i] = Math.round((this._data[i] * (data[i] || 0)) / 100);
-            }
-            return this._changed();
+            const pct = (data[3] || 100) / 100;
+            return make$8(Math.round(this._ra * (data[0] / 100) * pct), Math.round(this._ga * (data[1] / 100) * pct), Math.round(this._ba * (data[2] / 100) * pct), 100);
         }
         // scales rgb down to a max of 100
         normalize() {
             if (this.isNull())
                 return this;
-            if (this.isConst())
-                return this.clone().normalize();
-            const max = Math.max(this._r, this._g, this._b);
+            const max = Math.max(this._ra, this._ga, this._ba);
             if (max <= 100)
                 return this;
-            this._r = Math.round((100 * this._r) / max);
-            this._g = Math.round((100 * this._g) / max);
-            this._b = Math.round((100 * this._b) / max);
-            return this._changed();
+            return make$8(Math.round((100 * this._ra) / max), Math.round((100 * this._ga) / max), Math.round((100 * this._ba) / max), 100);
         }
         /**
          * Returns the css code for the current RGB values of the color.
@@ -2416,7 +2344,7 @@
         while (vals.length < 3)
             vals.push(0);
         if (base256) {
-            for (let i = 0; i < 7; ++i) {
+            for (let i = 0; i < 3; ++i) {
                 vals[i] = Math.round(((vals[i] || 0) * 100) / 255);
             }
         }
@@ -2450,19 +2378,17 @@
         return c;
     }
     function fromNumber(val, base256 = false) {
-        const c = new Color(0, 0, 0);
         if (val < 0) {
-            c.assign(-1);
+            return new Color();
         }
         else if (base256 || val > 0xfff) {
-            c.assign(Math.round((((val & 0xff0000) >> 16) * 100) / 255), Math.round((((val & 0xff00) >> 8) * 100) / 255), Math.round(((val & 0xff) * 100) / 255));
+            return new Color(Math.round((((val & 0xff0000) >> 16) * 100) / 255), Math.round((((val & 0xff00) >> 8) * 100) / 255), Math.round(((val & 0xff) * 100) / 255), 100);
         }
         else {
-            c.assign(Math.round((((val & 0xf00) >> 8) * 100) / 15), Math.round((((val & 0xf0) >> 4) * 100) / 15), Math.round(((val & 0xf) * 100) / 15));
+            return new Color(Math.round((((val & 0xf00) >> 8) * 100) / 15), Math.round((((val & 0xf0) >> 4) * 100) / 15), Math.round(((val & 0xf) * 100) / 15), 100);
         }
-        return c;
     }
-    function make$7(...args) {
+    function make$8(...args) {
         let arg = args[0];
         let base256 = args[1];
         if (args.length == 0)
@@ -2474,13 +2400,13 @@
         if (arg === undefined || arg === null)
             return new Color(-1);
         if (arg instanceof Color) {
-            return arg.clone();
+            return arg;
         }
         if (typeof arg === 'string') {
             if (arg.startsWith('#')) {
                 return fromCss(arg);
             }
-            return fromName(arg).clone();
+            return fromName(arg);
         }
         else if (Array.isArray(arg)) {
             return fromArray(arg, base256);
@@ -2501,14 +2427,14 @@
                 return fromName(arg);
             }
         }
-        return make$7(arg, args[1]);
+        return make$8(arg, args[1]);
     }
     // adjusts the luminosity of 2 colors to ensure there is enough separation between them
     function separate(a, b) {
         if (a.isNull() || b.isNull())
-            return;
-        const A = a.clone().clamp();
-        const B = b.clone().clamp();
+            return [a, b];
+        const A = a.clamp();
+        const B = b.clamp();
         // console.log('separate');
         // console.log('- a=%s, h=%d, s=%d, l=%d', A.toString(), A.h, A.s, A.l);
         // console.log('- b=%s, h=%d, s=%d, l=%d', B.toString(), B.h, B.s, B.l);
@@ -2517,25 +2443,21 @@
             hDiff = 360 - hDiff;
         }
         if (hDiff > 45)
-            return; // colors are far enough apart in hue to be distinct
+            return [A, B]; // colors are far enough apart in hue to be distinct
         const dist = 40;
         if (Math.abs(A.l - B.l) >= dist)
-            return;
+            return [A, B];
         // Get them sorted by saturation ( we will darken the more saturated color and lighten the other)
-        const [lo, hi] = [A, B].sort((a, b) => a.s - b.s);
+        const out = [A, B];
+        const lo = A.s <= B.s ? 0 : 1;
+        const hi = 1 - lo;
         // console.log('- lo=%s, hi=%s', lo.toString(), hi.toString());
-        while (hi.l - lo.l < dist) {
-            hi.mix(WHITE, 5);
-            lo.mix(BLACK, 5);
+        while (out[hi].l - out[lo].l < dist) {
+            out[hi] = out[hi].mix(WHITE, 5);
+            out[lo] = out[lo].mix(BLACK, 5);
         }
-        a.copy(A);
-        b.copy(B);
         // console.log('=>', a.toString(), b.toString());
-    }
-    function swap(a, b) {
-        const temp = a.clone();
-        a.copy(b);
-        b.copy(temp);
+        return out;
     }
     function relativeLuminance(a, b) {
         return Math.round((100 *
@@ -2561,7 +2483,7 @@
         if (args.length == 1) {
             info = args[0];
         }
-        const c = info instanceof Color ? info : make$7(info);
+        const c = info instanceof Color ? info : make$8(info);
         // @ts-ignore
         c._const = true;
         colors[name] = c;
@@ -2576,12 +2498,12 @@
         else {
             c = install$3(name, ...args);
         }
-        install$3('light_' + name, c.clone().lighten(25));
-        install$3('lighter_' + name, c.clone().lighten(50));
-        install$3('lightest_' + name, c.clone().lighten(75));
-        install$3('dark_' + name, c.clone().darken(25));
-        install$3('darker_' + name, c.clone().darken(50));
-        install$3('darkest_' + name, c.clone().darken(75));
+        install$3('light_' + name, c.lighten(25));
+        install$3('lighter_' + name, c.lighten(50));
+        install$3('lightest_' + name, c.lighten(75));
+        install$3('dark_' + name, c.darken(25));
+        install$3('darker_' + name, c.darken(50));
+        install$3('darkest_' + name, c.darken(75));
         return c;
     }
     const NONE = install$3('NONE', -1);
@@ -2624,31 +2546,32 @@
         fromCss: fromCss,
         fromName: fromName,
         fromNumber: fromNumber,
-        make: make$7,
+        make: make$8,
         from: from$2,
         separate: separate,
-        swap: swap,
         relativeLuminance: relativeLuminance,
         distance: distance,
         smoothScalar: smoothScalar,
         install: install$3,
         installSpread: installSpread,
-        NONE: NONE
+        NONE: NONE,
+        BLACK: BLACK,
+        WHITE: WHITE
     });
 
     class Mixer {
         constructor(base) {
             this.ch = first(base === null || base === void 0 ? void 0 : base.ch, -1);
-            this.fg = make$7(base === null || base === void 0 ? void 0 : base.fg);
-            this.bg = make$7(base === null || base === void 0 ? void 0 : base.bg);
+            this.fg = make$8(base === null || base === void 0 ? void 0 : base.fg);
+            this.bg = make$8(base === null || base === void 0 ? void 0 : base.bg);
         }
         _changed() {
             return this;
         }
         copy(other) {
             this.ch = other.ch || -1;
-            this.fg.copy(other.fg || -1);
-            this.bg.copy(other.bg || -1);
+            this.fg = from$2(other.fg);
+            this.bg = from$2(other.bg);
             return this._changed();
         }
         clone() {
@@ -2666,14 +2589,14 @@
         }
         nullify() {
             this.ch = -1;
-            this.fg.nullify();
-            this.bg.nullify();
+            this.fg = NONE;
+            this.bg = NONE;
             return this._changed();
         }
         blackOut() {
             this.ch = -1;
-            this.fg.blackOut();
-            this.bg.blackOut();
+            this.fg = BLACK;
+            this.bg = BLACK;
             return this._changed();
         }
         draw(ch = -1, fg = -1, bg = -1) {
@@ -2682,11 +2605,11 @@
             }
             if (fg !== -1 && fg !== null) {
                 fg = from$2(fg);
-                this.fg.copy(fg);
+                this.fg = this.fg.blend(fg);
             }
             if (bg !== -1 && bg !== null) {
                 bg = from$2(bg);
-                this.bg.copy(bg);
+                this.bg = this.bg.blend(bg);
             }
             return this._changed();
         }
@@ -2703,9 +2626,9 @@
             if (src.ch)
                 this.ch = src.ch;
             if ((src.fg && src.fg !== -1) || src.fg === 0)
-                this.fg.mix(src.fg, opacity);
+                this.fg = this.fg.mix(src.fg, opacity);
             if ((src.bg && src.bg !== -1) || src.bg === 0)
-                this.bg.mix(src.bg, opacity);
+                this.bg = this.bg.mix(src.bg, opacity);
             return this._changed();
         }
         invert() {
@@ -2715,47 +2638,47 @@
         multiply(color, fg = true, bg = true) {
             color = from$2(color);
             if (fg) {
-                this.fg.multiply(color);
+                this.fg = this.fg.multiply(color);
             }
             if (bg) {
-                this.bg.multiply(color);
+                this.bg = this.bg.multiply(color);
             }
             return this._changed();
         }
         scale(multiplier, fg = true, bg = true) {
             if (fg)
-                this.fg.scale(multiplier);
+                this.fg = this.fg.scale(multiplier);
             if (bg)
-                this.bg.scale(multiplier);
+                this.bg = this.bg.scale(multiplier);
             return this._changed();
         }
         mix(color, fg = 50, bg = fg) {
             color = from$2(color);
             if (fg > 0) {
-                this.fg.mix(color, fg);
+                this.fg = this.fg.mix(color, fg);
             }
             if (bg > 0) {
-                this.bg.mix(color, bg);
+                this.bg = this.bg.mix(color, bg);
             }
             return this._changed();
         }
         add(color, fg = 100, bg = fg) {
             color = from$2(color);
             if (fg > 0) {
-                this.fg.add(color, fg);
+                this.fg = this.fg.add(color, fg);
             }
             if (bg > 0) {
-                this.bg.add(color, bg);
+                this.bg = this.bg.add(color, bg);
             }
             return this._changed();
         }
         separate() {
-            separate(this.fg, this.bg);
+            [this.fg, this.bg] = separate(this.fg, this.bg);
             return this._changed();
         }
         bake(clearDancing = false) {
-            this.fg.bake(clearDancing);
-            this.bg.bake(clearDancing);
+            this.fg = this.fg.bake(clearDancing);
+            this.bg = this.bg.bake(clearDancing);
             this._changed();
             return {
                 ch: this.ch,
@@ -3494,15 +3417,29 @@
             if (typeof glyph !== 'number') {
                 glyph = this.toGlyph(glyph);
             }
+            glyph = glyph >= 0 ? glyph & 0xff : current >> 24;
             if (typeof fg !== 'number') {
-                fg = from$2(fg).toInt();
+                fg = from$2(current & 0xfff)
+                    .blend(fg)
+                    .toInt();
+            }
+            else if (fg < 0) {
+                fg = current & 0xfff;
+            }
+            else {
+                fg = fg & 0xfff;
             }
             if (typeof bg !== 'number') {
-                bg = from$2(bg).toInt();
+                bg = from$2((current >> 12) & 0xfff)
+                    .blend(bg)
+                    .toInt();
             }
-            glyph = glyph >= 0 ? glyph & 0xff : current >> 24;
-            bg = bg >= 0 ? bg & 0xfff : (current >> 12) & 0xfff;
-            fg = fg >= 0 ? fg & 0xfff : current & 0xfff;
+            else if (bg < 0) {
+                bg = (current >> 12) & 0xfff;
+            }
+            else {
+                bg = bg & 0xfff;
+            }
             const style = (glyph << 24) + (bg << 12) + fg;
             this.set(x, y, style);
             if (style !== current)
@@ -3524,33 +3461,11 @@
         }
         fill(glyph = 0, fg = 0xfff, bg = 0) {
             if (arguments.length == 1) {
-                bg = from$2(glyph).toInt();
+                bg = from$2(glyph);
                 glyph = 0;
                 fg = 0;
             }
-            else {
-                if (typeof glyph !== 'number') {
-                    if (typeof glyph === 'string') {
-                        glyph = this.toGlyph(glyph);
-                    }
-                    else {
-                        throw new Error('glyph must be number or char');
-                    }
-                }
-                if (typeof fg !== 'number') {
-                    fg = from$2(fg).toInt();
-                }
-                if (typeof bg !== 'number') {
-                    bg = from$2(bg).toInt();
-                }
-            }
-            glyph = glyph & 0xff;
-            fg = fg & 0xfff;
-            bg = bg & 0xfff;
-            const style = (glyph << 24) + (bg << 12) + fg;
-            this._data.fill(style);
-            this.changed = true;
-            return this;
+            return this.fillRect(0, 0, this.width, this.height, glyph, fg, bg);
         }
         copy(other) {
             this._width = other._width;
@@ -3560,8 +3475,7 @@
             return this;
         }
         drawText(x, y, text, fg = 0xfff, bg = -1, maxWidth = 0, align = 'left') {
-            if (!this.hasXY(x, y))
-                return 0;
+            // if (!this.hasXY(x, y)) return 0;
             if (typeof fg !== 'number')
                 fg = from$2(fg);
             if (typeof bg !== 'number')
@@ -3583,8 +3497,7 @@
             return 1; // used 1 line
         }
         wrapText(x, y, width, text, fg = 0xfff, bg = -1, indent = 0) {
-            if (!this.hasXY(x, y))
-                return 0;
+            // if (!this.hasXY(x, y)) return 0;
             if (typeof fg !== 'number')
                 fg = from$2(fg);
             if (typeof bg !== 'number')
@@ -3615,9 +3528,9 @@
             if (typeof ch !== 'number')
                 ch = this.toGlyph(ch);
             if (typeof fg !== 'number')
-                fg = from$2(fg).toInt();
+                fg = from$2(fg);
             if (typeof bg !== 'number')
-                bg = from$2(bg).toInt();
+                bg = from$2(bg);
             const xw = Math.min(x + w, this.width);
             const yh = Math.min(y + h, this.height);
             for (let i = x; i < xw; ++i) {
@@ -3641,13 +3554,15 @@
             const mixer = new Mixer();
             const data = this.info(x, y);
             mixer.drawSprite(data);
-            mixer.fg.add(color, strength);
-            mixer.bg.add(color, strength);
+            mixer.fg = mixer.fg.add(color, strength);
+            mixer.bg = mixer.bg.add(color, strength);
             this.drawSprite(x, y, mixer);
             return this;
         }
         mix(color, percent, x = 0, y = 0, width = 0, height = 0) {
             color = from$2(color);
+            if (color.isNull())
+                return this;
             const mixer = new Mixer();
             if (!width)
                 width = x ? 1 : this.width;
@@ -3659,8 +3574,30 @@
                 for (let j = y; j < endY; ++j) {
                     const data = this.info(i, j);
                     mixer.drawSprite(data);
-                    mixer.fg.mix(color, percent);
-                    mixer.bg.mix(color, percent);
+                    mixer.fg = mixer.fg.mix(color, percent);
+                    mixer.bg = mixer.bg.mix(color, percent);
+                    this.drawSprite(i, j, mixer);
+                }
+            }
+            return this;
+        }
+        blend(color, x = 0, y = 0, width = 0, height = 0) {
+            color = from$2(color);
+            if (color.isNull())
+                return this;
+            const mixer = new Mixer();
+            if (!width)
+                width = x ? 1 : this.width;
+            if (!height)
+                height = y ? 1 : this.height;
+            const endX = Math.min(width + x, this.width);
+            const endY = Math.min(height + y, this.height);
+            for (let i = x; i < endX; ++i) {
+                for (let j = y; j < endY; ++j) {
+                    const data = this.info(i, j);
+                    mixer.drawSprite(data);
+                    mixer.fg = mixer.fg.blend(color);
+                    mixer.bg = mixer.bg.blend(color);
                     this.drawSprite(i, j, mixer);
                 }
             }
@@ -3690,14 +3627,14 @@
             console.log(data.join('\n'));
         }
     }
-    function make$6(width, height) {
+    function make$7(width, height) {
         return new Buffer$1(width, height);
     }
 
     var buffer = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Buffer: Buffer$1,
-        make: make$6
+        make: make$7
     });
 
     class Event {
@@ -4157,11 +4094,11 @@
             e.preventDefault();
         }
     }
-    function make$5() {
+    function make$6() {
         return new Loop();
     }
     // Makes a default global loop that you access through these funcitons...
-    const loop = make$5();
+    const loop = make$6();
 
     var io = /*#__PURE__*/Object.freeze({
         __proto__: null,
@@ -4183,7 +4120,7 @@
         ignoreKeyEvent: ignoreKeyEvent,
         makeMouseEvent: makeMouseEvent,
         Loop: Loop,
-        make: make$5,
+        make: make$6,
         loop: loop
     });
 
@@ -4338,7 +4275,7 @@
                 flag |= FovFlags.REVEALED;
             if (visible)
                 flag |= FovFlags.VISIBLE;
-            this.flags = make$8(site.width, site.height, flag);
+            this.flags = make$9(site.width, site.height, flag);
             // this.needsUpdate = true;
             if (opts.callback) {
                 this.callback = opts.callback;
@@ -5150,7 +5087,7 @@
         emit: emit
     });
 
-    function make$4(v) {
+    function make$5(v) {
         if (v === undefined)
             return () => 100;
         if (v === null)
@@ -5203,7 +5140,7 @@
 
     var frequency = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        make: make$4
+        make: make$5
     });
 
     class Scheduler {
@@ -6163,7 +6100,7 @@ void main() {
         return { position, uv };
     }
 
-    function make$3(...args) {
+    function make$4(...args) {
         let width = args[0];
         let height = args[1];
         let opts = args[2];
@@ -6224,7 +6161,7 @@ void main() {
         BaseCanvas: BaseCanvas,
         Canvas2D: Canvas2D,
         CanvasGL: CanvasGL,
-        make: make$3
+        make: make$4
     });
 
     class Sprite {
@@ -6253,7 +6190,7 @@ void main() {
         }
     }
     const sprites = {};
-    function make$2(...args) {
+    function make$3(...args) {
         let ch = null, fg = -1, bg = -1, opacity;
         if (args.length == 0) {
             return new Sprite(null, -1, -1);
@@ -6298,13 +6235,13 @@ void main() {
         if (typeof fg === 'string')
             fg = from$2(fg);
         else if (Array.isArray(fg))
-            fg = make$7(fg);
+            fg = make$8(fg);
         else if (fg === undefined || fg === null)
             fg = -1;
         if (typeof bg === 'string')
             bg = from$2(bg);
         else if (Array.isArray(bg))
-            bg = make$7(bg);
+            bg = make$8(bg);
         else if (bg === undefined || bg === null)
             bg = -1;
         return new Sprite(ch, fg, bg, opacity);
@@ -6316,12 +6253,12 @@ void main() {
                 throw new Error('Failed to find sprite: ' + args[0]);
             return sprite;
         }
-        return make$2(args);
+        return make$3(args);
     }
     function install$2(name, ...args) {
         let sprite;
         // @ts-ignore
-        sprite = make$2(...args);
+        sprite = make$3(...args);
         sprite.name = name;
         sprites[name] = sprite;
         return sprite;
@@ -6331,7 +6268,7 @@ void main() {
         __proto__: null,
         Sprite: Sprite,
         sprites: sprites,
-        make: make$2,
+        make: make$3,
         from: from$1,
         install: install$2,
         Mixer: Mixer,
@@ -6636,7 +6573,7 @@ void main() {
         const blob = new Blob(opts);
         return blob.carve(grid.width, grid.height, (x, y) => (grid[x][y] = 1));
     }
-    function make$1(opts = {}) {
+    function make$2(opts = {}) {
         return new Blob(opts);
     }
 
@@ -6644,7 +6581,7 @@ void main() {
         __proto__: null,
         Blob: Blob,
         fillBlob: fillBlob,
-        make: make$1
+        make: make$2
     });
 
     // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
@@ -6652,14 +6589,14 @@ void main() {
         INTENSITY_DARK: 20,
         INTENSITY_SHADOW: 50,
     }); // less than 20% for highest color in rgb
-    const LIGHT_COMPONENTS = make$7();
+    let LIGHT_COMPONENTS = make$8();
     class Light {
         constructor(color, radius = 1, fadeTo = 0, pass = false) {
             this.fadeTo = 0;
             this.passThroughActors = false;
             this.id = null;
             this.color = from$2(color); /* color */
-            this.radius = make$a(radius);
+            this.radius = make$b(radius);
             this.fadeTo = fadeTo;
             this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
         }
@@ -6684,7 +6621,7 @@ void main() {
             if (outerRadius < 1)
                 return false;
             // calcLightComponents(colorComponents, this);
-            LIGHT_COMPONENTS.copy(this.color).bake();
+            LIGHT_COMPONENTS = this.color.bake();
             // console.log('paint', LIGHT_COMPONENTS.toString(true), x, y, outerRadius);
             // the miner's light does not dispel IS_IN_SHADOW,
             // so the player can be in shadow despite casting his own light.
@@ -6738,7 +6675,7 @@ void main() {
     function isShadowLight(light, threshold = 40) {
         return intensity(light) <= threshold;
     }
-    function make(...args) {
+    function make$1(...args) {
         if (args.length == 1) {
             const config = args[0];
             if (typeof config === 'string') {
@@ -6778,15 +6715,15 @@ void main() {
         }
         if (arg && arg.paint)
             return arg;
-        return make(arg);
+        return make$1(arg);
     }
     function install(id, ...args) {
         let source;
         if (args.length == 1) {
-            source = make(args[0]);
+            source = make$1(args[0]);
         }
         else {
-            source = make(args[0], args[1], args[2], args[3]);
+            source = make$1(args[0], args[1], args[2], args[3]);
         }
         lights[id] = source;
         source.id = id;
@@ -6829,10 +6766,10 @@ void main() {
             this.changed = false;
             this.glowLightChanged = false;
             this.dynamicLightChanged = false;
-            this.light = make$8(map.width, map.height, () => this.ambient.slice());
-            this.glowLight = make$8(map.width, map.height, () => this.ambient.slice());
-            this.oldLight = make$8(map.width, map.height, () => this.ambient.slice());
-            this.flags = make$8(map.width, map.height);
+            this.light = make$9(map.width, map.height, () => this.ambient.slice());
+            this.glowLight = make$9(map.width, map.height, () => this.ambient.slice());
+            this.oldLight = make$9(map.width, map.height, () => this.ambient.slice());
+            this.flags = make$9(map.width, map.height);
             this.finishLightUpdate();
         }
         copy(other) {
@@ -7085,12 +7022,187 @@ void main() {
         intensity: intensity,
         isDarkLight: isDarkLight,
         isShadowLight: isShadowLight,
-        make: make,
+        make: make$1,
         lights: lights,
         from: from,
         install: install,
         installAll: installAll,
         LightSystem: LightSystem
+    });
+
+    // Tweeing API based on - http://tweenjs.github.io/tween.js/
+    class Tween {
+        constructor(src) {
+            this._repeat = 0;
+            this._count = 0;
+            this._from = false;
+            this._duration = 0;
+            this._delay = 0;
+            this._repeatDelay = -1;
+            this._yoyo = false;
+            this._time = Number.MAX_SAFE_INTEGER;
+            this._startTime = 0;
+            this._goal = {};
+            this._start = {};
+            this._startCb = null;
+            this._updateCb = null;
+            this._repeatCb = null;
+            this._finishCb = null;
+            this._easing = linear;
+            this._interpolate = interpolate;
+            this._obj = src;
+        }
+        isRunning() {
+            return this._time < this._duration;
+        }
+        onStart(cb) {
+            this._startCb = cb;
+            return this;
+        }
+        onUpdate(cb) {
+            this._updateCb = cb;
+            return this;
+        }
+        onRepeat(cb) {
+            this._repeatCb = cb;
+            return this;
+        }
+        onFinish(cb) {
+            this._finishCb = cb;
+            return this;
+        }
+        to(goal, duration) {
+            this._goal = goal;
+            this._from = false;
+            if (duration !== undefined)
+                this._duration = duration;
+            return this;
+        }
+        from(start, duration) {
+            this._start = start;
+            this._from = true;
+            if (duration !== undefined)
+                this._duration = duration;
+            return this;
+        }
+        duration(v) {
+            if (v === undefined)
+                return this._duration;
+            this._duration = v;
+            return this;
+        }
+        repeat(v) {
+            if (v === undefined)
+                return this._repeat;
+            this._repeat = v;
+            return this;
+        }
+        delay(v) {
+            if (v === undefined)
+                return this._delay;
+            this._delay = v;
+            return this;
+        }
+        repeatDelay(v) {
+            if (v === undefined)
+                return this._repeatDelay;
+            this._repeatDelay = v;
+            return this;
+        }
+        yoyo(v) {
+            if (v === undefined)
+                return this._yoyo;
+            this._yoyo = v;
+            return this;
+        }
+        start() {
+            this._time = 0;
+            this._startTime = this._delay;
+            this._count = 0;
+            if (this._from) {
+                this._goal = {};
+                Object.keys(this._start).forEach((key) => (this._goal[key] = this._obj[key]));
+                this._updateProperties(this._obj, this._start, this._goal, 0);
+            }
+            else {
+                this._start = {};
+                Object.keys(this._goal).forEach((key) => (this._start[key] = this._obj[key]));
+            }
+            return this;
+        }
+        tick(dt) {
+            if (!this.isRunning())
+                return this;
+            this._time += dt;
+            if (this._startTime) {
+                if (this._startTime > this._time)
+                    return this;
+                this._time -= this._startTime;
+                this._startTime = 0;
+            }
+            if (this._count === 0) {
+                this._count = 1;
+                if (this._startCb) {
+                    this._startCb.call(this, this._obj, 0);
+                }
+            }
+            const pct = this._easing(this._time / this._duration);
+            let madeChange = this._updateProperties(this._obj, this._start, this._goal, pct);
+            if (madeChange && this._updateCb) {
+                this._updateCb.call(this, this._obj, pct);
+            }
+            if (this._time >= this._duration) {
+                if (this._repeat > this._count) {
+                    // reset starting values
+                    Object.entries(this._start).forEach(([key, value]) => {
+                        this._obj[key] = value;
+                    });
+                    this._time -= this._duration;
+                    this._startTime =
+                        this._repeatDelay > -1 ? this._repeatDelay : this._delay;
+                    ++this._count;
+                    if (this._yoyo) {
+                        [this._start, this._goal] = [this._goal, this._start];
+                    }
+                    if (this._repeatCb)
+                        this._repeatCb.call(this, this._obj, this._count);
+                }
+                else if (this._finishCb)
+                    this._finishCb.call(this, this._obj, 1);
+            }
+            return this;
+        }
+        _updateProperties(obj, start, goal, pct) {
+            let madeChange = false;
+            Object.entries(goal).forEach(([field, goalV]) => {
+                const currentV = obj[field];
+                const startV = start[field];
+                const updatedV = this._interpolate(startV, goalV, pct);
+                if (updatedV !== currentV) {
+                    obj[field] = updatedV;
+                    madeChange = true;
+                }
+            });
+            return madeChange;
+        }
+    }
+    function make(src) {
+        return new Tween(src);
+    }
+    function linear(pct) {
+        return clamp(pct, 0, 1);
+    }
+    // TODO - string, bool, Color
+    function interpolate(start, goal, pct) {
+        return Math.floor((goal - start) * pct) + start;
+    }
+
+    var tween = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Tween: Tween,
+        make: make,
+        linear: linear,
+        interpolate: interpolate
     });
 
     exports.ERROR = ERROR;
@@ -7140,10 +7252,11 @@ void main() {
     exports.sprites = sprites;
     exports.sum = sum;
     exports.text = index$4;
+    exports.tween = tween;
     exports.types = types;
     exports.xy = xy;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));
 //# sourceMappingURL=gw-utils.js.map

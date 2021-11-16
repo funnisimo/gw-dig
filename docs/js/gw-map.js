@@ -993,8 +993,8 @@
     });
     install$3('FLOOR', {
         ch: '\u00b7',
-        fg: [30, 30, 30, 20, 0, 0, 0],
-        bg: [2, 2, 10, 0, 2, 2, 0],
+        fg: GWU__namespace.color.from([30, 30, 30]).rand(20, 0, 0, 0),
+        bg: GWU__namespace.color.from([2, 2, 10]).rand(0, 2, 2, 0),
         priority: 10,
         article: 'the',
         flavor: 'the stone floor',
@@ -1067,8 +1067,8 @@
     });
     install$3('WALL', {
         ch: '#',
-        fg: [7, 7, 7, 0, 3, 3, 3],
-        bg: [40, 40, 40, 10, 10, 0, 5],
+        fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
+        bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
         priority: 100,
         flags: 'L_WALL_FLAGS',
         article: 'a',
@@ -1078,8 +1078,8 @@
     });
     install$3('IMPREGNABLE', {
         ch: '#',
-        fg: [7, 7, 7, 0, 3, 3, 3],
-        bg: [40, 40, 40, 10, 10, 0, 5],
+        fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
+        bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
         priority: 100,
         flags: 'L_WALL_FLAGS, IMPREGNABLE',
         article: 'a',
@@ -1089,8 +1089,8 @@
     });
     install$3('LAKE', {
         ch: '~',
-        fg: [5, 8, 20, 10, 0, 4, 15, true],
-        bg: [10, 15, 41, 6, 5, 5, 5, true],
+        fg: GWU__namespace.color.from([5, 8, 20]).dance(10, 0, 4, 15),
+        bg: GWU__namespace.color.from([10, 15, 41]).dance(6, 5, 5, 5),
         priority: 50,
         flags: 'T_DEEP_WATER',
         name: 'deep water',
@@ -1099,8 +1099,8 @@
     });
     install$3('SHALLOW', {
         ch: '\u00b7',
-        fg: [5, 8, 10, 10, 0, 4, 15, true],
-        bg: [10, 30, 30, 6, 0, 10, 10, true],
+        fg: GWU__namespace.color.from([5, 8, 10]).dance(10, 0, 4, 15),
+        bg: GWU__namespace.color.from([10, 30, 30]).dance(6, 0, 10, 10),
         priority: 20,
         name: 'shallow water',
         article: 'the',
@@ -2812,7 +2812,7 @@
             this.applyLight(dest, cell, fov);
             if (cell.hasEntityFlag(Entity$1.L_VISUALLY_DISTINCT |
                 Entity$1.L_LIST_IN_SIDEBAR, true)) {
-                GWU__namespace.color.separate(dest.fg, dest.bg);
+                [dest.fg, dest.bg] = GWU__namespace.color.separate(dest.fg, dest.bg);
             }
             return true;
         }
@@ -2844,7 +2844,7 @@
         //         dest.blackOut();
         //     }
         //     if (cell.hasEntityFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
-        //         GWU.color.separate(dest.fg, dest.bg);
+        //         [dest.fg, dest.bg] = GWU.color.separate(dest.fg, dest.bg);
         //     }
         // }
         getAppearance(dest, cell) {
