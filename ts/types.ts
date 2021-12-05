@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 
 export interface RoomConfig {
     fn?: RoomFn;
@@ -10,7 +10,7 @@ export interface RoomConfig {
 
 export type RoomFn = (
     config: RoomConfig,
-    grid: GW.grid.NumGrid
+    grid: GWU.grid.NumGrid
 ) => Room | RoomConfig | null;
 
 export interface RoomData extends RoomConfig {
@@ -20,14 +20,14 @@ export interface RoomData extends RoomConfig {
 
 export type HallFn = (
     opts: HallConfig,
-    grid: GW.grid.NumGrid,
+    grid: GWU.grid.NumGrid,
     room: Room
 ) => Hall | any | null;
 export interface HallConfig {
     fn?: HallFn;
     chance?: number;
-    length?: GW.range.RangeBase | [GW.range.RangeBase, GW.range.RangeBase];
-    width?: GW.range.RangeBase;
+    length?: GWU.range.RangeBase | [GWU.range.RangeBase, GWU.range.RangeBase];
+    width?: GWU.range.RangeBase;
     tile?: number;
     [x: string]: any;
 }
@@ -41,8 +41,8 @@ export interface DigConfig {
     room: string | any;
     hall?: string | HallConfig | boolean;
     tries?: number;
-    locs?: GW.utils.Loc[];
-    loc?: GW.utils.Loc;
+    locs?: GWU.xy.Loc[];
+    loc?: GWU.xy.Loc;
     door?: number | boolean;
 }
 
@@ -56,15 +56,15 @@ export class Hall {
     public dir: number;
     public width: number = 1;
 
-    public doors: GW.utils.Loc[] = [];
+    public doors: GWU.xy.Loc[] = [];
 
-    constructor(loc: GW.utils.Loc, dir: number, length: number, width = 1) {
+    constructor(loc: GWU.xy.Loc, dir: number, length: number, width = 1) {
         this.x = loc[0];
         this.y = loc[1];
-        const d = GW.utils.DIRS[dir];
+        const d = GWU.xy.DIRS[dir];
         this.length = length;
         this.width = width;
-        if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+        if (dir === GWU.xy.UP || dir === GWU.xy.DOWN) {
             this.x2 = this.x + (width - 1);
             this.y2 = this.y + (length - 1) * d[1];
         } else {
@@ -97,7 +97,7 @@ export class Room {
     public width: number;
     public height: number;
 
-    public doors: GW.utils.Loc[] = [];
+    public doors: GWU.xy.Loc[] = [];
 
     public hall: Hall | null = null;
 
@@ -145,6 +145,6 @@ export interface DigInfo {
     room: RoomData;
     hall: HallData | null;
     tries: number;
-    locs: GW.utils.Loc[] | null;
+    locs: GWU.xy.Loc[] | null;
     door: number;
 }

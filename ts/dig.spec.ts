@@ -1,10 +1,10 @@
 import 'jest-extended';
-import * as UTILS from '../test/utils';
-import * as GW from 'gw-utils';
+// import * as UTILS from '../test/utils';
+import * as GWU from 'gw-utils';
 import * as Dig from './dig';
 
 describe('Dig', () => {
-    let map: GW.grid.NumGrid;
+    let map: GWU.grid.NumGrid;
 
     beforeAll(() => {
         Dig.room.install('ROOM', Dig.room.rectangular, {
@@ -102,13 +102,12 @@ describe('Dig', () => {
     });
 
     beforeEach(() => {
-        UTILS.mockRandom();
-        GW.random.seed(12345);
-        map = GW.grid.alloc(80, 30);
+        GWU.random.seed(12345);
+        map = GWU.grid.alloc(80, 30);
     });
 
     afterEach(() => {
-        GW.grid.free(map);
+        GWU.grid.free(map);
         jest.restoreAllMocks();
     });
 
@@ -133,7 +132,7 @@ describe('Dig', () => {
     test('can randomly attach rooms', () => {
         Dig.start(map);
 
-        let locs: boolean | GW.utils.Loc[] = [[38, 28]];
+        let locs: boolean | GWU.xy.Loc[] = [[38, 28]];
         let roomCount = 4;
 
         let room = Dig.addRoom(map, {
@@ -156,27 +155,27 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [11, 9],
-            [15, 10],
-            [3, 18],
-            [1, 15],
+            [8, 20],
+            [24, 21],
+            [16, 28],
+            [6, 22],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR); // starting door
 
-        map.forRect(37, 21, 10, 7, (_c, i, j) =>
+        map.forRect(32, 6, 18, 7, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(36, 24)).toEqual(Dig.DOOR);
-        expect(tileAt(18, 21)).toEqual(Dig.DOOR);
-        expect(tileAt(3, 18)).toEqual(Dig.DOOR);
-        expect(tileAt(17, 18)).toEqual(Dig.DOOR);
+        expect(tileAt(31, 9)).toEqual(Dig.DOOR);
+        expect(tileAt(27, 13)).toEqual(Dig.DOOR);
+        expect(tileAt(24, 21)).toEqual(Dig.DOOR);
+        expect(tileAt(37, 22)).toEqual(Dig.DOOR);
     });
 
     test('can chain five rooms', () => {
         Dig.start(map);
 
-        let locs: boolean | GW.utils.Loc[] = [[38, 28]];
+        let locs: boolean | GWU.xy.Loc[] = [[38, 28]];
         let roomCount = 5;
         let room: Dig.Room | null;
 
@@ -194,27 +193,27 @@ describe('Dig', () => {
         // map.dump();
 
         expect(room!.doors).toEqual([
-            [45, 2],
-            [48, 6],
-            [43, 9],
-            [42, 4],
+            [49, 11],
+            [55, 12],
+            [53, 17],
+            [47, 13],
         ]);
         expect(tileAt(38, 28)).toEqual(Dig.DOOR);
 
-        map.forRect(37, 21, 10, 7, (_c, i, j) =>
+        map.forRect(48, 12, 7, 5, (_c, i, j) =>
             expect(tileAt(i, j)).toEqual(Dig.FLOOR)
         );
 
-        expect(tileAt(47, 21)).toEqual(Dig.DOOR);
-        expect(tileAt(55, 20)).toEqual(Dig.DOOR);
-        expect(tileAt(60, 16)).toEqual(Dig.DOOR);
-        expect(tileAt(59, 6)).toEqual(Dig.DOOR);
+        expect(tileAt(43, 25)).toEqual(Dig.DOOR);
+        expect(tileAt(60, 21)).toEqual(Dig.DOOR);
+        expect(tileAt(70, 20)).toEqual(Dig.DOOR);
+        expect(tileAt(69, 12)).toEqual(Dig.DOOR);
     });
 
     // test('adds loops', () => {
     //     Dig.start(map);
 
-    //     let locs: boolean | GW.utils.Loc[] = [[38, 28]];
+    //     let locs: boolean | GW.xy.Loc[] = [[38, 28]];
     //     let roomCount = 15;
 
     //     for (let i = 0; i < roomCount; ++i) {
@@ -315,19 +314,19 @@ describe('Dig', () => {
     // });
 
     describe('attachRoom', () => {
-        let map: GW.grid.NumGrid;
-        let grid: GW.grid.NumGrid;
+        let map: GWU.grid.NumGrid;
+        let grid: GWU.grid.NumGrid;
 
         beforeEach(() => {
-            map = GW.grid.alloc(80, 30);
-            grid = GW.grid.alloc(map.width, map.height);
+            map = GWU.grid.alloc(80, 30);
+            grid = GWU.grid.alloc(map.width, map.height);
             expect(map).not.toBe(grid);
             Dig.start(map);
         });
 
         afterEach(() => {
-            GW.grid.free(grid);
-            GW.grid.free(map);
+            GWU.grid.free(grid);
+            GWU.grid.free(map);
         });
 
         test('room to room', () => {
@@ -337,7 +336,7 @@ describe('Dig', () => {
                 grid
             ) as Dig.Room;
             expect(room.doors).toEqual([]);
-            room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
+            room.doors[GWU.xy.LEFT] = [room.x - 1, room.y + 2];
 
             expect(
                 Dig.utils.attachRoom(map, grid, room, {
@@ -350,7 +349,7 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(map[45][17]).toEqual(2);
+            expect(map[45][15]).toEqual(2);
         });
 
         test('room with hall to room', () => {
@@ -360,7 +359,7 @@ describe('Dig', () => {
                 grid
             ) as Dig.Room;
             expect(room.doors).toEqual([]);
-            room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
+            room.doors[GWU.xy.LEFT] = [room.x - 1, room.y + 2];
             room.hall = Dig.hall.dig({ chance: 100 }, grid, room) as Dig.Hall;
 
             expect(
@@ -374,7 +373,7 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(map[45][17]).toEqual(2);
+            expect(map[45][15]).toEqual(2);
         });
 
         test('room with wide hall to room', () => {
@@ -384,7 +383,7 @@ describe('Dig', () => {
                 grid
             ) as Dig.Room;
             expect(room.doors).toEqual([]);
-            room.doors[GW.utils.LEFT] = [room.x - 1, room.y + 2];
+            room.doors[GWU.xy.LEFT] = [room.x - 1, room.y + 2];
             room.hall = Dig.hall.digWide(
                 { chance: 100, width: 2 },
                 grid,
@@ -404,32 +403,26 @@ describe('Dig', () => {
             ).toBeTrue();
 
             // map.dump();
-            expect(room.x).toEqual(55);
-            expect(room.y).toEqual(15);
+            expect(room.x).toEqual(58);
+            expect(room.y).toEqual(13);
 
-            expect(map[45][17]).toEqual(2);
-            expect(map[45][18]).toEqual(2);
+            expect(map[45][15]).toEqual(2);
+            expect(map[45][16]).toEqual(2);
         });
     });
 
     test('directionOfDoorSite', () => {
-        const a = GW.grid.alloc(10, 10, 0);
+        const a = GWU.grid.alloc(10, 10, 0);
 
         a.fillRect(2, 2, 3, 3, 1);
         expect(Dig.utils.directionOfDoorSite(a, 2, 4, 1)).toEqual(
-            GW.utils.NO_DIRECTION
+            GWU.xy.NO_DIRECTION
         );
-        expect(Dig.utils.directionOfDoorSite(a, 1, 3, 1)).toEqual(
-            GW.utils.LEFT
-        );
-        expect(Dig.utils.directionOfDoorSite(a, 5, 3, 1)).toEqual(
-            GW.utils.RIGHT
-        );
-        expect(Dig.utils.directionOfDoorSite(a, 3, 1, 1)).toEqual(GW.utils.UP);
-        expect(Dig.utils.directionOfDoorSite(a, 3, 5, 1)).toEqual(
-            GW.utils.DOWN
-        );
+        expect(Dig.utils.directionOfDoorSite(a, 1, 3, 1)).toEqual(GWU.xy.LEFT);
+        expect(Dig.utils.directionOfDoorSite(a, 5, 3, 1)).toEqual(GWU.xy.RIGHT);
+        expect(Dig.utils.directionOfDoorSite(a, 3, 1, 1)).toEqual(GWU.xy.UP);
+        expect(Dig.utils.directionOfDoorSite(a, 3, 5, 1)).toEqual(GWU.xy.DOWN);
 
-        GW.grid.free(a);
+        GWU.grid.free(a);
     });
 });

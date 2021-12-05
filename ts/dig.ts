@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as TYPES from './types';
 import * as SITE from './site';
 import * as UTILS from './utils';
@@ -16,12 +16,12 @@ export * as stairs from './stairs';
 export * as utils from './utils';
 export * from './types';
 
-export function start(map: GW.grid.NumGrid) {
+export function start(map: GWU.grid.NumGrid) {
     SITE.initSeqence(map.width * map.height);
     map.fill(0);
 }
 
-export function finish(map: GW.grid.NumGrid) {
+export function finish(map: GWU.grid.NumGrid) {
     removeDiagonalOpenings(map);
     finishWalls(map);
     finishDoors(map);
@@ -29,7 +29,7 @@ export function finish(map: GW.grid.NumGrid) {
 
 // Returns an array of door sites if successful
 export function addRoom(
-    map: GW.grid.NumGrid,
+    map: GWU.grid.NumGrid,
     opts?: string | TYPES.DigConfig
 ): TYPES.Room | null {
     opts = opts || { room: 'DEFAULT', hall: 'DEFAULT', tries: 10 };
@@ -45,7 +45,7 @@ export function addRoom(
         const name = opts.room;
         opts.room = ROOM.rooms[name];
         if (!opts.room) {
-            GW.utils.ERROR('Failed to find room: ' + name);
+            GWU.ERROR('Failed to find room: ' + name);
         }
     }
     const roomConfig = opts.room as TYPES.RoomConfig;
@@ -58,7 +58,7 @@ export function addRoom(
         const name = opts.hall;
         opts.hall = HALL.halls[name];
         if (!opts.hall) {
-            GW.utils.ERROR('Failed to find hall: ' + name);
+            GWU.ERROR('Failed to find hall: ' + name);
             return null;
         }
         hallConfig = opts.hall as TYPES.HallData;
@@ -73,7 +73,7 @@ export function addRoom(
     } else if (opts.door === true) {
         opts.door = SITE.DOOR;
     } else if (typeof opts.door === 'number') {
-        opts.door = GW.random.chance(opts.door) ? SITE.DOOR : SITE.FLOOR;
+        opts.door = GWU.random.chance(opts.door) ? SITE.DOOR : SITE.FLOOR;
     } else {
         opts.door = SITE.FLOOR;
     }
@@ -103,17 +103,17 @@ export function addRoom(
 
     const digger = opts.room;
 
-    const roomGrid = GW.grid.alloc(map.width, map.height);
+    const roomGrid = GWU.grid.alloc(map.width, map.height);
     let attachHall = false;
     if (hallConfig) {
         let hallChance =
             hallConfig.chance !== undefined ? hallConfig.chance : 15;
-        attachHall = GW.random.chance(hallChance);
+        attachHall = GWU.random.chance(hallChance);
     }
 
     // const force = config.force || false;
 
-    let result: boolean | GW.utils.Loc[] = false;
+    let result: boolean | GWU.xy.Loc[] = false;
     let room;
     let tries = opts.tries || 10;
     while (--tries >= 0 && !result) {
@@ -162,13 +162,13 @@ export function addRoom(
         // }
     }
 
-    GW.grid.free(roomGrid);
+    GWU.grid.free(roomGrid);
     return room && result ? room : null;
 }
 
 // Add some loops to the otherwise simply connected network of rooms.
 export function addLoops(
-    grid: GW.grid.NumGrid,
+    grid: GWU.grid.NumGrid,
     minimumPathingDistance: number,
     maxConnectionLength: number
 ) {
@@ -181,8 +181,8 @@ export function addLoops(
     maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
 
     const siteGrid = grid;
-    const pathGrid = GW.grid.alloc(grid.width, grid.height);
-    const costGrid = GW.grid.alloc(grid.width, grid.height);
+    const pathGrid = GWU.grid.alloc(grid.width, grid.height);
+    const costGrid = GWU.grid.alloc(grid.width, grid.height);
 
     const dirCoords: [number, number][] = [
         [1, 0],
@@ -266,7 +266,7 @@ export function addLoops(
                 }
 
                 if (j < maxConnectionLength) {
-                    GW.path.calculateDistances(
+                    GWU.path.calculateDistances(
                         pathGrid,
                         startX,
                         startY,
@@ -309,27 +309,27 @@ export function addLoops(
             }
         }
     }
-    GW.grid.free(pathGrid);
-    GW.grid.free(costGrid);
+    GWU.grid.free(pathGrid);
+    GWU.grid.free(costGrid);
 }
 
-export function addLakes(map: GW.grid.NumGrid, opts: any = {}) {
+export function addLakes(map: GWU.grid.NumGrid, opts: any = {}) {
     return LAKE.digLakes(map, opts);
 }
 
 export function addBridges(
-    map: GW.grid.NumGrid,
+    map: GWU.grid.NumGrid,
     minimumPathingDistance: number,
     maxConnectionLength: number
 ) {
     return LAKE.digBridges(map, minimumPathingDistance, maxConnectionLength);
 }
 
-export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
+export function addStairs(map: GWU.grid.NumGrid, opts: any = {}) {
     return STAIRS.addStairs(map, opts);
 }
 
-export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
+export function removeDiagonalOpenings(grid: GWU.grid.NumGrid) {
     let i, j, k, x1, y1;
     let diagonalCornerRemoved;
 
@@ -346,7 +346,7 @@ export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
                         SITE.isObstruction(grid, i + k, j + 1) &&
                         SITE.isPassable(grid, i + (1 - k), j + 1)
                     ) {
-                        if (GW.random.chance(50)) {
+                        if (GWU.random.chance(50)) {
                             x1 = i + (1 - k);
                             y1 = j;
                         } else {
@@ -362,7 +362,7 @@ export function removeDiagonalOpenings(grid: GW.grid.NumGrid) {
     } while (diagonalCornerRemoved == true);
 }
 
-export function finishDoors(grid: GW.grid.NumGrid) {
+export function finishDoors(grid: GWU.grid.NumGrid) {
     grid.forEach((cell, x, y) => {
         if (grid.isBoundaryXY(x, y)) return;
 
@@ -394,7 +394,7 @@ export function finishDoors(grid: GW.grid.NumGrid) {
     });
 }
 
-export function finishWalls(grid: GW.grid.NumGrid, tile: number = SITE.WALL) {
+export function finishWalls(grid: GWU.grid.NumGrid, tile: number = SITE.WALL) {
     grid.forEach((cell, i, j) => {
         if (cell == SITE.NOTHING) {
             grid[i][j] = tile;

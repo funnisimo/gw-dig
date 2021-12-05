@@ -2,7 +2,27 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gw-utils')) :
     typeof define === 'function' && define.amd ? define(['exports', 'gw-utils'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GW = global.GW || {}, global.GW));
-}(this, (function (exports, GW) { 'use strict';
+})(this, (function (exports, GWU) { 'use strict';
+
+    function _interopNamespace(e) {
+        if (e && e.__esModule) return e;
+        var n = Object.create(null);
+        if (e) {
+            Object.keys(e).forEach(function (k) {
+                if (k !== 'default') {
+                    var d = Object.getOwnPropertyDescriptor(e, k);
+                    Object.defineProperty(n, k, d.get ? d : {
+                        enumerable: true,
+                        get: function () { return e[k]; }
+                    });
+                }
+            });
+        }
+        n["default"] = e;
+        return n;
+    }
+
+    var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
 
     const NOTHING = 0;
     const FLOOR = 1;
@@ -32,11 +52,11 @@
         for (let i = 0; i < length; ++i) {
             SEQ[i] = i;
         }
-        GW.random.shuffle(SEQ);
+        GWU__namespace.random.shuffle(SEQ);
     }
     function fillCostGrid(source, costGrid) {
         source.forEach((_v, x, y) => {
-            costGrid[x][y] = isPassable(source, x, y) ? 1 : GW.path.OBSTRUCTION;
+            costGrid[x][y] = isPassable(source, x, y) ? 1 : GWU__namespace.path.OBSTRUCTION;
         });
     }
     function isPassable(grid, x, y) {
@@ -82,7 +102,7 @@
         return isDeep(grid, x, y) || isShallow(grid, x, y);
     }
 
-    const DIRS = GW.utils.DIRS;
+    const DIRS$1 = GWU__namespace.xy.DIRS;
     function attachRoom(map, roomGrid, room, opts) {
         // console.log('attachRoom');
         const doorSites = room.hall ? room.hall.doors : room.doors;
@@ -93,7 +113,7 @@
             if (!(map.get(x, y) == NOTHING))
                 continue;
             const dir = directionOfDoorSite(map, x, y, FLOOR);
-            if (dir != GW.utils.NO_DIRECTION) {
+            if (dir != GWU__namespace.xy.NO_DIRECTION) {
                 const oppDir = (dir + 2) % 4;
                 const door = doorSites[oppDir];
                 if (!door)
@@ -102,7 +122,7 @@
                 const offsetY = y - door[1];
                 if (door[0] != -1 && roomFitsAt(map, roomGrid, offsetX, offsetY)) {
                     // TYPES.Room fits here.
-                    GW.grid.offsetZip(map, roomGrid, offsetX, offsetY, (_d, _s, i, j) => {
+                    GWU__namespace.grid.offsetZip(map, roomGrid, offsetX, offsetY, (_d, _s, i, j) => {
                         map[i][j] = opts.room.tile || FLOOR;
                     });
                     attachDoor(map, room, opts, x, y, oppDir);
@@ -124,7 +144,7 @@
         if (!room.hall || !(room.hall.width > 1) || room.hall.dir !== dir) {
             return;
         }
-        if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+        if (dir === GWU__namespace.xy.UP || dir === GWU__namespace.xy.DOWN) {
             let didSomething = true;
             let k = 1;
             while (didSomething) {
@@ -198,19 +218,19 @@
         const fnOpen = typeof isOpen === 'function'
             ? isOpen
             : (v) => v == isOpen;
-        solutionDir = GW.utils.NO_DIRECTION;
+        solutionDir = GWU__namespace.xy.NO_DIRECTION;
         for (dir = 0; dir < 4; dir++) {
-            newX = x + DIRS[dir][0];
-            newY = y + DIRS[dir][1];
-            oppX = x - DIRS[dir][0];
-            oppY = y - DIRS[dir][1];
+            newX = x + DIRS$1[dir][0];
+            newY = y + DIRS$1[dir][1];
+            oppX = x - DIRS$1[dir][0];
+            oppY = y - DIRS$1[dir][1];
             if (grid.hasXY(oppX, oppY) &&
                 grid.hasXY(newX, newY) &&
                 fnOpen(grid[oppX][oppY], oppX, oppY, grid)) {
                 // This grid cell would be a valid tile on which to place a door that, facing outward, points dir.
-                if (solutionDir != GW.utils.NO_DIRECTION) {
+                if (solutionDir != GWU__namespace.xy.NO_DIRECTION) {
                     // Already claimed by another direction; no doors here!
-                    return GW.utils.NO_DIRECTION;
+                    return GWU__namespace.xy.NO_DIRECTION;
                 }
                 solutionDir = dir;
             }
@@ -226,11 +246,11 @@
             if (roomGrid[x][y])
                 continue;
             const dir = directionOfDoorSite(roomGrid, x, y, FLOOR);
-            if (dir != GW.utils.NO_DIRECTION) {
+            if (dir != GWU__namespace.xy.NO_DIRECTION) {
                 const dx = xy[0] - x;
                 const dy = xy[1] - y;
                 if (roomFitsAt(map, roomGrid, dx, dy)) {
-                    GW.grid.offsetZip(map, roomGrid, dx, dy, (_d, _s, i, j) => {
+                    GWU__namespace.grid.offsetZip(map, roomGrid, dx, dy, (_d, _s, i, j) => {
                         map[i][j] = opts.room.tile || FLOOR;
                     });
                     if (opts.room.door !== false) {
@@ -248,7 +268,7 @@
         return false;
     }
     function attachRoomAtMapDoor(map, mapDoors, roomGrid, room, opts) {
-        const doorIndexes = GW.random.sequence(mapDoors.length);
+        const doorIndexes = GWU__namespace.random.sequence(mapDoors.length);
         // console.log('attachRoomAtMapDoor', mapDoors.join(', '));
         // Slide hyperspace across real space, in a random but predetermined order, until the room matches up with a wall.
         for (let i = 0; i < doorIndexes.length; i++) {
@@ -266,7 +286,7 @@
     }
     function attachRoomAtXY(map, x, y, roomGrid, room, opts) {
         const doorSites = room.hall ? room.hall.doors : room.doors;
-        const dirs = GW.random.sequence(4);
+        const dirs = GWU__namespace.random.sequence(4);
         // console.log('attachRoomAtXY', x, y, doorSites.join(', '));
         for (let dir of dirs) {
             const oppDir = (dir + 2) % 4;
@@ -279,7 +299,7 @@
                 // TYPES.Room fits here.
                 const offX = x - door[0];
                 const offY = y - door[1];
-                GW.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
+                GWU__namespace.grid.offsetZip(map, roomGrid, offX, offY, (_d, _s, i, j) => {
                     map[i][j] = opts.room.tile || FLOOR;
                 });
                 attachDoor(map, room, opts, x, y, oppDir);
@@ -287,8 +307,8 @@
                 // const newDoors = doorSites.map((site) => {
                 //     const x0 = site[0] + offX;
                 //     const y0 = site[1] + offY;
-                //     if (x0 == x && y0 == y) return [-1, -1] as GW.utils.Loc;
-                //     return [x0, y0] as GW.utils.Loc;
+                //     if (x0 == x && y0 == y) return [-1, -1] as GW.xy.Loc;
+                //     return [x0, y0] as GW.xy.Loc;
                 // });
                 return true;
             }
@@ -300,24 +320,24 @@
         let dir;
         let doorSiteFailed;
         floorTile = floorTile || FLOOR;
-        const grid = GW.grid.alloc(sourceGrid.width, sourceGrid.height);
+        const grid = GWU__namespace.grid.alloc(sourceGrid.width, sourceGrid.height);
         grid.copy(sourceGrid);
         for (i = 0; i < grid.width; i++) {
             for (j = 0; j < grid.height; j++) {
                 if (!grid[i][j]) {
                     dir = directionOfDoorSite(grid, i, j, floorTile);
-                    if (dir != GW.utils.NO_DIRECTION) {
+                    if (dir != GWU__namespace.xy.NO_DIRECTION) {
                         // Trace a ray 10 spaces outward from the door site to make sure it doesn't intersect the room.
                         // If it does, it's not a valid door site.
-                        newX = i + DIRS[dir][0];
-                        newY = j + DIRS[dir][1];
+                        newX = i + DIRS$1[dir][0];
+                        newY = j + DIRS$1[dir][1];
                         doorSiteFailed = false;
                         for (k = 0; k < 10 && grid.hasXY(newX, newY) && !doorSiteFailed; k++) {
                             if (grid[newX][newY]) {
                                 doorSiteFailed = true;
                             }
-                            newX += DIRS[dir][0];
-                            newY += DIRS[dir][1];
+                            newX += DIRS$1[dir][0];
+                            newY += DIRS$1[dir][1];
                         }
                         if (!doorSiteFailed) {
                             grid[i][j] = dir + 200; // So as not to conflict with other tiles.
@@ -332,7 +352,7 @@
             const loc = grid.randomMatchingLoc(dir + 200) || [-1, -1];
             doorSites[dir] = [loc[0], loc[1]];
         }
-        GW.grid.free(grid);
+        GWU__namespace.grid.free(grid);
         return doorSites;
     }
 
@@ -353,10 +373,10 @@
             this.doors = [];
             this.x = loc[0];
             this.y = loc[1];
-            const d = GW.utils.DIRS[dir];
+            const d = GWU__namespace.xy.DIRS[dir];
             this.length = length;
             this.width = width;
-            if (dir === GW.utils.UP || dir === GW.utils.DOWN) {
+            if (dir === GWU__namespace.xy.UP || dir === GWU__namespace.xy.DOWN) {
                 this.x2 = this.x + (width - 1);
                 this.y2 = this.y + (length - 1) * d[1];
             }
@@ -418,9 +438,9 @@
         }
     }
 
-    const DIRS$1 = GW.utils.DIRS;
+    const DIRS = GWU__namespace.xy.DIRS;
     var halls = {};
-    function install(id, fn, config = {}) {
+    function install$1(id, fn, config = {}) {
         // @ts-ignore
         const data = fn(config || {}); // call to have function setup the config
         data.fn = fn;
@@ -428,9 +448,9 @@
         halls[id] = data;
         return data;
     }
-    install('DEFAULT', dig, { chance: 15 });
+    install$1('DEFAULT', dig$1, { chance: 15 });
     function pickWidth(opts = {}) {
-        return GW.utils.clamp(_pickWidth(opts), 1, 3);
+        return GWU__namespace.clamp(_pickWidth(opts), 1, 3);
     }
     function _pickWidth(opts) {
         if (!opts)
@@ -444,13 +464,16 @@
             return width;
         else if (Array.isArray(width)) {
             // @ts-ignore
-            width = GW.random.weighted(width) + 1;
+            width = GWU__namespace.random.weighted(width) + 1;
         }
         else if (typeof width === 'string') {
-            width = GW.range.make(width).value();
+            width = GWU__namespace.range.make(width).value();
         }
         else {
-            width = Number.parseInt(GW.random.weighted(width));
+            width = GWU__namespace.random.weighted(width);
+            if (typeof width === 'string') {
+                width = Number.parseInt(width);
+            }
         }
         return width;
     }
@@ -458,43 +481,43 @@
         if (!opts.length)
             opts.length = [];
         if (Array.isArray(opts.length)) {
-            if (dir == GW.utils.UP || dir == GW.utils.DOWN) {
-                return GW.range.make(opts.length[1] || [2, 9]);
+            if (dir == GWU__namespace.xy.UP || dir == GWU__namespace.xy.DOWN) {
+                return GWU__namespace.range.make(opts.length[1] || [2, 9]);
             }
             else {
-                return GW.range.make(opts.length[0] || [9, 15]);
+                return GWU__namespace.range.make(opts.length[0] || [9, 15]);
             }
         }
         else {
-            return GW.range.make(opts.length);
+            return GWU__namespace.range.make(opts.length);
         }
     }
     function pickHallDirection(grid, room, opts) {
         const doors = room.doors;
         // Pick a direction.
-        let dir = opts.dir || GW.utils.NO_DIRECTION;
-        if (dir == GW.utils.NO_DIRECTION) {
-            const dirs = GW.random.sequence(4);
+        let dir = opts.dir || GWU__namespace.xy.NO_DIRECTION;
+        if (dir == GWU__namespace.xy.NO_DIRECTION) {
+            const dirs = GWU__namespace.random.sequence(4);
             for (let i = 0; i < 4; i++) {
                 dir = dirs[i];
                 const length = pickLengthRange(dir, opts).hi; // biggest measurement
                 const door = doors[dir];
                 if (door && door[0] != -1 && door[1] != -1) {
-                    const dx = door[0] + Math.floor(DIRS$1[dir][0] * length);
-                    const dy = door[1] + Math.floor(DIRS$1[dir][1] * length);
+                    const dx = door[0] + Math.floor(DIRS[dir][0] * length);
+                    const dy = door[1] + Math.floor(DIRS[dir][1] * length);
                     if (grid.hasXY(dx, dy)) {
                         break; // That's our direction!
                     }
                 }
-                dir = GW.utils.NO_DIRECTION;
+                dir = GWU__namespace.xy.NO_DIRECTION;
             }
         }
         return dir;
     }
     function pickHallExits(grid, x, y, dir, opts) {
         let newX, newY;
-        const obliqueChance = GW.utils.firstOpt('obliqueChance', opts, 15);
-        const allowObliqueHallwayExit = GW.random.chance(obliqueChance);
+        const obliqueChance = GWU__namespace.object.firstOpt('obliqueChance', opts, 15);
+        const allowObliqueHallwayExit = GWU__namespace.random.chance(obliqueChance);
         const hallDoors = [
         // [-1, -1],
         // [-1, -1],
@@ -502,8 +525,8 @@
         // [-1, -1],
         ];
         for (let dir2 = 0; dir2 < 4; dir2++) {
-            newX = x + DIRS$1[dir2][0];
-            newY = y + DIRS$1[dir2][1];
+            newX = x + DIRS[dir2][0];
+            newY = y + DIRS[dir2][1];
             if ((dir2 != dir && !allowObliqueHallwayExit) ||
                 !grid.hasXY(newX, newY) ||
                 grid[newX][newY]) ;
@@ -522,7 +545,7 @@
             return opts;
         }
         const dir = pickHallDirection(grid, room, opts);
-        if (dir === GW.utils.NO_DIRECTION)
+        if (dir === GWU__namespace.xy.NO_DIRECTION)
             return null;
         const length = pickLengthRange(dir, opts).value();
         const width = pickWidth(opts) || 2;
@@ -531,8 +554,8 @@
         const hallDoors = [];
         let x0, y0;
         let hall;
-        if (dir === GW.utils.UP) {
-            x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
+        if (dir === GWU__namespace.xy.UP) {
+            x0 = GWU__namespace.clamp(door[0], room.x, room.x + room.width - width);
             y0 = door[1] - length + 1;
             for (let x = x0; x < x0 + width; ++x) {
                 for (let y = y0; y < y0 + length; ++y) {
@@ -542,8 +565,8 @@
             hallDoors[dir] = [x0, y0 - 1];
             hall = new Hall([x0, door[1]], dir, length, 2);
         }
-        else if (dir === GW.utils.DOWN) {
-            x0 = GW.utils.clamp(door[0], room.x, room.x + room.width - width);
+        else if (dir === GWU__namespace.xy.DOWN) {
+            x0 = GWU__namespace.clamp(door[0], room.x, room.x + room.width - width);
             y0 = door[1] + length - 1;
             for (let x = x0; x < x0 + width; ++x) {
                 for (let y = y0; y > y0 - length; --y) {
@@ -553,9 +576,9 @@
             hallDoors[dir] = [x0, y0 + 1];
             hall = new Hall([x0, door[1]], dir, length, 2);
         }
-        else if (dir === GW.utils.LEFT) {
+        else if (dir === GWU__namespace.xy.LEFT) {
             x0 = door[0] - length + 1;
-            y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
+            y0 = GWU__namespace.clamp(door[1], room.y, room.y + room.height - width);
             for (let x = x0; x < x0 + length; ++x) {
                 for (let y = y0; y < y0 + width; ++y) {
                     grid[x][y] = tile;
@@ -567,7 +590,7 @@
         else {
             //if (dir === GW.utils.RIGHT) {
             x0 = door[0] + length - 1;
-            y0 = GW.utils.clamp(door[1], room.y, room.y + room.height - width);
+            y0 = GWU__namespace.clamp(door[1], room.y, room.y + room.height - width);
             for (let x = x0; x > x0 - length; --x) {
                 for (let y = y0; y < y0 + width; ++y) {
                     grid[x][y] = tile;
@@ -580,18 +603,18 @@
         hall.width = width;
         return hall;
     }
-    function dig(opts, grid, room) {
+    function dig$1(opts, grid, room) {
         opts = opts || {};
         opts.width = 1;
         if (!grid) {
             return opts;
         }
         const dir = pickHallDirection(grid, room, opts);
-        if (dir === GW.utils.NO_DIRECTION)
+        if (dir === GWU__namespace.xy.NO_DIRECTION)
             return null;
         const length = pickLengthRange(dir, opts).value();
         const door = room.doors[dir];
-        const DIR = DIRS$1[dir];
+        const DIR = DIRS[dir];
         let x = door[0];
         let y = door[1];
         const tile = opts.tile || FLOOR;
@@ -610,17 +633,17 @@
     var hall = {
         __proto__: null,
         halls: halls,
-        install: install,
+        install: install$1,
         pickWidth: pickWidth,
         pickLengthRange: pickLengthRange,
         pickHallDirection: pickHallDirection,
         pickHallExits: pickHallExits,
         digWide: digWide,
-        dig: dig
+        dig: dig$1
     };
 
     var rooms = {};
-    function install$1(id, fn, config) {
+    function install(id, fn, config) {
         // @ts-ignore
         const data = fn(config || {}); // call to have function setup the config
         data.fn = fn;
@@ -628,7 +651,7 @@
         rooms[id] = data;
         return data;
     }
-    install$1('DEFAULT', rectangular);
+    install('DEFAULT', rectangular);
     function checkConfig(config, expected) {
         config = config || {};
         expected = expected || {};
@@ -643,7 +666,7 @@
             if (expect === true) {
                 // needs to be present
                 if (!have) {
-                    return GW.utils.ERROR('Missing required config for digger: ' + key);
+                    return GWU__namespace.ERROR('Missing required config for digger: ' + key);
                 }
             }
             else if (typeof expect === 'number') {
@@ -657,7 +680,7 @@
                 // just set the value
                 have = have || expect;
             }
-            const range = GW.range.make(have); // throws if invalid
+            const range = GWU__namespace.range.make(have); // throws if invalid
             config[key] = range;
         });
         return config;
@@ -671,39 +694,46 @@
         const width = config.width.value();
         const height = config.height.value();
         const tile = config.tile || FLOOR;
-        blobGrid = GW.grid.alloc(grid.width, grid.height, 0);
+        blobGrid = GWU__namespace.grid.alloc(grid.width, grid.height, 0);
         const minWidth = Math.floor(0.5 * width); // 6
         const maxWidth = width;
         const minHeight = Math.floor(0.5 * height); // 4
         const maxHeight = height;
         grid.fill(0);
-        const bounds = blobGrid.fillBlob(5, minWidth, minHeight, maxWidth, maxHeight, 55, 'ffffffttt', 'ffffttttt');
+        const bounds = GWU__namespace.blob.fillBlob(blobGrid, {
+            rounds: 5,
+            minWidth,
+            minHeight,
+            maxWidth,
+            maxHeight,
+            percentSeeded: 55,
+        });
         // Position the new cave in the middle of the grid...
         destX = Math.floor((grid.width - bounds.width) / 2);
         destY = Math.floor((grid.height - bounds.height) / 2);
         // ...and copy it to the master grid.
-        GW.grid.offsetZip(grid, blobGrid, destX - bounds.x, destY - bounds.y, tile);
-        GW.grid.free(blobGrid);
+        GWU__namespace.grid.offsetZip(grid, blobGrid, destX - bounds.x, destY - bounds.y, tile);
+        GWU__namespace.grid.free(blobGrid);
         return new Room(config.id, destX, destY, bounds.width, bounds.height);
     }
     function choiceRoom(config, grid) {
         config = config || {};
         let choices;
         if (Array.isArray(config.choices)) {
-            choices = GW.random.item.bind(GW.random, config.choices);
+            choices = GWU__namespace.random.item.bind(GWU__namespace.random, config.choices);
         }
         else if (typeof config.choices == 'object') {
-            choices = GW.random.weighted.bind(GW.random, config.choices);
+            choices = GWU__namespace.random.weighted.bind(GWU__namespace.random, config.choices);
         }
         else {
-            GW.utils.ERROR('Expected choices to be either array of room ids or map - ex: { ROOM_ID: weight }');
+            GWU__namespace.ERROR('Expected choices to be either array of room ids or map - ex: { ROOM_ID: weight }');
         }
         if (!grid)
             return config;
         let id = choices();
         const digger = rooms[id];
         if (!digger) {
-            GW.utils.ERROR('Missing digger choice: ' + id);
+            GWU__namespace.ERROR('Missing digger choice: ' + id);
         }
         let digConfig = digger;
         if (config.opts) {
@@ -742,13 +772,13 @@
         const height = config.height.value();
         const tile = config.tile || FLOOR;
         const roomWidth = width;
-        const roomWidth2 = Math.max(3, Math.floor((width * GW.random.range(25, 75)) / 100)); // [4,20]
-        const roomHeight = Math.max(3, Math.floor((height * GW.random.range(25, 75)) / 100)); // [2,5]
+        const roomWidth2 = Math.max(3, Math.floor((width * GWU__namespace.random.range(25, 75)) / 100)); // [4,20]
+        const roomHeight = Math.max(3, Math.floor((height * GWU__namespace.random.range(25, 75)) / 100)); // [2,5]
         const roomHeight2 = height;
         const roomX = Math.floor((grid.width - roomWidth) / 2);
-        const roomX2 = roomX + GW.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
+        const roomX2 = roomX + GWU__namespace.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
         const roomY2 = Math.floor((grid.height - roomHeight2) / 2);
-        const roomY = roomY2 + GW.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
+        const roomY = roomY2 + GWU__namespace.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
         grid.fill(0);
         grid.fillRect(roomX, roomY, roomWidth, roomHeight, tile);
         grid.fillRect(roomX2, roomY2, roomWidth2, roomHeight2, tile);
@@ -761,11 +791,11 @@
         const width = config.width.value();
         const height = config.height.value();
         const tile = config.tile || FLOOR;
-        let minorWidth = Math.max(3, Math.floor((width * GW.random.range(25, 50)) / 100)); // [2,4]
+        let minorWidth = Math.max(3, Math.floor((width * GWU__namespace.random.range(25, 50)) / 100)); // [2,4]
         // if (height % 2 == 0 && minorWidth > 2) {
         //     minorWidth -= 1;
         // }
-        let minorHeight = Math.max(3, Math.floor((height * GW.random.range(25, 50)) / 100)); // [2,3]?
+        let minorHeight = Math.max(3, Math.floor((height * GWU__namespace.random.range(25, 50)) / 100)); // [2,3]?
         // if (width % 2 == 0 && minorHeight > 2) {
         //     minorHeight -= 1;
         // }
@@ -823,8 +853,8 @@
         const y = Math.floor(grid.height / 2);
         grid.fillCircle(x, y, radius, tile);
         if (radius > ringMinWidth + holeMinSize &&
-            GW.random.chance(config.holeChance.value())) {
-            grid.fillCircle(x, y, GW.random.range(holeMinSize, radius - holeMinSize), 0);
+            GWU__namespace.random.chance(config.holeChance.value())) {
+            grid.fillCircle(x, y, GWU__namespace.random.range(holeMinSize, radius - holeMinSize), 0);
         }
         return new Room(config.id, x - radius, y - radius, radius * 2 + 1, radius * 2 + 1);
     }
@@ -849,8 +879,8 @@
         grid.fill(0);
         grid.fillCircle(Math.floor(grid.width / 2), Math.floor(grid.height / 2), 2, tile);
         for (i = 0; i < chunkCount;) {
-            x = GW.random.range(minX, maxX);
-            y = GW.random.range(minY, maxY);
+            x = GWU__namespace.random.range(minX, maxX);
+            y = GWU__namespace.random.range(minY, maxY);
             if (grid[x][y]) {
                 //            colorOverDungeon(/* Color. */darkGray);
                 //            hiliteGrid(grid, /* Color. */white, 100);
@@ -875,7 +905,7 @@
     var room = {
         __proto__: null,
         rooms: rooms,
-        install: install$1,
+        install: install,
         checkConfig: checkConfig,
         cavern: cavern,
         choiceRoom: choiceRoom,
@@ -902,7 +932,7 @@
         const wreath = opts.wreath || 0; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
         const wreathTile = opts.wreathTile || SHALLOW;
         const tile = opts.tile || DEEP;
-        const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
+        const lakeGrid = GWU__namespace.grid.alloc(map.width, map.height, 0);
         let attempts = 0;
         while (attempts < maxCount && count < maxCount) {
             // lake generations
@@ -911,14 +941,21 @@
             const height = Math.round(((lakeMaxHeight - lakeMinSize) * (maxCount - attempts)) /
                 maxCount) + lakeMinSize;
             lakeGrid.fill(NOTHING);
-            const bounds = lakeGrid.fillBlob(5, 4, 4, width, height, 55, 'ffffftttt', 'ffffttttt');
+            const bounds = GWU__namespace.blob.fillBlob(lakeGrid, {
+                rounds: 5,
+                minWidth: 4,
+                minHeight: 4,
+                maxWidth: width,
+                maxHeight: height,
+                percentSeeded: 55,
+            });
             // lakeGrid.dump();
             let success = false;
             for (k = 0; k < tries && !success; k++) {
                 // placement attempts
                 // propose a position for the top-left of the lakeGrid in the dungeon
-                x = GW.random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
-                y = GW.random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
+                x = GWU__namespace.random.range(1 - bounds.x, lakeGrid.width - bounds.width - bounds.x - 2);
+                y = GWU__namespace.random.range(1 - bounds.y, lakeGrid.height - bounds.height - bounds.y - 2);
                 if (canDisrupt || !lakeDisruptsPassability(map, lakeGrid, -x, -y)) {
                     // level with lake is completely connected
                     //   dungeon.debug("Placed a lake!", x, y);
@@ -952,11 +989,11 @@
                 ++attempts;
             }
         }
-        GW.grid.free(lakeGrid);
+        GWU__namespace.grid.free(lakeGrid);
         return count;
     }
     function lakeDisruptsPassability(map, lakeGrid, lakeToMapX = 0, lakeToMapY = 0) {
-        const walkableGrid = GW.grid.alloc(map.width, map.height);
+        const walkableGrid = GWU__namespace.grid.alloc(map.width, map.height);
         let disrupts = false;
         // Get all walkable locations after lake added
         map.forEach((v, i, j) => {
@@ -995,7 +1032,7 @@
         }
         // console.log('WALKABLE GRID');
         // walkableGrid.dump();
-        GW.grid.free(walkableGrid);
+        GWU__namespace.grid.free(walkableGrid);
         return disrupts;
     }
     function isBridgeCandidate(map, x, y, bridgeDir) {
@@ -1015,14 +1052,14 @@
         let i, j, d, x, y;
         maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
         const siteGrid = map;
-        const pathGrid = GW.grid.alloc(map.width, map.height);
-        const costGrid = GW.grid.alloc(map.width, map.height);
+        const pathGrid = GWU__namespace.grid.alloc(map.width, map.height);
+        const costGrid = GWU__namespace.grid.alloc(map.width, map.height);
         const dirCoords = [
             [1, 0],
             [0, 1],
         ];
         fillCostGrid(map, costGrid);
-        const SEQ = GW.random.sequence(map.width * map.height);
+        const SEQ = GWU__namespace.random.sequence(map.width * map.height);
         for (i = 0; i < SEQ.length; i++) {
             x = Math.floor(SEQ[i] / siteGrid.height);
             y = SEQ[i] % siteGrid.height;
@@ -1053,12 +1090,12 @@
                     if (map.get(newX, newY) &&
                         isPassable(map, newX, newY) &&
                         j < maxConnectionLength) {
-                        GW.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
+                        GWU__namespace.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
                         // pathGrid.fill(30000);
                         // pathGrid[newX][newY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
                         if (pathGrid[x][y] > minimumPathingDistance &&
-                            pathGrid[x][y] < GW.path.NO_PATH) {
+                            pathGrid[x][y] < GWU__namespace.path.NO_PATH) {
                             // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
                             // dungeon.debug(
                             //     'Adding Bridge',
@@ -1086,8 +1123,8 @@
                 }
             }
         }
-        GW.grid.free(pathGrid);
-        GW.grid.free(costGrid);
+        GWU__namespace.grid.free(pathGrid);
+        GWU__namespace.grid.free(costGrid);
     }
 
     var lake = {
@@ -1101,7 +1138,7 @@
         if (!isObstruction(map, x, y))
             return false;
         for (let i = 0; i < 4; ++i) {
-            const dir = GW.utils.DIRS[i];
+            const dir = GWU__namespace.xy.DIRS[i];
             if (!map.hasXY(x + dir[0], y + dir[1]))
                 return false;
             if (!map.hasXY(x - dir[0], y - dir[1]))
@@ -1120,10 +1157,10 @@
         return count == 1;
     }
     function setupStairs(map, x, y, tile) {
-        const indexes = GW.random.sequence(4);
+        const indexes = GWU__namespace.random.sequence(4);
         let dir = null;
         for (let i = 0; i < indexes.length; ++i) {
-            dir = GW.utils.DIRS[i];
+            dir = GWU__namespace.xy.DIRS[i];
             const x0 = x + dir[0];
             const y0 = y + dir[1];
             if (isFloor(map, x0, y0)) {
@@ -1133,24 +1170,24 @@
             dir = null;
         }
         if (!dir)
-            GW.utils.ERROR('No stair direction found!');
+            GWU__namespace.ERROR('No stair direction found!');
         map.set(x, y, tile);
-        const dirIndex = GW.utils.CLOCK_DIRS.findIndex(
+        const dirIndex = GWU__namespace.xy.CLOCK_DIRS.findIndex(
         // @ts-ignore
         (d) => d[0] == dir[0] && d[1] == dir[1]);
-        for (let i = 0; i < GW.utils.CLOCK_DIRS.length; ++i) {
+        for (let i = 0; i < GWU__namespace.xy.CLOCK_DIRS.length; ++i) {
             const l = i ? i - 1 : 7;
             const r = (i + 1) % 8;
             if (i == dirIndex || l == dirIndex || r == dirIndex)
                 continue;
-            const d = GW.utils.CLOCK_DIRS[i];
+            const d = GWU__namespace.xy.CLOCK_DIRS[i];
             map.set(x + d[0], y + d[1], WALL);
             // map.setCellFlags(x + d[0], y + d[1], Flags.Cell.IMPREGNABLE);
         }
         // dungeon.debug('setup stairs', x, y, tile);
         return true;
     }
-    function addStairs(map, opts = {}) {
+    function addStairs$1(map, opts = {}) {
         let needUp = opts.up !== false;
         let needDown = opts.down !== false;
         const minDistance = opts.minDistance || Math.floor(Math.max(map.width, map.height) / 2);
@@ -1165,19 +1202,19 @@
                 start = map.randomMatchingLoc(isValidLoc);
             }
             else {
-                start = map.matchingLocNear(GW.utils.x(start), GW.utils.y(start), isValidLoc);
+                start = map.matchingLocNear(GWU__namespace.xy.x(start), GWU__namespace.xy.y(start), isValidLoc);
             }
             locations.start = start;
         }
         if (upLoc && downLoc) {
-            upLoc = map.matchingLocNear(GW.utils.x(upLoc), GW.utils.y(upLoc), isValidLoc);
-            downLoc = map.matchingLocNear(GW.utils.x(downLoc), GW.utils.y(downLoc), isValidLoc);
+            upLoc = map.matchingLocNear(GWU__namespace.xy.x(upLoc), GWU__namespace.xy.y(upLoc), isValidLoc);
+            downLoc = map.matchingLocNear(GWU__namespace.xy.x(downLoc), GWU__namespace.xy.y(downLoc), isValidLoc);
         }
         else if (upLoc && !downLoc) {
-            upLoc = map.matchingLocNear(GW.utils.x(upLoc), GW.utils.y(upLoc), isValidLoc);
+            upLoc = map.matchingLocNear(GWU__namespace.xy.x(upLoc), GWU__namespace.xy.y(upLoc), isValidLoc);
             if (needDown) {
                 downLoc = map.randomMatchingLoc((v, x, y) => {
-                    if (GW.utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
+                    if (GWU__namespace.xy.distanceBetween(x, y, upLoc[0], upLoc[1]) <
                         minDistance)
                         return false;
                     return isValidLoc(v, x, y, map);
@@ -1185,10 +1222,10 @@
             }
         }
         else if (downLoc && !upLoc) {
-            downLoc = map.matchingLocNear(GW.utils.x(downLoc), GW.utils.y(downLoc), isValidLoc);
+            downLoc = map.matchingLocNear(GWU__namespace.xy.x(downLoc), GWU__namespace.xy.y(downLoc), isValidLoc);
             if (needUp) {
                 upLoc = map.randomMatchingLoc((v, x, y) => {
-                    if (GW.utils.distanceBetween(x, y, downLoc[0], downLoc[1]) <
+                    if (GWU__namespace.xy.distanceBetween(x, y, downLoc[0], downLoc[1]) <
                         minDistance)
                         return false;
                     return isValidStairLoc(v, x, y, map);
@@ -1199,7 +1236,7 @@
             upLoc = map.randomMatchingLoc(isValidLoc);
             if (needDown) {
                 downLoc = map.randomMatchingLoc((v, x, y) => {
-                    if (GW.utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
+                    if (GWU__namespace.xy.distanceBetween(x, y, upLoc[0], upLoc[1]) <
                         minDistance)
                         return false;
                     return isValidStairLoc(v, x, y, map);
@@ -1228,7 +1265,7 @@
         __proto__: null,
         isValidStairLoc: isValidStairLoc,
         setupStairs: setupStairs,
-        addStairs: addStairs
+        addStairs: addStairs$1
     };
 
     function start(map) {
@@ -1257,7 +1294,7 @@
             const name = opts.room;
             opts.room = rooms[name];
             if (!opts.room) {
-                GW.utils.ERROR('Failed to find room: ' + name);
+                GWU__namespace.ERROR('Failed to find room: ' + name);
             }
         }
         const roomConfig = opts.room;
@@ -1272,7 +1309,7 @@
             const name = opts.hall;
             opts.hall = halls[name];
             if (!opts.hall) {
-                GW.utils.ERROR('Failed to find hall: ' + name);
+                GWU__namespace.ERROR('Failed to find hall: ' + name);
                 return null;
             }
             hallConfig = opts.hall;
@@ -1289,7 +1326,7 @@
             opts.door = DOOR;
         }
         else if (typeof opts.door === 'number') {
-            opts.door = GW.random.chance(opts.door) ? DOOR : FLOOR;
+            opts.door = GWU__namespace.random.chance(opts.door) ? DOOR : FLOOR;
         }
         else {
             opts.door = FLOOR;
@@ -1318,11 +1355,11 @@
             locs = null;
         }
         const digger = opts.room;
-        const roomGrid = GW.grid.alloc(map.width, map.height);
+        const roomGrid = GWU__namespace.grid.alloc(map.width, map.height);
         let attachHall = false;
         if (hallConfig) {
             let hallChance = hallConfig.chance !== undefined ? hallConfig.chance : 15;
-            attachHall = GW.random.chance(hallChance);
+            attachHall = GWU__namespace.random.chance(hallChance);
         }
         // const force = config.force || false;
         let result = false;
@@ -1359,7 +1396,7 @@
             //     console.log('map locs', locs.join(', '));
             // }
         }
-        GW.grid.free(roomGrid);
+        GWU__namespace.grid.free(roomGrid);
         return room$1 && result ? room$1 : null;
     }
     // Add some loops to the otherwise simply connected network of rooms.
@@ -1371,8 +1408,8 @@
                 Math.floor(Math.min(grid.width, grid.height) / 2);
         maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
         const siteGrid = grid;
-        const pathGrid = GW.grid.alloc(grid.width, grid.height);
-        const costGrid = GW.grid.alloc(grid.width, grid.height);
+        const pathGrid = GWU__namespace.grid.alloc(grid.width, grid.height);
+        const costGrid = GWU__namespace.grid.alloc(grid.width, grid.height);
         const dirCoords = [
             [1, 0],
             [0, 1],
@@ -1452,7 +1489,7 @@
                         }
                     }
                     if (j < maxConnectionLength) {
-                        GW.path.calculateDistances(pathGrid, startX, startY, costGrid, false);
+                        GWU__namespace.path.calculateDistances(pathGrid, startX, startY, costGrid, false);
                         // pathGrid.fill(30000);
                         // pathGrid[startX][startY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
@@ -1485,8 +1522,8 @@
                 }
             }
         }
-        GW.grid.free(pathGrid);
-        GW.grid.free(costGrid);
+        GWU__namespace.grid.free(pathGrid);
+        GWU__namespace.grid.free(costGrid);
     }
     function addLakes(map, opts = {}) {
         return digLakes(map, opts);
@@ -1494,8 +1531,8 @@
     function addBridges(map, minimumPathingDistance, maxConnectionLength) {
         return digBridges(map, minimumPathingDistance, maxConnectionLength);
     }
-    function addStairs$1(map, opts = {}) {
-        return addStairs(map, opts);
+    function addStairs(map, opts = {}) {
+        return addStairs$1(map, opts);
     }
     function removeDiagonalOpenings(grid) {
         let i, j, k, x1, y1;
@@ -1511,7 +1548,7 @@
                             !isPassable(grid, i + k, j + 1) &&
                             isObstruction(grid, i + k, j + 1) &&
                             isPassable(grid, i + (1 - k), j + 1)) {
-                            if (GW.random.chance(50)) {
+                            if (GWU__namespace.random.chance(50)) {
                                 x1 = i + (1 - k);
                                 y1 = j;
                             }
@@ -1565,7 +1602,7 @@
         });
     }
 
-    var dig$1 = {
+    var dig = {
         __proto__: null,
         room: room,
         hall: hall,
@@ -1578,7 +1615,7 @@
         addLoops: addLoops,
         addLakes: addLakes,
         addBridges: addBridges,
-        addStairs: addStairs$1,
+        addStairs: addStairs,
         removeDiagonalOpenings: removeDiagonalOpenings,
         finishDoors: finishDoors,
         finishWalls: finishWalls,
@@ -1611,9 +1648,9 @@
         Room: Room
     };
 
-    exports.dig = dig$1;
+    exports.dig = dig;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));
 //# sourceMappingURL=gw-dig.js.map

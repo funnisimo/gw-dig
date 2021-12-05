@@ -1,4 +1,4 @@
-import { grid, range, utils } from 'gw-utils';
+import * as GWU from 'gw-utils';
 
 interface RoomConfig {
     fn?: RoomFn;
@@ -7,21 +7,21 @@ interface RoomConfig {
     tile?: number;
     [x: string]: any;
 }
-declare type RoomFn = (config: RoomConfig, grid: grid.NumGrid) => Room | RoomConfig | null;
-interface RoomData extends RoomConfig {
+declare type RoomFn = (config: RoomConfig, grid: GWU.grid.NumGrid) => Room | RoomConfig | null;
+interface RoomData$1 extends RoomConfig {
     fn: RoomFn;
     id: string;
 }
-declare type HallFn = (opts: HallConfig, grid: grid.NumGrid, room: Room) => Hall | any | null;
+declare type HallFn = (opts: HallConfig, grid: GWU.grid.NumGrid, room: Room) => Hall | any | null;
 interface HallConfig {
     fn?: HallFn;
     chance?: number;
-    length?: range.RangeBase | [range.RangeBase, range.RangeBase];
-    width?: range.RangeBase;
+    length?: GWU.range.RangeBase | [GWU.range.RangeBase, GWU.range.RangeBase];
+    width?: GWU.range.RangeBase;
     tile?: number;
     [x: string]: any;
 }
-interface HallData extends HallConfig {
+interface HallData$1 extends HallConfig {
     fn: HallFn;
     id: string;
 }
@@ -29,8 +29,8 @@ interface DigConfig {
     room: string | any;
     hall?: string | HallConfig | boolean;
     tries?: number;
-    locs?: utils.Loc[];
-    loc?: utils.Loc;
+    locs?: GWU.xy.Loc[];
+    loc?: GWU.xy.Loc;
     door?: number | boolean;
 }
 declare class Hall {
@@ -41,8 +41,8 @@ declare class Hall {
     length: number;
     dir: number;
     width: number;
-    doors: utils.Loc[];
-    constructor(loc: utils.Loc, dir: number, length: number, width?: number);
+    doors: GWU.xy.Loc[];
+    constructor(loc: GWU.xy.Loc, dir: number, length: number, width?: number);
     translate(dx: number, dy: number): void;
 }
 declare class Room {
@@ -51,7 +51,7 @@ declare class Room {
     y: number;
     width: number;
     height: number;
-    doors: utils.Loc[];
+    doors: GWU.xy.Loc[];
     hall: Hall | null;
     constructor(digger: string, x: number, y: number, width: number, height: number);
     get cx(): number;
@@ -59,10 +59,10 @@ declare class Room {
     translate(dx: number, dy: number): void;
 }
 interface DigInfo {
-    room: RoomData;
-    hall: HallData | null;
+    room: RoomData$1;
+    hall: HallData$1 | null;
     tries: number;
-    locs: utils.Loc[] | null;
+    locs: GWU.xy.Loc[] | null;
     door: number;
 }
 
@@ -90,34 +90,33 @@ declare const TILEMAP: {
 };
 declare const SEQ: number[];
 declare function initSeqence(length: number): void;
-declare function fillCostGrid(source: grid.NumGrid, costGrid: grid.NumGrid): void;
-declare function isPassable(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isNothing(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isFloor(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isDoor(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isBridge(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isWall(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isObstruction(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isStairs(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isDeep(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isShallow(grid: grid.NumGrid, x: number, y: number): boolean;
-declare function isAnyWater(grid: grid.NumGrid, x: number, y: number): boolean;
+declare function fillCostGrid(source: GWU.grid.NumGrid, costGrid: GWU.grid.NumGrid): void;
+declare function isPassable(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isNothing(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isFloor(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isDoor(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isBridge(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isWall(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isObstruction(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isStairs(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isDeep(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isShallow(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
+declare function isAnyWater(grid: GWU.grid.NumGrid, x: number, y: number): boolean;
 
-declare var rooms: Record<string, RoomData>;
-declare function install(id: string, fn: RoomFn, config?: RoomConfig): any;
+declare var rooms: Record<string, RoomData$1>;
+declare function install$1(id: string, fn: RoomFn, config?: RoomConfig): RoomData;
 declare function checkConfig(config: RoomConfig, expected: any): RoomConfig;
-declare function cavern(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function choiceRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig | null;
-declare function entrance(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function cross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function symmetricalCross(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function rectangular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function circular(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function brogueDonut(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
-declare function chunkyRoom(config: RoomConfig, grid: grid.NumGrid): Room | RoomConfig;
+declare function cavern(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function choiceRoom(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig | null;
+declare function entrance(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function cross(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function symmetricalCross(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function rectangular(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function circular(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function brogueDonut(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
+declare function chunkyRoom(config: RoomConfig, grid: GWU.grid.NumGrid): Room | RoomConfig;
 
 declare const room_d_rooms: typeof rooms;
-declare const room_d_install: typeof install;
 declare const room_d_checkConfig: typeof checkConfig;
 declare const room_d_cavern: typeof cavern;
 declare const room_d_choiceRoom: typeof choiceRoom;
@@ -131,7 +130,7 @@ declare const room_d_chunkyRoom: typeof chunkyRoom;
 declare namespace room_d {
   export {
     room_d_rooms as rooms,
-    room_d_install as install,
+    install$1 as install,
     room_d_checkConfig as checkConfig,
     room_d_cavern as cavern,
     room_d_choiceRoom as choiceRoom,
@@ -145,16 +144,17 @@ declare namespace room_d {
   };
 }
 
-declare var halls: Record<string, HallData>;
-declare function install$1(id: string, fn: HallFn, config?: HallConfig): any;
+declare var halls: Record<string, HallData$1>;
+declare function install(id: string, fn: HallFn, config?: HallConfig): HallData;
 declare function pickWidth(opts?: any): number;
-declare function pickLengthRange(dir: number, opts: any): range.Range;
-declare function pickHallDirection(grid: grid.NumGrid, room: Room, opts: any): number;
-declare function pickHallExits(grid: grid.NumGrid, x: number, y: number, dir: number, opts: any): [number, number][];
-declare function digWide(opts: HallConfig, grid: grid.NumGrid, room: Room): Hall | HallConfig | null;
-declare function dig(opts: HallConfig, grid: grid.NumGrid, room: Room): Hall | HallConfig | null;
+declare function pickLengthRange(dir: number, opts: any): GWU.range.Range;
+declare function pickHallDirection(grid: GWU.grid.NumGrid, room: Room, opts: any): number;
+declare function pickHallExits(grid: GWU.grid.NumGrid, x: number, y: number, dir: number, opts: any): GWU.types.Loc[];
+declare function digWide(opts: HallConfig, grid: GWU.grid.NumGrid, room: Room): Hall | HallConfig | null;
+declare function dig(opts: HallConfig, grid: GWU.grid.NumGrid, room: Room): Hall | HallConfig | null;
 
 declare const hall_d_halls: typeof halls;
+declare const hall_d_install: typeof install;
 declare const hall_d_pickWidth: typeof pickWidth;
 declare const hall_d_pickLengthRange: typeof pickLengthRange;
 declare const hall_d_pickHallDirection: typeof pickHallDirection;
@@ -164,7 +164,7 @@ declare const hall_d_dig: typeof dig;
 declare namespace hall_d {
   export {
     hall_d_halls as halls,
-    install$1 as install,
+    hall_d_install as install,
     hall_d_pickWidth as pickWidth,
     hall_d_pickLengthRange as pickLengthRange,
     hall_d_pickHallDirection as pickHallDirection,
@@ -174,8 +174,8 @@ declare namespace hall_d {
   };
 }
 
-declare function digLakes(map: grid.NumGrid, opts?: any): number;
-declare function digBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+declare function digLakes(map: GWU.grid.NumGrid, opts?: any): number;
+declare function digBridges(map: GWU.grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
 
 declare const lake_d_digLakes: typeof digLakes;
 declare const lake_d_digBridges: typeof digBridges;
@@ -186,28 +186,27 @@ declare namespace lake_d {
   };
 }
 
-declare function isValidStairLoc(_v: number, x: number, y: number, map: grid.NumGrid): boolean;
-declare function setupStairs(map: grid.NumGrid, x: number, y: number, tile: number): boolean;
-declare function addStairs(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
+declare function isValidStairLoc(_v: number, x: number, y: number, map: GWU.grid.NumGrid): boolean;
+declare function setupStairs(map: GWU.grid.NumGrid, x: number, y: number, tile: number): boolean;
+declare function addStairs$1(map: GWU.grid.NumGrid, opts?: any): Record<string, GWU.types.Loc> | null;
 
 declare const stairs_d_isValidStairLoc: typeof isValidStairLoc;
 declare const stairs_d_setupStairs: typeof setupStairs;
-declare const stairs_d_addStairs: typeof addStairs;
 declare namespace stairs_d {
   export {
     stairs_d_isValidStairLoc as isValidStairLoc,
     stairs_d_setupStairs as setupStairs,
-    stairs_d_addStairs as addStairs,
+    addStairs$1 as addStairs,
   };
 }
 
-declare function attachRoom(map: grid.NumGrid, roomGrid: grid.NumGrid, room: Room, opts: DigInfo): boolean;
-declare function attachDoor(map: grid.NumGrid, room: Room, opts: DigInfo, x: number, y: number, dir: number): void;
-declare function roomFitsAt(map: grid.NumGrid, roomGrid: grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
-declare function directionOfDoorSite(grid: grid.NumGrid, x: number, y: number, isOpen: number): number;
-declare function forceRoomAtMapLoc(map: grid.NumGrid, xy: utils.Loc, roomGrid: grid.NumGrid, room: Room, opts: DigConfig): boolean;
-declare function attachRoomAtMapDoor(map: grid.NumGrid, mapDoors: utils.Loc[], roomGrid: grid.NumGrid, room: Room, opts: DigInfo): boolean | utils.Loc[];
-declare function chooseRandomDoorSites(sourceGrid: grid.NumGrid, floorTile?: number): utils.Loc[];
+declare function attachRoom(map: GWU.grid.NumGrid, roomGrid: GWU.grid.NumGrid, room: Room, opts: DigInfo): boolean;
+declare function attachDoor(map: GWU.grid.NumGrid, room: Room, opts: DigInfo, x: number, y: number, dir: number): void;
+declare function roomFitsAt(map: GWU.grid.NumGrid, roomGrid: GWU.grid.NumGrid, roomToSiteX: number, roomToSiteY: number): boolean;
+declare function directionOfDoorSite(grid: GWU.grid.NumGrid, x: number, y: number, isOpen: number): number;
+declare function forceRoomAtMapLoc(map: GWU.grid.NumGrid, xy: GWU.xy.Loc, roomGrid: GWU.grid.NumGrid, room: Room, opts: DigConfig): boolean;
+declare function attachRoomAtMapDoor(map: GWU.grid.NumGrid, mapDoors: GWU.xy.Loc[], roomGrid: GWU.grid.NumGrid, room: Room, opts: DigInfo): boolean | GWU.xy.Loc[];
+declare function chooseRandomDoorSites(sourceGrid: GWU.grid.NumGrid, floorTile?: number): GWU.xy.Loc[];
 
 declare const utils_d_attachRoom: typeof attachRoom;
 declare const utils_d_attachDoor: typeof attachDoor;
@@ -228,16 +227,16 @@ declare namespace utils_d {
   };
 }
 
-declare function start(map: grid.NumGrid): void;
-declare function finish(map: grid.NumGrid): void;
-declare function addRoom(map: grid.NumGrid, opts?: string | DigConfig): Room | null;
-declare function addLoops(grid: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
-declare function addLakes(map: grid.NumGrid, opts?: any): number;
-declare function addBridges(map: grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
-declare function addStairs$1(map: grid.NumGrid, opts?: any): Record<string, [number, number]> | null;
-declare function removeDiagonalOpenings(grid: grid.NumGrid): void;
-declare function finishDoors(grid: grid.NumGrid): void;
-declare function finishWalls(grid: grid.NumGrid, tile?: number): void;
+declare function start(map: GWU.grid.NumGrid): void;
+declare function finish(map: GWU.grid.NumGrid): void;
+declare function addRoom(map: GWU.grid.NumGrid, opts?: string | DigConfig): Room | null;
+declare function addLoops(grid: GWU.grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+declare function addLakes(map: GWU.grid.NumGrid, opts?: any): number;
+declare function addBridges(map: GWU.grid.NumGrid, minimumPathingDistance: number, maxConnectionLength: number): void;
+declare function addStairs(map: GWU.grid.NumGrid, opts?: any): Record<string, GWU.types.Loc> | null;
+declare function removeDiagonalOpenings(grid: GWU.grid.NumGrid): void;
+declare function finishDoors(grid: GWU.grid.NumGrid): void;
+declare function finishWalls(grid: GWU.grid.NumGrid, tile?: number): void;
 
 declare const dig_d_start: typeof start;
 declare const dig_d_finish: typeof finish;
@@ -245,6 +244,7 @@ declare const dig_d_addRoom: typeof addRoom;
 declare const dig_d_addLoops: typeof addLoops;
 declare const dig_d_addLakes: typeof addLakes;
 declare const dig_d_addBridges: typeof addBridges;
+declare const dig_d_addStairs: typeof addStairs;
 declare const dig_d_removeDiagonalOpenings: typeof removeDiagonalOpenings;
 declare const dig_d_finishDoors: typeof finishDoors;
 declare const dig_d_finishWalls: typeof finishWalls;
@@ -275,10 +275,8 @@ declare const dig_d_isShallow: typeof isShallow;
 declare const dig_d_isAnyWater: typeof isAnyWater;
 type dig_d_RoomConfig = RoomConfig;
 type dig_d_RoomFn = RoomFn;
-type dig_d_RoomData = RoomData;
 type dig_d_HallFn = HallFn;
 type dig_d_HallConfig = HallConfig;
-type dig_d_HallData = HallData;
 type dig_d_DigConfig = DigConfig;
 type dig_d_Hall = Hall;
 declare const dig_d_Hall: typeof Hall;
@@ -293,7 +291,7 @@ declare namespace dig_d {
     dig_d_addLoops as addLoops,
     dig_d_addLakes as addLakes,
     dig_d_addBridges as addBridges,
-    addStairs$1 as addStairs,
+    dig_d_addStairs as addStairs,
     dig_d_removeDiagonalOpenings as removeDiagonalOpenings,
     dig_d_finishDoors as finishDoors,
     dig_d_finishWalls as finishWalls,
@@ -329,10 +327,10 @@ declare namespace dig_d {
     dig_d_isAnyWater as isAnyWater,
     dig_d_RoomConfig as RoomConfig,
     dig_d_RoomFn as RoomFn,
-    dig_d_RoomData as RoomData,
+    RoomData$1 as RoomData,
     dig_d_HallFn as HallFn,
     dig_d_HallConfig as HallConfig,
-    dig_d_HallData as HallData,
+    HallData$1 as HallData,
     dig_d_DigConfig as DigConfig,
     dig_d_Hall as Hall,
     dig_d_Room as Room,

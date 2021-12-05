@@ -1,17 +1,17 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
 export function isValidStairLoc(
     _v: number,
     x: number,
     y: number,
-    map: GW.grid.NumGrid
+    map: GWU.grid.NumGrid
 ) {
     let count = 0;
     if (!SITE.isObstruction(map, x, y)) return false;
 
     for (let i = 0; i < 4; ++i) {
-        const dir = GW.utils.DIRS[i];
+        const dir = GWU.xy.DIRS[i];
         if (!map.hasXY(x + dir[0], y + dir[1])) return false;
         if (!map.hasXY(x - dir[0], y - dir[1])) return false;
         if (SITE.isFloor(map, x + dir[0], y + dir[1])) {
@@ -40,16 +40,16 @@ export function isValidStairLoc(
 }
 
 export function setupStairs(
-    map: GW.grid.NumGrid,
+    map: GWU.grid.NumGrid,
     x: number,
     y: number,
     tile: number
 ) {
-    const indexes = GW.random.sequence(4);
+    const indexes = GWU.random.sequence(4);
 
-    let dir: GW.utils.Loc | null = null;
+    let dir: GWU.xy.Loc | null = null;
     for (let i = 0; i < indexes.length; ++i) {
-        dir = GW.utils.DIRS[i];
+        dir = GWU.xy.DIRS[i];
         const x0 = x + dir[0];
         const y0 = y + dir[1];
         if (SITE.isFloor(map, x0, y0)) {
@@ -59,20 +59,20 @@ export function setupStairs(
         dir = null;
     }
 
-    if (!dir) GW.utils.ERROR('No stair direction found!');
+    if (!dir) GWU.ERROR('No stair direction found!');
 
     map.set(x, y, tile);
 
-    const dirIndex = GW.utils.CLOCK_DIRS.findIndex(
+    const dirIndex = GWU.xy.CLOCK_DIRS.findIndex(
         // @ts-ignore
         (d) => d[0] == dir[0] && d[1] == dir[1]
     );
 
-    for (let i = 0; i < GW.utils.CLOCK_DIRS.length; ++i) {
+    for (let i = 0; i < GWU.xy.CLOCK_DIRS.length; ++i) {
         const l = i ? i - 1 : 7;
         const r = (i + 1) % 8;
         if (i == dirIndex || l == dirIndex || r == dirIndex) continue;
-        const d = GW.utils.CLOCK_DIRS[i];
+        const d = GWU.xy.CLOCK_DIRS[i];
         map.set(x + d[0], y + d[1], SITE.WALL);
         // map.setCellFlags(x + d[0], y + d[1], Flags.Cell.IMPREGNABLE);
     }
@@ -81,7 +81,7 @@ export function setupStairs(
     return true;
 }
 
-export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
+export function addStairs(map: GWU.grid.NumGrid, opts: any = {}) {
     let needUp = opts.up !== false;
     let needDown = opts.down !== false;
     const minDistance =
@@ -92,7 +92,7 @@ export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
     let upLoc = Array.isArray(opts.up) ? opts.up : null;
     let downLoc = Array.isArray(opts.down) ? opts.down : null;
 
-    const locations: Record<string, GW.utils.Loc> = {};
+    const locations: Record<string, GWU.xy.Loc> = {};
 
     if (opts.start && typeof opts.start !== 'string') {
         let start = opts.start;
@@ -100,8 +100,8 @@ export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
             start = map.randomMatchingLoc(isValidLoc);
         } else {
             start = map.matchingLocNear(
-                GW.utils.x(start),
-                GW.utils.y(start),
+                GWU.xy.x(start),
+                GWU.xy.y(start),
                 isValidLoc
             );
         }
@@ -110,25 +110,25 @@ export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
 
     if (upLoc && downLoc) {
         upLoc = map.matchingLocNear(
-            GW.utils.x(upLoc),
-            GW.utils.y(upLoc),
+            GWU.xy.x(upLoc),
+            GWU.xy.y(upLoc),
             isValidLoc
         );
         downLoc = map.matchingLocNear(
-            GW.utils.x(downLoc),
-            GW.utils.y(downLoc),
+            GWU.xy.x(downLoc),
+            GWU.xy.y(downLoc),
             isValidLoc
         );
     } else if (upLoc && !downLoc) {
         upLoc = map.matchingLocNear(
-            GW.utils.x(upLoc),
-            GW.utils.y(upLoc),
+            GWU.xy.x(upLoc),
+            GWU.xy.y(upLoc),
             isValidLoc
         );
         if (needDown) {
             downLoc = map.randomMatchingLoc((v, x, y) => {
                 if (
-                    GW.utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
+                    GWU.xy.distanceBetween(x, y, upLoc[0], upLoc[1]) <
                     minDistance
                 )
                     return false;
@@ -137,14 +137,14 @@ export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
         }
     } else if (downLoc && !upLoc) {
         downLoc = map.matchingLocNear(
-            GW.utils.x(downLoc),
-            GW.utils.y(downLoc),
+            GWU.xy.x(downLoc),
+            GWU.xy.y(downLoc),
             isValidLoc
         );
         if (needUp) {
             upLoc = map.randomMatchingLoc((v, x, y) => {
                 if (
-                    GW.utils.distanceBetween(x, y, downLoc[0], downLoc[1]) <
+                    GWU.xy.distanceBetween(x, y, downLoc[0], downLoc[1]) <
                     minDistance
                 )
                     return false;
@@ -156,7 +156,7 @@ export function addStairs(map: GW.grid.NumGrid, opts: any = {}) {
         if (needDown) {
             downLoc = map.randomMatchingLoc((v, x, y) => {
                 if (
-                    GW.utils.distanceBetween(x, y, upLoc[0], upLoc[1]) <
+                    GWU.xy.distanceBetween(x, y, upLoc[0], upLoc[1]) <
                     minDistance
                 )
                     return false;

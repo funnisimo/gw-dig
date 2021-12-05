@@ -1,4 +1,4 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as TYPES from './types';
 import * as SITE from './site';
 
@@ -35,9 +35,7 @@ export function checkConfig(config: TYPES.RoomConfig, expected: any) {
         if (expect === true) {
             // needs to be present
             if (!have) {
-                return GW.utils.ERROR(
-                    'Missing required config for digger: ' + key
-                );
+                return GWU.ERROR('Missing required config for digger: ' + key);
             }
         } else if (typeof expect === 'number') {
             // needs to be a number, this is the default
@@ -49,14 +47,14 @@ export function checkConfig(config: TYPES.RoomConfig, expected: any) {
             have = have || expect;
         }
 
-        const range = GW.range.make(have); // throws if invalid
+        const range = GWU.range.make(have); // throws if invalid
         config[key] = range;
     });
 
     return config;
 }
 
-export function cavern(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function cavern(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, { width: 12, height: 8 });
     if (!grid) return config;
 
@@ -67,7 +65,7 @@ export function cavern(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     const height = config.height.value();
     const tile = config.tile || SITE.FLOOR;
 
-    blobGrid = GW.grid.alloc(grid.width, grid.height, 0);
+    blobGrid = GWU.grid.alloc(grid.width, grid.height, 0);
 
     const minWidth = Math.floor(0.5 * width); // 6
     const maxWidth = width;
@@ -75,39 +73,43 @@ export function cavern(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     const maxHeight = height;
 
     grid.fill(0);
-    const bounds = blobGrid.fillBlob(
-        5,
+    const bounds = GWU.blob.fillBlob(blobGrid, {
+        rounds: 5,
         minWidth,
         minHeight,
         maxWidth,
         maxHeight,
-        55,
-        'ffffffttt',
-        'ffffttttt'
-    );
+        percentSeeded: 55,
+    });
 
     // Position the new cave in the middle of the grid...
     destX = Math.floor((grid.width - bounds.width) / 2);
     destY = Math.floor((grid.height - bounds.height) / 2);
 
     // ...and copy it to the master grid.
-    GW.grid.offsetZip(grid, blobGrid, destX - bounds.x, destY - bounds.y, tile);
-    GW.grid.free(blobGrid);
+    GWU.grid.offsetZip(
+        grid,
+        blobGrid,
+        destX - bounds.x,
+        destY - bounds.y,
+        tile
+    );
+    GWU.grid.free(blobGrid);
     return new TYPES.Room(config.id, destX, destY, bounds.width, bounds.height);
 }
 
 export function choiceRoom(
     config: TYPES.RoomConfig,
-    grid: GW.grid.NumGrid
+    grid: GWU.grid.NumGrid
 ): TYPES.Room | TYPES.RoomConfig | null {
     config = config || {};
     let choices: () => any;
     if (Array.isArray(config.choices)) {
-        choices = GW.random.item.bind(GW.random, config.choices);
+        choices = GWU.random.item.bind(GWU.random, config.choices);
     } else if (typeof config.choices == 'object') {
-        choices = GW.random.weighted.bind(GW.random, config.choices);
+        choices = GWU.random.weighted.bind(GWU.random, config.choices);
     } else {
-        GW.utils.ERROR(
+        GWU.ERROR(
             'Expected choices to be either array of room ids or map - ex: { ROOM_ID: weight }'
         );
     }
@@ -117,7 +119,7 @@ export function choiceRoom(
     let id = choices!();
     const digger = rooms[id];
     if (!digger) {
-        GW.utils.ERROR('Missing digger choice: ' + id);
+        GWU.ERROR('Missing digger choice: ' + id);
     }
 
     let digConfig = digger;
@@ -129,7 +131,7 @@ export function choiceRoom(
 }
 
 // From BROGUE => This is a special room that appears at the entrance to the dungeon on depth 1.
-export function entrance(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function entrance(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, { width: 20, height: 10 });
     if (!grid) return config;
 
@@ -160,7 +162,7 @@ export function entrance(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function cross(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function cross(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, { width: 12, height: 20 });
     if (!grid) return config;
 
@@ -171,21 +173,21 @@ export function cross(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     const roomWidth = width;
     const roomWidth2 = Math.max(
         3,
-        Math.floor((width * GW.random.range(25, 75)) / 100)
+        Math.floor((width * GWU.random.range(25, 75)) / 100)
     ); // [4,20]
     const roomHeight = Math.max(
         3,
-        Math.floor((height * GW.random.range(25, 75)) / 100)
+        Math.floor((height * GWU.random.range(25, 75)) / 100)
     ); // [2,5]
     const roomHeight2 = height;
 
     const roomX = Math.floor((grid.width - roomWidth) / 2);
     const roomX2 =
-        roomX + GW.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
+        roomX + GWU.random.range(2, Math.max(2, roomWidth - roomWidth2 - 2));
 
     const roomY2 = Math.floor((grid.height - roomHeight2) / 2);
     const roomY =
-        roomY2 + GW.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
+        roomY2 + GWU.random.range(2, Math.max(2, roomHeight2 - roomHeight - 2));
 
     grid.fill(0);
 
@@ -202,7 +204,7 @@ export function cross(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
 
 export function symmetricalCross(
     config: TYPES.RoomConfig,
-    grid: GW.grid.NumGrid
+    grid: GWU.grid.NumGrid
 ) {
     config = checkConfig(config, { width: 7, height: 7 });
     if (!grid) return config;
@@ -213,14 +215,14 @@ export function symmetricalCross(
 
     let minorWidth = Math.max(
         3,
-        Math.floor((width * GW.random.range(25, 50)) / 100)
+        Math.floor((width * GWU.random.range(25, 50)) / 100)
     ); // [2,4]
     // if (height % 2 == 0 && minorWidth > 2) {
     //     minorWidth -= 1;
     // }
     let minorHeight = Math.max(
         3,
-        Math.floor((height * GW.random.range(25, 50)) / 100)
+        Math.floor((height * GWU.random.range(25, 50)) / 100)
     ); // [2,3]?
     // if (width % 2 == 0 && minorHeight > 2) {
     //     minorHeight -= 1;
@@ -242,7 +244,7 @@ export function symmetricalCross(
     );
 }
 
-export function rectangular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function rectangular(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, { width: [3, 6], height: [3, 6] });
     if (!grid) return config;
 
@@ -257,7 +259,7 @@ export function rectangular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     return new TYPES.Room(config.id, x, y, width, height);
 }
 
-export function circular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function circular(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, { radius: [3, 4] });
     if (!grid) return config;
 
@@ -280,7 +282,7 @@ export function circular(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function brogueDonut(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function brogueDonut(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, {
         radius: [5, 10],
         ringMinWidth: 3,
@@ -301,12 +303,12 @@ export function brogueDonut(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
 
     if (
         radius > ringMinWidth + holeMinSize &&
-        GW.random.chance(config.holeChance.value())
+        GWU.random.chance(config.holeChance.value())
     ) {
         grid.fillCircle(
             x,
             y,
-            GW.random.range(holeMinSize, radius - holeMinSize),
+            GWU.random.range(holeMinSize, radius - holeMinSize),
             0
         );
     }
@@ -319,7 +321,7 @@ export function brogueDonut(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     );
 }
 
-export function chunkyRoom(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
+export function chunkyRoom(config: TYPES.RoomConfig, grid: GWU.grid.NumGrid) {
     config = checkConfig(config, {
         count: [2, 12],
         width: [5, 20],
@@ -349,8 +351,8 @@ export function chunkyRoom(config: TYPES.RoomConfig, grid: GW.grid.NumGrid) {
     );
 
     for (i = 0; i < chunkCount; ) {
-        x = GW.random.range(minX, maxX);
-        y = GW.random.range(minY, maxY);
+        x = GWU.random.range(minX, maxX);
+        y = GWU.random.range(minY, maxY);
         if (grid[x][y]) {
             //            colorOverDungeon(/* Color. */darkGray);
             //            hiliteGrid(grid, /* Color. */white, 100);

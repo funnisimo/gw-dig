@@ -1,7 +1,7 @@
-import * as GW from 'gw-utils';
+import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
-export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
+export function digLakes(map: GWU.grid.NumGrid, opts: any = {}) {
     let i, j, k;
     let x, y;
     let lakeMaxHeight, lakeMaxWidth, lakeMinSize, tries, maxCount, canDisrupt;
@@ -17,7 +17,7 @@ export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
     const wreathTile = opts.wreathTile || SITE.SHALLOW;
     const tile = opts.tile || SITE.DEEP;
 
-    const lakeGrid = GW.grid.alloc(map.width, map.height, 0);
+    const lakeGrid = GWU.grid.alloc(map.width, map.height, 0);
 
     let attempts = 0;
     while (attempts < maxCount && count < maxCount) {
@@ -35,16 +35,14 @@ export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
             ) + lakeMinSize;
 
         lakeGrid.fill(SITE.NOTHING);
-        const bounds = lakeGrid.fillBlob(
-            5,
-            4,
-            4,
-            width,
-            height,
-            55,
-            'ffffftttt',
-            'ffffttttt'
-        );
+        const bounds = GWU.blob.fillBlob(lakeGrid, {
+            rounds: 5,
+            minWidth: 4,
+            minHeight: 4,
+            maxWidth: width,
+            maxHeight: height,
+            percentSeeded: 55,
+        });
 
         // lakeGrid.dump();
 
@@ -52,11 +50,11 @@ export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
         for (k = 0; k < tries && !success; k++) {
             // placement attempts
             // propose a position for the top-left of the lakeGrid in the dungeon
-            x = GW.random.range(
+            x = GWU.random.range(
                 1 - bounds.x,
                 lakeGrid.width - bounds.width - bounds.x - 2
             );
-            y = GW.random.range(
+            y = GWU.random.range(
                 1 - bounds.y,
                 lakeGrid.height - bounds.height - bounds.y - 2
             );
@@ -96,17 +94,17 @@ export function digLakes(map: GW.grid.NumGrid, opts: any = {}) {
             ++attempts;
         }
     }
-    GW.grid.free(lakeGrid);
+    GWU.grid.free(lakeGrid);
     return count;
 }
 
 function lakeDisruptsPassability(
-    map: GW.grid.NumGrid,
-    lakeGrid: GW.grid.NumGrid,
+    map: GWU.grid.NumGrid,
+    lakeGrid: GWU.grid.NumGrid,
     lakeToMapX = 0,
     lakeToMapY = 0
 ) {
-    const walkableGrid = GW.grid.alloc(map.width, map.height);
+    const walkableGrid = GWU.grid.alloc(map.width, map.height);
     let disrupts = false;
 
     // Get all walkable locations after lake added
@@ -144,12 +142,12 @@ function lakeDisruptsPassability(
     // console.log('WALKABLE GRID');
     // walkableGrid.dump();
 
-    GW.grid.free(walkableGrid);
+    GWU.grid.free(walkableGrid);
     return disrupts;
 }
 
 function isBridgeCandidate(
-    map: GW.grid.NumGrid,
+    map: GWU.grid.NumGrid,
     x: number,
     y: number,
     bridgeDir: [number, number]
@@ -163,7 +161,7 @@ function isBridgeCandidate(
 
 // Add some loops to the otherwise simply connected network of rooms.
 export function digBridges(
-    map: GW.grid.NumGrid,
+    map: GWU.grid.NumGrid,
     minimumPathingDistance: number,
     maxConnectionLength: number
 ) {
@@ -173,8 +171,8 @@ export function digBridges(
     maxConnectionLength = maxConnectionLength || 1; // by default only break walls down
 
     const siteGrid = map;
-    const pathGrid = GW.grid.alloc(map.width, map.height);
-    const costGrid = GW.grid.alloc(map.width, map.height);
+    const pathGrid = GWU.grid.alloc(map.width, map.height);
+    const costGrid = GWU.grid.alloc(map.width, map.height);
 
     const dirCoords: [number, number][] = [
         [1, 0],
@@ -183,7 +181,7 @@ export function digBridges(
 
     SITE.fillCostGrid(map, costGrid);
 
-    const SEQ = GW.random.sequence(map.width * map.height);
+    const SEQ = GWU.random.sequence(map.width * map.height);
 
     for (i = 0; i < SEQ.length; i++) {
         x = Math.floor(SEQ[i] / siteGrid.height);
@@ -223,7 +221,7 @@ export function digBridges(
                     SITE.isPassable(map, newX, newY) &&
                     j < maxConnectionLength
                 ) {
-                    GW.path.calculateDistances(
+                    GWU.path.calculateDistances(
                         pathGrid,
                         newX,
                         newY,
@@ -235,7 +233,7 @@ export function digBridges(
                     // dijkstraScan(pathGrid, costGrid, false);
                     if (
                         pathGrid[x][y] > minimumPathingDistance &&
-                        pathGrid[x][y] < GW.path.NO_PATH
+                        pathGrid[x][y] < GWU.path.NO_PATH
                     ) {
                         // and if the pathing distance between the two flanking floor tiles exceeds minimumPathingDistance,
 
@@ -265,6 +263,6 @@ export function digBridges(
             }
         }
     }
-    GW.grid.free(pathGrid);
-    GW.grid.free(costGrid);
+    GWU.grid.free(pathGrid);
+    GWU.grid.free(costGrid);
 }
