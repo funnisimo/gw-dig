@@ -7,63 +7,56 @@ import { BuildData } from '../blueprint/data';
 import { BuildStep } from '../blueprint/buildStep';
 
 export interface Logger {
-    onDigFirstRoom(site: DigSite): Promise<any>;
-    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
+    onDigFirstRoom(site: DigSite): void;
+    onRoomCandidate(room: Room, roomSite: DigSite): void;
     onRoomFailed(
         site: DigSite,
         room: Room,
         roomSite: DigSite,
         error: string
-    ): Promise<any>;
-    onRoomSuccess(site: DigSite, room: Room): Promise<any>;
+    ): void;
+    onRoomSuccess(site: DigSite, room: Room): void;
 
-    onLoopsAdded(site: DigSite): Promise<any>;
-    onLakesAdded(site: DigSite): Promise<any>;
-    onBridgesAdded(site: DigSite): Promise<any>;
-    onStairsAdded(site: DigSite): Promise<any>;
+    onLoopsAdded(site: DigSite): void;
+    onLakesAdded(site: DigSite): void;
+    onBridgesAdded(site: DigSite): void;
+    onStairsAdded(site: DigSite): void;
 
     //
 
-    onBuildError(error: string): Promise<any>;
+    onBuildError(error: string): void;
 
-    onBlueprintPick(
-        data: BuildData,
-        flags: number,
-        depth: number
-    ): Promise<any>;
+    onBlueprintPick(data: BuildData, flags: number, depth: number): void;
 
-    onBlueprintCandidates(data: BuildData): Promise<any>;
+    onBlueprintCandidates(data: BuildData): void;
 
-    onBlueprintStart(
-        data: BuildData,
-        adoptedItem: GWM.item.Item | null
-    ): Promise<any>;
+    onBlueprintStart(data: BuildData, adoptedItem: GWM.item.Item | null): void;
 
-    onBlueprintInterior(data: BuildData): Promise<any>;
+    onBlueprintInterior(data: BuildData): void;
 
-    onBlueprintFail(data: BuildData, error: string): Promise<any>;
+    onBlueprintFail(data: BuildData, error: string): void;
 
-    onBlueprintSuccess(data: BuildData): Promise<any>;
+    onBlueprintSuccess(data: BuildData): void;
 
     onStepStart(
         data: BuildData,
         step: BuildStep,
         item: GWM.item.Item | null
-    ): Promise<any>;
+    ): void;
 
     onStepCandidates(
         data: BuildData,
         step: BuildStep,
         candidates: GWU.grid.NumGrid,
         wantCount: number
-    ): Promise<any>;
+    ): void;
 
     onStepInstanceSuccess(
         data: BuildData,
         step: BuildStep,
         x: number,
         y: number
-    ): Promise<any>;
+    ): void;
 
     onStepInstanceFail(
         data: BuildData,
@@ -71,34 +64,34 @@ export interface Logger {
         x: number,
         y: number,
         error: string
-    ): Promise<any>;
+    ): void;
 
-    onStepSuccess(data: BuildData, step: BuildStep): Promise<any>;
+    onStepSuccess(data: BuildData, step: BuildStep): void;
 
-    onStepFail(data: BuildData, step: BuildStep, error: string): Promise<any>;
+    onStepFail(data: BuildData, step: BuildStep, error: string): void;
 }
 
 export class NullLogger implements Logger {
-    async onDigFirstRoom(): Promise<any> {}
-    async onRoomCandidate(): Promise<any> {}
-    async onRoomFailed(): Promise<any> {}
-    async onRoomSuccess(): Promise<any> {}
-    async onLoopsAdded(): Promise<any> {}
-    async onLakesAdded(): Promise<any> {}
-    async onBridgesAdded(): Promise<any> {}
-    async onStairsAdded(): Promise<any> {}
+    onDigFirstRoom(): void {}
+    onRoomCandidate(): void {}
+    onRoomFailed(): void {}
+    onRoomSuccess(): void {}
+    onLoopsAdded(): void {}
+    onLakesAdded(): void {}
+    onBridgesAdded(): void {}
+    onStairsAdded(): void {}
 
-    async onBuildError(): Promise<any> {}
-    async onBlueprintPick(): Promise<any> {}
-    async onBlueprintCandidates(): Promise<any> {}
-    async onBlueprintStart(): Promise<any> {}
-    async onBlueprintInterior(): Promise<any> {}
-    async onBlueprintFail(): Promise<any> {}
-    async onBlueprintSuccess(): Promise<any> {}
-    async onStepStart(): Promise<any> {}
-    async onStepCandidates(): Promise<any> {}
-    async onStepInstanceSuccess(): Promise<any> {}
-    async onStepInstanceFail(): Promise<any> {}
-    async onStepSuccess(): Promise<any> {}
-    async onStepFail(): Promise<any> {}
+    onBuildError(): void {}
+    onBlueprintPick(): void {}
+    onBlueprintCandidates(): void {}
+    onBlueprintStart(): void {}
+    onBlueprintInterior(): void {}
+    onBlueprintFail(): void {}
+    onBlueprintSuccess(): void {}
+    onStepStart(): void {}
+    onStepCandidates(): void {}
+    onStepInstanceSuccess(): void {}
+    onStepInstanceFail(): void {}
+    onStepSuccess(): void {}
+    onStepFail(): void {}
 }

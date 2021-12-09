@@ -58,13 +58,13 @@ export class Builder {
         return blueprints[index] || null;
     }
 
-    async buildRandom(
+    buildRandom(
         site: BuildSite | GWM.map.Map,
         requiredMachineFlags = BLUE.Flags.BP_ROOM,
         x = -1,
         y = -1,
         adoptedItem: GWM.item.Item | null = null
-    ): Promise<BuildResult> {
+    ): BuildResult {
         if (site instanceof GWM.map.Map) {
             site = new MapSite(site);
         }
@@ -79,7 +79,7 @@ export class Builder {
                 site.rng
             );
             if (!blueprint) {
-                await this.log.onBuildError(
+                this.log.onBuildError(
                     `Failed to find matching blueprint: requiredMachineFlags : ${GWU.flag.toString(
                         BLUE.Flags,
                         requiredMachineFlags
@@ -91,9 +91,9 @@ export class Builder {
             const data = new BuildData(site, blueprint);
             data.site.analyze();
 
-            await this.log.onBlueprintPick(data, requiredMachineFlags, depth);
+            this.log.onBlueprintPick(data, requiredMachineFlags, depth);
 
-            if (await this._buildAt(data, x, y, adoptedItem)) {
+            if (this._buildAt(data, x, y, adoptedItem)) {
                 return { x, y };
             }
             ++tries;
@@ -108,13 +108,13 @@ export class Builder {
         return null;
     }
 
-    async build(
+    build(
         site: BuildSite | GWM.map.Map,
         blueprint: BLUE.Blueprint | string,
         x = -1,
         y = -1,
         adoptedItem: GWM.item.Item | null = null
-    ): Promise<BuildResult> {
+    ): BuildResult {
         if (site instanceof GWM.map.Map) {
             site = new MapSite(site);
         }
@@ -128,20 +128,20 @@ export class Builder {
         const data = new BuildData(site, blueprint);
         data.site.analyze();
 
-        return await this._buildAt(data, x, y, adoptedItem);
+        return this._buildAt(data, x, y, adoptedItem);
     }
 
-    async _buildAt(
+    _buildAt(
         data: BuildData,
         x = -1,
         y = -1,
         adoptedItem: GWM.item.Item | null = null
-    ): Promise<BuildResult> {
+    ): BuildResult {
         if (x >= 0 && y >= 0) {
-            return await this._build(data, x, y, adoptedItem);
+            return this._build(data, x, y, adoptedItem);
         }
 
-        let count = await this._markCandidates(data);
+        let count = this._markCandidates(data);
         if (!count) {
             return null;
         }
@@ -150,13 +150,13 @@ export class Builder {
         while (count-- && tries--) {
             const loc = BLUE.pickCandidateLoc(data) || false;
             if (loc) {
-                if (await this._build(data, loc[0], loc[1], adoptedItem)) {
+                if (this._build(data, loc[0], loc[1], adoptedItem)) {
                     return { x: loc[0], y: loc[1] };
                 }
             }
         }
 
-        await this.log.onBlueprintFail(
+        this.log.onBlueprintFail(
             data,
             'No suitable locations found to build blueprint.'
         );
@@ -166,16 +166,16 @@ export class Builder {
     //////////////////////////////////////////
     // Returns true if the machine got built; false if it was aborted.
     // If empty array spawnedItems or spawnedMonsters is given, will pass those back for deletion if necessary.
-    async _build(
+    _build(
         data: BuildData,
         originX: number,
         originY: number,
         adoptedItem: GWM.item.Item | null = null
-    ): Promise<BuildResult> {
+    ): BuildResult {
         data.reset(originX, originY);
-        await this.log.onBlueprintStart(data, adoptedItem);
+        this.log.onBlueprintStart(data, adoptedItem);
 
-        if (!(await this._computeInterior(data))) {
+        if (!this._computeInterior(data)) {
             return null;
         }
 
@@ -202,10 +202,10 @@ export class Builder {
             const component = components[index];
             // console.log('BUILD COMPONENT', component);
 
-            if (!(await this._buildStep(data, component, adoptedItem))) {
+            if (!this._buildStep(data, component, adoptedItem)) {
                 // failure! abort!
                 // Restore the map to how it was before we touched it.
-                await this.log.onBlueprintFail(
+                this.log.onBlueprintFail(
                     data,
                     `Failed to build step ${index + 1}.`
                 );
@@ -228,7 +228,7 @@ export class Builder {
         // 	torchBearer->carriedItem = torch;
         // }
 
-        await this.log.onBlueprintSuccess(data);
+        this.log.onBlueprintSuccess(data);
 
         snapshot.cancel();
 
@@ -236,23 +236,23 @@ export class Builder {
         return { x: originX, y: originY };
     }
 
-    async _markCandidates(data: BuildData): Promise<number> {
+    _markCandidates(data: BuildData): number {
         const count = BLUE.markCandidates(data);
 
         if (count <= 0) {
-            await this.log.onBlueprintFail(
+            this.log.onBlueprintFail(
                 data,
                 'No suitable candidate locations found.'
             );
             return 0;
         }
 
-        await this.log.onBlueprintCandidates(data);
+        this.log.onBlueprintCandidates(data);
 
         return count;
     }
 
-    async _computeInterior(data: BuildData): Promise<boolean> {
+    _computeInterior(data: BuildData): boolean {
         let fail = null;
         let count = data.blueprint.fillInterior(data);
 
@@ -276,16 +276,16 @@ export class Builder {
         }
 
         if (!fail) {
-            await this.log.onBlueprintInterior(data);
+            this.log.onBlueprintInterior(data);
 
             return true;
         }
 
-        await this.log.onBlueprintFail(data, fail);
+        this.log.onBlueprintFail(data, fail);
         return false;
     }
 
-    async _buildStep(
+    _buildStep(
         data: BuildData,
         buildStep: STEP.BuildStep,
         adoptedItem: GWM.item.Item | null
@@ -295,7 +295,7 @@ export class Builder {
 
         const site = data.site;
 
-        await this.log.onStepStart(data, buildStep, adoptedItem);
+        this.log.onStepStart(data, buildStep, adoptedItem);
 
         // console.log(
         //     'buildComponent',
@@ -315,7 +315,7 @@ export class Builder {
             // Generate a door guard machine.
             // Try to create a sub-machine that qualifies.
 
-            let success = await this.buildRandom(
+            let success = this.buildRandom(
                 data.site,
                 BLUE.Flags.BP_VESTIBULE,
                 data.originX,
@@ -323,7 +323,7 @@ export class Builder {
             );
 
             if (!success) {
-                await this.log.onStepFail(
+                this.log.onStepFail(
                     data,
                     buildStep,
                     'Failed to build vestibule'
@@ -334,7 +334,7 @@ export class Builder {
 
         // If we are just building a vestibule, then we can exit here...
         if (!buildStep.buildsInstances) {
-            await this.log.onStepSuccess(data, buildStep);
+            this.log.onStepSuccess(data, buildStep);
             return true;
         }
 
@@ -365,7 +365,7 @@ export class Builder {
                     wantCount = buildStep.count.value(site.rng);
                 }
 
-                await this.log.onStepCandidates(
+                this.log.onStepCandidates(
                     data,
                     buildStep,
                     candidates,
@@ -379,7 +379,7 @@ export class Builder {
                     !qualifyingTileCount ||
                     qualifyingTileCount < buildStep.count.lo
                 ) {
-                    await this.log.onStepFail(
+                    this.log.onStepFail(
                         data,
                         buildStep,
                         `Only ${qualifyingTileCount} qualifying tiles - want ${buildStep.count.toString()}.`
@@ -413,13 +413,7 @@ export class Builder {
                 const snapshot = data.site.snapshot();
 
                 if (
-                    await this._buildStepInstance(
-                        data,
-                        buildStep,
-                        x,
-                        y,
-                        adoptedItem
-                    )
+                    this._buildStepInstance(data, buildStep, x, y, adoptedItem)
                 ) {
                     // OK, if placement was successful, clear some personal space around the feature so subsequent features can't be generated too close.
                     qualifyingTileCount -= buildStep.makePersonalSpace(
@@ -446,7 +440,7 @@ export class Builder {
             !buildStep.generateEverywhere &&
             !buildStep.repeatUntilNoProgress
         ) {
-            await this.log.onStepFail(
+            this.log.onStepFail(
                 data,
                 buildStep,
                 `Failed to build enough instances - want: ${buildStep.count.toString()}, built: ${builtCount}`
@@ -454,18 +448,18 @@ export class Builder {
             return false;
         }
 
-        await this.log.onStepSuccess(data, buildStep);
+        this.log.onStepSuccess(data, buildStep);
 
         return true;
     }
 
-    async _buildStepInstance(
+    _buildStepInstance(
         data: BuildData,
         buildStep: STEP.BuildStep,
         x: number,
         y: number,
         adoptedItem: GWM.item.Item | null = null
-    ): Promise<boolean> {
+    ): boolean {
         let success = true;
         let didSomething = true;
 
@@ -483,7 +477,7 @@ export class Builder {
                 };
             }
             if (SITE.siteDisruptedByXY(site, x, y, options)) {
-                await this.log.onStepInstanceFail(
+                this.log.onStepInstanceFail(
                     data,
                     buildStep,
                     x,
@@ -496,7 +490,7 @@ export class Builder {
 
         // Try to build the DF first, if any, since we don't want it to be disrupted by subsequently placed terrain.
         if (success && buildStep.effect) {
-            success = await site.buildEffect(buildStep.effect, x, y);
+            success = site.buildEffect(buildStep.effect, x, y);
             didSomething = success;
             if (!success) {
                 this.log.onStepInstanceFail(
@@ -516,7 +510,7 @@ export class Builder {
 
             if (!tile) {
                 success = false;
-                await this.log.onStepInstanceFail(
+                this.log.onStepInstanceFail(
                     data,
                     buildStep,
                     x,
@@ -533,7 +527,7 @@ export class Builder {
                         machine: site.machineCount,
                     })
                 ) {
-                    await this.log.onStepInstanceFail(
+                    this.log.onStepInstanceFail(
                         data,
                         buildStep,
                         x,
@@ -548,7 +542,7 @@ export class Builder {
                 success = site.setTile(x, y, tile);
                 didSomething = didSomething || success;
                 if (!success) {
-                    await this.log.onStepInstanceFail(
+                    this.log.onStepInstanceFail(
                         data,
                         buildStep,
                         x,
@@ -566,7 +560,7 @@ export class Builder {
             const item = buildStep.makeItem(data);
             if (!item) {
                 success = false;
-                await this.log.onStepInstanceFail(
+                this.log.onStepInstanceFail(
                     data,
                     buildStep,
                     x,
@@ -584,7 +578,7 @@ export class Builder {
                 }
 
                 if (buildStep.outsourceItem) {
-                    const result = await this.buildRandom(
+                    const result = this.buildRandom(
                         data.site,
                         BLUE.Flags.BP_ADOPT_ITEM,
                         -1,
@@ -594,7 +588,7 @@ export class Builder {
                     if (result) {
                         didSomething = true;
                     } else {
-                        await this.log.onStepInstanceFail(
+                        this.log.onStepInstanceFail(
                             data,
                             buildStep,
                             x,
@@ -610,7 +604,7 @@ export class Builder {
                     success = site.addItem(x, y, item);
                     didSomething = didSomething || success;
                     if (!success) {
-                        await this.log.onStepInstanceFail(
+                        this.log.onStepInstanceFail(
                             data,
                             buildStep,
                             x,
@@ -633,7 +627,7 @@ export class Builder {
                 if (success) {
                     didSomething = true;
                 } else {
-                    await this.log.onStepInstanceFail(
+                    this.log.onStepInstanceFail(
                         data,
                         buildStep,
                         x,
@@ -659,7 +653,7 @@ export class Builder {
             }
             if (!horde) {
                 success = false;
-                await this.log.onStepInstanceFail(
+                this.log.onStepInstanceFail(
                     data,
                     buildStep,
                     x,
@@ -667,12 +661,12 @@ export class Builder {
                     'Failed to pick horde - ' + JSON.stringify(buildStep.horde)
                 );
             } else {
-                const leader = await site.spawnHorde(horde, x, y, {
+                const leader = site.spawnHorde(horde, x, y, {
                     machine: site.machineCount,
                 });
                 if (!leader) {
                     success = false;
-                    await this.log.onStepInstanceFail(
+                    this.log.onStepInstanceFail(
                         data,
                         buildStep,
                         x,
@@ -687,9 +681,9 @@ export class Builder {
                     if (torch && buildStep.hordeTakesItem) {
                         torchBearer = leader;
                         if (
-                            !(await torchBearer.pickupItem(torch, {
+                            !torchBearer.pickupItem(torch, {
                                 admin: true,
-                            }))
+                            })
                         ) {
                             success = false;
                         }
@@ -697,7 +691,7 @@ export class Builder {
 
                     if (buildStep.horde.effect) {
                         const info = GWM.effect.from(buildStep.horde.effect);
-                        await site.buildEffect(info, x, y);
+                        site.buildEffect(info, x, y);
                     }
                 }
             }
@@ -719,7 +713,7 @@ export class Builder {
                 site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
             }
 
-            await this.log.onStepInstanceSuccess(data, buildStep, x, y);
+            this.log.onStepInstanceSuccess(data, buildStep, x, y);
         } else if (didSomething) {
             // roll back any changes?
         }
@@ -731,7 +725,7 @@ export class Builder {
 ////////////////////////////////////////////////////
 // TODO - Change this!!!
 // const blue = BLUE.get(id | blue);
-// const result = await blue.buildAt(map, x, y);
+// const result =  blue.buildAt(map, x, y);
 //
 export function build(
     blueprint: BlueType,
@@ -739,7 +733,7 @@ export function build(
     x: number,
     y: number,
     opts?: Partial<BuilderOptions>
-): Promise<BuildResult> {
+): BuildResult {
     const builder = new Builder(opts);
     const site = new MapSite(map);
 

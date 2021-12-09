@@ -136,31 +136,28 @@ export class Digger {
         return site;
     }
 
-    async create(
-        width: number,
-        height: number,
-        cb: TYPES.DigFn
-    ): Promise<boolean>;
-    async create(map: GWM.map.Map): Promise<boolean>;
-    async create(...args: any[]): Promise<boolean> {
-        if (args.length == 1 && args[0] instanceof GWM.map.Map) {
-            const map = args[0] as GWM.map.Map;
-            this.site = new SITE.MapSite(map);
+    _createSite(map: GWM.map.Map): void;
+    _createSite(width: number, height: number): void;
+    _createSite(a: number | GWM.map.Map, b?: number): void {
+        if (a instanceof GWM.map.Map) {
+            this.site = new SITE.MapSite(a);
+        } else if (b) {
+            this.site = new SITE.GridSite(a, b!);
+        } else {
+            throw new Error('Invlaid digger arguments.');
         }
-        if (args.length > 1) {
-            const width = args[0] as number;
-            const height = args[1] as number;
-            this.site = new SITE.GridSite(width, height);
-        }
+    }
 
-        const result = await this._create(this.site);
+    create(width: number, height: number, cb: TYPES.DigFn): boolean;
+    create(map: GWM.map.Map): boolean;
+    create(...args: any[]): boolean {
+        this._createSite(args[0], args[1]);
 
-        if (args.length > 1) {
-            const width = args[0] as number;
-            const height = args[1] as number;
-            const cb = args[2] as TYPES.DigFn;
+        const result = this._create(this.site);
 
-            GWU.xy.forRect(width, height, (x, y) => {
+        const cb = args[2] || null;
+        if (cb) {
+            GWU.xy.forRect(this.site.width, this.site.height, (x, y) => {
                 const t = this.site.getTileIndex(x, y);
                 if (t) cb(x, y, t);
             });
@@ -170,22 +167,17 @@ export class Digger {
         return result;
     }
 
-    async _create(site: SITE.DigSite): Promise<boolean> {
-        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
-            this.startLoc[0] = Math.floor(site.width / 2);
-            this.startLoc[1] = site.height - 2;
-        }
-
+    _create(site: SITE.DigSite): boolean {
         this.start(site);
 
         let tries = 20;
         while (--tries) {
-            if (await this.addFirstRoom(site)) break;
+            if (this.addFirstRoom(site)) break;
         }
         if (!tries) throw new Error('Failed to place first room!');
         site.updateDoorDirs();
 
-        await this.log.onDigFirstRoom(site);
+        this.log.onDigFirstRoom(site);
 
         // site.dump();
         // console.log('- rng.number', site.rng.number());
@@ -194,7 +186,7 @@ export class Digger {
         let count = 1;
         const maxFails = this.rooms.fails || 20;
         while (fails < maxFails) {
-            if (await this.addRoom(site)) {
+            if (this.addRoom(site)) {
                 fails = 0;
                 site.updateDoorDirs();
                 site.rng.shuffle(this.seq);
@@ -212,19 +204,19 @@ export class Digger {
 
         if (this.loops) {
             this.addLoops(site, this.loops);
-            await this.log.onLoopsAdded(site);
+            this.log.onLoopsAdded(site);
         }
         if (this.lakes) {
             this.addLakes(site, this.lakes);
-            await this.log.onLakesAdded(site);
+            this.log.onLakesAdded(site);
         }
         if (this.bridges) {
             this.addBridges(site, this.bridges);
-            await this.log.onBridgesAdded(site);
+            this.log.onBridgesAdded(site);
         }
         if (this.stairs) {
             this.addStairs(site, this.stairs);
-            await this.log.onStairsAdded(site);
+            this.log.onStairsAdded(site);
         }
 
         this.finish(site);
@@ -238,6 +230,11 @@ export class Digger {
 
         site.clear();
         this.seq = site.rng.sequence(site.width * site.height);
+
+        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+            this.startLoc[0] = Math.floor(site.width / 2);
+            this.startLoc[1] = site.height - 2;
+        }
     }
 
     getDigger(
@@ -255,7 +252,7 @@ export class Digger {
         return new ROOM.ChoiceRoom(id);
     }
 
-    async addFirstRoom(site: SITE.DigSite): Promise<TYPES.Room | null> {
+    addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
         const roomSite = this._makeRoomSite(site.width, site.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
@@ -265,7 +262,7 @@ export class Digger {
 
         if (
             room &&
-            !(await this._attachRoomAtLoc(site, roomSite, room, this.startLoc))
+            !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)
         ) {
             room = null;
         }
@@ -274,7 +271,7 @@ export class Digger {
         return room;
     }
 
-    async addRoom(site: SITE.DigSite): Promise<TYPES.Room | null> {
+    addRoom(site: SITE.DigSite): TYPES.Room | null {
         const roomSite = this._makeRoomSite(site.width, site.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
@@ -298,17 +295,12 @@ export class Digger {
         // roomSite.dump();
 
         if (room) {
-            await this.log.onRoomCandidate(room, roomSite);
+            this.log.onRoomCandidate(room, roomSite);
 
             if (this._attachRoom(site, roomSite, room)) {
-                await this.log.onRoomSuccess(site, room);
+                this.log.onRoomSuccess(site, room);
             } else {
-                await this.log.onRoomFailed(
-                    site,
-                    room,
-                    roomSite,
-                    'Did not fit.'
-                );
+                this.log.onRoomFailed(site, room, roomSite, 'Did not fit.');
                 room = null;
             }
         }
@@ -360,12 +352,12 @@ export class Digger {
         return false;
     }
 
-    async _attachRoomAtLoc(
+    _attachRoomAtLoc(
         site: SITE.DigSite,
         roomSite: SITE.DigSite,
         room: TYPES.Room,
         attachLoc: GWU.xy.Loc
-    ): Promise<boolean> {
+    ): boolean {
         const [x, y] = attachLoc;
         const doorSites = room.hall ? room.hall.doors : room.doors;
         const dirs = site.rng.sequence(4);
@@ -609,4 +601,9 @@ export class Digger {
             }
         });
     }
+}
+
+export function digMap(map: GWM.map.Map, options: Partial<DiggerOptions> = {}) {
+    const digger = new Digger(options);
+    return digger.create(map);
 }

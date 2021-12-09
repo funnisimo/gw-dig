@@ -44,6 +44,13 @@
             return max;
         return v;
     }
+    function lerp(from, to, pct) {
+        if (pct > 1)
+            pct = 1;
+        if (pct < 0)
+            pct = 0;
+        return Math.floor(from + (to - from) * pct);
+    }
     function ERROR(message) {
         throw new Error(message);
     }
@@ -64,6 +71,13 @@
         if (index < 0)
             return false;
         a.splice(index, 1);
+        return true;
+    }
+    function arrayNullify(a, b) {
+        const index = a.indexOf(b);
+        if (index < 0)
+            return false;
+        a[index] = null;
         return true;
     }
     function arrayInsert(a, b, beforeFn) {
@@ -171,6 +185,15 @@
         [-1, 0],
         [-1, 1],
     ];
+    function isLoc(a) {
+        return (Array.isArray(a) &&
+            a.length == 2 &&
+            typeof a[0] === 'number' &&
+            typeof a[1] === 'number');
+    }
+    function isXY(a) {
+        return a && typeof a.x === 'number' && typeof a.y === 'number';
+    }
     function x(src) {
         // @ts-ignore
         return src.x || src[0] || 0;
@@ -232,13 +255,19 @@
             return `[${this.x},${this.y} -> ${this.right},${this.bottom}]`;
         }
     }
-    function copyXY(dest, src) {
+    function copy(dest, src) {
         dest.x = x(src);
         dest.y = y(src);
     }
-    function addXY(dest, src) {
+    function addTo(dest, src) {
         dest.x += x(src);
         dest.y += y(src);
+    }
+    function add$1(a, b) {
+        if (Array.isArray(a)) {
+            return [a[0] + x(b), a[1] + y(b)];
+        }
+        return { x: a.x + x(b), y: a.y + y(b) };
     }
     function equalsXY(dest, src) {
         if (!dest && !src)
@@ -291,6 +320,16 @@
         const x = Math.abs(x1 - x2);
         const y = Math.abs(y1 - y2);
         return x + y;
+    }
+    function maxAxisFromTo(a, b) {
+        const xa = Math.abs(x(a) - x(b));
+        const ya = Math.abs(y(a) - y(b));
+        return Math.max(xa, ya);
+    }
+    function maxAxisBetween(x1, y1, x2, y2) {
+        const xa = Math.abs(x1 - x2);
+        const ya = Math.abs(y1 - y2);
+        return Math.max(xa, ya);
     }
     function distanceBetween(x1, y1, x2, y2) {
         const x = Math.abs(x1 - x2);
@@ -417,12 +456,19 @@
                 }
                 currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
             }
-            if (stepFn(...currentLoc) === false) {
+            const r = stepFn(...currentLoc);
+            if (r === false) {
                 return false;
             }
-            if (currentLoc[0] === toX && currentLoc[1] === toY)
+            else if (r !== true &&
+                currentLoc[0] === toX &&
+                currentLoc[1] === toY) {
                 return true;
+            }
         } while (true);
+    }
+    function forLineFromTo(a, b, stepFn) {
+        return forLineBetween(x(a), y(a), x(b), y(b), stepFn);
     }
     // ADAPTED FROM BROGUE 1.7.5
     // Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
@@ -447,6 +493,7 @@
             if (x < 0 || y < 0 || x >= width || y >= height)
                 return false;
             line.push([x, y]);
+            return true;
         });
         return line;
     }
@@ -543,18 +590,23 @@
         LEFT_DOWN: LEFT_DOWN,
         LEFT_UP: LEFT_UP,
         CLOCK_DIRS: CLOCK_DIRS,
+        isLoc: isLoc,
+        isXY: isXY,
         x: x,
         y: y,
         contains: contains,
         Bounds: Bounds,
-        copyXY: copyXY,
-        addXY: addXY,
+        copy: copy,
+        addTo: addTo,
+        add: add$1,
         equalsXY: equalsXY,
         lerpXY: lerpXY,
         eachNeighbor: eachNeighbor,
         eachNeighborAsync: eachNeighborAsync,
         matchingNeighbor: matchingNeighbor,
         straightDistanceBetween: straightDistanceBetween,
+        maxAxisFromTo: maxAxisFromTo,
+        maxAxisBetween: maxAxisBetween,
         distanceBetween: distanceBetween,
         distanceFromTo: distanceFromTo,
         calcRadius: calcRadius,
@@ -567,6 +619,7 @@
         stepFromTo: stepFromTo,
         forLine: forLine,
         forLineBetween: forLineBetween,
+        forLineFromTo: forLineFromTo,
         getLine: getLine,
         getLineThru: getLineThru,
         forCircle: forCircle,
@@ -1214,7 +1267,7 @@
     }
     const random = new Random();
     const cosmetic = new Random();
-    function make$c(seed) {
+    function make$d(seed) {
         return new Random(seed);
     }
 
@@ -1225,7 +1278,7 @@
         Random: Random,
         random: random,
         cosmetic: cosmetic,
-        make: make$c
+        make: make$d
     });
 
     class Range {
@@ -1246,6 +1299,9 @@
             rng = rng || random;
             return rng.clumped(this.lo, this.hi, this.clumps);
         }
+        max() {
+            return this.hi;
+        }
         contains(value) {
             return this.lo <= value && this.hi >= value;
         }
@@ -1262,7 +1318,7 @@
             return `${this.lo}-${this.hi}`;
         }
     }
-    function make$b(config) {
+    function make$c(config) {
         if (!config)
             return new Range(0, 0, 0);
         if (config instanceof Range)
@@ -1318,18 +1374,23 @@
         }
         throw new Error('Not a valid range - ' + config);
     }
-    const from$4 = make$b;
+    const from$4 = make$c;
     function asFn(config) {
-        const range = make$b(config);
+        const range = make$c(config);
         return () => range.value();
+    }
+    function value(base) {
+        const r = make$c(base);
+        return r.value();
     }
 
     var range = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Range: Range,
-        make: make$b,
+        make: make$c,
         from: from$4,
-        asFn: asFn
+        asFn: asFn,
+        value: value
     });
 
     ///////////////////////////////////
@@ -1418,7 +1479,7 @@
         }
         return result;
     }
-    function make$a(obj) {
+    function make$b(obj) {
         const out = {};
         Object.entries(obj).forEach(([key, value]) => {
             out[key] = from$3(out, value);
@@ -1431,7 +1492,7 @@
         fl: fl,
         toString: toString,
         from: from$3,
-        make: make$a
+        make: make$b
     });
 
     const DIRS$1 = DIRS$2;
@@ -1474,7 +1535,7 @@
             return '#';
         }
     }
-    class Grid extends Array {
+    class Grid$1 extends Array {
         constructor(w, h, v) {
             super(w);
             const grid = this;
@@ -1797,7 +1858,7 @@
         create: 0,
         free: 0,
     };
-    class NumGrid extends Grid {
+    class NumGrid extends Grid$1 {
         constructor(w, h, v = 0) {
             super(w, h, v);
         }
@@ -1990,12 +2051,12 @@
     // Grid.fillBlob = fillBlob;
     const alloc = NumGrid.alloc.bind(NumGrid);
     const free = NumGrid.free.bind(NumGrid);
-    function make$9(w, h, v) {
+    function make$a(w, h, v) {
         if (v === undefined)
             return new NumGrid(w, h, 0);
         if (typeof v === 'number')
             return new NumGrid(w, h, v);
-        return new Grid(w, h, v);
+        return new Grid$1(w, h, v);
     }
     function offsetZip(destGrid, srcGrid, srcToDestX, srcToDestY, value) {
         const fn = typeof value === 'function'
@@ -2027,12 +2088,12 @@
     var grid = /*#__PURE__*/Object.freeze({
         __proto__: null,
         makeArray: makeArray,
-        Grid: Grid,
+        Grid: Grid$1,
         stats: stats,
         NumGrid: NumGrid,
         alloc: alloc,
         free: free,
-        make: make$9,
+        make: make$a,
         offsetZip: offsetZip,
         intersection: intersection,
         unite: unite
@@ -2200,7 +2261,7 @@
         clamp() {
             if (this.isNull())
                 return this;
-            return make$8(this._data.map((v) => clamp(v, 0, 100)));
+            return make$9(this._data.map((v) => clamp(v, 0, 100)));
         }
         blend(other) {
             const O = from$2(other);
@@ -2210,7 +2271,7 @@
                 return O;
             const pct = O.a / 100;
             const keepPct = 1 - pct;
-            const newColor = make$8(Math.round(this._data[0] * keepPct + O._data[0] * pct), Math.round(this._data[1] * keepPct + O._data[1] * pct), Math.round(this._data[2] * keepPct + O._data[2] * pct), Math.round(O.a + this._data[3] * keepPct));
+            const newColor = make$9(Math.round(this._data[0] * keepPct + O._data[0] * pct), Math.round(this._data[1] * keepPct + O._data[1] * pct), Math.round(this._data[2] * keepPct + O._data[2] * pct), Math.round(O.a + this._data[3] * keepPct));
             if (this._rand) {
                 newColor._rand = this._rand.map((v) => Math.round(v * keepPct));
                 newColor.dances = this.dances;
@@ -2230,9 +2291,11 @@
             const O = from$2(other);
             if (O.isNull())
                 return this;
+            if (percent >= 100)
+                return O;
             const pct = clamp(percent, 0, 100) / 100;
             const keepPct = 1 - pct;
-            const newColor = make$8(Math.round(this._data[0] * keepPct + O._data[0] * pct), Math.round(this._data[1] * keepPct + O._data[1] * pct), Math.round(this._data[2] * keepPct + O._data[2] * pct), (this.isNull() ? 100 : this._data[3]) * keepPct + O._data[3] * pct);
+            const newColor = make$9(Math.round(this._data[0] * keepPct + O._data[0] * pct), Math.round(this._data[1] * keepPct + O._data[1] * pct), Math.round(this._data[2] * keepPct + O._data[2] * pct), (this.isNull() ? 100 : this._data[3]) * keepPct + O._data[3] * pct);
             if (this._rand) {
                 newColor._rand = this._rand.slice();
                 newColor.dances = this.dances;
@@ -2258,7 +2321,7 @@
                 return this;
             const pct = clamp(percent, 0, 100) / 100;
             const keepPct = 1 - pct;
-            return make$8(Math.round(this._data[0] * keepPct + 100 * pct), Math.round(this._data[1] * keepPct + 100 * pct), Math.round(this._data[2] * keepPct + 100 * pct), this._a);
+            return make$9(Math.round(this._data[0] * keepPct + 100 * pct), Math.round(this._data[1] * keepPct + 100 * pct), Math.round(this._data[2] * keepPct + 100 * pct), this._a);
         }
         // Only adjusts r,g,b
         darken(percent) {
@@ -2266,7 +2329,7 @@
                 return this;
             const pct = clamp(percent, 0, 100) / 100;
             const keepPct = 1 - pct;
-            return make$8(Math.round(this._data[0] * keepPct + 0 * pct), Math.round(this._data[1] * keepPct + 0 * pct), Math.round(this._data[2] * keepPct + 0 * pct), this._a);
+            return make$9(Math.round(this._data[0] * keepPct + 0 * pct), Math.round(this._data[1] * keepPct + 0 * pct), Math.round(this._data[2] * keepPct + 0 * pct), this._a);
         }
         bake(clearDancing = false) {
             if (this.isNull())
@@ -2280,7 +2343,7 @@
             const redRand = cosmetic.number(d[1]);
             const greenRand = cosmetic.number(d[2]);
             const blueRand = cosmetic.number(d[3]);
-            return make$8(this._r + rand + redRand, this._g + rand + greenRand, this._b + rand + blueRand, this._a);
+            return make$9(this._r + rand + redRand, this._g + rand + greenRand, this._b + rand + blueRand, this._a);
         }
         // Adds a color to this one
         add(other, percent = 100) {
@@ -2288,13 +2351,13 @@
             if (O.isNull())
                 return this;
             const alpha = (O.a / 100) * (percent / 100);
-            return make$8(Math.round(this._data[0] + O._data[0] * alpha), Math.round(this._data[1] + O._data[1] * alpha), Math.round(this._data[2] + O._data[2] * alpha), clamp(Math.round(this._a + alpha * 100), 0, 100));
+            return make$9(Math.round(this._data[0] + O._data[0] * alpha), Math.round(this._data[1] + O._data[1] * alpha), Math.round(this._data[2] + O._data[2] * alpha), clamp(Math.round(this._a + alpha * 100), 0, 100));
         }
         scale(percent) {
             if (this.isNull() || percent == 100)
                 return this;
             const pct = Math.max(0, percent) / 100;
-            return make$8(Math.round(this._data[0] * pct), Math.round(this._data[1] * pct), Math.round(this._data[2] * pct), this._a);
+            return make$9(Math.round(this._data[0] * pct), Math.round(this._data[1] * pct), Math.round(this._data[2] * pct), this._a);
         }
         multiply(other) {
             if (this.isNull())
@@ -2311,7 +2374,7 @@
                 data = other._data;
             }
             const pct = (data[3] || 100) / 100;
-            return make$8(Math.round(this._ra * (data[0] / 100) * pct), Math.round(this._ga * (data[1] / 100) * pct), Math.round(this._ba * (data[2] / 100) * pct), 100);
+            return make$9(Math.round(this._ra * (data[0] / 100) * pct), Math.round(this._ga * (data[1] / 100) * pct), Math.round(this._ba * (data[2] / 100) * pct), 100);
         }
         // scales rgb down to a max of 100
         normalize() {
@@ -2320,7 +2383,7 @@
             const max = Math.max(this._ra, this._ga, this._ba);
             if (max <= 100)
                 return this;
-            return make$8(Math.round((100 * this._ra) / max), Math.round((100 * this._ga) / max), Math.round((100 * this._ba) / max), 100);
+            return make$9(Math.round((100 * this._ra) / max), Math.round((100 * this._ga) / max), Math.round((100 * this._ba) / max), 100);
         }
         /**
          * Returns the css code for the current RGB values of the color.
@@ -2388,7 +2451,7 @@
             return new Color(Math.round((((val & 0xf00) >> 8) * 100) / 15), Math.round((((val & 0xf0) >> 4) * 100) / 15), Math.round(((val & 0xf) * 100) / 15), 100);
         }
     }
-    function make$8(...args) {
+    function make$9(...args) {
         let arg = args[0];
         let base256 = args[1];
         if (args.length == 0)
@@ -2427,7 +2490,7 @@
                 return fromName(arg);
             }
         }
-        return make$8(arg, args[1]);
+        return make$9(arg, args[1]);
     }
     // adjusts the luminosity of 2 colors to ensure there is enough separation between them
     function separate(a, b) {
@@ -2483,7 +2546,7 @@
         if (args.length == 1) {
             info = args[0];
         }
-        const c = info instanceof Color ? info : make$8(info);
+        const c = info instanceof Color ? info : make$9(info);
         // @ts-ignore
         c._const = true;
         colors[name] = c;
@@ -2538,7 +2601,7 @@
     installSpread('silver', [75, 75, 75]);
     installSpread('gold', [100, 85, 0]);
 
-    var index$5 = /*#__PURE__*/Object.freeze({
+    var index$7 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         colors: colors,
         Color: Color,
@@ -2546,7 +2609,7 @@
         fromCss: fromCss,
         fromName: fromName,
         fromNumber: fromNumber,
-        make: make$8,
+        make: make$9,
         from: from$2,
         separate: separate,
         relativeLuminance: relativeLuminance,
@@ -2562,8 +2625,8 @@
     class Mixer {
         constructor(base) {
             this.ch = first(base === null || base === void 0 ? void 0 : base.ch, -1);
-            this.fg = make$8(base === null || base === void 0 ? void 0 : base.fg);
-            this.bg = make$8(base === null || base === void 0 ? void 0 : base.bg);
+            this.fg = make$9(base === null || base === void 0 ? void 0 : base.fg);
+            this.bg = make$9(base === null || base === void 0 ? void 0 : base.bg);
         }
         _changed() {
             return this;
@@ -2716,7 +2779,7 @@
         helpers[name] = fn;
     }
 
-    function compile(template, opts = {}) {
+    function compile$1(template, opts = {}) {
         const F = opts.field || options.field;
         const parts = template.split(F);
         const sections = parts.map((part, i) => {
@@ -2734,7 +2797,7 @@
         };
     }
     function apply(template, args = {}) {
-        const fn = compile(template);
+        const fn = compile$1(template);
         const result = fn(args);
         return result;
     }
@@ -3314,10 +3377,10 @@
         }
     }
 
-    var index$4 = /*#__PURE__*/Object.freeze({
+    var index$6 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         configure: configure,
-        compile: compile,
+        compile: compile$1,
         apply: apply,
         eachChar: eachChar,
         wordWrap: wordWrap,
@@ -3627,19 +3690,20 @@
             console.log(data.join('\n'));
         }
     }
-    function make$7(width, height) {
+    function make$8(width, height) {
         return new Buffer$1(width, height);
     }
 
     var buffer = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Buffer: Buffer$1,
-        make: make$7
+        make: make$8
     });
 
     class Event {
         constructor(type, opts) {
-            this.target = null;
+            this.source = null; // original sourcing information
+            this.target = null; // current handler information
             // Used in UI
             this.defaultPrevented = false;
             this.propagationStopped = false;
@@ -3674,6 +3738,7 @@
         reset(type, opts) {
             this.type = type;
             this.target = null;
+            this.source = null;
             this.defaultPrevented = false;
             this.shiftKey = false;
             this.ctrlKey = false;
@@ -3728,7 +3793,7 @@
         }
         return c || null;
     }
-    async function dispatchEvent(ev, km) {
+    async function dispatchEvent(ev, km, thisArg) {
         let result;
         km = km || IOMAP;
         if (ev.type === STOP) {
@@ -3738,7 +3803,7 @@
         const handler = handlerFor(ev, km);
         if (handler) {
             // if (typeof c === 'function') {
-            result = await handler.call(km, ev);
+            result = await handler.call(thisArg || km, ev);
             // } else if (commands[c]) {
             //     result = await commands[c](ev);
             // } else {
@@ -3857,12 +3922,16 @@
             this.running = true;
             this.events = [];
             this.mouse = { x: -1, y: -1 };
-            this.CURRENT_HANDLER = null;
-            this.PAUSED = null;
+            this._handlers = [];
+            this.PAUSED = false;
             this.LAST_CLICK = { x: -1, y: -1 };
             this.interval = 0;
             this.intervalCount = 0;
             this.ended = false;
+            this._animations = [];
+        }
+        get CURRENT_HANDLER() {
+            return this._handlers[this._handlers.length - 1] || null;
         }
         hasEvents() {
             return this.events.length;
@@ -3894,9 +3963,6 @@
         pushEvent(ev) {
             if (this.ended)
                 return;
-            if (this.PAUSED) {
-                console.log('PAUSED EVENT', ev.type);
-            }
             if (this.events.length) {
                 const last = this.events[this.events.length - 1];
                 if (last.type === ev.type) {
@@ -3923,8 +3989,9 @@
                 recycleEvent(ev);
                 return;
             }
-            if (this.CURRENT_HANDLER) {
-                this.CURRENT_HANDLER(ev);
+            const h = this.CURRENT_HANDLER;
+            if (h && !this.PAUSED) {
+                h(ev);
             }
             else if (ev.type === TICK) {
                 const first = this.events[0];
@@ -3956,13 +4023,15 @@
             let done;
             if (ms == 0 || this.ended)
                 return Promise.resolve(null);
-            if (this.CURRENT_HANDLER) {
-                throw new Error('OVERWRITE HANDLER -- Check for a missing await around Loop function calls.');
-            }
-            else if (this.events.length) {
+            // if (this.CURRENT_HANDLER) {
+            //     throw new Error(
+            //         'OVERWRITE HANDLER -- Check for a missing await around Loop function calls.'
+            //     );
+            // } else
+            if (this.events.length) {
                 console.warn('SET HANDLER WITH QUEUED EVENTS - nextEvent');
             }
-            this.CURRENT_HANDLER = (e) => {
+            const h = (e) => {
                 if (e.type === MOUSEMOVE) {
                     this.mouse.x = e.x;
                     this.mouse.y = e.y;
@@ -3976,9 +4045,10 @@
                 }
                 else if (!match(e))
                     return;
-                this.CURRENT_HANDLER = null;
+                this._handlers.pop();
                 done(e);
             };
+            this._handlers.push(h);
             return new Promise((resolve) => (done = resolve));
         }
         async run(keymap, ms = -1) {
@@ -3995,9 +4065,18 @@
                 if (keymap.draw && typeof keymap.draw === 'function') {
                     keymap.draw();
                 }
-                const ev = await this.nextEvent(ms);
-                if (ev && (await dispatchEvent(ev, keymap))) {
-                    running = false;
+                if (this._animations.length) {
+                    const ev = await this.nextTick();
+                    if (ev && ev.dt) {
+                        this._animations.forEach((a) => a && a.tick(ev.dt));
+                        this._animations = this._animations.filter((a) => a && a.isRunning());
+                    }
+                }
+                else {
+                    const ev = await this.nextEvent(ms);
+                    if (ev && (await dispatchEvent(ev, keymap))) {
+                        running = false;
+                    }
                 }
             }
             if (keymap.stop && typeof keymap.stop === 'function') {
@@ -4015,7 +4094,7 @@
             if (this.CURRENT_HANDLER) {
                 this.pushEvent(makeStopEvent());
             }
-            this.CURRENT_HANDLER = null;
+            // this.CURRENT_HANDLER = null;
         }
         end() {
             this.stop();
@@ -4024,35 +4103,31 @@
         start() {
             this.ended = false;
         }
-        pauseEvents() {
-            if (this.PAUSED)
-                return;
-            this.PAUSED = this.CURRENT_HANDLER;
-            this.CURRENT_HANDLER = null;
-            // io.debug('events paused');
-        }
-        resumeEvents() {
-            if (!this.PAUSED)
-                return;
-            if (this.CURRENT_HANDLER) {
-                console.warn('overwrite CURRENT HANDLER!');
-            }
-            this.CURRENT_HANDLER = this.PAUSED;
-            this.PAUSED = null;
-            // io.debug('resuming events');
-            if (this.events.length && this.CURRENT_HANDLER) {
-                const e = this.events.shift();
-                // io.debug('- processing paused event', e.type);
-                this.CURRENT_HANDLER(e);
-                // io.recycleEvent(e);	// DO NOT DO THIS B/C THE HANDLER MAY PUT IT BACK ON THE QUEUE (see tickMs)
-            }
-            // io.debug('events resumed');
-        }
+        // pauseEvents() {
+        //     if (this.PAUSED) return;
+        //     this.PAUSED = true;
+        //     // io.debug('events paused');
+        // }
+        // resumeEvents() {
+        //     if (!this.PAUSED) return;
+        //     this.PAUSED = false;
+        //     // io.debug('resuming events');
+        //     if (this.events.length && this.CURRENT_HANDLER) {
+        //         const e: Event = this.events.shift()!;
+        //         // io.debug('- processing paused event', e.type);
+        //         this.CURRENT_HANDLER(e);
+        //         // io.recycleEvent(e);	// DO NOT DO THIS B/C THE HANDLER MAY PUT IT BACK ON THE QUEUE (see tickMs)
+        //     }
+        //     // io.debug('events resumed');
+        // }
         // IO
         async tickMs(ms = 1) {
             let done;
             setTimeout(() => done(), ms);
             return new Promise((resolve) => (done = resolve));
+        }
+        async nextTick(ms = -1) {
+            return this.nextEvent(ms, (e) => e && e.type === TICK);
         }
         async nextKeyPress(ms, match) {
             if (ms === undefined)
@@ -4093,12 +4168,19 @@
             this.pushEvent(ev);
             e.preventDefault();
         }
+        // Animator
+        addAnimation(a) {
+            this._animations.push(a);
+        }
+        removeAnimation(a) {
+            arrayNullify(this._animations, a);
+        }
     }
-    function make$6() {
+    function make$7() {
         return new Loop();
     }
     // Makes a default global loop that you access through these funcitons...
-    const loop = make$6();
+    const loop = make$7();
 
     var io = /*#__PURE__*/Object.freeze({
         __proto__: null,
@@ -4120,7 +4202,7 @@
         ignoreKeyEvent: ignoreKeyEvent,
         makeMouseEvent: makeMouseEvent,
         Loop: Loop,
-        make: make$6,
+        make: make$7,
         loop: loop
     });
 
@@ -4275,7 +4357,7 @@
                 flag |= FovFlags.REVEALED;
             if (visible)
                 flag |= FovFlags.VISIBLE;
-            this.flags = make$9(site.width, site.height, flag);
+            this.flags = make$a(site.width, site.height, flag);
             // this.needsUpdate = true;
             if (opts.callback) {
                 this.callback = opts.callback;
@@ -4656,7 +4738,7 @@
         }
     }
 
-    var index$3 = /*#__PURE__*/Object.freeze({
+    var index$5 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get FovFlags () { return FovFlags; },
         FOV: FOV,
@@ -5059,7 +5141,7 @@
      * @returns {boolean} `true` if the event had listeners, else `false`.
      * @public
      */
-    async function emit(...args) {
+    function emit(...args) {
         const event = args[0];
         if (!EVENTS[event])
             return false; // no events to send
@@ -5068,7 +5150,7 @@
             let next = listener.next;
             if (listener.once)
                 remove(EVENTS, event, listener);
-            await listener.fn.apply(listener.context, args);
+            listener.fn.apply(listener.context, args);
             listener = next;
         }
         return true;
@@ -5087,7 +5169,7 @@
         emit: emit
     });
 
-    function make$5(v) {
+    function make$6(v) {
         if (v === undefined)
             return () => 100;
         if (v === null)
@@ -5140,7 +5222,7 @@
 
     var frequency = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        make: make$5
+        make: make$6
     });
 
     class Scheduler {
@@ -5212,7 +5294,41 @@
             }
         }
     }
-    // export const scheduler = new Scheduler();
+    // type AsyncQueueHandlerFn<T> = (obj: T) => void;
+    // export class AsyncQueue<T> {
+    //     _data: T[];
+    //     _handler: AsyncQueueHandlerFn<T> | null = null;
+    //     constructor() {
+    //         this._data = [];
+    //     }
+    //     get length(): number {
+    //         return this._data.length;
+    //     }
+    //     get last(): T | undefined {
+    //         return this._data[this._data.length - 1];
+    //     }
+    //     get first(): T | undefined {
+    //         return this._data[0];
+    //     }
+    //     enqueue(obj: T): void {
+    //         if (this._handler) {
+    //             this._handler(obj);
+    //             this._handler = null;
+    //         } else {
+    //             this._data.push(obj);
+    //         }
+    //     }
+    //     dequeue(): Promise<T> {
+    //         const t = this._data.shift();
+    //         if (t) {
+    //             return Promise.resolve(t);
+    //         }
+    //         const p = new Promise((resolve) => {
+    //             this._handler = resolve;
+    //         });
+    //         return p as Promise<T>;
+    //     }
+    // }
 
     var scheduler = /*#__PURE__*/Object.freeze({
         __proto__: null,
@@ -5559,8 +5675,8 @@
         constructor(width, height, glyphs) {
             this.mouse = { x: -1, y: -1 };
             this._renderRequested = false;
-            this._width = 50;
-            this._height = 25;
+            this._width = 100;
+            this._height = 38;
             this._node = this._createNode();
             this._createContext();
             this._configure(width, height, glyphs);
@@ -6100,7 +6216,7 @@ void main() {
         return { position, uv };
     }
 
-    function make$4(...args) {
+    function make$5(...args) {
         let width = args[0];
         let height = args[1];
         let opts = args[2];
@@ -6153,7 +6269,7 @@ void main() {
         return canvas;
     }
 
-    var index$2 = /*#__PURE__*/Object.freeze({
+    var index$4 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Buffer: Buffer,
         Glyphs: Glyphs,
@@ -6161,7 +6277,7 @@ void main() {
         BaseCanvas: BaseCanvas,
         Canvas2D: Canvas2D,
         CanvasGL: CanvasGL,
-        make: make$4
+        make: make$5
     });
 
     class Sprite {
@@ -6190,7 +6306,7 @@ void main() {
         }
     }
     const sprites = {};
-    function make$3(...args) {
+    function make$4(...args) {
         let ch = null, fg = -1, bg = -1, opacity;
         if (args.length == 0) {
             return new Sprite(null, -1, -1);
@@ -6235,40 +6351,40 @@ void main() {
         if (typeof fg === 'string')
             fg = from$2(fg);
         else if (Array.isArray(fg))
-            fg = make$8(fg);
+            fg = make$9(fg);
         else if (fg === undefined || fg === null)
             fg = -1;
         if (typeof bg === 'string')
             bg = from$2(bg);
         else if (Array.isArray(bg))
-            bg = make$8(bg);
+            bg = make$9(bg);
         else if (bg === undefined || bg === null)
             bg = -1;
         return new Sprite(ch, fg, bg, opacity);
     }
-    function from$1(...args) {
-        if (args.length == 1 && typeof args[0] === 'string') {
-            const sprite = sprites[args[0]];
+    function from$1(config) {
+        if (typeof config === 'string') {
+            const sprite = sprites[config];
             if (!sprite)
-                throw new Error('Failed to find sprite: ' + args[0]);
+                throw new Error('Failed to find sprite: ' + config);
             return sprite;
         }
-        return make$3(args);
+        return make$4(config);
     }
     function install$2(name, ...args) {
         let sprite;
         // @ts-ignore
-        sprite = make$3(...args);
+        sprite = make$4(...args);
         sprite.name = name;
         sprites[name] = sprite;
         return sprite;
     }
 
-    var index$1 = /*#__PURE__*/Object.freeze({
+    var index$3 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Sprite: Sprite,
         sprites: sprites,
-        make: make$3,
+        make: make$4,
         from: from$1,
         install: install$2,
         Mixer: Mixer,
@@ -6287,7 +6403,7 @@ void main() {
     const templates = {};
     config$1.message = config$1.message || {};
     function install$1(id, msg) {
-        const template = compile(msg);
+        const template = compile$1(msg);
         templates[id] = template;
         return template;
     }
@@ -6573,7 +6689,7 @@ void main() {
         const blob = new Blob(opts);
         return blob.carve(grid.width, grid.height, (x, y) => (grid[x][y] = 1));
     }
-    function make$2(opts = {}) {
+    function make$3(opts = {}) {
         return new Blob(opts);
     }
 
@@ -6581,7 +6697,7 @@ void main() {
         __proto__: null,
         Blob: Blob,
         fillBlob: fillBlob,
-        make: make$2
+        make: make$3
     });
 
     // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
@@ -6589,14 +6705,14 @@ void main() {
         INTENSITY_DARK: 20,
         INTENSITY_SHADOW: 50,
     }); // less than 20% for highest color in rgb
-    let LIGHT_COMPONENTS = make$8();
+    let LIGHT_COMPONENTS = make$9();
     class Light {
         constructor(color, radius = 1, fadeTo = 0, pass = false) {
             this.fadeTo = 0;
             this.passThroughActors = false;
             this.id = null;
             this.color = from$2(color); /* color */
-            this.radius = make$b(radius);
+            this.radius = make$c(radius);
             this.fadeTo = fadeTo;
             this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
         }
@@ -6675,7 +6791,7 @@ void main() {
     function isShadowLight(light, threshold = 40) {
         return intensity(light) <= threshold;
     }
-    function make$1(...args) {
+    function make$2(...args) {
         if (args.length == 1) {
             const config = args[0];
             if (typeof config === 'string') {
@@ -6715,15 +6831,15 @@ void main() {
         }
         if (arg && arg.paint)
             return arg;
-        return make$1(arg);
+        return make$2(arg);
     }
     function install(id, ...args) {
         let source;
         if (args.length == 1) {
-            source = make$1(args[0]);
+            source = make$2(args[0]);
         }
         else {
-            source = make$1(args[0], args[1], args[2], args[3]);
+            source = make$2(args[0], args[1], args[2], args[3]);
         }
         lights[id] = source;
         source.id = id;
@@ -6766,10 +6882,10 @@ void main() {
             this.changed = false;
             this.glowLightChanged = false;
             this.dynamicLightChanged = false;
-            this.light = make$9(map.width, map.height, () => this.ambient.slice());
-            this.glowLight = make$9(map.width, map.height, () => this.ambient.slice());
-            this.oldLight = make$9(map.width, map.height, () => this.ambient.slice());
-            this.flags = make$9(map.width, map.height);
+            this.light = make$a(map.width, map.height, () => this.ambient.slice());
+            this.glowLight = make$a(map.width, map.height, () => this.ambient.slice());
+            this.oldLight = make$a(map.width, map.height, () => this.ambient.slice());
+            this.flags = make$a(map.width, map.height);
             this.finishLightUpdate();
         }
         copy(other) {
@@ -7015,14 +7131,14 @@ void main() {
         }
     }
 
-    var index = /*#__PURE__*/Object.freeze({
+    var index$2 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         config: config,
         Light: Light,
         intensity: intensity,
         isDarkLight: isDarkLight,
         isShadowLight: isShadowLight,
-        make: make$1,
+        make: make$2,
         lights: lights,
         from: from,
         install: install,
@@ -7048,6 +7164,7 @@ void main() {
             this._updateCb = null;
             this._repeatCb = null;
             this._finishCb = null;
+            this._resolveCb = null;
             this._easing = linear;
             this._interpolate = interpolate;
             this._obj = src;
@@ -7128,23 +7245,29 @@ void main() {
                 this._start = {};
                 Object.keys(this._goal).forEach((key) => (this._start[key] = this._obj[key]));
             }
-            return this;
+            let p = new Promise((resolve) => {
+                this._resolveCb = resolve;
+            });
+            if (this._finishCb) {
+                const cb = this._finishCb;
+                p = p.then((success) => cb.call(this, this._obj, !!success));
+            }
+            return p;
         }
         tick(dt) {
             if (!this.isRunning())
-                return this;
+                return false;
             this._time += dt;
             if (this._startTime) {
                 if (this._startTime > this._time)
-                    return this;
+                    return true;
                 this._time -= this._startTime;
                 this._startTime = 0;
+                if (this._count > 0)
+                    this._restart();
             }
             if (this._count === 0) {
-                this._count = 1;
-                if (this._startCb) {
-                    this._startCb.call(this, this._obj, 0);
-                }
+                this._restart();
             }
             const pct = this._easing(this._time / this._duration);
             let madeChange = this._updateProperties(this._obj, this._start, this._goal, pct);
@@ -7153,24 +7276,48 @@ void main() {
             }
             if (this._time >= this._duration) {
                 if (this._repeat > this._count) {
-                    // reset starting values
-                    Object.entries(this._start).forEach(([key, value]) => {
-                        this._obj[key] = value;
-                    });
                     this._time -= this._duration;
                     this._startTime =
                         this._repeatDelay > -1 ? this._repeatDelay : this._delay;
-                    ++this._count;
                     if (this._yoyo) {
                         [this._start, this._goal] = [this._goal, this._start];
                     }
-                    if (this._repeatCb)
-                        this._repeatCb.call(this, this._obj, this._count);
+                    if (!this._startTime) {
+                        this._restart();
+                    }
                 }
-                else if (this._finishCb)
-                    this._finishCb.call(this, this._obj, 1);
+                else {
+                    this.stop(true);
+                }
             }
-            return this;
+            return true;
+        }
+        _restart() {
+            ++this._count;
+            // reset starting values
+            Object.entries(this._start).forEach(([key, value]) => {
+                this._obj[key] = value;
+            });
+            if (this._count == 1) {
+                if (this._startCb) {
+                    this._startCb.call(this, this._obj, 0);
+                }
+            }
+            else if (this._repeatCb) {
+                this._repeatCb.call(this, this._obj, this._count);
+            }
+            else if (this._updateCb) {
+                this._updateCb.call(this, this._obj, 0);
+            }
+        }
+        // gameTick(_dt: number): boolean {
+        //     return false;
+        // }
+        stop(success = false) {
+            this._time = Number.MAX_SAFE_INTEGER;
+            // if (this._finishCb) this._finishCb.call(this, this._obj, 1);
+            if (this._resolveCb)
+                this._resolveCb(success);
         }
         _updateProperties(obj, start, goal, pct) {
             let madeChange = false;
@@ -7186,7 +7333,7 @@ void main() {
             return madeChange;
         }
     }
-    function make(src) {
+    function make$1(src) {
         return new Tween(src);
     }
     function linear(pct) {
@@ -7194,15 +7341,3763 @@ void main() {
     }
     // TODO - string, bool, Color
     function interpolate(start, goal, pct) {
+        if (typeof start === 'boolean' || typeof goal === 'boolean') {
+            return Math.floor(pct) == 0 ? start : goal;
+        }
         return Math.floor((goal - start) * pct) + start;
     }
 
     var tween = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Tween: Tween,
-        make: make,
+        make: make$1,
         linear: linear,
         interpolate: interpolate
+    });
+
+    class Grid {
+        constructor(target) {
+            this._left = 0;
+            this._top = 0;
+            this._colWidths = [];
+            this._rowHeights = [];
+            this._col = 0;
+            this._row = -1;
+            this.target = target;
+            const pos = target.pos();
+            this._left = pos.x;
+            this._top = pos.y;
+        }
+        cols(...args) {
+            if (args.length === 0)
+                return this._colWidths;
+            if (args.length == 2) {
+                args[0] = new Array(args[0]).fill(args[1]);
+            }
+            if (Array.isArray(args[0])) {
+                this._colWidths = args[0];
+            }
+            return this;
+        }
+        rows(...args) {
+            if (args.length === 0)
+                return this._rowHeights;
+            if (typeof args[0] === 'number') {
+                args[0] = new Array(args[0]).fill(args[1] || 1);
+            }
+            if (Array.isArray(args[0])) {
+                this._rowHeights = args[0];
+            }
+            return this;
+        }
+        col(n) {
+            if (n === undefined)
+                n = this._col;
+            this._col = clamp(n, 0, this._colWidths.length - 1);
+            return this._setPos(); // move back to top of our current row
+        }
+        nextCol() {
+            return this.col(this._col + 1);
+        }
+        row(n) {
+            if (n === undefined)
+                n = this._row;
+            this._row = clamp(n, 0, this._rowHeights.length - 1);
+            return this._setPos(); // move back to beginning of current column
+        }
+        nextRow() {
+            return this.row(this._row + 1).col(0);
+        }
+        endRow(h) {
+            if (h <= 0)
+                return this;
+            this._rowHeights[this._row] = h;
+            return this;
+        }
+        _setPos() {
+            let x = this._left;
+            for (let i = 0; i < this._col; ++i) {
+                x += this._colWidths[i];
+            }
+            let y = this._top;
+            for (let i = 0; i < this._row; ++i) {
+                y += this._rowHeights[i];
+            }
+            this.target.pos(x, y);
+            return this;
+        }
+    }
+
+    class Selector {
+        constructor(text) {
+            this.priority = 0;
+            if (text.startsWith(':') || text.startsWith('.')) {
+                text = '*' + text;
+            }
+            this.text = text;
+            this.matchFn = this._parse(text);
+        }
+        _parse(text) {
+            const parts = text.split(/ +/g).map((p) => p.trim());
+            const matches = [];
+            for (let i = 0; i < parts.length; ++i) {
+                let p = parts[i];
+                if (p === '>') {
+                    matches.push(this._parentMatch());
+                    ++i;
+                    p = parts[i];
+                }
+                else if (i > 0) {
+                    matches.push(this._ancestorMatch());
+                }
+                matches.push(this._matchElement(p));
+            }
+            return matches.reduce((out, fn) => fn.bind(undefined, out), TRUE);
+        }
+        _parentMatch() {
+            return function parentM(next, e) {
+                // console.log('parent', e.parent);
+                if (!e.parent)
+                    return false;
+                return next(e.parent);
+            };
+        }
+        _ancestorMatch() {
+            return function ancestorM(next, e) {
+                let current = e.parent;
+                while (current) {
+                    if (next(current))
+                        return true;
+                }
+                return false;
+            };
+        }
+        _matchElement(text) {
+            const CSS_RE = /(?:(\w+|\*|\$)|#(\w+)|\.([^\.: ]+))|(?::(?:(?:not\(\.([^\)]+)\))|(?:not\(:([^\)]+)\))|([^\.: ]+)))/g;
+            const parts = [];
+            const re = new RegExp(CSS_RE, 'g');
+            let match = re.exec(text);
+            while (match) {
+                if (match[1]) {
+                    const fn = this._matchTag(match[1]);
+                    if (fn) {
+                        parts.push(fn);
+                    }
+                }
+                else if (match[2]) {
+                    parts.push(this._matchId(match[2]));
+                }
+                else if (match[3]) {
+                    parts.push(this._matchClass(match[3]));
+                }
+                else if (match[4]) {
+                    parts.push(this._matchNot(this._matchClass(match[4])));
+                }
+                else if (match[5]) {
+                    parts.push(this._matchNot(this._matchProp(match[5])));
+                }
+                else {
+                    parts.push(this._matchProp(match[6]));
+                }
+                match = re.exec(text);
+            }
+            return (next, e) => {
+                if (!parts.every((fn) => fn(e)))
+                    return false;
+                return next(e);
+            };
+        }
+        _matchTag(tag) {
+            if (tag === '*')
+                return null;
+            if (tag === '$') {
+                this.priority += 10000;
+                return null;
+            }
+            this.priority += 10;
+            return (el) => el.tag === tag;
+        }
+        _matchClass(cls) {
+            this.priority += 100;
+            return (el) => el.classes.includes(cls);
+        }
+        _matchProp(prop) {
+            if (prop.startsWith('first')) {
+                return this._matchFirst();
+            }
+            else if (prop.startsWith('last')) {
+                return this._matchLast();
+            }
+            else if (prop === 'invalid') {
+                return this._matchNot(this._matchProp('valid'));
+            }
+            else if (prop === 'optional') {
+                return this._matchNot(this._matchProp('required'));
+            }
+            else if (prop === 'enabled') {
+                return this._matchNot(this._matchProp('disabled'));
+            }
+            else if (prop === 'unchecked') {
+                return this._matchNot(this._matchProp('checked'));
+            }
+            this.priority += 1; // prop
+            return (el) => !!el.prop(prop);
+        }
+        _matchId(id) {
+            this.priority += 1000;
+            return (el) => el.attr('id') === id;
+        }
+        _matchFirst() {
+            this.priority += 1; // prop
+            return (el) => !!el.parent && !!el.parent.children && el.parent.children[0] === el;
+        }
+        _matchLast() {
+            this.priority += 1; // prop
+            return (el) => {
+                if (!el.parent)
+                    return false;
+                if (!el.parent.children)
+                    return false;
+                return el.parent.children[el.parent.children.length - 1] === el;
+            };
+        }
+        _matchNot(fn) {
+            return (el) => !fn(el);
+        }
+        matches(obj) {
+            return this.matchFn(obj);
+        }
+    }
+    function compile(text) {
+        return new Selector(text);
+    }
+
+    // static - size/pos automatic (ignore TRBL)
+    // relative - size automatic, pos = automatic + TRBL
+    // fixed - size = self, pos = TRBL vs root
+    // absolute - size = self, pos = TRBL vs positioned parent (fixed, absolute)
+    // export interface Stylable {
+    //     tag: string;
+    //     classes: string[];
+    //     attr(name: string): string | undefined;
+    //     prop(name: string): PropType | undefined;
+    //     parent: UIWidget | null;
+    //     children?: UIWidget[];
+    //     style(): Style;
+    // }
+    // export interface StyleOptions {
+    //     fg?: Color.ColorBase;
+    //     bg?: Color.ColorBase;
+    //     // depth?: number;
+    //     align?: Text.Align;
+    //     valign?: Text.VAlign;
+    //     // minWidth?: number;
+    //     // maxWidth?: number;
+    //     // width?: number;
+    //     // minHeight?: number;
+    //     // maxHeight?: number;
+    //     // height?: number;
+    //     // left?: number;
+    //     // right?: number;
+    //     // top?: number;
+    //     // bottom?: number;
+    //     // //        all,     [t+b, l+r],        [t, r+l,b],               [t, r, b, l]
+    //     // padding?:
+    //     //     | number
+    //     //     | [number]
+    //     //     | [number, number]
+    //     //     | [number, number, number]
+    //     //     | [number, number, number, number];
+    //     // padLeft?: number;
+    //     // padRight?: number;
+    //     // padTop?: number;
+    //     // padBottom?: number;
+    //     // //        all,     [t+b, l+r],        [t, l+r, b],               [t, r, b, l]
+    //     // margin?:
+    //     //     | number
+    //     //     | [number]
+    //     //     | [number, number]
+    //     //     | [number, number, number]
+    //     //     | [number, number, number, number];
+    //     // marginLeft?: number;
+    //     // marginRight?: number;
+    //     // marginTop?: number;
+    //     // marginBottom?: number;
+    //     // border?: Color.ColorBase;
+    // }
+    class Style {
+        constructor(selector = '$', init) {
+            this._dirty = false;
+            this.selector = new Selector(selector);
+            if (init) {
+                this.set(init);
+            }
+            this._dirty = false;
+        }
+        get dirty() {
+            return this._dirty;
+        }
+        set dirty(v) {
+            this._dirty = v;
+        }
+        get fg() {
+            return this._fg;
+        }
+        get bg() {
+            return this._bg;
+        }
+        dim(pct = 25, fg = true, bg = false) {
+            if (fg) {
+                this._fg = from$2(this._fg).darken(pct);
+            }
+            if (bg) {
+                this._bg = from$2(this._bg).darken(pct);
+            }
+            return this;
+        }
+        bright(pct = 25, fg = true, bg = false) {
+            if (fg) {
+                this._fg = from$2(this._fg).lighten(pct);
+            }
+            if (bg) {
+                this._bg = from$2(this._bg).lighten(pct);
+            }
+            return this;
+        }
+        invert() {
+            [this._fg, this._bg] = [this._bg, this._fg];
+            return this;
+        }
+        get align() {
+            return this._align;
+        }
+        get valign() {
+            return this._valign;
+        }
+        get(key) {
+            const id = ('_' + key);
+            return this[id];
+        }
+        set(key, value, setDirty = true) {
+            if (typeof key === 'string') {
+                const field = '_' + key;
+                if (typeof value === 'string') {
+                    if (value.match(/^[+-]?\d+$/)) {
+                        value = Number.parseInt(value);
+                    }
+                    else if (value === 'true') {
+                        value = true;
+                    }
+                    else if (value === 'false') {
+                        value = false;
+                    }
+                }
+                this[field] = value;
+                // }
+            }
+            else if (key instanceof Style) {
+                setDirty = value || value === undefined ? true : false;
+                Object.entries(key).forEach(([name, value]) => {
+                    if (name === 'selector' || name === '_dirty')
+                        return;
+                    if (value !== undefined && value !== null) {
+                        this[name] = value;
+                    }
+                    else if (value === null) {
+                        this.unset(name);
+                    }
+                });
+            }
+            else {
+                setDirty = value || value === undefined ? true : false;
+                Object.entries(key).forEach(([name, value]) => {
+                    if (value === null) {
+                        this.unset(name);
+                    }
+                    else {
+                        this.set(name, value, setDirty);
+                    }
+                });
+            }
+            this.dirty || (this.dirty = setDirty);
+            return this;
+        }
+        unset(key) {
+            const field = key.startsWith('_') ? key : '_' + key;
+            delete this[field];
+            this.dirty = true;
+            return this;
+        }
+        clone() {
+            const other = new this.constructor();
+            other.copy(this);
+            return other;
+        }
+        copy(other) {
+            Object.assign(this, other);
+            return this;
+        }
+    }
+    function makeStyle(style, selector = '$') {
+        const opts = {};
+        const parts = style
+            .trim()
+            .split(';')
+            .map((p) => p.trim());
+        parts.forEach((p) => {
+            const [name, base] = p.split(':').map((p) => p.trim());
+            if (!name)
+                return;
+            const baseParts = base.split(/ +/g);
+            if (baseParts.length == 1) {
+                // @ts-ignore
+                opts[name] = base;
+            }
+            else {
+                // @ts-ignore
+                opts[name] = baseParts;
+            }
+        });
+        return new Style(selector, opts);
+    }
+    // const NO_BOUNDS = ['fg', 'bg', 'depth', 'align', 'valign'];
+    // export function affectsBounds(key: keyof StyleOptions): boolean {
+    //     return !NO_BOUNDS.includes(key);
+    // }
+    class ComputedStyle extends Style {
+        // constructor(source: Stylable, sources?: Style[]) {
+        constructor(sources, opacity = 100) {
+            super();
+            // obj: Stylable;
+            this.sources = [];
+            this._opacity = 100;
+            this._baseFg = null;
+            this._baseBg = null;
+            // this.obj = source;
+            if (sources) {
+                // sort low to high priority (highest should be this.obj._style, lowest = global default:'*')
+                sources.sort((a, b) => a.selector.priority - b.selector.priority);
+                this.sources = sources;
+            }
+            this.sources.forEach((s) => super.set(s));
+            this.opacity = opacity;
+            this._dirty = false; // As far as I know I reflect all of the current source values.
+        }
+        get opacity() {
+            return this._opacity;
+        }
+        set opacity(v) {
+            v = clamp(v, 0, 100);
+            this._opacity = v;
+            if (v === 100) {
+                this._fg = this._baseFg || this._fg;
+                this._bg = this._baseBg || this._bg;
+                return;
+            }
+            if (this._fg !== undefined) {
+                this._baseFg = this._baseFg || from$2(this._fg);
+                this._fg = this._baseFg.alpha(v);
+            }
+            if (this._bg !== undefined) {
+                this._baseBg = this._baseBg || from$2(this._bg);
+                this._bg = this._baseBg.alpha(v);
+            }
+        }
+        get dirty() {
+            return this._dirty || this.sources.some((s) => s.dirty);
+        }
+        set dirty(v) {
+            this._dirty = v;
+        }
+    }
+    class Sheet {
+        constructor(parentSheet) {
+            this.rules = [];
+            this._dirty = true;
+            if (parentSheet === undefined) {
+                parentSheet = defaultStyle;
+            }
+            if (parentSheet) {
+                this.rules = parentSheet.rules.slice();
+            }
+        }
+        get dirty() {
+            return this._dirty;
+        }
+        set dirty(v) {
+            this._dirty = v;
+            if (!this._dirty) {
+                this.rules.forEach((r) => (r.dirty = false));
+            }
+        }
+        add(selector, props) {
+            if (selector.includes(',')) {
+                selector
+                    .split(',')
+                    .map((p) => p.trim())
+                    .forEach((p) => this.add(p, props));
+                return this;
+            }
+            if (selector.includes(' '))
+                throw new Error('Hierarchical selectors not supported.');
+            // if 2 '.' - Error('Only single class rules supported.')
+            // if '&' - Error('Not supported.')
+            let rule = new Style(selector, props);
+            const existing = this.rules.findIndex((s) => s.selector.text === rule.selector.text);
+            if (existing > -1) {
+                const current = this.rules[existing];
+                current.set(rule);
+                rule = current;
+            }
+            else {
+                this.rules.push(rule);
+            }
+            // rulesChanged = true;
+            this.dirty = true;
+            return this;
+        }
+        get(selector) {
+            return this.rules.find((s) => s.selector.text === selector) || null;
+        }
+        remove(selector) {
+            const existing = this.rules.findIndex((s) => s.selector.text === selector);
+            if (existing > -1) {
+                this.rules.splice(existing, 1);
+                this.dirty = true;
+            }
+        }
+        computeFor(widget) {
+            const sources = this.rules.filter((r) => r.selector.matches(widget));
+            const widgetStyle = widget.style();
+            if (widgetStyle) {
+                sources.push(widgetStyle);
+            }
+            widgetStyle.dirty = false;
+            return new ComputedStyle(sources, widget.opacity);
+        }
+    }
+    const defaultStyle = new Sheet(null);
+
+    class Layer {
+        constructor(ui, opts = {}) {
+            this.needsDraw = true;
+            this.result = undefined;
+            this.timers = [];
+            this._tweens = [];
+            this._running = false;
+            this._keymap = {};
+            this.ui = ui;
+            this.buffer = ui.canvas.buffer.clone();
+            this.styles = new Sheet(opts.styles || ui.styles);
+            // this.run(opts);
+        }
+        get running() {
+            return this._running;
+        }
+        get width() {
+            return this.ui.width;
+        }
+        get height() {
+            return this.ui.height;
+        }
+        // EVENTS
+        // on(event: string, cb: Widget.EventCb): this {
+        //     this.body.on(event, cb);
+        //     return this;
+        // }
+        // off(event: string, cb?: Widget.EventCb): this {
+        //     this.body.off(event, cb);
+        //     return this;
+        // }
+        mousemove(_e) {
+            return false;
+        }
+        click(_e) {
+            return false;
+        }
+        keypress(_e) {
+            return false;
+        }
+        dir(_e) {
+            return false;
+        }
+        tick(e) {
+            const dt = e.dt;
+            // fire animations
+            this._tweens.forEach((tw) => tw.tick(dt));
+            this._tweens = this._tweens.filter((tw) => tw.isRunning());
+            for (let timer of this.timers) {
+                if (timer.time <= 0)
+                    continue; // ignore fired timers
+                timer.time -= dt;
+                if (timer.time <= 0) {
+                    timer.action();
+                }
+            }
+            return false;
+        }
+        draw() {
+            console.log('draw');
+            this.buffer.render();
+        }
+        // LOOP
+        setTimeout(action, time) {
+            const slot = this.timers.findIndex((t) => t.time <= 0);
+            if (slot < 0) {
+                this.timers.push({ action, time });
+            }
+            else {
+                this.timers[slot] = { action, time };
+            }
+        }
+        clearTimeout(action) {
+            const timer = this.timers.find((t) => t.action === action);
+            if (timer) {
+                timer.time = -1;
+            }
+        }
+        // Animator
+        addAnimation(a) {
+            if (!a.isRunning())
+                a.start();
+            this._tweens.push(a);
+        }
+        removeAnimation(a) {
+            arrayNullify(this._tweens, a);
+        }
+        // RUN
+        async run(keymap = {}, ms = -1) {
+            if (this._running)
+                throw new Error('Already running!');
+            this.result = undefined;
+            const loop = this.ui.loop;
+            this._running = true;
+            loop.clearEvents(); // ??? Should we do this?
+            ['keypress', 'dir', 'click', 'mousemove', 'tick', 'draw'].forEach((e) => {
+                if (e in keymap)
+                    return;
+                keymap[e] = this[e];
+            });
+            if (keymap.start && typeof keymap.start === 'function') {
+                await keymap.start.call(this);
+            }
+            let busy = false;
+            const tickLoop = setInterval(() => {
+                if (busy)
+                    return;
+                const e = makeTickEvent(16);
+                loop.pushEvent(e);
+            }, 16);
+            while (this._running) {
+                if (keymap.draw && typeof keymap.draw === 'function') {
+                    keymap.draw.call(this);
+                }
+                if (this._tweens.length) {
+                    const ev = await loop.nextTick();
+                    if (ev && ev.dt) {
+                        this._tweens.forEach((a) => a && a.tick(ev.dt));
+                        this._tweens = this._tweens.filter((a) => a && a.isRunning());
+                    }
+                }
+                else {
+                    const ev = await loop.nextEvent(ms);
+                    busy = true;
+                    if (ev) {
+                        await dispatchEvent(ev, keymap, this); // return code does not matter (call layer.finish() to exit loop)
+                        // this._running = false;
+                    }
+                    busy = false;
+                }
+            }
+            if (keymap.stop && typeof keymap.stop === 'function') {
+                await keymap.stop.call(this);
+            }
+            clearInterval(tickLoop);
+            return this.result;
+        }
+        finish(result) {
+            this.result = result;
+            this._running = false;
+            this.ui._finishLayer(this);
+        }
+    }
+
+    // import * as GWU from 'gw-utils';
+    class UI {
+        // _promise: Promise<void> | null = null;
+        constructor(opts = {}) {
+            this.layer = null;
+            this.layers = [];
+            // inDialog = false;
+            this._done = false;
+            opts.loop = opts.loop || loop;
+            this.loop = opts.loop;
+            this.canvas = opts.canvas || make$5(opts);
+            // get keyboard input hooked up
+            if (this.canvas.node && this.canvas.node.parentElement) {
+                this.canvas.node.parentElement.onkeydown = this.loop.onkeydown.bind(this.loop);
+                this.canvas.node.parentElement.tabIndex = 1;
+            }
+        }
+        get width() {
+            return this.canvas.width;
+        }
+        get height() {
+            return this.canvas.height;
+        }
+        get styles() {
+            return defaultStyle;
+        }
+        // render() {
+        //     this.buffer.render();
+        // }
+        get baseBuffer() {
+            const layer = this.layers[this.layers.length - 2] || null;
+            return layer ? layer.buffer : this.canvas.buffer;
+        }
+        get canvasBuffer() {
+            return this.canvas.buffer;
+        }
+        get buffer() {
+            return this.layer ? this.layer.buffer : this.canvas.buffer;
+        }
+        startNewLayer(opts = {}) {
+            opts.styles = this.layer ? this.layer.styles : this.styles;
+            const layer = new Layer(this, opts);
+            this.startLayer(layer);
+            return layer;
+        }
+        startLayer(layer) {
+            this.layers.push(layer);
+            // if (!this._promise) {
+            //     this._promise = this.loop.run((this as unknown) as IO.IOMap);
+            // }
+            this.layer = layer;
+        }
+        copyUIBuffer(dest) {
+            const base = this.baseBuffer;
+            dest.copy(base);
+            dest.changed = false; // So you have to draw something to make the canvas render...
+        }
+        finishLayer(layer, result) {
+            layer.finish(result);
+        }
+        _finishLayer(layer) {
+            arrayDelete(this.layers, layer);
+            if (this.layer === layer) {
+                this.layer = this.layers[this.layers.length - 1] || null;
+                this.layer && (this.layer.needsDraw = true);
+            }
+        }
+        stop() {
+            this._done = true;
+            while (this.layer) {
+                this.finishLayer(this.layer);
+            }
+        }
+        // run(): Promise<void> {
+        //     // this._done = false;
+        //     return this.loop.run(this as unknown as IO.IOMap);
+        // }
+        // stop() {
+        //     this._done = true;
+        //     if (this.layer) this.layer.stop();
+        //     this.layers.forEach((l) => l.stop());
+        //     this.layer = null;
+        //     this.layers.length = 0;
+        // }
+        // mousemove(e: IO.Event): boolean {
+        //     if (this.layer) this.layer.mousemove(e);
+        //     return this._done;
+        // }
+        // click(e: IO.Event): boolean {
+        //     if (this.layer) this.layer.click(e);
+        //     return this._done;
+        // }
+        // keypress(e: IO.Event): boolean {
+        //     if (this.layer) this.layer.keypress(e);
+        //     return this._done;
+        // }
+        // dir(e: IO.Event): boolean {
+        //     if (this.layer) this.layer.dir(e);
+        //     return this._done;
+        // }
+        // tick(e: IO.Event): boolean {
+        //     if (this.layer) this.layer.tick(e);
+        //     return this._done;
+        // }
+        // draw() {
+        //     if (this.layer) this.layer.draw();
+        // }
+        addAnimation(a) {
+            var _a;
+            (_a = this.layer) === null || _a === void 0 ? void 0 : _a.addAnimation(a);
+        }
+        removeAnimation(a) {
+            var _a;
+            (_a = this.layer) === null || _a === void 0 ? void 0 : _a.removeAnimation(a);
+        }
+    }
+    function make(opts) {
+        return new UI(opts);
+    }
+
+    // import * as GWU from 'gw-utils';
+    UI.prototype.alert = function (opts, text, args) {
+        if (typeof opts === 'number') {
+            opts = { duration: opts };
+        }
+        if (args) {
+            text = apply(text, args);
+        }
+        opts.class = opts.class || 'alert';
+        opts.border = opts.border || 'ascii';
+        opts.pad = opts.pad || 1;
+        const layer = this.startWidgetLayer();
+        // Fade the background
+        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
+        layer.body.style().set('bg', BLACK.alpha(opacity));
+        // create the text widget
+        const textWidget = layer
+            .text(text, {
+            id: 'TEXT',
+            class: opts.textClass || opts.class,
+            width: opts.width,
+            height: opts.height,
+        })
+            .center();
+        Object.assign(opts, {
+            width: textWidget.bounds.width,
+            height: textWidget.bounds.height,
+            x: textWidget.bounds.x,
+            y: textWidget.bounds.y,
+            id: 'DIALOG',
+        });
+        const dialog = layer.dialog(opts);
+        textWidget.setParent(dialog);
+        layer.on('click', () => {
+            layer.finish(true);
+            return true;
+        });
+        layer.on('keypress', () => {
+            layer.finish(true);
+            return true;
+        });
+        layer.setTimeout(() => {
+            layer.finish(false);
+        }, opts.duration || 3000);
+        return layer;
+    };
+
+    defaultStyle.add('*', {
+        fg: 'white',
+        bg: -1,
+        align: 'left',
+        valign: 'top',
+    });
+    class Widget {
+        constructor(term, opts = {}) {
+            this.tag = 'text';
+            this.bounds = new Bounds(0, 0, 0, 1);
+            this._depth = 0;
+            this.events = {};
+            // action: string = '';
+            this.children = [];
+            this._style = new Style();
+            this._parent = null;
+            this.classes = [];
+            this._props = {};
+            this._attrs = {};
+            this.layer = term;
+            // this.bounds.x = term.x;
+            // this.bounds.y = term.y;
+            this.bounds.x = opts.x || 0;
+            this.bounds.y = opts.y || 0;
+            this.bounds.width = opts.width || 0;
+            this.bounds.height = opts.height || 1;
+            if (opts.tag) {
+                this.tag = opts.tag;
+            }
+            if (opts.id) {
+                this.attr('id', opts.id);
+                this.attr('action', opts.id);
+            }
+            if (opts.depth !== undefined) {
+                this._depth = opts.depth;
+            }
+            this._style.set(opts);
+            if (opts.class) {
+                this.classes = opts.class.split(/ +/g).map((c) => c.trim());
+            }
+            if (opts.tabStop) {
+                this.prop('tabStop', true);
+            }
+            if (opts.action) ;
+            if (opts.disabled) {
+                this.prop('disabled', true);
+            }
+            if (opts.hidden) {
+                this.prop('hidden', true);
+            }
+            if (opts.action) {
+                this.attr('action', opts.action);
+            }
+            if (this.attr('action')) {
+                this.on('click', (_n, w, e) => {
+                    const action = this._attrStr('action');
+                    if (action) {
+                        this._bubbleEvent(action, w, e);
+                    }
+                    return false; // keep bubbling
+                });
+            }
+            this.layer.attach(this);
+            this.updateStyle();
+            if (opts.opacity !== undefined) {
+                this._used.opacity = opts.opacity;
+            }
+        }
+        get depth() {
+            return this._depth;
+        }
+        set depth(v) {
+            this._depth = v;
+            this.layer.sortWidgets();
+        }
+        get parent() {
+            return this._parent;
+        }
+        set parent(v) {
+            this.setParent(v);
+        }
+        setParent(v, opts = {}) {
+            if (this._parent) {
+                this._parent._removeChild(this);
+            }
+            this._parent = v;
+            if (this._parent) {
+                this.depth = this._depth || this._parent.depth + 1;
+                this._parent._addChild(this, opts);
+            }
+        }
+        pos(x, y) {
+            if (x === undefined)
+                return this.bounds;
+            if (typeof x === 'number') {
+                this.bounds.x = x;
+                this.bounds.y = y || 0;
+            }
+            else {
+                this.bounds.x = x.x;
+                this.bounds.y = x.y;
+            }
+            this.layer.needsDraw = true;
+            return this;
+        }
+        center(bounds) {
+            return this.centerX(bounds).centerY(bounds);
+        }
+        centerX(bounds) {
+            bounds = bounds || this.layer.body.bounds;
+            const w = this.bounds.width;
+            const mid = Math.round((bounds.width - w) / 2);
+            this.bounds.x = bounds.x + mid;
+            return this;
+        }
+        centerY(bounds) {
+            bounds = bounds || this.layer.body.bounds;
+            const h = this.bounds.height;
+            const mid = Math.round((bounds.height - h) / 2);
+            this.bounds.y = bounds.y + mid;
+            return this;
+        }
+        text(v) {
+            if (v === undefined)
+                return this._attrStr('text');
+            this.attr('text', v);
+            return this;
+        }
+        attr(name, v) {
+            if (v === undefined)
+                return this._attrs[name];
+            this._attrs[name] = v;
+            return this;
+        }
+        _attrInt(name) {
+            const n = this._attrs[name] || 0;
+            if (typeof n === 'number')
+                return n;
+            if (typeof n === 'string')
+                return Number.parseInt(n);
+            return n ? 1 : 0;
+        }
+        _attrStr(name) {
+            const n = this._attrs[name] || '';
+            if (typeof n === 'string')
+                return n;
+            if (typeof n === 'number')
+                return '' + n;
+            return n ? 'true' : 'false';
+        }
+        _attrBool(name) {
+            return !!this._attrs[name];
+        }
+        prop(name, v) {
+            if (v === undefined)
+                return this._props[name];
+            const current = this._props[name];
+            if (current !== v) {
+                this._setProp(name, v);
+            }
+            return this;
+        }
+        _setProp(name, v) {
+            this._props[name] = v;
+            // console.log(`${this.tag}.${name}=${v}`);
+            this.updateStyle();
+        }
+        _propInt(name) {
+            const n = this._props[name] || 0;
+            if (typeof n === 'number')
+                return n;
+            if (typeof n === 'string')
+                return Number.parseInt(n);
+            return n ? 1 : 0;
+        }
+        _propStr(name) {
+            const n = this._props[name] || '';
+            if (typeof n === 'string')
+                return n;
+            if (typeof n === 'number')
+                return '' + n;
+            return n ? 'true' : 'false';
+        }
+        _propBool(name) {
+            return !!this._props[name];
+        }
+        toggleProp(name) {
+            const current = !!this._props[name];
+            this.prop(name, !current);
+            return this;
+        }
+        incProp(name, n = 1) {
+            let current = this.prop(name) || 0;
+            if (typeof current === 'boolean') {
+                current = current ? 1 : 0;
+            }
+            else if (typeof current === 'string') {
+                current = Number.parseInt(current) || 0;
+            }
+            current += n;
+            this.prop(name, current);
+            return this;
+        }
+        contains(...args) {
+            return this.bounds.contains(args[0], args[1]);
+        }
+        style(opts) {
+            if (opts === undefined)
+                return this._style;
+            this._style.set(opts);
+            this.updateStyle();
+            return this;
+        }
+        addClass(c) {
+            const all = c.split(/ +/g);
+            all.forEach((a) => {
+                if (this.classes.includes(a))
+                    return;
+                this.classes.push(a);
+            });
+            return this;
+        }
+        removeClass(c) {
+            const all = c.split(/ +/g);
+            all.forEach((a) => {
+                arrayDelete(this.classes, a);
+            });
+            return this;
+        }
+        hasClass(c) {
+            const all = c.split(/ +/g);
+            return arrayIncludesAll(this.classes, all);
+        }
+        toggleClass(c) {
+            const all = c.split(/ +/g);
+            all.forEach((a) => {
+                if (this.classes.includes(a)) {
+                    arrayDelete(this.classes, a);
+                }
+                else {
+                    this.classes.push(a);
+                }
+            });
+            return this;
+        }
+        get focused() {
+            return !!this.prop('focus');
+        }
+        // @return true to stop the focus change event
+        focus(reverse = false) {
+            if (this.prop('focus'))
+                return true;
+            this.prop('focus', true);
+            return this._fireEvent('focus', this, { reverse });
+        }
+        // @return true to stop the focus change event
+        blur(reverse = false) {
+            if (!this.prop('focus'))
+                return false;
+            this.prop('focus', false);
+            return this._fireEvent('blur', this, { reverse });
+        }
+        get hovered() {
+            return !!this.prop('hover');
+        }
+        set hovered(v) {
+            this.prop('hover', v);
+        }
+        get hidden() {
+            let current = this;
+            while (current) {
+                if (current.prop('hidden'))
+                    return true;
+                current = current.parent;
+            }
+            return false;
+        }
+        set hidden(v) {
+            this.prop('hidden', v);
+            if (!v && this._used.opacity == 0) {
+                this._used.opacity = 100;
+            }
+        }
+        get opacity() {
+            let opacity = 100;
+            let current = this;
+            while (current) {
+                if (current._used) {
+                    opacity = Math.min(opacity, current._used.opacity); // TODO - opacity = Math.floor(opacity * current._used.opacity / 100);
+                }
+                current = current.parent;
+            }
+            return opacity;
+        }
+        set opacity(v) {
+            if (v !== this._used.opacity) {
+                this._used.opacity = v;
+                this.hidden = this._used.opacity == 0;
+                this.layer.needsDraw = true;
+            }
+        }
+        updateStyle() {
+            this._used = this.layer.styles.computeFor(this);
+            this.layer.needsDraw = true; // changed style or state
+        }
+        draw(buffer) {
+            if (this.hidden)
+                return false;
+            return this._draw(buffer);
+        }
+        // Animation
+        fadeIn(ms) {
+            return this.fadeTo(100, ms);
+        }
+        fadeOut(ms) {
+            return this.fadeTo(0, ms);
+        }
+        fadeTo(opacity, ms) {
+            const tween$1 = make$1({ pct: this._used.opacity })
+                .to({ pct: opacity })
+                .duration(ms)
+                .onUpdate((info) => {
+                this.opacity = info.pct;
+            });
+            this.layer.addAnimation(tween$1);
+            return this;
+        }
+        fadeToggle(ms) {
+            return this.fadeTo(this._used.opacity ? 0 : 100, ms);
+        }
+        slideIn(x, y, from, ms) {
+            let start = { x, y };
+            if (from === 'left') {
+                start.x = -this.bounds.width;
+            }
+            else if (from === 'right') {
+                start.x = this.layer.width + this.bounds.width;
+            }
+            else if (from === 'top') {
+                start.y = -this.bounds.height;
+            }
+            else if (from === 'bottom') {
+                start.y = this.layer.height + this.bounds.height;
+            }
+            return this.slide(start, { x, y }, ms);
+        }
+        slideOut(dir, ms) {
+            let dest = { x: this.bounds.x, y: this.bounds.y };
+            if (dir === 'left') {
+                dest.x = -this.bounds.width;
+            }
+            else if (dir === 'right') {
+                dest.x = this.layer.width + this.bounds.width;
+            }
+            else if (dir === 'top') {
+                dest.y = -this.bounds.height;
+            }
+            else if (dir === 'bottom') {
+                dest.y = this.layer.height + this.bounds.height;
+            }
+            return this.slide(this.bounds, dest, ms);
+        }
+        slide(from, to, ms) {
+            const tween$1 = make$1({ x: x(from), y: y(from) })
+                .to({ x: x(to), y: y(to) })
+                .duration(ms)
+                .onUpdate((info) => {
+                this.pos(info.x, info.y);
+            });
+            this.layer.addAnimation(tween$1);
+            return this;
+        }
+        // Draw
+        _draw(buffer) {
+            this._drawFill(buffer);
+            return true;
+        }
+        _drawFill(buffer) {
+            buffer.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height, ' ', this._used.bg, this._used.bg);
+        }
+        childAt(...args) {
+            return this.children.find((c) => c.contains(args[0], args[1])) || null;
+        }
+        _addChild(w, opts) {
+            let beforeIndex = -1;
+            if (opts && opts.beforeIndex !== undefined) {
+                beforeIndex = opts.beforeIndex;
+            }
+            if (w._parent && w._parent !== this)
+                throw new Error('Trying to add child that already has a parent.');
+            if (!this.children.includes(w)) {
+                if (beforeIndex < 0 || beforeIndex >= this.children.length) {
+                    this.children.push(w);
+                }
+                else {
+                    this.children.splice(beforeIndex, 0, w);
+                }
+            }
+            w._parent = this;
+            return this;
+        }
+        _removeChild(w) {
+            if (!w._parent || w._parent !== this)
+                throw new Error('Removing child that does not have this widget as parent.');
+            w._parent = null;
+            arrayDelete(this.children, w);
+            return this;
+        }
+        resize(w, h) {
+            this.bounds.width = w || this.bounds.width;
+            this.bounds.height = h || this.bounds.height;
+            this.layer.needsDraw = true;
+            return this;
+        }
+        // Events
+        mouseenter(e, over) {
+            if (!this.contains(e))
+                return;
+            if (this.hovered)
+                return;
+            this.hovered = true;
+            this._fireEvent('mouseenter', this, e);
+            if (this._parent) {
+                this._parent.mouseenter(e, over);
+            }
+        }
+        mousemove(e) {
+            if (this.contains(e) && !e.defaultPrevented && !this.hidden) {
+                this._fireEvent('mousemove', this, e);
+                // e.preventDefault();
+            }
+            else {
+                this.mouseleave(e);
+            }
+            return false;
+        }
+        mouseleave(e) {
+            if (this.contains(e))
+                return;
+            if (!this.hovered)
+                return;
+            this.hovered = false;
+            this._fireEvent('mouseleave', this, e);
+            // if (this._parent) {
+            //     this._parent.mouseleave(e);
+            // }
+        }
+        click(e) {
+            if (this.hidden)
+                return false;
+            return this._fireEvent('click', this, e);
+        }
+        keypress(e) {
+            return this._fireEvent('keypress', this, e);
+        }
+        dir(e) {
+            return this._fireEvent('dir', this, e);
+        }
+        tick(e) {
+            return this._fireEvent('tick', this, e);
+        }
+        on(event, cb) {
+            let handlers = this.events[event];
+            if (!handlers) {
+                handlers = this.events[event] = [];
+            }
+            if (!handlers.includes(cb)) {
+                handlers.push(cb);
+            }
+            return this;
+        }
+        off(event, cb) {
+            let handlers = this.events[event];
+            if (!handlers)
+                return this;
+            if (cb) {
+                arrayDelete(handlers, cb);
+            }
+            else {
+                handlers.length = 0; // clear all handlers
+            }
+            return this;
+        }
+        _fireEvent(name, source, args) {
+            const handlers = this.events[name] || [];
+            let handled = false;
+            for (let handler of handlers) {
+                if (handler(name, source || this, args) === true) {
+                    handled = true;
+                }
+            }
+            return handled;
+        }
+        _bubbleEvent(name, source, args) {
+            let current = this;
+            while (current) {
+                if (current._fireEvent(name, source, args))
+                    return true;
+                current = current.parent;
+            }
+            return false;
+        }
+    }
+
+    class Body extends Widget {
+        constructor(layer) {
+            super(layer, {
+                tag: 'body',
+                id: 'BODY',
+                depth: -1,
+                width: layer.width,
+                height: layer.height,
+            });
+        }
+        _drawFill(buffer) {
+            buffer.blend(this._used.bg);
+        }
+    }
+
+    class WidgetLayer extends Layer {
+        constructor(ui, opts = {}) {
+            super(ui, opts);
+            this._attachOrder = [];
+            this._depthOrder = [];
+            this._focusWidget = null;
+            this._hasTabStop = false;
+            this._opts = { x: 0, y: 0 };
+            this.body = new Body(this);
+        }
+        // Style and Opts
+        reset() {
+            this._opts = { x: 0, y: 0 };
+            return this;
+        }
+        fg(v) {
+            this._opts.fg = v;
+            return this;
+        }
+        bg(v) {
+            this._opts.bg = v;
+            return this;
+        }
+        dim(pct = 25, fg = true, bg = false) {
+            if (fg) {
+                this._opts.fg = from$2(this._opts.fg || 'white').darken(pct);
+            }
+            if (bg) {
+                this._opts.bg = from$2(this._opts.bg || 'black').darken(pct);
+            }
+            return this;
+        }
+        bright(pct = 25, fg = true, bg = false) {
+            if (fg) {
+                this._opts.fg = from$2(this._opts.fg || 'white').lighten(pct);
+            }
+            if (bg) {
+                this._opts.bg = from$2(this._opts.bg || 'black').lighten(pct);
+            }
+            return this;
+        }
+        invert() {
+            [this._opts.fg, this._opts.bg] = [this._opts.bg, this._opts.fg];
+            return this;
+        }
+        // STYLE
+        style(opts) {
+            Object.assign(this._opts, opts);
+            return this;
+        }
+        class(c) {
+            this._opts.class = this._opts.class || '';
+            this._opts.class += ' ' + c;
+            return this;
+        }
+        pos(x, y) {
+            if (x === undefined)
+                return this._opts;
+            this._opts.x = clamp(x, 0, this.width);
+            this._opts.y = clamp(y, 0, this.height);
+            return this;
+        }
+        moveTo(x, y) {
+            return this.pos(x, y);
+        }
+        move(dx, dy) {
+            this._opts.x = clamp(this._opts.x + dx, 0, this.width);
+            this._opts.y = clamp(this._opts.y + dy, 0, this.height);
+            return this;
+        }
+        up(n = 1) {
+            return this.move(0, -n);
+        }
+        down(n = 1) {
+            return this.move(0, n);
+        }
+        left(n = 1) {
+            return this.move(-n, 0);
+        }
+        right(n = 1) {
+            return this.move(n, 0);
+        }
+        nextLine(n = 1) {
+            return this.pos(0, this._opts.y + n);
+        }
+        prevLine(n = 1) {
+            return this.pos(0, this._opts.y - n);
+        }
+        grid() {
+            return new Grid(this);
+        }
+        // EDIT
+        // erase and move back to top left
+        clear(color) {
+            this.body.children = [];
+            this._depthOrder = [this.body];
+            if (color) {
+                this.body.style().set('bg', color);
+            }
+            else {
+                this.body.style().unset('bg');
+            }
+            return this;
+        }
+        // Widgets
+        // create(tag: string, opts: any): UIWidget {
+        //     const options = Object.assign({ tag }, this._opts, opts);
+        //     const widget = createWidget(tag, this, options);
+        //     this.addWidget(widget);
+        //     return widget;
+        // }
+        sortWidgets() {
+            this._depthOrder.sort((a, b) => b.depth - a.depth);
+            return this;
+        }
+        attach(w) {
+            if (!this._attachOrder.includes(w)) {
+                const index = this._depthOrder.findIndex((aw) => aw.depth <= w.depth);
+                if (index < 0) {
+                    this._depthOrder.push(w);
+                }
+                else {
+                    this._depthOrder.splice(index, 0, w);
+                }
+                this._attachOrder.push(w);
+                this.needsDraw = true;
+            }
+            if (!w.parent && w !== this.body && this.body) {
+                w.setParent(this.body);
+                this.needsDraw = true;
+            }
+            this._hasTabStop = this._hasTabStop || w._propBool('tabStop');
+            return this;
+        }
+        detach(w) {
+            // Utils.arrayDelete(this.widgets, w);
+            w.setParent(null);
+            arrayDelete(this._depthOrder, w);
+            arrayDelete(this._attachOrder, w);
+            if (this._focusWidget === w) {
+                this.nextTabStop();
+            }
+            this.needsDraw = true;
+            return this;
+        }
+        widgetAt(...args) {
+            return (this._depthOrder.find((w) => w.contains(args[0], args[1]) && !w.hidden) || this.body);
+        }
+        get focusWidget() {
+            return this._focusWidget;
+        }
+        setFocusWidget(w, reverse = false) {
+            if (w === this._focusWidget)
+                return;
+            if (this._focusWidget && this._focusWidget.blur(reverse))
+                return;
+            if (w && w.focus(reverse))
+                return;
+            this._focusWidget = w;
+        }
+        getWidget(id) {
+            return this._depthOrder.find((w) => w.attr('id') === id) || null;
+        }
+        nextTabStop() {
+            if (!this.focusWidget) {
+                this.setFocusWidget(this._attachOrder.find((w) => !!w.prop('tabStop') && !w.prop('disabled') && !w.hidden) || null);
+                return !!this.focusWidget;
+            }
+            const next = arrayNext(this._attachOrder, this.focusWidget, (w) => !!w.prop('tabStop') && !w.prop('disabled') && !w.hidden);
+            if (next) {
+                this.setFocusWidget(next);
+                return true;
+            }
+            return false;
+        }
+        prevTabStop() {
+            if (!this.focusWidget) {
+                this.setFocusWidget(this._attachOrder.find((w) => !!w.prop('tabStop') && !w.prop('disabled') && !w.hidden) || null);
+                return !!this.focusWidget;
+            }
+            const prev = arrayPrev(this._attachOrder, this.focusWidget, (w) => !!w.prop('tabStop') && !w.prop('disabled') && !w.hidden);
+            if (prev) {
+                this.setFocusWidget(prev, true);
+                return true;
+            }
+            return false;
+        }
+        // EVENTS
+        on(event, cb) {
+            this.body.on(event, cb);
+            return this;
+        }
+        off(event, cb) {
+            this.body.off(event, cb);
+            return this;
+        }
+        mousemove(e) {
+            const over = this.widgetAt(e);
+            over.mouseenter(e, over);
+            this._depthOrder.forEach((w) => w.mousemove(e));
+            return false; // TODO - this._done
+        }
+        click(e) {
+            let w = this.widgetAt(e);
+            let setFocus = false;
+            while (w) {
+                if (!setFocus && w.prop('tabStop') && !w.prop('disabled')) {
+                    this.setFocusWidget(w);
+                    setFocus = true;
+                }
+                if (w.click(e))
+                    return false;
+                w = w.parent;
+            }
+            return false; // TODO - this._done
+        }
+        keypress(e) {
+            if (!e.key)
+                return false;
+            let w = this.focusWidget || this.body;
+            while (w) {
+                if (w.keypress(e))
+                    return false;
+                w = w.parent;
+            }
+            if (e.defaultPrevented)
+                return false;
+            if (e.key === 'Tab') {
+                // Next widget
+                this.nextTabStop();
+            }
+            else if (e.key === 'TAB') {
+                // Prev Widget
+                this.prevTabStop();
+            }
+            //         return this.done;
+            return false;
+        }
+        dir(e) {
+            let target = this.focusWidget || this.body;
+            while (target) {
+                if (target.dir(e))
+                    return false;
+                target = target.parent;
+            }
+            // return this.done;
+            return false;
+        }
+        tick(e) {
+            super.tick(e);
+            for (let w of this._depthOrder) {
+                w.tick(e);
+            }
+            return false;
+        }
+        draw() {
+            if (this._hasTabStop && !this._focusWidget) {
+                this.nextTabStop();
+            }
+            if (this.styles.dirty) {
+                this.needsDraw = true;
+                this._depthOrder.forEach((w) => w.updateStyle());
+                this.styles.dirty = false;
+            }
+            if (!this.needsDraw)
+                return;
+            this.needsDraw = false;
+            this.ui.copyUIBuffer(this.buffer);
+            // draw from low depth to high depth
+            for (let i = this._depthOrder.length - 1; i >= 0; --i) {
+                const w = this._depthOrder[i];
+                w.draw(this.buffer);
+            }
+            console.log('draw');
+            this.buffer.render();
+        }
+        finish(result) {
+            super.finish(result);
+            this.body._fireEvent('finish', this.body, this.result);
+        }
+    }
+    UI.prototype.startWidgetLayer = function (opts = {}) {
+        opts.styles = this.layer ? this.layer.styles : this.styles;
+        const layer = new WidgetLayer(this, opts);
+        this.startLayer(layer);
+        return layer;
+    };
+
+    // import * as GWU from 'gw-utils';
+    class Text extends Widget {
+        constructor(layer, opts) {
+            super(layer, opts);
+            this._text = '';
+            this._lines = [];
+            this._fixedWidth = false;
+            this._fixedHeight = false;
+            this._fixedHeight = !!opts.height;
+            this._fixedWidth = !!opts.width;
+            this.bounds.width = opts.width || 0;
+            this.bounds.height = opts.height || 1;
+            this.text(opts.text);
+        }
+        text(v) {
+            if (v === undefined)
+                return this._text;
+            this._text = v;
+            let w = this._fixedWidth ? this.bounds.width : 100;
+            this._lines = splitIntoLines(this._text, w);
+            if (!this._fixedWidth) {
+                this.bounds.width = this._lines.reduce((out, line) => Math.max(out, length(line)), 0);
+            }
+            if (this._fixedHeight) {
+                if (this._lines.length > this.bounds.height) {
+                    this._lines.length = this.bounds.height;
+                }
+            }
+            else {
+                this.bounds.height = Math.max(1, this._lines.length);
+            }
+            this.layer.needsDraw = true;
+            return this;
+        }
+        resize(w, h) {
+            super.resize(w, h);
+            this._fixedWidth = w > 0;
+            this._fixedHeight = h > 0;
+            this.text(this._text);
+            return this;
+        }
+        _draw(buffer) {
+            this._drawFill(buffer);
+            let vOffset = 0;
+            if (this._used.valign === 'bottom') {
+                vOffset = this.bounds.height - this._lines.length;
+            }
+            else if (this._used.valign === 'middle') {
+                vOffset = Math.floor((this.bounds.height - this._lines.length) / 2);
+            }
+            this._lines.forEach((line, i) => {
+                buffer.drawText(this.bounds.x, this.bounds.y + i + vOffset, line, this._used.fg, -1, this.bounds.width, this._used.align);
+            });
+            return true;
+        }
+    }
+    WidgetLayer.prototype.text = function (text, opts = {}) {
+        const options = Object.assign({}, this._opts, opts, { text });
+        const list = new Text(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        this.pos(list.bounds.x, list.bounds.bottom);
+        return list;
+    };
+
+    class Button extends Text {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.text = opts.text || '';
+                opts.action = opts.action || opts.id;
+                opts.tag = opts.tag || 'button';
+                if (!opts.text && !opts.width)
+                    throw new Error('Buttons must have text or width.');
+                return opts;
+            })());
+        }
+        keypress(ev) {
+            if (!ev.key)
+                return false;
+            if (this._fireEvent('keypress', this, ev))
+                return true;
+            if (ev.key === 'Enter') {
+                const action = this._attrStr('action');
+                if (action && action.length)
+                    this._bubbleEvent(action, this);
+                return true;
+            }
+            return false;
+        }
+        click(ev) {
+            if (!this.contains(ev))
+                return false;
+            if (this._fireEvent('click', this, ev))
+                return true;
+            const action = this._attrStr('action');
+            if (action && action.length)
+                return this._bubbleEvent(action, this);
+            return false;
+        }
+    }
+    WidgetLayer.prototype.button = function (text, opts) {
+        const options = Object.assign({}, this._opts, opts, {
+            text,
+        });
+        const widget = new Button(this, options);
+        if (opts.parent) {
+            widget.setParent(opts.parent, opts);
+        }
+        this.pos(widget.bounds.x, widget.bounds.bottom);
+        return widget;
+    };
+
+    // import * as GWU from 'gw-utils';
+    UI.prototype.confirm = function (opts, text, args) {
+        if (typeof opts === 'string') {
+            args = text;
+            text = opts;
+            opts = {};
+        }
+        if (args) {
+            text = apply(text, args);
+        }
+        opts.class = opts.class || 'confirm';
+        opts.border = opts.border || 'ascii';
+        opts.pad = opts.pad || 1;
+        const layer = this.startWidgetLayer();
+        // Fade the background
+        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
+        layer.body.style().set('bg', BLACK.alpha(opacity));
+        if (opts.cancel === undefined) {
+            opts.cancel = 'Cancel';
+        }
+        else if (opts.cancel === true) {
+            opts.cancel = 'Cancel';
+        }
+        else if (!opts.cancel) {
+            opts.cancel = '';
+        }
+        opts.ok = opts.ok || 'Ok';
+        let buttonWidth = opts.buttonWidth || 0;
+        if (!buttonWidth) {
+            buttonWidth = Math.max(opts.ok.length, opts.cancel.length);
+        }
+        const width = Math.max(opts.width || 0, buttonWidth * 2 + 2);
+        // create the text widget
+        const textWidget = layer
+            .text(text, {
+            class: opts.textClass || opts.class,
+            width: width,
+            height: opts.height,
+        })
+            .center();
+        Object.assign(opts, {
+            width: textWidget.bounds.width,
+            height: textWidget.bounds.height + 2,
+            x: textWidget.bounds.x,
+            y: textWidget.bounds.y,
+            tag: 'confirm',
+        });
+        const dialog = layer.dialog(opts);
+        textWidget.setParent(dialog);
+        layer
+            .button(opts.ok, {
+            class: opts.okClass || opts.class,
+            width: buttonWidth,
+            id: 'OK',
+            parent: dialog,
+            x: dialog._innerLeft + dialog._innerWidth - buttonWidth,
+            y: dialog._innerTop + dialog._innerHeight - 1,
+        })
+            .on('click', () => {
+            layer.finish(true);
+            return true;
+        });
+        if (opts.cancel.length) {
+            layer
+                .button(opts.cancel, {
+                class: opts.cancelClass || opts.class,
+                width: buttonWidth,
+                id: 'CANCEL',
+                parent: dialog,
+                x: dialog._innerLeft,
+                y: dialog._innerTop + dialog._innerHeight - 1,
+            })
+                .on('click', () => {
+                layer.finish(false);
+                return true;
+            });
+        }
+        layer.on('keypress', (_n, _w, e) => {
+            if (e.key === 'Escape') {
+                layer.finish(false);
+            }
+            else if (e.key === 'Enter') {
+                layer.finish(true);
+            }
+            return true;
+        });
+        return layer;
+    };
+
+    // import * as GWU from 'gw-utils';
+    UI.prototype.inputbox = function (opts, text, args) {
+        if (typeof opts === 'string') {
+            args = text;
+            text = opts;
+            opts = {};
+        }
+        if (args) {
+            text = apply(text, args);
+        }
+        opts.class = opts.class || 'confirm';
+        opts.border = opts.border || 'ascii';
+        opts.pad = opts.pad || 1;
+        const layer = this.startWidgetLayer();
+        // Fade the background
+        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
+        layer.body.style().set('bg', BLACK.alpha(opacity));
+        // create the text widget
+        const textWidget = layer
+            .text(text, {
+            class: opts.textClass || opts.class,
+            width: opts.width,
+            height: opts.height,
+        })
+            .center();
+        Object.assign(opts, {
+            width: textWidget.bounds.width,
+            height: textWidget.bounds.height + 2,
+            x: textWidget.bounds.x,
+            y: textWidget.bounds.y,
+            tag: 'inputbox',
+        });
+        const dialog = layer.dialog(opts);
+        textWidget.setParent(dialog);
+        let width = dialog._innerWidth;
+        let x = dialog._innerLeft;
+        if (opts.label) {
+            const label = layer.text(opts.label, {
+                class: opts.labelClass || opts.class,
+                tag: 'label',
+                parent: dialog,
+                x,
+                y: dialog._innerTop + dialog._innerHeight - 1,
+            });
+            x += label.bounds.width + 1;
+            width -= label.bounds.width + 1;
+        }
+        layer
+            .input({
+            class: opts.inputClass || opts.class,
+            width,
+            id: 'INPUT',
+            parent: dialog,
+            x,
+            y: dialog._innerTop + dialog._innerHeight - 1,
+        })
+            .on('INPUT', (_n, w, _e) => {
+            w && layer.finish(w.text());
+            return true;
+        });
+        layer.on('keypress', (_n, _w, e) => {
+            if (e.key === 'Escape') {
+                layer.finish(null);
+                return true;
+            }
+            return false;
+        });
+        return layer;
+    };
+
+    var index$1 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Grid: Grid,
+        Selector: Selector,
+        compile: compile,
+        Style: Style,
+        makeStyle: makeStyle,
+        ComputedStyle: ComputedStyle,
+        Sheet: Sheet,
+        defaultStyle: defaultStyle,
+        Layer: Layer,
+        UI: UI,
+        make: make
+    });
+
+    class Border extends Widget {
+        constructor(layer, opts) {
+            super(layer, opts);
+            this.ascii = false;
+            if (opts.ascii) {
+                this.ascii = true;
+            }
+            else if (opts.fg && opts.ascii !== false) {
+                this.ascii = true;
+            }
+        }
+        contains(..._args) {
+            return false;
+        }
+        _draw(buffer) {
+            const w = this.bounds.width;
+            const h = this.bounds.height;
+            const x = this.bounds.x;
+            const y = this.bounds.y;
+            const ascii = this.ascii;
+            drawBorder(buffer, x, y, w, h, this._used, ascii);
+            return true;
+        }
+    }
+    WidgetLayer.prototype.border = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const list = new Border(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        return list;
+    };
+    function drawBorder(buffer, x, y, w, h, style, ascii) {
+        const fg = style.fg;
+        const bg = style.bg;
+        if (ascii) {
+            for (let i = 1; i < w; ++i) {
+                buffer.draw(x + i, y, '-', fg, bg);
+                buffer.draw(x + i, y + h - 1, '-', fg, bg);
+            }
+            for (let j = 1; j < h; ++j) {
+                buffer.draw(x, y + j, '|', fg, bg);
+                buffer.draw(x + w - 1, y + j, '|', fg, bg);
+            }
+            buffer.draw(x, y, '+', fg, bg);
+            buffer.draw(x + w - 1, y, '+', fg, bg);
+            buffer.draw(x, y + h - 1, '+', fg, bg);
+            buffer.draw(x + w - 1, y + h - 1, '+', fg, bg);
+        }
+        else {
+            forBorder(x, y, w, h, (x, y) => {
+                buffer.draw(x, y, ' ', bg, bg);
+            });
+        }
+    }
+
+    // import * as GWU from 'gw-utils';
+    function toPadArray(pad) {
+        if (!pad)
+            return [0, 0, 0, 0];
+        if (pad === true) {
+            return [1, 1, 1, 1];
+        }
+        else if (typeof pad === 'number') {
+            return [pad, pad, pad, pad];
+        }
+        else if (pad.length == 1) {
+            const p = pad[0];
+            return [p, p, p, p];
+        }
+        else if (pad.length == 2) {
+            const [pv, ph] = pad;
+            return [pv, ph, pv, ph];
+        }
+        throw new Error('Invalid pad: ' + pad);
+    }
+    class Dialog extends Widget {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || Dialog.default.tag;
+                return opts;
+            })());
+            this.legend = null;
+            let border = opts.border || Dialog.default.border;
+            this.attr('border', border);
+            const pad = toPadArray(opts.pad || Dialog.default.pad);
+            this.attr('padTop', pad[0]);
+            this.attr('padRight', pad[1]);
+            this.attr('padBottom', pad[2]);
+            this.attr('padLeft', pad[3]);
+            if (border !== 'none') {
+                for (let i = 0; i < 4; ++i) {
+                    pad[i] += 1;
+                }
+            }
+            this._adjustBounds(pad);
+            this.attr('legendTag', opts.legendTag || Dialog.default.legendTag);
+            this.attr('legendClass', opts.legendClass || opts.class || Dialog.default.legendClass);
+            this.attr('legendAlign', opts.legendAlign || Dialog.default.legendAlign);
+            this._addLegend(opts);
+        }
+        _adjustBounds(pad) {
+            // adjust w,h,x,y for border/pad
+            this.bounds.width += pad[1] + pad[3];
+            this.bounds.height += pad[0] + pad[2];
+            this.bounds.x -= pad[3];
+            this.bounds.y -= pad[0];
+            return this;
+        }
+        get _innerLeft() {
+            const border = this._attrStr('border');
+            const padLeft = this._attrInt('padLeft');
+            return this.bounds.x + padLeft + (border === 'none' ? 0 : 1);
+        }
+        get _innerWidth() {
+            const border = this._attrStr('border');
+            const padSize = this._attrInt('padLeft') + this._attrInt('padRight');
+            return this.bounds.width - padSize - (border === 'none' ? 0 : 2);
+        }
+        get _innerTop() {
+            const border = this._attrStr('border');
+            const padTop = this._attrInt('padTop');
+            return this.bounds.y + padTop + (border === 'none' ? 0 : 1);
+        }
+        get _innerHeight() {
+            const border = this._attrStr('border');
+            const padSize = this._attrInt('padTop') + this._attrInt('padBottom');
+            return this.bounds.height - padSize - (border === 'none' ? 0 : 2);
+        }
+        _addLegend(opts) {
+            if (!opts.legend) {
+                if (this._attrStr('border') === 'none') {
+                    this.bounds.height = 0;
+                }
+                return this;
+            }
+            const border = this._attrStr('border') !== 'none';
+            const textWidth = length(opts.legend);
+            const width = this.bounds.width - (border ? 4 : 0);
+            const align = this._attrStr('legendAlign');
+            let x = this.bounds.x + (border ? 2 : 0);
+            if (align === 'center') {
+                x += Math.floor((width - textWidth) / 2);
+            }
+            else if (align === 'right') {
+                x += width - textWidth;
+            }
+            this.legend = new Text(this.layer, {
+                text: opts.legend,
+                x,
+                y: this.bounds.y,
+                depth: this.depth + 1,
+                tag: this._attrStr('legendTag'),
+                class: this._attrStr('legendClass'),
+            });
+            // if (this.bounds.width < this.legend.bounds.width + 4) {
+            //     this.bounds.width = this.legend.bounds.width + 4;
+            // }
+            // this.bounds.height +=
+            //     this._attrInt('padTop') + this._attrInt('padBottom');
+            this.legend.setParent(this);
+            return this;
+        }
+        _draw(buffer) {
+            this._drawFill(buffer);
+            const border = this._attrStr('border');
+            if (border === 'none')
+                return false;
+            drawBorder(buffer, this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height, this._used, border === 'ascii');
+            return true;
+        }
+    }
+    Dialog.default = {
+        tag: 'dialog',
+        border: 'none',
+        pad: false,
+        legendTag: 'legend',
+        legendClass: '',
+        legendAlign: 'left',
+    };
+    WidgetLayer.prototype.dialog = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const widget = new Dialog(this, options);
+        if (opts.parent) {
+            widget.setParent(opts.parent, opts);
+        }
+        return widget;
+    };
+
+    // import * as GWU from 'gw-utils';
+    class Fieldset extends Dialog {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || Fieldset.default.tag;
+                opts.border = opts.border || Fieldset.default.border;
+                opts.legendTag = opts.legendTag || Fieldset.default.legendTag;
+                opts.legendClass =
+                    opts.legendClass || Fieldset.default.legendClass;
+                opts.legendAlign =
+                    opts.legendAlign || Fieldset.default.legendAlign;
+                opts.width = opts.width || 0;
+                opts.height = opts.height || 0;
+                return opts;
+            })());
+            this.fields = [];
+            this.attr('separator', opts.separator || Fieldset.default.separator);
+            this.attr('dataTag', opts.dataTag || Fieldset.default.dataTag);
+            this.attr('dataClass', opts.dataClass || Fieldset.default.dataClass);
+            this.attr('dataWidth', opts.dataWidth);
+            this.attr('labelTag', opts.labelTag || Fieldset.default.labelTag);
+            this.attr('labelClass', opts.labelClass || Fieldset.default.labelClass);
+            this.attr('labelWidth', this._innerWidth - opts.dataWidth);
+            this._addLegend(opts);
+        }
+        _adjustBounds(pad) {
+            this.bounds.width = Math.max(this.bounds.width, pad[1] + pad[3]);
+            this.bounds.height = Math.max(this.bounds.height, pad[0] + pad[2]);
+            return this;
+        }
+        get _labelLeft() {
+            const border = this._attrStr('border');
+            const padLeft = this._attrInt('padLeft');
+            return this.bounds.x + padLeft + (border === 'none' ? 0 : 1);
+        }
+        get _dataLeft() {
+            return this._labelLeft + this._attrInt('labelWidth');
+        }
+        get _nextY() {
+            const border = this._attrStr('border');
+            const padBottom = this._attrInt('padBottom');
+            return this.bounds.bottom - (border === 'none' ? 0 : 1) - padBottom;
+        }
+        add(label, format) {
+            const sep = this._attrStr('separator');
+            const labelText = padEnd(label, this._attrInt('labelWidth') - sep.length, ' ') + sep;
+            this.layer.text(labelText, {
+                x: this._labelLeft,
+                y: this._nextY,
+                width: this._attrInt('labelWidth'),
+                tag: this._attrStr('labelTag'),
+                class: this._attrStr('labelClass'),
+            });
+            if (typeof format === 'string') {
+                format = { format };
+            }
+            format.x = this._dataLeft;
+            format.y = this._nextY;
+            format.width = this._attrInt('dataWidth');
+            format.tag = format.tag || this._attrStr('dataTag');
+            format.class = format.class || this._attrStr('dataClass');
+            const field = new Field(this.layer, format);
+            field.setParent(this);
+            this.bounds.height += 1;
+            this.fields.push(field);
+            return this;
+        }
+        data(d) {
+            this.fields.forEach((f) => f.data(d));
+            this.layer.needsDraw = true;
+            return this;
+        }
+    }
+    Fieldset.default = {
+        tag: 'fieldset',
+        border: 'none',
+        separator: ' : ',
+        pad: false,
+        legendTag: 'legend',
+        legendClass: 'legend',
+        legendAlign: 'left',
+        labelTag: 'label',
+        labelClass: '',
+        dataTag: 'field',
+        dataClass: '',
+    };
+    WidgetLayer.prototype.fieldset = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const widget = new Fieldset(this, options);
+        if (opts.parent) {
+            widget.setParent(opts.parent, opts);
+        }
+        return widget;
+    };
+    class Field extends Text {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                // @ts-ignore
+                const topts = opts;
+                topts.tag = topts.tag || 'field';
+                topts.text = '';
+                return topts;
+            })());
+            if (typeof opts.format === 'string') {
+                this._format = compile$1(opts.format);
+            }
+            else {
+                this._format = opts.format;
+            }
+        }
+        data(v) {
+            const t = this._format(v) || '';
+            return this.text(t);
+        }
+    }
+
+    class OrderedList extends Widget {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || 'ol';
+                return opts;
+            })());
+            this._fixedWidth = false;
+            this._fixedHeight = false;
+            this._fixedHeight = !!opts.height;
+            this._fixedWidth = !!opts.width;
+            this.prop('pad', opts.pad || OrderedList.default.pad);
+        }
+        _addChild(w, opts = {}) {
+            w.bounds.x = this.bounds.x + 2;
+            if (!this._fixedHeight) {
+                w.bounds.y = this.bounds.bottom - 2;
+                this.bounds.height += w.bounds.height;
+            }
+            if (this._fixedWidth) {
+                w.bounds.width = Math.min(w.bounds.width, this.bounds.width - 4);
+            }
+            else if (w.bounds.width > this.bounds.width - 4) {
+                this.bounds.width = w.bounds.width + 4;
+            }
+            return super._addChild(w, opts);
+        }
+        _draw(buffer) {
+            this._drawFill(buffer);
+            this.children.forEach((c, i) => {
+                this._drawBulletFor(c, buffer, i);
+            });
+            return true;
+        }
+        _getBullet(index) {
+            return '' + (index + 1);
+        }
+        _drawBulletFor(widget, buffer, index) {
+            const bullet = this._getBullet(index);
+            const size = this._attrInt('pad') + bullet.length;
+            const x = widget.bounds.x - size;
+            const y = widget.bounds.y;
+            buffer.drawText(x, y, bullet, widget._used.fg, widget._used.bg, size);
+        }
+    }
+    OrderedList.default = {
+        pad: 1,
+    };
+    class UnorderedList extends OrderedList {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || 'ul';
+                return opts;
+            })());
+            this.prop('bullet', opts.bullet || UnorderedList.default.bullet);
+            this.prop('pad', opts.pad || UnorderedList.default.pad);
+        }
+        _getBullet(_index) {
+            return this._attrStr('bullet');
+        }
+    }
+    UnorderedList.default = {
+        bullet: '\u2022',
+        pad: 1,
+    };
+    WidgetLayer.prototype.ol = function (opts = {}) {
+        const options = Object.assign({}, this._opts, opts);
+        const widget = new OrderedList(this, options);
+        if (opts.parent) {
+            widget.setParent(opts.parent, opts);
+        }
+        return widget;
+    };
+    WidgetLayer.prototype.ul = function (opts = {}) {
+        const options = Object.assign({}, this._opts, opts);
+        const widget = new UnorderedList(this, options);
+        if (opts.parent) {
+            widget.setParent(opts.parent, opts);
+        }
+        return widget;
+    };
+
+    // import * as GWU from 'gw-utils';
+    defaultStyle.add('input', {
+        bg: 'light_gray',
+        fg: 'black',
+        align: 'left',
+        valign: 'top',
+    });
+    defaultStyle.add('input:invalid', {
+        fg: 'red',
+    });
+    defaultStyle.add('input:empty', {
+        fg: 'darkest_green',
+    });
+    defaultStyle.add('input:focus', {
+        bg: 'lighter_gray',
+    });
+    class Input extends Text {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.text = opts.text || '';
+                opts.tag = opts.tag || 'input';
+                opts.tabStop = opts.tabStop === undefined ? true : opts.tabStop;
+                opts.action = opts.action || opts.id;
+                opts.width =
+                    opts.width ||
+                        opts.maxLength ||
+                        Math.max(opts.minLength || 0, 10);
+                return opts;
+            })());
+            this.minLength = 0;
+            this.maxLength = 0;
+            this.numbersOnly = false;
+            this.min = 0;
+            this.max = 0;
+            this.attr('default', this._text);
+            this.attr('placeholder', opts.placeholder || Input.default.placeholder);
+            if (opts.numbersOnly) {
+                this.numbersOnly = true;
+                this.min = opts.min || 0;
+                this.max = opts.max || 0;
+            }
+            else {
+                this.minLength = opts.minLength || 0;
+                this.maxLength = opts.maxLength || 0;
+            }
+            if (opts.required) {
+                this.attr('required', true);
+                this.prop('required', true);
+            }
+            if (opts.disabled) {
+                this.attr('disabled', true);
+                this.prop('disabled', true);
+            }
+            this.prop('valid', this.isValid()); // redo b/c rules are now set
+            this.on('blur', () => this._fireEvent('change', this));
+            this.reset();
+        }
+        reset() {
+            this.text(this._attrStr('default'));
+        }
+        _setProp(name, v) {
+            super._setProp(name, v);
+            this._props.valid = this.isValid();
+        }
+        isValid() {
+            const t = this._text || '';
+            if (this.numbersOnly) {
+                const val = Number.parseInt(t);
+                if (this.min !== undefined && val < this.min)
+                    return false;
+                if (this.max !== undefined && val > this.max)
+                    return false;
+                return val > 0;
+            }
+            const minLength = Math.max(this.minLength, this.prop('required') ? 1 : 0);
+            return (t.length >= minLength &&
+                (!this.maxLength || t.length <= this.maxLength));
+        }
+        keypress(ev) {
+            if (!ev.key)
+                return false;
+            const textEntryBounds = this.numbersOnly ? ['0', '9'] : [' ', '~'];
+            if (ev.key === 'Enter' && this.isValid()) {
+                const action = this._attrStr('action');
+                if (action && action.length) {
+                    this._fireEvent(action, this);
+                }
+                else {
+                    this.layer.nextTabStop();
+                }
+                return true;
+            }
+            if (ev.key == 'Delete' || ev.key == 'Backspace') {
+                if (this._text.length) {
+                    this.text(spliceRaw(this._text, this._text.length - 1, 1));
+                    this._fireEvent('input', this);
+                    this._draw(this.layer.buffer); // save some work?
+                }
+                return true;
+            }
+            else if (ev.key.length > 1) {
+                // ignore other special keys...
+                return false;
+            }
+            // eat/use all other keys
+            if (ev.key >= textEntryBounds[0] && ev.key <= textEntryBounds[1]) {
+                // allow only permitted input
+                if (!this.maxLength || this._text.length < this.maxLength) {
+                    this.text(this._text + ev.key);
+                    this._fireEvent('input', this);
+                    this._draw(this.layer.buffer); // save some work?
+                }
+            }
+            return true;
+        }
+        text(v) {
+            if (v === undefined)
+                return this._text;
+            super.text(v);
+            this.prop('empty', this._text.length === 0);
+            this.prop('valid', this.isValid());
+            return this;
+        }
+        _draw(buffer, _force = false) {
+            this._drawFill(buffer);
+            let vOffset = 0;
+            if (this._used.valign === 'bottom') {
+                vOffset = this.bounds.height - this._lines.length;
+            }
+            else if (this._used.valign === 'middle') {
+                vOffset = Math.floor((this.bounds.height - this._lines.length) / 2);
+            }
+            let show = this._text;
+            if (show.length == 0) {
+                show = this._attrStr('placeholder');
+            }
+            if (this._text.length > this.bounds.width) {
+                show = this._text.slice(this._text.length - this.bounds.width);
+            }
+            buffer.drawText(this.bounds.x, this.bounds.y + vOffset, show, this._used.fg, -1, this.bounds.width, this._used.align);
+            return true;
+        }
+    }
+    Input.default = {
+        tag: 'input',
+        width: 10,
+        placeholder: '',
+    };
+    WidgetLayer.prototype.input = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const list = new Input(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        return list;
+    };
+
+    // import * as GWU from 'gw-utils';
+    class Column {
+        constructor(opts) {
+            this.format = IDENTITY;
+            this.width = opts.width || DataTable.default.columnWidth;
+            if (typeof opts.format === 'function') {
+                this.format = opts.format;
+            }
+            else if (opts.format) {
+                this.format = compile$1(opts.format);
+            }
+            this.header = opts.header || '';
+            this.headerTag = opts.headerTag || DataTable.default.headerTag;
+            this.empty = opts.empty || DataTable.default.empty;
+            this.dataTag = opts.dataTag || DataTable.default.dataTag;
+        }
+        addHeader(table, x, y, col) {
+            const t = new Text(table.layer, {
+                x,
+                y,
+                class: table.classes.join(' '),
+                tag: table._attrStr('headerTag'),
+                width: this.width,
+                height: table.rowHeight,
+                depth: table.depth + 1,
+                text: this.header,
+            });
+            t.prop('row', -1);
+            t.prop('col', col);
+            t.setParent(table);
+            table.layer.attach(t);
+            return t;
+        }
+        addData(table, data, x, y, col, row) {
+            let text;
+            if (Array.isArray(data)) {
+                text = '' + (data[col] || this.empty);
+            }
+            else if (typeof data !== 'object') {
+                text = '' + data;
+            }
+            else {
+                text = this.format(data);
+            }
+            const widget = new TD(table.layer, {
+                text,
+                x,
+                y,
+                class: table.classes.join(' '),
+                tag: table._attrStr('dataTag'),
+                width: this.width,
+                height: table.rowHeight,
+                depth: table.depth + 1,
+            });
+            widget.prop(row % 2 == 0 ? 'even' : 'odd', true);
+            widget.prop('row', row);
+            widget.prop('col', col);
+            widget.setParent(table);
+            table.layer.attach(widget);
+            return widget;
+        }
+        addEmpty(table, x, y, col, row) {
+            return this.addData(table, [], x, y, col, row);
+        }
+    }
+    Column.default = {
+        select: 'row',
+        hover: 'select',
+        tag: 'datatable',
+        headerTag: 'th',
+        dataTag: 'td',
+        border: 'ascii',
+    };
+    class DataTable extends Widget {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || DataTable.default.tag;
+                opts.tabStop = opts.tabStop === undefined ? true : opts.tabStop;
+                return opts;
+            })());
+            this._data = [];
+            this.columns = [];
+            this.showHeader = false;
+            this.rowHeight = 1;
+            this.selectedRow = -1;
+            this.selectedColumn = 0;
+            this.size = opts.size || layer.height;
+            this.bounds.width = 0;
+            opts.columns.forEach((o) => {
+                const col = new Column(o);
+                this.columns.push(col);
+                this.bounds.width += col.width;
+            });
+            if (opts.border) {
+                if (opts.border === true)
+                    opts.border = 'ascii';
+            }
+            else if (opts.border === false) {
+                opts.border = 'none';
+            }
+            this.attr('border', opts.border || DataTable.default.border);
+            this.rowHeight = opts.rowHeight || 1;
+            this.bounds.height = 1;
+            this.attr('wrap', opts.wrap === undefined ? DataTable.default.wrap : opts.wrap);
+            this.attr('header', opts.header === undefined ? DataTable.default.header : opts.header);
+            this.attr('headerTag', opts.headerTag || DataTable.default.headerTag);
+            this.attr('dataTag', opts.dataTag || DataTable.default.dataTag);
+            this.attr('prefix', opts.prefix || DataTable.default.prefix);
+            this.attr('select', opts.select || DataTable.default.select);
+            this.attr('hover', opts.hover || DataTable.default.hover);
+            this.data(opts.data || []);
+        }
+        get selectedData() {
+            if (this.selectedRow < 0)
+                return undefined;
+            return this._data[this.selectedRow];
+        }
+        select(col, row) {
+            if (!this._data || this._data.length == 0) {
+                this.selectedRow = this.selectedColumn = 0;
+                return this;
+            }
+            if (this.attr('wrap')) {
+                if (col < 0 || col >= this.columns.length) {
+                    col += this.columns.length;
+                    col %= this.columns.length;
+                }
+                if (row < 0 || row >= this._data.length) {
+                    row += this._data.length;
+                    row %= this._data.length;
+                }
+            }
+            col = this.selectedColumn = clamp(col, 0, this.columns.length - 1);
+            row = this.selectedRow = clamp(row, 0, this._data.length - 1);
+            const select = this._attrStr('select');
+            if (select === 'none') {
+                this.children.forEach((c) => {
+                    c.prop('selected', false);
+                });
+            }
+            else if (select === 'row') {
+                this.children.forEach((c) => {
+                    const active = row == c.prop('row');
+                    c.prop('selected', active);
+                });
+            }
+            else if (select === 'column') {
+                this.children.forEach((c) => {
+                    const active = col == c.prop('col');
+                    c.prop('selected', active);
+                });
+            }
+            else if (select === 'cell') {
+                this.children.forEach((c) => {
+                    const active = col == c.prop('col') && row == c.prop('row');
+                    c.prop('selected', active);
+                });
+            }
+            this._bubbleEvent('input', this, {
+                row,
+                col,
+                data: this.selectedData,
+            });
+            return this;
+        }
+        selectNextRow() {
+            return this.select(this.selectedColumn, this.selectedRow + 1);
+        }
+        selectPrevRow() {
+            return this.select(this.selectedColumn, this.selectedRow - 1);
+        }
+        selectNextCol() {
+            return this.select(this.selectedColumn + 1, this.selectedRow);
+        }
+        selectPrevCol() {
+            return this.select(this.selectedColumn - 1, this.selectedRow);
+        }
+        blur(reverse) {
+            this._bubbleEvent('change', this, {
+                col: this.selectedColumn,
+                row: this.selectedRow,
+                data: this.selectedData,
+            });
+            return super.blur(reverse);
+        }
+        data(data) {
+            if (!data)
+                return this._data;
+            this._data = data;
+            for (let i = this.children.length - 1; i >= 0; --i) {
+                const c = this.children[i];
+                if (c.tag !== this.attr('headerTag')) {
+                    this.layer.detach(c);
+                }
+            }
+            const borderAdj = this.attr('border') !== 'none' ? 1 : 0;
+            let x = this.bounds.x + borderAdj;
+            let y = this.bounds.y + borderAdj;
+            if (this.attr('header')) {
+                this.columns.forEach((col, i) => {
+                    col.addHeader(this, x, y, i);
+                    x += col.width + borderAdj;
+                });
+                y += this.rowHeight + borderAdj;
+            }
+            this._data.forEach((obj, j) => {
+                if (j >= this.size)
+                    return;
+                x = this.bounds.x + borderAdj;
+                this.columns.forEach((col, i) => {
+                    col.addData(this, obj, x, y, i, j);
+                    x += col.width + borderAdj;
+                });
+                y += this.rowHeight + borderAdj;
+            });
+            if (this._data.length == 0) {
+                x = this.bounds.x + borderAdj;
+                this.columns.forEach((col, i) => {
+                    col.addEmpty(this, x, y, i, 0);
+                    x += col.width + borderAdj;
+                });
+                y += 1;
+                this.select(-1, -1);
+            }
+            else {
+                this.select(0, 0);
+            }
+            this.bounds.height = y - this.bounds.y;
+            this.bounds.width = x - this.bounds.x;
+            this.updateStyle(); // sets this.needsDraw
+            return this;
+        }
+        _draw(buffer) {
+            this._drawFill(buffer);
+            this.children.forEach((w) => {
+                if (w.prop('row') >= this.size)
+                    return;
+                if (this.attr('border') !== 'none') {
+                    drawBorder(buffer, w.bounds.x - 1, w.bounds.y - 1, w.bounds.width + 2, w.bounds.height + 2, this._used, this.attr('border') == 'ascii');
+                }
+            });
+            return true;
+        }
+        mouseenter(e, over) {
+            super.mouseenter(e, over);
+            if (!this.hovered)
+                return;
+            const hovered = this.children.find((c) => c.contains(e));
+            if (hovered) {
+                const col = hovered._propInt('col');
+                const row = hovered._propInt('row');
+                if (col !== this.selectedColumn || row !== this.selectedRow) {
+                    this.selectedColumn = col;
+                    this.selectedRow = row;
+                    let select = false;
+                    let hover = this._attrStr('hover');
+                    if (hover === 'select') {
+                        hover = this._attrStr('select');
+                        select = true;
+                    }
+                    if (hover === 'none') {
+                        this.children.forEach((c) => {
+                            c.hovered = false;
+                            if (select)
+                                c.prop('selected', false);
+                        });
+                    }
+                    else if (hover === 'row') {
+                        this.children.forEach((c) => {
+                            const active = row == c.prop('row');
+                            c.hovered = active;
+                            if (select)
+                                c.prop('selected', active);
+                        });
+                    }
+                    else if (hover === 'column') {
+                        this.children.forEach((c) => {
+                            const active = col == c.prop('col');
+                            c.hovered = active;
+                            if (select)
+                                c.prop('selected', active);
+                        });
+                    }
+                    else if (hover === 'cell') {
+                        this.children.forEach((c) => {
+                            const active = col == c.prop('col') && row == c.prop('row');
+                            c.hovered = active;
+                            if (select)
+                                c.prop('selected', active);
+                        });
+                    }
+                    this._bubbleEvent('input', this, {
+                        row,
+                        col,
+                        data: this.selectedData,
+                    });
+                }
+            }
+        }
+        click(e) {
+            if (!this.contains(e))
+                return false;
+            this._bubbleEvent('change', this, {
+                row: this.selectedRow,
+                col: this.selectedColumn,
+                data: this.selectedData,
+            });
+            return false;
+        }
+        keypress(e) {
+            if (!e.key)
+                return false;
+            if (e.key === 'Enter') {
+                this._bubbleEvent('change', this, {
+                    row: this.selectedRow,
+                    col: this.selectedColumn,
+                    data: this.selectedData,
+                });
+                return true;
+            }
+            return false;
+        }
+        dir(e) {
+            if (!e.dir)
+                return false;
+            if (e.dir[1] == 1) {
+                this.selectNextRow();
+            }
+            else if (e.dir[1] == -1) {
+                this.selectPrevRow();
+            }
+            if (e.dir[0] == 1) {
+                this.selectNextCol();
+            }
+            else if (e.dir[0] == -1) {
+                this.selectPrevCol();
+            }
+            return true;
+        }
+    }
+    DataTable.default = {
+        columnWidth: 10,
+        header: true,
+        empty: '-',
+        tag: 'datatable',
+        headerTag: 'th',
+        dataTag: 'td',
+        select: 'cell',
+        hover: 'select',
+        prefix: 'none',
+        border: 'ascii',
+        wrap: true,
+    };
+    class TD extends Text {
+        mouseleave(e) {
+            super.mouseleave(e);
+            if (this.parent) {
+                const table = this.parent;
+                if (table.attr('select') === 'row') {
+                    this.hovered = this._propInt('row') === table.selectedRow;
+                }
+                else if (table.attr('select') === 'column') {
+                    this.hovered = this._propInt('col') === table.selectedColumn;
+                }
+            }
+        }
+    }
+    WidgetLayer.prototype.datatable = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const list = new DataTable(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        return list;
+    };
+
+    class DataList extends DataTable {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                // @ts-ignore
+                const tableOpts = opts;
+                if (opts.border !== 'none' && opts.width) {
+                    opts.width -= 2;
+                }
+                tableOpts.columns = [Object.assign({}, opts)];
+                if (!opts.header || !opts.header.length) {
+                    tableOpts.header = false;
+                }
+                return tableOpts;
+            })());
+        }
+    }
+    WidgetLayer.prototype.datalist = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const list = new DataList(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        return list;
+    };
+
+    class Menu extends Widget {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || Menu.default.tag;
+                opts.class = opts.class || Menu.default.class;
+                return opts;
+            })());
+            if (Array.isArray(opts.buttonClass)) {
+                this.attr('buttonClass', opts.buttonClass.join(' '));
+            }
+            else {
+                this.attr('buttonClass', opts.buttonClass || Menu.default.buttonClass);
+            }
+            this.attr('buttonTag', opts.buttonTag || Menu.default.buttonTag);
+            this.attr('marker', opts.marker || Menu.default.marker);
+            this._initButtons(opts);
+            this.bounds.height = this.children.length;
+            this.on('mouseenter', (_n, _w, e) => {
+                this.children.forEach((c) => {
+                    if (!c.contains(e)) {
+                        c.collapse();
+                    }
+                    else {
+                        c.expand();
+                    }
+                });
+                return true;
+            });
+        }
+        _initButtons(opts) {
+            this.children = [];
+            const buttons = opts.buttons;
+            const marker = this._attrStr('marker');
+            const entries = Object.entries(buttons);
+            if (this.bounds.width <= 0) {
+                this.bounds.width = Math.max(opts.minWidth || 0, entries.reduce((out, [key, value]) => {
+                    const textLen = length(key) +
+                        (typeof value === 'string' ? 0 : marker.length);
+                    return Math.max(out, textLen);
+                }, 0));
+            }
+            entries.forEach(([key, value], i) => {
+                const opts = {
+                    x: this.bounds.x,
+                    y: this.bounds.y + i,
+                    class: this._attrStr('buttonClass'),
+                    tag: this._attrStr('buttonTag'),
+                    width: this.bounds.width,
+                    height: 1,
+                    depth: this.depth + 1,
+                    buttons: value,
+                    text: key,
+                };
+                if (typeof value === 'string') {
+                    opts.action = value;
+                }
+                else {
+                    opts.text =
+                        padEnd(key, this.bounds.width - marker.length, ' ') + marker;
+                }
+                const menuItem = new MenuButton(this.layer, opts);
+                menuItem.setParent(this);
+                menuItem.on('mouseenter', () => {
+                    this._bubbleEvent('change', menuItem);
+                    return false;
+                });
+                menuItem.setParent(this);
+            });
+        }
+        collapse() {
+            this.children.forEach((c) => {
+                c.collapse();
+            });
+            return this;
+        }
+    }
+    Menu.default = {
+        tag: 'menu',
+        class: '',
+        buttonClass: '',
+        buttonTag: 'mi',
+        marker: ' \u25b6',
+        minWidth: 4,
+    };
+    class MenuButton extends Text {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || 'mi';
+                return opts;
+            })());
+            this.menu = null;
+            this.tag = opts.tag || 'mi';
+            if (typeof opts.buttons !== 'string') {
+                this.menu = this._initMenu(opts);
+                this.on('mouseenter', () => {
+                    this.menu.hidden = false;
+                    this.menu._bubbleEvent('change', this);
+                    return true;
+                });
+                this.on('mouseleave', (_n, _w, e) => {
+                    var _a;
+                    if ((_a = this.parent) === null || _a === void 0 ? void 0 : _a.contains(e)) {
+                        this.menu.hidden = true;
+                        return true;
+                    }
+                    return false;
+                });
+                this.on('click', () => {
+                    return true; // eat clicks
+                });
+            }
+        }
+        collapse() {
+            if (this.menu) {
+                this.menu.collapse();
+                this.menu.hidden = true;
+            }
+            return this;
+        }
+        expand() {
+            if (this.menu) {
+                this.menu.hidden = false;
+            }
+            return this;
+        }
+        _setMenuPos(xy, opts) {
+            xy.x = this.bounds.x + this.bounds.width;
+            xy.y = this.bounds.y;
+            const height = Object.keys(opts.buttons).length;
+            if (xy.y + height >= this.layer.height) {
+                xy.y = this.layer.height - height - 1;
+            }
+        }
+        _initMenu(opts) {
+            if (typeof opts.buttons === 'string')
+                return null;
+            const menuOpts = {
+                x: this.bounds.x + this.bounds.width,
+                y: this.bounds.y,
+                class: opts.class,
+                tag: opts.tag || 'mi',
+                buttons: opts.buttons,
+                depth: this.depth + 1,
+            };
+            this._setMenuPos(menuOpts, opts);
+            const menu = new Menu(this.layer, menuOpts);
+            menu.hidden = true;
+            menu.setParent(this);
+            return menu;
+        }
+    }
+    WidgetLayer.prototype.menu = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const list = new Menu(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        return list;
+    };
+
+    class Menubar extends Widget {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tabStop = true;
+                opts.tag = opts.tag || 'menu';
+                return opts;
+            })());
+            this._buttons = [];
+            this._selectedIndex = -1;
+            if (opts.buttonClass) {
+                if (Array.isArray(opts.buttonClass)) {
+                    this.attr('buttonClass', opts.buttonClass.join(' '));
+                }
+                else {
+                    this.attr('buttonClass', opts.buttonClass);
+                }
+            }
+            else {
+                this.attr('buttonClass', Menubar.default.buttonClass);
+            }
+            this.attr('buttonTag', opts.buttonTag || Menubar.default.buttonTag);
+            if (opts.menuClass) {
+                if (Array.isArray(opts.menuClass)) {
+                    this.attr('menuClass', opts.menuClass.join(' '));
+                }
+                else {
+                    this.attr('menuClass', opts.menuClass);
+                }
+            }
+            else {
+                this.attr('menuClass', Menubar.default.menuClass);
+            }
+            this.attr('menuTag', opts.menuTag || Menubar.default.menuTag);
+            this.attr('prefix', opts.prefix || Menubar.default.prefix);
+            this.attr('separator', opts.separator || Menubar.default.separator);
+            this._initButtons(opts);
+            this.on('click', this._buttonClick.bind(this));
+        }
+        get selectedIndex() {
+            return this._selectedIndex;
+        }
+        set selectedIndex(v) {
+            if (this._selectedIndex >= 0) {
+                this._buttons[this._selectedIndex].prop('focus', false).collapse();
+            }
+            this._selectedIndex = v;
+            if (v >= 0 && v < this._buttons.length) {
+                this._buttons[v].prop('focus', true).expand();
+            }
+            else {
+                this._selectedIndex = -1;
+            }
+        }
+        get selectedButton() {
+            return this._buttons[this._selectedIndex];
+        }
+        focus(reverse = false) {
+            if (reverse) {
+                this.selectedIndex = this._buttons.length - 1;
+            }
+            else {
+                this.selectedIndex = 0;
+            }
+            return super.focus(reverse);
+        }
+        blur(reverse = false) {
+            this.selectedIndex = -1;
+            return super.blur(reverse);
+        }
+        collapse() {
+            return this._buttons.reduce((out, b) => b.collapse() || out, false);
+        }
+        keypress(e) {
+            if (!e.key)
+                return false;
+            if (!this.focused)
+                return false;
+            if (e.key === 'Tab') {
+                this.selectedIndex += 1;
+                return this._selectedIndex >= 0;
+            }
+            else if (e.key === 'TAB') {
+                this.selectedIndex -= 1;
+                return this._selectedIndex >= 0;
+            }
+            return false;
+        }
+        mousemove(e) {
+            if (!this.contains(e) || !this.focused)
+                return super.mousemove(e);
+            const active = this._buttons.findIndex((c) => c.contains(e));
+            if (active < 0 || active === this._selectedIndex)
+                return false;
+            this.selectedIndex = active;
+            return true;
+        }
+        _initButtons(opts) {
+            this._config = opts.buttons;
+            const entries = Object.entries(this._config);
+            const buttonTag = this._attrStr('buttonTag');
+            const buttonClass = this._attrStr('buttonClass');
+            let x = this.bounds.x;
+            const y = this.bounds.y;
+            entries.forEach(([key, value], i) => {
+                const prefix = i == 0 ? this._attrStr('prefix') : this._attrStr('separator');
+                this.layer.text(prefix, { x, y, parent: this });
+                x += prefix.length;
+                const button = new MenubarButton(this.layer, {
+                    text: key,
+                    x,
+                    y,
+                    tag: buttonTag,
+                    class: buttonClass,
+                    depth: this.depth + 1,
+                    buttons: value,
+                    // data: value,
+                });
+                button.setParent(this);
+                this._buttons.push(button);
+                x += button.bounds.width;
+            });
+        }
+        _buttonClick(_action, button) {
+            if (!button)
+                return false;
+            this.layer.setFocusWidget(this);
+            console.log('clicked = ' + button.text(), button._attrStr('action'));
+            const barButton = button;
+            this.selectedIndex = this._buttons.indexOf(barButton);
+            if (barButton.menu) {
+                barButton.expand();
+            }
+            else {
+                this.collapse();
+            }
+            return true;
+        }
+    }
+    Menubar.default = {
+        buttonClass: '',
+        buttonTag: 'mi',
+        menuClass: '',
+        menuTag: 'mi',
+        prefix: ' ',
+        separator: ' | ',
+    };
+    class MenubarButton extends Text {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || 'mi';
+                if (typeof opts.buttons === 'string') {
+                    opts.action = opts.buttons;
+                }
+                return opts;
+            })());
+            this.menu = null;
+            this.tag = opts.tag || 'mi';
+            if (typeof opts.buttons !== 'string') {
+                this.menu = this._initMenu(opts);
+                this.on('mouseenter', () => {
+                    this.menu.hidden = false;
+                    this.menu._bubbleEvent('change', this);
+                    return true;
+                });
+                this.on('mouseleave', (_n, _w, e) => {
+                    var _a;
+                    if ((_a = this.parent) === null || _a === void 0 ? void 0 : _a.contains(e)) {
+                        this.menu.hidden = true;
+                        return true;
+                    }
+                    return false;
+                });
+                this.on('click', () => {
+                    return true; // eat clicks
+                });
+            }
+        }
+        collapse() {
+            if (!this.menu || this.menu.hidden)
+                return false;
+            this.menu.collapse();
+            this.menu.hidden = true;
+            return true;
+        }
+        expand() {
+            if (this.menu) {
+                this.menu.hidden = false;
+            }
+            return this;
+        }
+        _setMenuPos(xy, opts) {
+            xy.x = this.bounds.x;
+            const height = opts.height || Object.keys(opts.buttons).length;
+            if (this.bounds.y < height) {
+                xy.y = this.bounds.y + 1;
+            }
+            else {
+                xy.y = this.bounds.top - height;
+            }
+        }
+        _initMenu(opts) {
+            if (typeof opts.buttons === 'string')
+                return null;
+            const menuOpts = {
+                x: this.bounds.x,
+                y: this.bounds.y,
+                class: opts.class,
+                tag: opts.tag || 'mi',
+                height: opts.height,
+                buttons: opts.buttons,
+                depth: this.depth + 1,
+            };
+            this._setMenuPos(menuOpts, opts);
+            const menu = new Menu(this.layer, menuOpts);
+            menu.hidden = true;
+            menu.setParent(this);
+            return menu;
+        }
+    }
+    WidgetLayer.prototype.menubar = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const menubar = new Menubar(this, options);
+        if (opts.parent) {
+            menubar.setParent(opts.parent, opts);
+        }
+        return menubar;
+    };
+    // MENU
+    class MenuViewer extends Widget {
+        constructor(menubar, buttons) {
+            super(menubar.layer, {
+                tabStop: true,
+                x: 0,
+                y: 0,
+                width: menubar.layer.width,
+                height: menubar.layer.height,
+                // @ts-ignore
+                tag: menubar.attr('menuTag'),
+                // @ts-ignore
+                class: menubar.attr('menuClass'),
+            });
+            this.menubar = menubar;
+            this.mainMenu = this._initMenu(buttons);
+        }
+        contains() {
+            return true;
+        }
+        finish() {
+            this.layer.finish();
+        }
+        _initMenu(buttons) {
+            return new Menu(this.layer, {
+                buttonTag: this.menubar._attrStr('buttonTag'),
+                buttonClass: this.menubar._attrStr('buttonClass'),
+                minWidth: this.menubar.selectedButton.bounds.width,
+                buttons,
+            });
+        }
+        keypress(e) {
+            if (!e.key)
+                return false;
+            if (e.key === 'Escape') {
+                this.finish();
+                return true;
+            }
+            else if (e.key === 'Tab') {
+                this.finish();
+                this.menubar.keypress(e);
+                return true;
+            }
+            else if (e.key === 'TAB') {
+                this.finish();
+                this.menubar.keypress(e);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    // import * as GWU from 'gw-utils';
+    class Select extends Widget {
+        constructor(layer, opts) {
+            super(layer, opts);
+            this.tag = opts.tag || 'select';
+            this._initText(opts);
+            this._initMenu(opts);
+            this.bounds.height = 1; // just the text component
+        }
+        _initText(opts) {
+            this.dropdown = new Text(this.layer, {
+                text: opts.text + ' \u25bc',
+                x: this.bounds.x,
+                y: this.bounds.y,
+                class: opts.class,
+                tag: opts.tag || 'select',
+                width: this.bounds.width,
+                height: 1,
+                depth: this.depth + 1,
+            }).on('click', () => {
+                this.menu.toggleProp('hidden');
+                return false;
+            });
+            this.dropdown.setParent(this, { beforeIndex: 0 });
+        }
+        _initMenu(opts) {
+            this.menu = new Menu(this.layer, {
+                x: this.bounds.x,
+                y: this.bounds.y + 1,
+                class: opts.buttonClass,
+                tag: opts.buttonTag || 'select',
+                width: opts.width,
+                minWidth: this.dropdown.bounds.width,
+                height: opts.height,
+                buttons: opts.buttons,
+                depth: this.depth + 1,
+            }).on('click', () => {
+                this.menu.hidden = true;
+                return false;
+            });
+            this.menu.hidden = true;
+            this.menu.setParent(this);
+        }
+    }
+    WidgetLayer.prototype.select = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const list = new Select(this, options);
+        if (opts.parent) {
+            list.setParent(opts.parent, opts);
+        }
+        return list;
+    };
+
+    // import * as GWU from 'gw-utils';
+    class Prompt {
+        constructor(question, field = {}) {
+            this._id = null;
+            this._defaultNext = null;
+            this.selection = -1;
+            if (typeof field === 'string') {
+                field = { field };
+            }
+            this._prompt = question;
+            this._field = field.field || '';
+            this._choices = [];
+            this._infos = [];
+            this._values = [];
+            this._next = [];
+            this._defaultNext = field.next || null;
+            this._id = field.id || field.field || '';
+        }
+        reset() {
+            this.selection = -1;
+        }
+        field(v) {
+            if (v === undefined)
+                return this._field;
+            this._field = v;
+            return this;
+        }
+        id(v) {
+            if (v === undefined)
+                return this._id;
+            this._id = v;
+            return this;
+        }
+        prompt(arg) {
+            if (typeof this._prompt === 'string')
+                return this._prompt;
+            return this._prompt(arg);
+        }
+        next(v) {
+            if (v === undefined)
+                return this._next[this.selection] || this._defaultNext;
+            this._defaultNext = v;
+            return this;
+        }
+        choices(choice, info) {
+            if (choice === undefined)
+                return this._choices;
+            if (!Array.isArray(choice)) {
+                info = Object.values(choice);
+                choice = Object.keys(choice);
+            }
+            else if (!Array.isArray(info)) {
+                info = new Array(choice.length).fill('');
+            }
+            info = info.map((i) => {
+                if (typeof i === 'string')
+                    return { info: i };
+                return i;
+            });
+            if (choice.length !== info.length)
+                throw new Error('Choices and Infos must have same length.');
+            choice.forEach((c, i) => {
+                this.choice(c, info[i]);
+            });
+            return this;
+        }
+        choice(choice, info = {}) {
+            if (typeof info === 'string') {
+                info = { info: info };
+            }
+            this._choices.push(choice);
+            this._infos.push(info.info || '');
+            this._next.push(info.next || null);
+            this._values.push(info.value || choice);
+            return this;
+        }
+        info(arg) {
+            const i = this._infos[this.selection] || '';
+            if (typeof i === 'string')
+                return i;
+            return i(arg);
+        }
+        choose(n) {
+            this.selection = n;
+            return this;
+        }
+        value() {
+            return this._values[this.selection];
+        }
+        updateResult(res) {
+            if (this.selection < 0)
+                return this;
+            res[this._field] = this.value();
+            return this;
+        }
+    }
+    class Choice extends Widget {
+        constructor(layer, opts) {
+            super(layer, (() => {
+                opts.tag = opts.tag || Choice.default.tag;
+                return opts;
+            })());
+            this._prompt = null;
+            this._done = null;
+            this.choiceWidth = opts.choiceWidth;
+            this.attr('border', opts.border || Choice.default.border);
+            this.attr('promptTag', opts.promptTag || Choice.default.promptTag);
+            this.attr('promptClass', opts.promptClass || Choice.default.promptClass);
+            this.attr('choiceTag', opts.choiceTag || Choice.default.choiceTag);
+            this.attr('choiceClass', opts.choiceClass || Choice.default.choiceClass);
+            this.attr('infoTag', opts.infoTag || Choice.default.infoTag);
+            this.attr('infoClass', opts.infoClass || Choice.default.infoClass);
+            this._addLegend();
+            this._addList();
+            this._addInfo();
+            if (opts.prompt) {
+                this.showPrompt(opts.prompt);
+            }
+        }
+        showPrompt(prompt, arg) {
+            this._prompt = prompt;
+            prompt.choose(0);
+            this.prompt.text(prompt.prompt(arg));
+            this.list.data(prompt.choices());
+            this.info.text(prompt.info(arg));
+            this._bubbleEvent('input', this, this._prompt);
+            return new Promise((resolve) => (this._done = resolve));
+        }
+        _addList() {
+            this.list = new DataList(this.layer, {
+                height: this.bounds.height - 2,
+                x: this.bounds.x + 1,
+                width: this.choiceWidth,
+                y: this.bounds.y + 1,
+                dataTag: this._attrStr('choiceTag'),
+                dataClass: this._attrStr('choiceClass'),
+                tabStop: true,
+                border: 'none',
+                hover: 'select',
+            });
+            this.list.setParent(this);
+            this.list.on('input', () => {
+                if (!this._prompt)
+                    return false;
+                const p = this._prompt;
+                const row = this.list.selectedRow;
+                p.choose(row);
+                this.info.text(p.info());
+                this._bubbleEvent('input', this, p);
+                return true; // I want to eat this event
+            });
+            this.list.on('change', () => {
+                if (!this._prompt)
+                    return false;
+                const p = this._prompt;
+                p.choose(this.list.selectedRow);
+                this._bubbleEvent('change', this, p);
+                this._done(p.value());
+                return true; // eat this event
+            });
+            return this;
+        }
+        _addInfo() {
+            this.info = new Text(this.layer, {
+                text: '',
+                x: this.bounds.x + this.choiceWidth + 2,
+                y: this.bounds.y + 1,
+                width: this.bounds.width - this.choiceWidth - 3,
+                height: this.bounds.height - 2,
+                tag: this._attrStr('infoTag'),
+                class: this._attrStr('infoClass'),
+            });
+            this.info.setParent(this);
+            return this;
+        }
+        _addLegend() {
+            this.prompt = new Text(this.layer, {
+                text: '',
+                width: this.bounds.width - 4,
+                x: this.bounds.x + 2,
+                y: this.bounds.y,
+                tag: this._attrStr('promptTag'),
+                class: this._attrStr('promptClass'),
+            });
+            this.prompt.setParent(this);
+            return this;
+        }
+        _draw(buffer) {
+            let w = this.choiceWidth + 2;
+            const h = this.bounds.height;
+            let x = this.bounds.x;
+            const y = this.bounds.y;
+            const ascii = this.attr('border') === 'ascii';
+            drawBorder(buffer, x, y, w, h, this._used, ascii);
+            w = this.bounds.width - this.choiceWidth - 1;
+            x = this.bounds.x + this.choiceWidth + 1;
+            drawBorder(buffer, x, y, w, h, this._used, ascii);
+            return true;
+        }
+    }
+    Choice.default = {
+        tag: 'choice',
+        border: 'ascii',
+        promptTag: 'prompt',
+        promptClass: '',
+        choiceTag: 'ci',
+        choiceClass: '',
+        infoTag: 'info',
+        infoClass: '',
+    };
+    WidgetLayer.prototype.choice = function (opts) {
+        const options = Object.assign({}, this._opts, opts);
+        const widget = new Choice(this, options);
+        if (opts.parent) {
+            widget.setParent(opts.parent, opts);
+        }
+        return widget;
+    };
+    ////////////////////////////////////////////////////////////////////////////////
+    // INQUIRY
+    class Inquiry {
+        constructor(widget) {
+            this._prompts = [];
+            this.events = {};
+            this._result = {};
+            this._stack = [];
+            this._current = null;
+            this.widget = widget;
+            this._keypress = this._keypress.bind(this);
+            this._change = this._change.bind(this);
+        }
+        prompts(v, ...args) {
+            if (Array.isArray(v)) {
+                this._prompts = v.slice();
+            }
+            else {
+                args.unshift(v);
+                this._prompts = args;
+            }
+            return this;
+        }
+        _finish() {
+            this.widget.off('keypress', this._keypress);
+            this.widget.off('change', this._change);
+            this._fireEvent('finish', this.widget, this._result);
+        }
+        _cancel() {
+            this.widget.off('keypress', this._keypress);
+            this.widget.off('change', this._change);
+            this._fireEvent('cancel', this.widget);
+        }
+        start() {
+            this._current = this._prompts[0];
+            this._result = {};
+            this.widget.on('keypress', this._keypress);
+            this.widget.on('change', this._change);
+            this.widget.showPrompt(this._current, this._result);
+        }
+        back() {
+            this._current.reset();
+            this._current = this._stack.pop() || null;
+            if (!this._current) {
+                this._cancel();
+            }
+            else {
+                this._current.reset(); // also reset the one we are going back to
+                this._result = {};
+                this._prompts.forEach((p) => p.updateResult(this._result));
+                this.widget.showPrompt(this._current, this._result);
+            }
+        }
+        restart() {
+            this._prompts.forEach((p) => p.reset());
+            this._result = {};
+            this._current = this._prompts[0];
+            this.widget.showPrompt(this._current, this._result);
+        }
+        quit() {
+            this._cancel();
+        }
+        _keypress(_n, _w, e) {
+            if (!e.key)
+                return false;
+            if (e.key === 'Escape') {
+                this.back();
+                return true;
+            }
+            else if (e.key === 'R') {
+                this.restart();
+                return true;
+            }
+            else if (e.key === 'Q') {
+                this.quit();
+                return true;
+            }
+            return false;
+        }
+        _change(_n, _w, p) {
+            p.updateResult(this._result);
+            const next = p.next();
+            if (next) {
+                this._current = this._prompts.find((p) => p.id() === next) || null;
+                if (this._current) {
+                    this._stack.push(p);
+                    this.widget.showPrompt(this._current, this._result);
+                    this._fireEvent('step', this.widget, {
+                        prompt: this._current,
+                        data: this._result,
+                    });
+                    return true;
+                }
+            }
+            this._finish();
+            return true;
+        }
+        on(event, cb) {
+            let handlers = this.events[event];
+            if (!handlers) {
+                handlers = this.events[event] = [];
+            }
+            if (!handlers.includes(cb)) {
+                handlers.push(cb);
+            }
+            return this;
+        }
+        off(event, cb) {
+            let handlers = this.events[event];
+            if (!handlers)
+                return this;
+            if (cb) {
+                arrayDelete(handlers, cb);
+            }
+            else {
+                handlers.length = 0; // clear all handlers
+            }
+            return this;
+        }
+        _fireEvent(name, source, args) {
+            const handlers = this.events[name] || [];
+            let handled = false;
+            for (let handler of handlers) {
+                handled = handler(name, source || this.widget, args) || handled;
+            }
+            if (!handled) {
+                handled = this.widget._bubbleEvent(name, source || this.widget, args);
+            }
+            return handled;
+        }
+    }
+
+    var index = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Widget: Widget,
+        WidgetLayer: WidgetLayer,
+        Body: Body,
+        Text: Text,
+        Border: Border,
+        drawBorder: drawBorder,
+        Button: Button,
+        toPadArray: toPadArray,
+        Dialog: Dialog,
+        Fieldset: Fieldset,
+        Field: Field,
+        OrderedList: OrderedList,
+        UnorderedList: UnorderedList,
+        Input: Input,
+        Column: Column,
+        DataTable: DataTable,
+        TD: TD,
+        DataList: DataList,
+        Menu: Menu,
+        MenuButton: MenuButton,
+        Menubar: Menubar,
+        MenubarButton: MenubarButton,
+        MenuViewer: MenuViewer,
+        Select: Select,
+        Prompt: Prompt,
+        Choice: Choice,
+        Inquiry: Inquiry
     });
 
     exports.ERROR = ERROR;
@@ -7220,24 +11115,27 @@ void main() {
     exports.arrayIncludesAll = arrayIncludesAll;
     exports.arrayInsert = arrayInsert;
     exports.arrayNext = arrayNext;
+    exports.arrayNullify = arrayNullify;
     exports.arrayPrev = arrayPrev;
     exports.arraysIntersect = arraysIntersect;
     exports.blob = blob;
     exports.buffer = buffer;
-    exports.canvas = index$2;
+    exports.canvas = index$4;
     exports.clamp = clamp;
-    exports.color = index$5;
+    exports.color = index$7;
     exports.colors = colors;
     exports.config = config$1;
+    exports.cosmetic = cosmetic;
     exports.data = data;
     exports.events = events;
     exports.first = first;
     exports.flag = flag;
-    exports.fov = index$3;
+    exports.fov = index$5;
     exports.frequency = frequency;
     exports.grid = grid;
     exports.io = io;
-    exports.light = index;
+    exports.lerp = lerp;
+    exports.light = index$2;
     exports.list = list;
     exports.loop = loop;
     exports.message = message;
@@ -7245,15 +11143,18 @@ void main() {
     exports.object = object;
     exports.path = path;
     exports.prevIndex = prevIndex;
+    exports.random = random;
     exports.range = range;
     exports.rng = rng;
     exports.scheduler = scheduler;
-    exports.sprite = index$1;
+    exports.sprite = index$3;
     exports.sprites = sprites;
     exports.sum = sum;
-    exports.text = index$4;
+    exports.text = index$6;
     exports.tween = tween;
     exports.types = types;
+    exports.ui = index$1;
+    exports.widget = index;
     exports.xy = xy;
 
     Object.defineProperty(exports, '__esModule', { value: true });

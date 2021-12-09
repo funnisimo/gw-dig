@@ -11,7 +11,7 @@ describe('inPassableViewOfOrigin', () => {
         GWU.grid.free(candidates);
     });
 
-    test('notInHallway', async () => {
+    test('notInHallway', () => {
         const map = GWM.map.make(80, 34);
 
         GWM.tile.install('PORTCULLIS_CLOSED', {
@@ -19,8 +19,7 @@ describe('inPassableViewOfOrigin', () => {
             priority: '+1',
             fg: 0x800,
             bg: GWM.tile.tiles.FLOOR.sprite.bg,
-            flags:
-                '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
+            flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
         });
 
         GWM.tile.install('WALL_LEVER', {
@@ -44,7 +43,7 @@ describe('inPassableViewOfOrigin', () => {
             loops: false,
             lakes: false,
         });
-        await digger.create(map);
+        digger.create(map);
 
         const vestibule = GWD.blueprint.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',
@@ -52,13 +51,11 @@ describe('inPassableViewOfOrigin', () => {
             steps: [
                 {
                     tile: 'PORTCULLIS_CLOSED',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'WALL_LEVER',
-                    flags:
-                        'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAYS',
+                    flags: 'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAYS',
                 },
             ],
         });
@@ -73,7 +70,7 @@ describe('inPassableViewOfOrigin', () => {
 
         const builder = new GWD.blueprint.Builder();
 
-        expect(await builder.build(map, room, 73, 14)).toBeTruthy();
+        expect(builder.build(map, room, 73, 14)).toBeTruthy();
 
         const data = new BuildData(new MapSite(map), vestibule);
         data.originX = 73;

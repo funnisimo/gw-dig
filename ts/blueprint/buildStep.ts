@@ -78,7 +78,7 @@ export class BuildStep {
     public count: GWU.range.Range;
     public item: Partial<ItemOptions> | null = null;
     public horde: Partial<HordeOptions> | null = null;
-    public effect: GWM.effect.EffectInfo | null = null;
+    public effect: GWM.effect.Effect | null = null;
     public chance = 0;
     // public next: null = null;
     // public id = 'n/a';

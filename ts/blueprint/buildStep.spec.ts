@@ -27,7 +27,7 @@ describe('buildStep', () => {
         expect(step.effect).toBeNull();
     });
 
-    test('build tile', async () => {
+    test('build tile', () => {
         GWU.rng.random.seed(12345);
 
         GWM.tile.install('TEST', {
@@ -46,16 +46,16 @@ describe('buildStep', () => {
         // const step = blue.steps[0];
 
         const digger = new DIG.Digger();
-        await digger.create(map);
+        digger.create(map);
 
-        expect(await builder.build(map, blue)).toBeTruthy();
+        expect(builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
         expect(map.count((c) => c.hasTile('TEST'))).toBeGreaterThan(1);
     });
 
-    test('build spawn', async () => {
+    test('build spawn', () => {
         GWU.rng.random.seed(12345);
 
         GWM.tile.install('A', {
@@ -81,9 +81,9 @@ describe('buildStep', () => {
         // const step = blue.steps[0];
 
         const digger = new DIG.Digger();
-        await digger.create(map);
+        digger.create(map);
 
-        expect(await builder.build(map, blue)).toBeTruthy();
+        expect(builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
@@ -91,7 +91,7 @@ describe('buildStep', () => {
         expect(map.count((c) => c.hasTile('B'))).toEqual(1);
     });
 
-    test('tile everywhere', async () => {
+    test('tile everywhere', () => {
         GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
@@ -112,18 +112,18 @@ describe('buildStep', () => {
             loops: false,
             lakes: false,
         });
-        await digger.create(map);
+        digger.create(map);
 
         // map.dump();
 
-        expect(await builder.build(map, blue)).toBeTruthy();
+        expect(builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
         expect(map.count((c) => c.hasTile('A'))).toEqual(12);
     });
 
-    test('tile near origin', async () => {
+    test('tile near origin', () => {
         GWM.tile.install('A', {
             name: 'A',
             ch: 'A',
@@ -144,9 +144,9 @@ describe('buildStep', () => {
             lakes: false,
             loops: false,
         });
-        await digger.create(map);
+        digger.create(map);
 
-        const result = await builder.build(map, blue);
+        const result = builder.build(map, blue);
         expect(result).toBeTruthy();
 
         // map.dump();
@@ -161,7 +161,7 @@ describe('buildStep', () => {
         });
     });
 
-    test('tile far from origin', async () => {
+    test('tile far from origin', () => {
         // GWU.rng.random.seed(12345);
 
         GWM.tile.install('A', {
@@ -184,9 +184,9 @@ describe('buildStep', () => {
             lakes: false,
             loops: false,
         });
-        await digger.create(map);
+        digger.create(map);
 
-        const result = await builder.build(map, blue);
+        const result = builder.build(map, blue);
         expect(result).toBeTruthy();
 
         // map.dump();
@@ -221,7 +221,7 @@ describe('buildStep', () => {
         let map: GWM.map.Map;
         let data: BuildData;
 
-        beforeEach(async () => {
+        beforeEach(() => {
             map = GWM.map.make(80, 34);
             map.properties.depth = 1;
 
@@ -233,7 +233,7 @@ describe('buildStep', () => {
                 lakes: false,
             });
 
-            await digger.create(map);
+            digger.create(map);
 
             GWM.map.analyze(map);
         });
@@ -242,15 +242,14 @@ describe('buildStep', () => {
             if (data) data.free();
         });
 
-        test.only('markCandidates', async () => {
+        test.only('markCandidates', () => {
             // map.dump();
 
             const blue = new BLUE.Blueprint({
                 id: 'TEST',
                 size: '30-50',
                 frequency: '1-12: 30',
-                flags:
-                    'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+                flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
 
                 steps: [
                     {

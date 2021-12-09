@@ -35,14 +35,10 @@ export interface BuildSite extends DIG.DigSite {
         x: number,
         y: number,
         opts?: Partial<GWM.horde.SpawnOptions>
-    ): Promise<GWM.actor.Actor | null>;
+    ): GWM.actor.Actor | null;
 
     analyze(): void;
-    buildEffect(
-        effect: GWM.effect.EffectInfo,
-        x: number,
-        y: number
-    ): Promise<boolean>;
+    buildEffect(effect: GWM.effect.Effect, x: number, y: number): boolean;
 
     snapshot(): Snapshot;
 

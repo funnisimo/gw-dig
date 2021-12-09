@@ -45,8 +45,7 @@ describe('Blueprint', () => {
             steps: [
                 { tile: 'SHALLOW', flags: 'BS_EVERYWHERE' },
                 {
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE, BS_PERMIT_BLOCKING',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE, BS_PERMIT_BLOCKING',
                 },
             ],
         });
@@ -109,7 +108,7 @@ describe('Blueprint', () => {
         // Check that there is a secret door
     });
 
-    test('carpet', async () => {
+    test('carpet', () => {
         const map = GWM.map.make(80, 34);
 
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%' });
@@ -126,7 +125,7 @@ describe('Blueprint', () => {
             loops: false, // { minDistance: 20, maxLength: 1 },
             stairs: { up: [40, 32], down: true },
         });
-        await digger.create(map);
+        digger.create(map);
 
         const builder = new BLUE.Builder();
 
@@ -136,7 +135,7 @@ describe('Blueprint', () => {
             steps: [{ tile: 'CARPET', flags: 'BS_EVERYWHERE' }],
         });
 
-        expect(await builder.build(map, blue)).toBeTruthy();
+        expect(builder.build(map, blue)).toBeTruthy();
 
         expect(
             map.cells.count((c, _x, _y) => {
@@ -151,7 +150,7 @@ describe('Blueprint', () => {
         // map.dump();
     });
 
-    test.only('maximizeInterior', async () => {
+    test.only('maximizeInterior', () => {
         DIG.room.install('ENTRANCE', new DIG.room.BrogueEntrance());
         DIG.room.install(
             'ROOM',
@@ -175,7 +174,7 @@ describe('Blueprint', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        await digger.create(map);
+        digger.create(map);
 
         // map.dump();
 
@@ -184,7 +183,7 @@ describe('Blueprint', () => {
         const data = new BLUE.BuildData(site, blue);
         data.reset(61, 8);
 
-        expect(await builder._computeInterior(data)).toBeTruthy();
+        expect(builder._computeInterior(data)).toBeTruthy();
 
         // data.interior.dump();
         const size = data.interior.count((v) => v > 0);

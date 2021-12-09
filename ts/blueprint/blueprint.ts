@@ -265,7 +265,7 @@ export class Blueprint {
         }
     }
 
-    // async function redesignInterior( interior, originX, originY, theDungeonProfileIndex) {
+    //  function redesignInterior( interior, originX, originY, theDungeonProfileIndex) {
     //     let i, j, n, newX, newY;
     //     let dir;
     //     let orphanList = [];

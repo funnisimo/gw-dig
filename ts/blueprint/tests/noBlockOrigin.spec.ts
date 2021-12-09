@@ -5,7 +5,7 @@ import * as GWM from 'gw-map';
 import * as GWD from '../..';
 
 describe('buildStep - noBlockOrigin', () => {
-    test('trap path', async () => {
+    test('trap path', () => {
         const trap = GWM.tile.install('TRAP', {
             extends: 'FLOOR',
             ch: 'T',
@@ -40,13 +40,11 @@ describe('buildStep - noBlockOrigin', () => {
             steps: [
                 {
                     tile: 'DOOR',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'TRAP',
-                    flags:
-                        'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
+                    flags: 'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
                 },
             ],
         });
@@ -60,14 +58,14 @@ describe('buildStep - noBlockOrigin', () => {
 
         const map = GWM.map.make(80, 34);
 
-        await digger.create(map);
+        digger.create(map);
         const builder = new GWD.blueprint.Builder({
             // log: true,
             blueprints: [vestibule, room],
         });
 
         map.seed = 12345;
-        const result = await builder.build(map, room);
+        const result = builder.build(map, room);
 
         // map.dump();
         expect(result).toBeTruthy();

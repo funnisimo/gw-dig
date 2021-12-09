@@ -18,7 +18,7 @@ describe('Surround With Walls', () => {
         );
     });
 
-    test('Surround With Walls', async () => {
+    test('Surround With Walls', () => {
         const map = GWM.map.make(80, 34);
         map.properties.depth = 1;
 
@@ -30,7 +30,7 @@ describe('Surround With Walls', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         const vestibule = GWD.blueprint.install('DOOR', {
             size: '1',
@@ -42,8 +42,7 @@ describe('Surround With Walls', () => {
         const room = GWD.blueprint.install('SEALED_ROOM', {
             size: '20-40',
             frequency: '8-40: 20',
-            flags:
-                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [],
         });
 
@@ -51,7 +50,7 @@ describe('Surround With Walls', () => {
             blueprints: [vestibule, room],
             // log: true,
         });
-        await builder.build(map, room, 63, 8);
+        builder.build(map, room, 63, 8);
 
         expect(map.cell(62, 8).isWall()).toBeTruthy();
         expect(map.cell(63, 8).isGateSite()).toBeTruthy();

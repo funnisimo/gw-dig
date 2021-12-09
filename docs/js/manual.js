@@ -94,12 +94,14 @@ class Example {
 
         const result = this._result;
         function show() {
+            let out = [];
+
             for (var i = 0; i < arguments.length; i++) {
                 var arg = arguments[i];
                 if (!arg) {
-                    arg = $('<div></div>').html(JSON.stringify(arg));
+                    out.push(JSON.stringify(arg));
                 } else if (arg.node) {
-                    arg = arg.node;
+                    result.append(arg.node);
                 } else if (!arg.nodeType) {
                     if (!Array.isArray(arg) && typeof arg == 'object') {
                         if (arg.stack) {
@@ -108,9 +110,14 @@ class Example {
                             arg = JSON.stringify(arg);
                         }
                     }
-                    arg = $('<div></div>').html(arg);
+                    out.push(arg);
+                } else {
+                    result.append(arg);
                 }
-                result.append(arg);
+            }
+
+            if (out.length) {
+                $('<div></div>').html(out.join(', ')).appendTo(result);
             }
         }
 

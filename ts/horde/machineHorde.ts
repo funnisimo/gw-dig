@@ -13,18 +13,18 @@ export class MachineHorde extends GWM.horde.Horde {
         this.machine = config.blueprint || null;
     }
 
-    async _addLeader(
+    _addLeader(
         leader: GWM.actor.Actor,
         map: GWM.map.Map,
         x: number,
         y: number,
         opts: GWM.horde.SpawnOptions
-    ): Promise<boolean> {
+    ): boolean {
         if (this.machine) {
-            await BLUE.build(this.machine, map, x, y);
+            BLUE.build(this.machine, map, x, y);
         }
 
-        if (!(await super._addLeader(leader, map, x, y, opts))) return false;
+        if (!super._addLeader(leader, map, x, y, opts)) return false;
 
         return true;
     }

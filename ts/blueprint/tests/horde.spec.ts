@@ -134,7 +134,7 @@ describe('Mixed Item Library', () => {
         });
     });
 
-    test('Single Horde Room', async () => {
+    test('Single Horde Room', () => {
         const map = GWM.map.make(80, 34);
         map.properties.depth = 1;
 
@@ -146,7 +146,7 @@ describe('Mixed Item Library', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         const room = GWD.blueprint.install('SIMPLE_HORDE', {
             size: '20-40',
@@ -159,7 +159,7 @@ describe('Mixed Item Library', () => {
             // blueprints: [room],
             // log: true,
         });
-        await builder.build(map, room, 63, 8);
+        builder.build(map, room, 63, 8);
 
         // map.dump();
 
@@ -172,7 +172,7 @@ describe('Mixed Item Library', () => {
     });
 
     function addManacle(
-        map: GWM.map.Map,
+        map: GWM.map.MapType,
         x: number,
         y: number,
         dirIndex: number
@@ -201,13 +201,11 @@ describe('Mixed Item Library', () => {
         return false;
     }
 
-    function captiveAlly(
-        _effect: GWM.effect.EffectInfo,
-        map: GWM.map.Map,
-        x: number,
-        y: number,
-        _ctx: GWM.effect.EffectCtx
-    ) {
+    function captiveAlly(loc: GWM.effect.MapXY, _ctx: GWM.effect.EffectCtx) {
+        const map = loc.map;
+        const x = loc.x;
+        const y = loc.y;
+
         if (!map.hasActor(x, y)) {
             return false;
         }
@@ -235,7 +233,7 @@ describe('Mixed Item Library', () => {
         return didSomething;
     }
 
-    test('horde with effect', async () => {
+    test('horde with effect', () => {
         const map = GWM.map.make(80, 34);
         map.properties.depth = 1;
 
@@ -247,7 +245,7 @@ describe('Mixed Item Library', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         const room = GWD.blueprint.install('HORDE_WITH_EFFECT', {
             size: '20-40',
@@ -260,7 +258,7 @@ describe('Mixed Item Library', () => {
             // blueprints: [room],
             // log: true,
         });
-        await builder.build(map, room, 63, 8);
+        builder.build(map, room, 63, 8);
 
         // map.dump();
 
@@ -276,7 +274,7 @@ describe('Mixed Item Library', () => {
         ).toBeGreaterThan(3);
     });
 
-    test('horde adopts item', async () => {
+    test('horde adopts item', () => {
         GWM.actor.install('KING', {
             name: 'the King',
             ch: 'k',
@@ -330,7 +328,7 @@ describe('Mixed Item Library', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         // Build room with CAGE, KEY (KEY is KEY, OUTSOURCE ITEM)
         const keyRoom = GWD.blueprint.install('KEY_ROOM', {
@@ -358,7 +356,7 @@ describe('Mixed Item Library', () => {
             blueprints: [keyRoom, monstRoom],
             // log: true,
         });
-        const result = await builder.build(map, keyRoom, 63, 8);
+        const result = builder.build(map, keyRoom, 63, 8);
 
         // map.dump();
 

@@ -7,53 +7,53 @@ import { BuildData } from '../blueprint/data';
 import { BuildStep, StepFlags } from '../blueprint/buildStep';
 
 export class ConsoleLogger implements Logger {
-    async onDigFirstRoom(site: DigSite) {
+    onDigFirstRoom(site: DigSite) {
         console.group('dig first room');
         site.dump();
         console.groupEnd();
     }
 
-    async onRoomCandidate(room: Room, roomSite: DigSite): Promise<any> {
+    onRoomCandidate(room: Room, roomSite: DigSite): void {
         console.group('room candidate: ' + room.toString());
         roomSite.dump();
         console.groupEnd();
     }
 
-    async onRoomFailed(
+    onRoomFailed(
         _site: DigSite,
         _room: Room,
         _roomSite: DigSite,
         error: string
-    ): Promise<any> {
+    ): void {
         console.log('Room Failed - ', error);
     }
 
-    async onRoomSuccess(site: DigSite, room: Room): Promise<any> {
+    onRoomSuccess(site: DigSite, room: Room): void {
         console.group('Added Room - ' + room.toString());
         site.dump();
         console.groupEnd();
     }
 
-    async onLoopsAdded(_site: DigSite): Promise<any> {
+    onLoopsAdded(_site: DigSite): void {
         console.log('loops added');
     }
-    async onLakesAdded(_site: DigSite): Promise<any> {
+    onLakesAdded(_site: DigSite): void {
         console.log('lakes added');
     }
-    async onBridgesAdded(_site: DigSite): Promise<any> {
+    onBridgesAdded(_site: DigSite): void {
         console.log('bridges added');
     }
-    async onStairsAdded(_site: DigSite): Promise<any> {
+    onStairsAdded(_site: DigSite): void {
         console.log('stairs added');
     }
 
     //
 
-    async onBuildError(error: string) {
+    onBuildError(error: string) {
         console.log(`onBuildError - error: ${error}`);
     }
 
-    async onBlueprintPick(data: BuildData, flags: number, depth: number) {
+    onBlueprintPick(data: BuildData, flags: number, depth: number) {
         console.log(
             `onBlueprintPick - ${
                 data.blueprint.id
@@ -64,14 +64,14 @@ export class ConsoleLogger implements Logger {
         );
     }
 
-    async onBlueprintCandidates(data: BuildData) {
+    onBlueprintCandidates(data: BuildData) {
         const label = `onBlueprintCandidates - ${data.blueprint.id}`;
         console.group(label);
         data.candidates.dump();
         console.groupEnd();
     }
 
-    async onBlueprintStart(data: BuildData) {
+    onBlueprintStart(data: BuildData) {
         console.group(
             `onBlueprintStart - ${data.blueprint.id} @ ${data.originX},${
                 data.originY
@@ -84,27 +84,27 @@ export class ConsoleLogger implements Logger {
         );
     }
 
-    async onBlueprintInterior(data: BuildData) {
+    onBlueprintInterior(data: BuildData) {
         console.group(`onBlueprintInterior - ${data.blueprint.id}`);
         data.interior.dump();
         console.groupEnd();
     }
 
-    async onBlueprintFail(data: BuildData, error: string) {
+    onBlueprintFail(data: BuildData, error: string) {
         console.log(
             `onBlueprintFail - ${data.blueprint.id} @ ${data.originX},${data.originY} : error: ${error}`
         );
         console.groupEnd();
     }
 
-    async onBlueprintSuccess(data: BuildData) {
+    onBlueprintSuccess(data: BuildData) {
         console.log(
             `onBlueprintSuccess - ${data.blueprint.id} @ ${data.originX},${data.originY}`
         );
         console.groupEnd();
     }
 
-    async onStepStart(data: BuildData, step: BuildStep) {
+    onStepStart(data: BuildData, step: BuildStep) {
         console.group(
             `onStepStart - ${data.blueprint.id}[${
                 data.blueprint.steps.indexOf(step) + 1
@@ -118,7 +118,7 @@ export class ConsoleLogger implements Logger {
         console.log(step.toString());
     }
 
-    async onStepCandidates(
+    onStepCandidates(
         data: BuildData,
         step: BuildStep,
         candidates: GWU.grid.NumGrid,
@@ -139,7 +139,7 @@ export class ConsoleLogger implements Logger {
         }
     }
 
-    async onStepInstanceSuccess(
+    onStepInstanceSuccess(
         _data: BuildData,
         _step: BuildStep,
         x: number,
@@ -148,7 +148,7 @@ export class ConsoleLogger implements Logger {
         console.log(`onStepInstance @ ${x},${y}`);
     }
 
-    async onStepInstanceFail(
+    onStepInstanceFail(
         _data: BuildData,
         _step: BuildStep,
         x: number,
@@ -158,7 +158,7 @@ export class ConsoleLogger implements Logger {
         console.log(`onStepInstanceFail @ ${x},${y} - error: ${error}`);
     }
 
-    async onStepSuccess(data: BuildData, step: BuildStep) {
+    onStepSuccess(data: BuildData, step: BuildStep) {
         console.log(
             `onStepSuccess - ${data.blueprint.id}[${
                 data.blueprint.steps.indexOf(step) + 1
@@ -172,7 +172,7 @@ export class ConsoleLogger implements Logger {
         console.groupEnd();
     }
 
-    async onStepFail(data: BuildData, step: BuildStep, error: string) {
+    onStepFail(data: BuildData, step: BuildStep, error: string) {
         console.log(
             `onStepFail - ${data.blueprint.id}[${
                 data.blueprint.steps.indexOf(step) + 1

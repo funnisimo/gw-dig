@@ -27,7 +27,7 @@ describe('Blueprint - key', () => {
         );
     });
 
-    test('outsource key to machine', async () => {
+    test('outsource key to machine', () => {
         const digger = new GWD.Digger({
             seed: 12345,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
@@ -53,8 +53,7 @@ describe('Blueprint - key', () => {
                 {
                     tile: 'LOCKED_DOOR',
                     item: 'key',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
                 },
             ],
         });
@@ -66,13 +65,13 @@ describe('Blueprint - key', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        await digger.create(map);
+        digger.create(map);
         const builder = new GWD.blueprint.Builder();
 
         // @ts-ignore
         // const _logger = new GWD.blueprint.Logger();
 
-        await builder.build(map, blue);
+        builder.build(map, blue);
 
         // map.dump();
 
@@ -88,7 +87,7 @@ describe('Blueprint - key', () => {
         expect(map.cells.count((c) => c.hasTile('LOCKED_DOOR'))).toEqual(1);
     });
 
-    test('key - failed to place', async () => {
+    test('key - failed to place', () => {
         const digger = new GWD.Digger({
             seed: 34567890,
             rooms: { count: 20, first: 'ENTRANCE', digger: 'ROOM' },
@@ -115,8 +114,7 @@ describe('Blueprint - key', () => {
                 {
                     tile: 'LOCKED_DOOR',
                     item: 'key',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE, BS_ITEM_IS_KEY, BS_OUTSOURCE_ITEM_TO_MACHINE, BS_KEY_DISPOSABLE',
                 },
             ],
         });
@@ -128,14 +126,14 @@ describe('Blueprint - key', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        await digger.create(map);
+        digger.create(map);
 
         const builder = new GWD.blueprint.Builder();
 
         // @ts-ignore
         // const _logger = new GWD.blueprint.Logger();
 
-        const result = await builder.build(map, blue);
+        const result = builder.build(map, blue);
 
         // map.dump();
 

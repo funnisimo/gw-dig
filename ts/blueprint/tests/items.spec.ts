@@ -127,7 +127,7 @@ describe('Mixed Item Library', () => {
         });
     });
 
-    test('simple item', async () => {
+    test('simple item', () => {
         const map = GWM.map.make(80, 34);
 
         const digger = new GWD.Digger({
@@ -137,7 +137,7 @@ describe('Mixed Item Library', () => {
             loops: false,
             lakes: false,
         });
-        await digger.create(map);
+        digger.create(map);
 
         GWM.item.install('SHOVEL', {
             name: 'a shovel',
@@ -153,7 +153,7 @@ describe('Mixed Item Library', () => {
         });
 
         const builder = new GWD.blueprint.Builder();
-        expect(await builder.build(map, blue)).toBeTruthy();
+        expect(builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 
@@ -165,7 +165,7 @@ describe('Mixed Item Library', () => {
         expect(count).toEqual(1);
     });
 
-    test('Good Item Room', async () => {
+    test('Good Item Room', () => {
         const map = GWM.map.make(80, 34);
         map.properties.depth = 1;
 
@@ -177,7 +177,7 @@ describe('Mixed Item Library', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         const vestibule = GWD.blueprint.install('DOOR', {
             size: '1',
@@ -198,8 +198,7 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('GOOD_ITEM_ROOM', {
             size: '10-30',
             frequency: '5-16: 30',
-            flags:
-                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {
@@ -214,8 +213,7 @@ describe('Mixed Item Library', () => {
                         make: { runic: true, cursed: false },
                     },
                     pad: 1,
-                    flags:
-                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 {
                     tile: 'PEDESTAL',
@@ -224,8 +222,7 @@ describe('Mixed Item Library', () => {
                         make: { runic: true, cursed: false },
                     },
                     pad: 1,
-                    flags:
-                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 {
                     tile: 'PEDESTAL',
@@ -235,8 +232,7 @@ describe('Mixed Item Library', () => {
                     },
                     pad: 1,
                     count: 2,
-                    flags:
-                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 { flags: 'BS_BUILD_VESTIBULE' },
             ],
@@ -246,7 +242,7 @@ describe('Mixed Item Library', () => {
             blueprints: [vestibule, room],
             // log: true,
         });
-        await builder.build(map, room, 63, 8);
+        builder.build(map, room, 63, 8);
 
         // map.dump();
 
@@ -279,7 +275,7 @@ describe('Mixed Item Library', () => {
         expect(count).toBeWithin(1, 3);
     });
 
-    test('Specific Item', async () => {
+    test('Specific Item', () => {
         const map = GWM.map.make(80, 34);
         map.properties.depth = 1;
 
@@ -291,7 +287,7 @@ describe('Mixed Item Library', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         const vestibule = GWD.blueprint.install('DOOR', {
             size: '1',
@@ -311,8 +307,7 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('SPECIFIC_ITEM_ROOM', {
             size: '10-30',
             frequency: '5-16: 30',
-            flags:
-                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {
@@ -327,8 +322,7 @@ describe('Mixed Item Library', () => {
                         id: 'MENU',
                     },
                     pad: 1,
-                    flags:
-                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 {
                     tile: 'PEDESTAL',
@@ -336,8 +330,7 @@ describe('Mixed Item Library', () => {
                         id: 'ORANGE_JUICE',
                     },
                     pad: 1,
-                    flags:
-                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 { flags: 'BS_BUILD_VESTIBULE' },
             ],
@@ -347,7 +340,7 @@ describe('Mixed Item Library', () => {
             blueprints: [vestibule, room],
             // log: true,
         });
-        await builder.build(map, room, 63, 8);
+        builder.build(map, room, 63, 8);
 
         // map.dump();
 

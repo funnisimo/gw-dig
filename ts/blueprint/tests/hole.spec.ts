@@ -22,8 +22,7 @@ describe('Blueprint - hole', () => {
             ch: 'C',
             fg: 0x0f0,
             bg: GWM.tile.tiles.FLOOR.sprite.bg,
-            flags:
-                '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
+            flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
             effects: {
                 machine: {
                     tile: 'PORTCULLIS_OPEN',
@@ -81,17 +80,20 @@ describe('Blueprint - hole', () => {
         );
     });
 
-    test('hole - failed to place', async () => {
-        GWM.effect.install('CHASM_EDGE', { tile: 'CHASM_EDGE,100' });
+    test.only('hole - failed to place', () => {
+        GWM.effect.install('CHASM_EDGE', 'SPREAD:CHASM_EDGE:100:100');
         GWM.effect.install('CHASM_MEDIUM', {
-            tile: 'CHASM,150,50',
+            type: 'spread',
+            grow: 150,
+            decrement: 50,
+            effects: 'TILE:CHASM',
             flags: 'E_NEXT_EVERYWHERE, E_ABORT_IF_BLOCKS_MAP',
             next: 'CHASM_EDGE',
         });
-        GWM.effect.install('HOLE_WITH_PLATE', {
-            effect: 'CHASM_MEDIUM',
-            next: { tile: 'PRESSURE_PLATE' },
-        });
+        GWM.effect.install('HOLE_WITH_PLATE', [
+            'CHASM_MEDIUM',
+            'TILE:PRESSURE_PLATE',
+        ]);
 
         GWD.blueprint.install('VESTIBULE', {
             flags: 'BP_VESTIBULE',
@@ -100,13 +102,11 @@ describe('Blueprint - hole', () => {
                 {
                     effect: 'HOLE_WITH_PLATE',
                     // tile: 'PRESSURE_PLATE',
-                    flags:
-                        'BS_TREAT_AS_BLOCKING, BS_FAR_FROM_ORIGIN, BS_IN_PASSABLE_VIEW_OF_ORIGIN',
+                    flags: 'BS_TREAT_AS_BLOCKING, BS_FAR_FROM_ORIGIN, BS_IN_PASSABLE_VIEW_OF_ORIGIN',
                 },
                 {
                     tile: 'PORTCULLIS_CLOSED',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
             ],
         });
@@ -134,7 +134,7 @@ describe('Blueprint - hole', () => {
 
         // map.dump();
 
-        const result = await builder.build(map, blue, 59, 10);
+        const result = builder.build(map, blue, 59, 10);
 
         // map.dump();
 

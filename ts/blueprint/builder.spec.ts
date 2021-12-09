@@ -5,7 +5,7 @@ import * as ROOM from '../room';
 import { Digger } from '../digger';
 
 describe('Builder', () => {
-    test.only('Build Vestiblue', async () => {
+    test.only('Build Vestiblue', () => {
         const map = GWM.map.make(80, 34);
         GWM.tile.install('CARPET', { extends: 'FLOOR', ch: '%', fg: 0x800 });
         ROOM.install('ENTRANCE', new ROOM.BrogueEntrance());
@@ -21,7 +21,7 @@ describe('Builder', () => {
             loops: false,
             lakes: false,
         });
-        await digger.create(map);
+        digger.create(map);
 
         // GWM.map.analyze(map);
 
@@ -47,7 +47,7 @@ describe('Builder', () => {
 
         const builder = new BLUE.Builder();
 
-        const result = await builder.build(map, blue, 61, 8);
+        const result = builder.build(map, blue, 61, 8);
 
         // map.dump();
 
@@ -58,7 +58,7 @@ describe('Builder', () => {
         expect(map.cell(61, 8).chokeCount).toEqual(45);
     });
 
-    test('Vestibule with Wall Lever', async () => {
+    test('Vestibule with Wall Lever', () => {
         // Portcullis (closed, dormant)
         // [WALL_CHAR,		gray,					floorBackColor,		10,	0,	DF_PLAIN_FIRE,	0,			DF_OPEN_PORTCULLIS,	0,			NO_LIGHT,		(T_OBSTRUCTS_PASSABILITY | T_OBSTRUCTS_ITEMS), (TM_STAND_IN_TILE | TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED | TM_LIST_IN_SIDEBAR | TM_VISUALLY_DISTINCT | TM_CONNECTS_LEVEL), "a heavy portcullis",	"The iron bars rattle but will not budge; they are firmly locked in place."],
         // [FLOOR_CHAR,	floorForeColor,		floorBackColor,		95,	0,	DF_PLAIN_FIRE,	0,			DF_ACTIVATE_PORTCULLIS,0,		NO_LIGHT,		(0), (TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED),                                                    "the ground",			""],
@@ -85,8 +85,7 @@ describe('Builder', () => {
             ch: 'A',
             fg: 0x800,
             bg: GWM.tile.tiles.FLOOR.sprite.bg,
-            flags:
-                '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
+            flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
         });
         expect(portcullis.blocksVision()).toBeFalsy();
         expect(portcullis.blocksMove()).toBeTruthy();
@@ -124,13 +123,11 @@ describe('Builder', () => {
             steps: [
                 {
                     tile: 'PORTCULLIS_CLOSED',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'WALL_LEVER',
-                    flags:
-                        'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL',
+                    flags: 'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL',
                 },
             ],
         });
@@ -140,15 +137,14 @@ describe('Builder', () => {
             size: '10-100',
             steps: [
                 {
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE, MF_PERMIT_BLOCKING',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_BUILD_VESTIBULE, MF_PERMIT_BLOCKING',
                 },
             ],
         });
 
         const builder = new BLUE.Builder();
 
-        expect(await builder.build(map, blue)).toBeTruthy();
+        expect(builder.build(map, blue)).toBeTruthy();
 
         // map.dump();
 

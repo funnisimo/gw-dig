@@ -109,7 +109,7 @@ export class Dungeon {
         }
     }
 
-    async getLevel(id: number, cb: TYPES.DigFn) {
+    getLevel(id: number, cb: TYPES.DigFn) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
 
@@ -162,17 +162,9 @@ export class Dungeon {
         // TODO - Update startLoc, endLoc
     }
 
-    async makeLevel(
-        id: number,
-        opts: Partial<LEVEL.DiggerOptions>,
-        cb: TYPES.DigFn
-    ) {
+    makeLevel(id: number, opts: Partial<LEVEL.DiggerOptions>, cb: TYPES.DigFn) {
         const digger = new LEVEL.Digger(opts);
-        const result = await digger.create(
-            this.config.width,
-            this.config.height,
-            cb
-        );
+        const result = digger.create(this.config.width, this.config.height, cb);
 
         if (
             !GWU.xy.equalsXY(digger.endLoc, opts.endLoc) ||

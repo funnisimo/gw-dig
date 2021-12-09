@@ -72,9 +72,9 @@ interface BuildSite extends DigSite {
     makeItem(id: string, makeOptions?: any): GWM.item.Item | null;
     makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
-    spawnHorde(horde: GWM.horde.Horde, x: number, y: number, opts?: Partial<GWM.horde.SpawnOptions>): Promise<GWM.actor.Actor | null>;
+    spawnHorde(horde: GWM.horde.Horde, x: number, y: number, opts?: Partial<GWM.horde.SpawnOptions>): GWM.actor.Actor | null;
     analyze(): void;
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): Promise<boolean>;
+    buildEffect(effect: GWM.effect.Effect, x: number, y: number): boolean;
     snapshot(): Snapshot;
     nextMachineId(): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -177,7 +177,7 @@ declare class MapSite implements BuildSite {
     makeRandomItem(tags: Partial<GWM.item.MatchOptions>, makeOptions?: any): GWM.item.Item;
     addItem(x: number, y: number, item: GWM.item.Item): boolean;
     hasActor(x: number, y: number): boolean;
-    spawnHorde(horde: GWM.horde.Horde, x: number, y: number, opts?: Partial<GWM.horde.SpawnOptions>): Promise<GWM.actor.Actor | null>;
+    spawnHorde(horde: GWM.horde.Horde, x: number, y: number, opts?: Partial<GWM.horde.SpawnOptions>): GWM.actor.Actor | null;
     blocksMove(x: number, y: number): boolean;
     blocksVision(x: number, y: number): boolean;
     blocksDiagonal(x: number, y: number): boolean;
@@ -202,7 +202,7 @@ declare class MapSite implements BuildSite {
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
     analyze(): void;
-    buildEffect(effect: GWM.effect.EffectInfo, x: number, y: number): Promise<boolean>;
+    buildEffect(effect: GWM.effect.Effect, x: number, y: number): boolean;
     nextMachineId(): number;
     getMachine(x: number, y: number): number;
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void;
@@ -641,7 +641,7 @@ declare class BuildStep {
     count: GWU.range.Range;
     item: Partial<ItemOptions> | null;
     horde: Partial<HordeOptions> | null;
-    effect: GWM.effect.EffectInfo | null;
+    effect: GWM.effect.Effect | null;
     chance: number;
     constructor(cfg?: Partial<StepOptions>);
     get allowBoundary(): boolean;
@@ -773,50 +773,50 @@ declare class BuildData {
 }
 
 interface Logger {
-    onDigFirstRoom(site: DigSite): Promise<any>;
-    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
-    onRoomFailed(site: DigSite, room: Room, roomSite: DigSite, error: string): Promise<any>;
-    onRoomSuccess(site: DigSite, room: Room): Promise<any>;
-    onLoopsAdded(site: DigSite): Promise<any>;
-    onLakesAdded(site: DigSite): Promise<any>;
-    onBridgesAdded(site: DigSite): Promise<any>;
-    onStairsAdded(site: DigSite): Promise<any>;
-    onBuildError(error: string): Promise<any>;
-    onBlueprintPick(data: BuildData, flags: number, depth: number): Promise<any>;
-    onBlueprintCandidates(data: BuildData): Promise<any>;
-    onBlueprintStart(data: BuildData, adoptedItem: GWM.item.Item | null): Promise<any>;
-    onBlueprintInterior(data: BuildData): Promise<any>;
-    onBlueprintFail(data: BuildData, error: string): Promise<any>;
-    onBlueprintSuccess(data: BuildData): Promise<any>;
-    onStepStart(data: BuildData, step: BuildStep, item: GWM.item.Item | null): Promise<any>;
-    onStepCandidates(data: BuildData, step: BuildStep, candidates: GWU.grid.NumGrid, wantCount: number): Promise<any>;
-    onStepInstanceSuccess(data: BuildData, step: BuildStep, x: number, y: number): Promise<any>;
-    onStepInstanceFail(data: BuildData, step: BuildStep, x: number, y: number, error: string): Promise<any>;
-    onStepSuccess(data: BuildData, step: BuildStep): Promise<any>;
-    onStepFail(data: BuildData, step: BuildStep, error: string): Promise<any>;
+    onDigFirstRoom(site: DigSite): void;
+    onRoomCandidate(room: Room, roomSite: DigSite): void;
+    onRoomFailed(site: DigSite, room: Room, roomSite: DigSite, error: string): void;
+    onRoomSuccess(site: DigSite, room: Room): void;
+    onLoopsAdded(site: DigSite): void;
+    onLakesAdded(site: DigSite): void;
+    onBridgesAdded(site: DigSite): void;
+    onStairsAdded(site: DigSite): void;
+    onBuildError(error: string): void;
+    onBlueprintPick(data: BuildData, flags: number, depth: number): void;
+    onBlueprintCandidates(data: BuildData): void;
+    onBlueprintStart(data: BuildData, adoptedItem: GWM.item.Item | null): void;
+    onBlueprintInterior(data: BuildData): void;
+    onBlueprintFail(data: BuildData, error: string): void;
+    onBlueprintSuccess(data: BuildData): void;
+    onStepStart(data: BuildData, step: BuildStep, item: GWM.item.Item | null): void;
+    onStepCandidates(data: BuildData, step: BuildStep, candidates: GWU.grid.NumGrid, wantCount: number): void;
+    onStepInstanceSuccess(data: BuildData, step: BuildStep, x: number, y: number): void;
+    onStepInstanceFail(data: BuildData, step: BuildStep, x: number, y: number, error: string): void;
+    onStepSuccess(data: BuildData, step: BuildStep): void;
+    onStepFail(data: BuildData, step: BuildStep, error: string): void;
 }
 declare class NullLogger implements Logger {
-    onDigFirstRoom(): Promise<any>;
-    onRoomCandidate(): Promise<any>;
-    onRoomFailed(): Promise<any>;
-    onRoomSuccess(): Promise<any>;
-    onLoopsAdded(): Promise<any>;
-    onLakesAdded(): Promise<any>;
-    onBridgesAdded(): Promise<any>;
-    onStairsAdded(): Promise<any>;
-    onBuildError(): Promise<any>;
-    onBlueprintPick(): Promise<any>;
-    onBlueprintCandidates(): Promise<any>;
-    onBlueprintStart(): Promise<any>;
-    onBlueprintInterior(): Promise<any>;
-    onBlueprintFail(): Promise<any>;
-    onBlueprintSuccess(): Promise<any>;
-    onStepStart(): Promise<any>;
-    onStepCandidates(): Promise<any>;
-    onStepInstanceSuccess(): Promise<any>;
-    onStepInstanceFail(): Promise<any>;
-    onStepSuccess(): Promise<any>;
-    onStepFail(): Promise<any>;
+    onDigFirstRoom(): void;
+    onRoomCandidate(): void;
+    onRoomFailed(): void;
+    onRoomSuccess(): void;
+    onLoopsAdded(): void;
+    onLakesAdded(): void;
+    onBridgesAdded(): void;
+    onStairsAdded(): void;
+    onBuildError(): void;
+    onBlueprintPick(): void;
+    onBlueprintCandidates(): void;
+    onBlueprintStart(): void;
+    onBlueprintInterior(): void;
+    onBlueprintFail(): void;
+    onBlueprintSuccess(): void;
+    onStepStart(): void;
+    onStepCandidates(): void;
+    onStepInstanceSuccess(): void;
+    onStepInstanceFail(): void;
+    onStepSuccess(): void;
+    onStepFail(): void;
 }
 
 interface DoorOpts {
@@ -860,15 +860,17 @@ declare class Digger {
     log: Logger;
     constructor(options?: Partial<DiggerOptions>);
     _makeRoomSite(width: number, height: number): GridSite;
-    create(width: number, height: number, cb: DigFn): Promise<boolean>;
-    create(map: GWM.map.Map): Promise<boolean>;
-    _create(site: DigSite): Promise<boolean>;
+    _createSite(map: GWM.map.Map): void;
+    _createSite(width: number, height: number): void;
+    create(width: number, height: number, cb: DigFn): boolean;
+    create(map: GWM.map.Map): boolean;
+    _create(site: DigSite): boolean;
     start(site: DigSite): void;
     getDigger(id: string | string[] | Record<string, number> | RoomDigger): RoomDigger;
-    addFirstRoom(site: DigSite): Promise<Room | null>;
-    addRoom(site: DigSite): Promise<Room | null>;
+    addFirstRoom(site: DigSite): Room | null;
+    addRoom(site: DigSite): Room | null;
     _attachRoom(site: DigSite, roomSite: DigSite, room: Room): boolean;
-    _attachRoomAtLoc(site: DigSite, roomSite: DigSite, room: Room, attachLoc: GWU.xy.Loc): Promise<boolean>;
+    _attachRoomAtLoc(site: DigSite, roomSite: DigSite, room: Room, attachLoc: GWU.xy.Loc): boolean;
     _roomFitsAt(map: DigSite, roomGrid: DigSite, room: Room, roomToSiteX: number, roomToSiteY: number): boolean;
     _attachDoor(site: DigSite, room: Room, x: number, y: number, dir: number): void;
     addLoops(site: DigSite, opts: Partial<LoopOptions>): number;
@@ -880,6 +882,7 @@ declare class Digger {
     _finishDoors(site: DigSite): void;
     _finishWalls(site: DigSite): void;
 }
+declare function digMap(map: GWM.map.Map, options?: Partial<DiggerOptions>): boolean;
 
 interface DungeonOptions {
     seed?: number;
@@ -913,8 +916,8 @@ declare class Dungeon {
     get levels(): number;
     initSeeds(): void;
     initStairLocs(): void;
-    getLevel(id: number, cb: DigFn): Promise<boolean>;
-    makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn): Promise<boolean>;
+    getLevel(id: number, cb: DigFn): boolean;
+    makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn): boolean;
 }
 
 declare type BlueType = Blueprint | string;
@@ -934,16 +937,16 @@ declare class Builder {
     log: Logger;
     constructor(options?: Partial<BuilderOptions>);
     _pickRandom(requiredFlags: number, depth: number, rng?: GWU.rng.Random): Blueprint | null;
-    buildRandom(site: BuildSite | GWM.map.Map, requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<BuildResult>;
-    build(site: BuildSite | GWM.map.Map, blueprint: Blueprint | string, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<BuildResult>;
-    _buildAt(data: BuildData, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): Promise<BuildResult>;
-    _build(data: BuildData, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): Promise<BuildResult>;
-    _markCandidates(data: BuildData): Promise<number>;
-    _computeInterior(data: BuildData): Promise<boolean>;
-    _buildStep(data: BuildData, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): Promise<boolean>;
-    _buildStepInstance(data: BuildData, buildStep: BuildStep, x: number, y: number, adoptedItem?: GWM.item.Item | null): Promise<boolean>;
+    buildRandom(site: BuildSite | GWM.map.Map, requiredMachineFlags?: Flags, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): BuildResult;
+    build(site: BuildSite | GWM.map.Map, blueprint: Blueprint | string, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): BuildResult;
+    _buildAt(data: BuildData, x?: number, y?: number, adoptedItem?: GWM.item.Item | null): BuildResult;
+    _build(data: BuildData, originX: number, originY: number, adoptedItem?: GWM.item.Item | null): BuildResult;
+    _markCandidates(data: BuildData): number;
+    _computeInterior(data: BuildData): boolean;
+    _buildStep(data: BuildData, buildStep: BuildStep, adoptedItem: GWM.item.Item | null): boolean;
+    _buildStepInstance(data: BuildData, buildStep: BuildStep, x: number, y: number, adoptedItem?: GWM.item.Item | null): boolean;
 }
-declare function build(blueprint: BlueType, map: GWM.map.Map, x: number, y: number, opts?: Partial<BuilderOptions>): Promise<BuildResult>;
+declare function build(blueprint: BlueType, map: GWM.map.Map, x: number, y: number, opts?: Partial<BuilderOptions>): BuildResult;
 
 type index_d$2_BuildData = BuildData;
 declare const index_d$2_BuildData: typeof BuildData;
@@ -1016,54 +1019,27 @@ declare namespace index_d$2 {
 }
 
 declare class ConsoleLogger implements Logger {
-    onDigFirstRoom(site: DigSite): Promise<void>;
-    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
-    onRoomFailed(_site: DigSite, _room: Room, _roomSite: DigSite, error: string): Promise<any>;
-    onRoomSuccess(site: DigSite, room: Room): Promise<any>;
-    onLoopsAdded(_site: DigSite): Promise<any>;
-    onLakesAdded(_site: DigSite): Promise<any>;
-    onBridgesAdded(_site: DigSite): Promise<any>;
-    onStairsAdded(_site: DigSite): Promise<any>;
-    onBuildError(error: string): Promise<void>;
-    onBlueprintPick(data: BuildData, flags: number, depth: number): Promise<void>;
-    onBlueprintCandidates(data: BuildData): Promise<void>;
-    onBlueprintStart(data: BuildData): Promise<void>;
-    onBlueprintInterior(data: BuildData): Promise<void>;
-    onBlueprintFail(data: BuildData, error: string): Promise<void>;
-    onBlueprintSuccess(data: BuildData): Promise<void>;
-    onStepStart(data: BuildData, step: BuildStep): Promise<void>;
-    onStepCandidates(data: BuildData, step: BuildStep, candidates: GWU.grid.NumGrid, wantCount: number): Promise<void>;
-    onStepInstanceSuccess(_data: BuildData, _step: BuildStep, x: number, y: number): Promise<void>;
-    onStepInstanceFail(_data: BuildData, _step: BuildStep, x: number, y: number, error: string): Promise<void>;
-    onStepSuccess(data: BuildData, step: BuildStep): Promise<void>;
-    onStepFail(data: BuildData, step: BuildStep, error: string): Promise<void>;
-}
-
-declare class Visualizer implements Logger {
-    dest: GWU.canvas.Buffer;
-    io: GWU.io.Loop;
-    constructor(dest: GWU.canvas.BaseCanvas | GWU.canvas.Buffer, io?: GWU.io.Loop);
-    onDigFirstRoom(site: DigSite): Promise<any>;
-    onRoomCandidate(room: Room, roomSite: DigSite): Promise<any>;
-    onRoomFailed(_site: DigSite, _room: Room, _roomSite: DigSite, error: string): Promise<any>;
-    onRoomSuccess(site: DigSite, room: Room): Promise<any>;
-    onLoopsAdded(_site: DigSite): Promise<any>;
-    onLakesAdded(_site: DigSite): Promise<any>;
-    onBridgesAdded(_site: DigSite): Promise<any>;
-    onStairsAdded(_site: DigSite): Promise<any>;
-    onBuildError(_error: string): Promise<any>;
-    onBlueprintPick(_data: BuildData, _flags: number, _depth: number): Promise<any>;
-    onBlueprintCandidates(_data: BuildData): Promise<any>;
-    onBlueprintStart(_data: BuildData, _adoptedItem: GWM.item.Item | null): Promise<any>;
-    onBlueprintInterior(_data: BuildData): Promise<any>;
-    onBlueprintFail(_data: BuildData, _error: string): Promise<any>;
-    onBlueprintSuccess(_data: BuildData): Promise<any>;
-    onStepStart(_data: BuildData, _step: BuildStep, _item: GWM.item.Item | null): Promise<any>;
-    onStepCandidates(_data: BuildData, _step: BuildStep, _candidates: GWU.grid.NumGrid, _wantCount: number): Promise<any>;
-    onStepInstanceSuccess(_data: BuildData, _step: BuildStep, _x: number, _y: number): Promise<any>;
-    onStepInstanceFail(_data: BuildData, _step: BuildStep, _x: number, _y: number, _error: string): Promise<any>;
-    onStepSuccess(_data: BuildData, _step: BuildStep): Promise<any>;
-    onStepFail(_data: BuildData, _step: BuildStep, _error: string): Promise<any>;
+    onDigFirstRoom(site: DigSite): void;
+    onRoomCandidate(room: Room, roomSite: DigSite): void;
+    onRoomFailed(_site: DigSite, _room: Room, _roomSite: DigSite, error: string): void;
+    onRoomSuccess(site: DigSite, room: Room): void;
+    onLoopsAdded(_site: DigSite): void;
+    onLakesAdded(_site: DigSite): void;
+    onBridgesAdded(_site: DigSite): void;
+    onStairsAdded(_site: DigSite): void;
+    onBuildError(error: string): void;
+    onBlueprintPick(data: BuildData, flags: number, depth: number): void;
+    onBlueprintCandidates(data: BuildData): void;
+    onBlueprintStart(data: BuildData): void;
+    onBlueprintInterior(data: BuildData): void;
+    onBlueprintFail(data: BuildData, error: string): void;
+    onBlueprintSuccess(data: BuildData): void;
+    onStepStart(data: BuildData, step: BuildStep): void;
+    onStepCandidates(data: BuildData, step: BuildStep, candidates: GWU.grid.NumGrid, wantCount: number): void;
+    onStepInstanceSuccess(_data: BuildData, _step: BuildStep, x: number, y: number): void;
+    onStepInstanceFail(_data: BuildData, _step: BuildStep, x: number, y: number, error: string): void;
+    onStepSuccess(data: BuildData, step: BuildStep): void;
+    onStepFail(data: BuildData, step: BuildStep, error: string): void;
 }
 
 type index_d$1_Logger = Logger;
@@ -1071,14 +1047,11 @@ type index_d$1_NullLogger = NullLogger;
 declare const index_d$1_NullLogger: typeof NullLogger;
 type index_d$1_ConsoleLogger = ConsoleLogger;
 declare const index_d$1_ConsoleLogger: typeof ConsoleLogger;
-type index_d$1_Visualizer = Visualizer;
-declare const index_d$1_Visualizer: typeof Visualizer;
 declare namespace index_d$1 {
   export {
     index_d$1_Logger as Logger,
     index_d$1_NullLogger as NullLogger,
     index_d$1_ConsoleLogger as ConsoleLogger,
-    index_d$1_Visualizer as Visualizer,
   };
 }
 
@@ -1088,7 +1061,7 @@ interface MachineHordeConfig extends GWM.horde.HordeConfig {
 declare class MachineHorde extends GWM.horde.Horde {
     machine: BlueType | null;
     constructor(config: MachineHordeConfig);
-    _addLeader(leader: GWM.actor.Actor, map: GWM.map.Map, x: number, y: number, opts: GWM.horde.SpawnOptions): Promise<boolean>;
+    _addLeader(leader: GWM.actor.Actor, map: GWM.map.Map, x: number, y: number, opts: GWM.horde.SpawnOptions): boolean;
 }
 
 type index_d_MachineHordeConfig = MachineHordeConfig;
@@ -1101,4 +1074,4 @@ declare namespace index_d {
   };
 }
 
-export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, index_d$2 as blueprint, bridge_d as bridge, hall_d as hall, index_d as horde, lake_d as lake, index_d$1 as log, loop_d as loop, makeHall, room_d as room, index_d$3 as site, stairs_d as stairs };
+export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, index_d$2 as blueprint, bridge_d as bridge, digMap, hall_d as hall, index_d as horde, lake_d as lake, index_d$1 as log, loop_d as loop, makeHall, room_d as room, index_d$3 as site, stairs_d as stairs };

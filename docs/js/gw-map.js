@@ -214,9 +214,10 @@
         Cell[Cell["STABLE_SNAPSHOT"] = Fl$3(15)] = "STABLE_SNAPSHOT";
         // These are to speed checks
         Cell[Cell["HAS_PLAYER"] = Fl$3(16)] = "HAS_PLAYER";
-        Cell[Cell["HAS_ACTOR"] = Fl$3(27)] = "HAS_ACTOR";
+        Cell[Cell["HAS_ACTOR"] = Fl$3(17)] = "HAS_ACTOR";
         Cell[Cell["HAS_DORMANT_MONSTER"] = Fl$3(18)] = "HAS_DORMANT_MONSTER";
         Cell[Cell["HAS_ITEM"] = Fl$3(19)] = "HAS_ITEM";
+        Cell[Cell["HAS_FX"] = Fl$3(20)] = "HAS_FX";
         Cell[Cell["HAS_TICK_EFFECT"] = Fl$3(22)] = "HAS_TICK_EFFECT";
         Cell[Cell["IS_WIRED"] = Fl$3(26)] = "IS_WIRED";
         Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl$3(27)] = "IS_CIRCUIT_BREAKER";
@@ -246,6 +247,7 @@
     var Map$1;
     (function (Map) {
         Map[Map["MAP_CHANGED"] = Fl$2(0)] = "MAP_CHANGED";
+        Map[Map["MAP_NEEDS_REDRAW"] = Fl$2(1)] = "MAP_NEEDS_REDRAW";
         Map[Map["MAP_ALWAYS_LIT"] = Fl$2(3)] = "MAP_ALWAYS_LIT";
         Map[Map["MAP_SAW_WELCOME"] = Fl$2(4)] = "MAP_SAW_WELCOME";
         Map[Map["MAP_NO_LIQUID"] = Fl$2(5)] = "MAP_NO_LIQUID";
@@ -278,8 +280,9 @@
         Effect[Effect["E_BLOCKED_BY_ACTORS"] = Fl$1(9)] = "E_BLOCKED_BY_ACTORS";
         Effect[Effect["E_BLOCKED_BY_OTHER_LAYERS"] = Fl$1(10)] = "E_BLOCKED_BY_OTHER_LAYERS";
         Effect[Effect["E_SUPERPRIORITY"] = Fl$1(11)] = "E_SUPERPRIORITY";
-        Effect[Effect["E_SPREAD_CIRCLE"] = Fl$1(13)] = "E_SPREAD_CIRCLE";
-        Effect[Effect["E_SPREAD_LINE"] = Fl$1(14)] = "E_SPREAD_LINE";
+        Effect[Effect["E_IGNORE_FOV"] = Fl$1(12)] = "E_IGNORE_FOV";
+        // E_SPREAD_CIRCLE = Fl(13), // Spread in a circle around the spot (using FOV), radius calculated using spread+decrement
+        // E_SPREAD_LINE = Fl(14), // Spread in a line in one random direction
         Effect[Effect["E_EVACUATE_CREATURES"] = Fl$1(15)] = "E_EVACUATE_CREATURES";
         Effect[Effect["E_EVACUATE_ITEMS"] = Fl$1(16)] = "E_EVACUATE_ITEMS";
         Effect[Effect["E_BUILD_IN_WALLS"] = Fl$1(17)] = "E_BUILD_IN_WALLS";
@@ -501,7 +504,7 @@
             this.name = config.name;
             this.flavor = config.flavor || this.name;
             this.description = config.description || this.flavor;
-            this.sprite = GWU__namespace.sprite.make(config);
+            this.sprite = GWU__namespace.sprite.make(config.sprite ? config.sprite : config);
             if (config.tags) {
                 if (typeof config.tags === 'string') {
                     this.tags = config.tags.split(/[,|]/).map((t) => t.trim());
@@ -574,12 +577,17 @@
             return 1;
         }
     }
+    function make$5(opts, makeOpts = {}) {
+        const kind = new EntityKind(opts);
+        return kind.make(makeOpts);
+    }
 
     var index$9 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         KeyInfo: KeyInfo,
         makeKeyInfo: makeKeyInfo,
         EntityKind: EntityKind,
+        make: make$5,
         Entity: Entity
     });
 
@@ -625,9 +633,14 @@
                 return this.fov.isDirectlyVisible(x, y);
             }
             else if (this.map) {
-                return GWU__namespace.xy.forLineBetween(this.x, this.y, x, y, (i, j) => GWU__namespace.xy.distanceBetween(this.x, this.y, i, j) <=
-                    this.visionDistance &&
-                    !this.map.cell(i, j).blocksVision());
+                if (GWU__namespace.xy.distanceBetween(this.x, this.y, x, y) >
+                    this.visionDistance) {
+                    return false;
+                }
+                return GWU__namespace.xy.forLineBetween(this.x, this.y, x, y, (i, j) => {
+                    if (this.map.cell(i, j).blocksVision())
+                        return false;
+                });
             }
             else {
                 return false; // need a map or an fov
@@ -651,86 +664,274 @@
             return this.kind.isAbleToSense(this, entity);
         }
         ////////////////// INVENTORY
-        async pickupItem(item, opts) {
+        pickupItem(item, opts) {
             return this.kind.pickupItem(this, item, opts);
         }
-        async dropItem(item, opts) {
+        dropItem(item, opts) {
             return this.kind.dropItem(this, item, opts);
         }
     }
 
-    // @ts-nocheck
-    class Handler {
-        make(src, dest) {
-            return true;
-        }
-        fire(config, map, x, y, ctx) {
-            return false;
-        }
-    }
     const handlers = {};
     function installHandler(id, handler) {
-        handlers[id] = handler;
+        handlers[id.toLowerCase()] = handler;
     }
-
+    const effectTypes = {};
+    function installType(id, type) {
+        effectTypes[id] = type;
+    }
+    // export class Effect {
+    //     id = '';
+    //     chance = 100 * 100; // 100%
+    //     type: string; // self | bolt | beam | ball | burst | adjacent | spread
+    //     aim: string; // actor | item | cell
+    //     bolt: string | GWU.sprite.SpriteData | null = null;
+    //     beam = false;
+    //     range = 0;
+    //     ball: string | GWU.sprite.SpriteData | null = null;
+    //     radius = 0;
+    //     center = false;
+    //     effects: EffectFn[];
+    //     good = false;
+    //     seen = false;
+    //     next: Effect | null = null;
+    //     constructor(config: EffectConfig) {
+    //         if (typeof config.effects === 'string') {
+    //             config.effects = [config.effects];
+    //         } else if (typeof config.effects === 'function') {
+    //             config.effects = [config.effects];
+    //         }
+    //         this.aim = config.aim || 'actor';
+    //         if (typeof config.chance === 'string') {
+    //             // '20%' becomes 2000
+    //             config.chance = Math.floor(Number.parseFloat(config.chance) * 100);
+    //         }
+    //         this.chance = config.chance || 100 * 100;
+    //         const type = config.type || 'basic';
+    //         const parts = type.split(':');
+    //         if (type.startsWith('bolt') || type.startsWith('beam')) {
+    //             // bolt:range:sprite
+    //             this.type = parts[0];
+    //             this.range = parts[1] ? Number.parseInt(parts[1]) : 99;
+    //             this.bolt = parts[1] || 'missile';
+    //             this.beam = type.startsWith('beam');
+    //         } else if (
+    //             type.startsWith('ball') ||
+    //             type.startsWith('burst') ||
+    //             type.startsWith('aura')
+    //         ) {
+    //             this.type = parts[0];
+    //             this.radius = parts[1] ? Number.parseInt(parts[1]) : 2;
+    //             this.range = parts[2] ? Number.parseInt(parts[2]) : 99;
+    //             this.ball = parts[3] || 'explosion';
+    //             this.center = !type.startsWith('aura');
+    //         } else {
+    //             this.type = 'basic';
+    //         }
+    //         if (typeof config.effects === 'string') {
+    //             config.effects = [config.effects];
+    //         } else if (typeof config.effects === 'function') {
+    //             config.effects = [config.effects];
+    //         }
+    //         if (Array.isArray(config.effects)) {
+    //             this.effects = config.effects.map((e) => {
+    //                 if (typeof e === 'function') return e;
+    //                 return effectFnFromString(e);
+    //             });
+    //         } else {
+    //             this.effects = [];
+    //             Object.entries(config.effects).forEach(([key, value]) => {
+    //                 const handler = handlers[key.toLowerCase()];
+    //                 if (handler) {
+    //                     this.effects.push(handler(value));
+    //                 } else if (typeof value === 'function') {
+    //                     this.effects.push(value);
+    //                 } else {
+    //                     throw new Error('Unknown effect: ' + key);
+    //                 }
+    //             });
+    //         }
+    //         if (this.effects.length === 0) throw new Error('No effects!');
+    //     }
+    //     clone(): this {
+    //         const other = new (this.constructor as new (
+    //             config: EffectConfig
+    //         ) => this)(this as EffectConfig);
+    //         return other;
+    //     }
+    //     fire(map: Map.MapType, x: number, y: number, ctx: EffectCtx = {}): boolean {
+    //         let didSomething = false;
+    //         ctx.good = this.good;
+    //         ctx.seen = this.seen;
+    //         if (!this.chance || map.rng.chance(this.chance, 10000)) {
+    //             // fire
+    //             for (let effect of this.effects) {
+    //                 if (GWU.data.gameHasEnded) break;
+    //                 if (effect(map, x, y, ctx)) {
+    //                     didSomething = true;
+    //                 } else {
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //         if (ctx.aware && didSomething) {
+    //             this.seen = true;
+    //         }
+    //         this.good = ctx.good;
+    //         return didSomething;
+    //     }
+    //     reset() {
+    //         this.seen = false;
+    //     }
+    // }
+    // export function effectFnFromString(e: string): EffectFn {
+    //     const parts = e.split(':');
+    //     if (parts.length === 0) throw new Error('Invalid effect string.');
+    //     // @ts-ignore
+    //     const name = parts.shift().toLowerCase();
+    //     const handler = handlers[name] || null;
+    //     if (!handler) {
+    //         throw new Error('Failed to find effect handler: ' + name);
+    //     }
+    //     return handler(parts);
+    // }
     function make$4(opts) {
-        var _a;
         if (!opts)
             throw new Error('opts required to make effect.');
+        let config = {};
         if (typeof opts === 'string') {
-            throw new Error('Cannot make effect from string: ' + opts);
-        }
-        if (typeof opts === 'function') {
-            opts = { fn: opts };
-        }
-        // now make base effect stuff
-        const info = {
-            flags: GWU__namespace.flag.from(Effect, opts.flags),
-            chance: (_a = opts.chance) !== null && _a !== void 0 ? _a : 0,
-            next: null,
-            id: opts.id || 'n/a',
-        };
-        if (opts.next) {
-            if (typeof opts.next === 'string') {
-                info.next = opts.next;
+            // Special case
+            if (opts.toLowerCase().startsWith('spread:')) {
+                const endPos = opts.indexOf(':', 8);
+                const tile = opts.substring(8, endPos);
+                config = {
+                    type: 'spread:' + opts.substring(endPos),
+                    effects: ['tile:' + tile],
+                };
             }
             else {
-                info.next = make$4(opts.next);
+                config = { type: 'basic', effects: [opts] };
             }
         }
-        // and all the handlers
-        Object.values(handlers).forEach((v) => v.make(opts, info));
-        return info;
+        else if (typeof opts === 'function') {
+            config = { type: 'basic', effects: [opts] };
+        }
+        else if (Array.isArray(opts)) {
+            config = { type: 'basic', effects: opts };
+        }
+        else {
+            // @ts-ignore
+            if (opts.effect) {
+                // @ts-ignore
+                opts.effects = [opts.effect];
+                delete opts.effect;
+            }
+            // object only
+            if (opts.effects) {
+                Object.assign(config, opts);
+                if (typeof config.effects === 'string') {
+                    config.effects = [opts.effects];
+                }
+                else if (typeof config.effects === 'function') {
+                    config.effects = [opts.effects];
+                }
+            }
+            else {
+                config.effects = {};
+                Object.entries(opts).forEach(([key, value]) => {
+                    const handler = handlers[key.toLowerCase()];
+                    if (handler !== undefined) {
+                        // @ts-ignore
+                        config.effects[key] = value;
+                    }
+                    else if (typeof value === 'function') {
+                        // @ts-ignore
+                        config.effects[key] = value;
+                    }
+                    else {
+                        // @ts-ignore
+                        config[key] = value;
+                    }
+                });
+            }
+        }
+        config.type = config.type || 'basic';
+        if (typeof config.type !== 'string')
+            throw new Error('Invalid effect type: ' + JSON.stringify(config.type));
+        const typeParts = config.type.split(':').map((t) => t.trim());
+        const typeName = typeParts.shift();
+        const makeFn = effectTypes[typeName.toLowerCase()];
+        if (!makeFn)
+            throw new Error('Invalid effect type: ' + typeName);
+        const effect = makeFn(config);
+        if (Array.isArray(config.effects)) {
+            config.effects.forEach((e) => {
+                if (typeof e === 'function') {
+                    effect.effects.push(e);
+                }
+                else {
+                    const parts = e.split(':').map((t) => t.trim());
+                    if (parts.length === 1) {
+                        const effect = installedEffects[parts[0]];
+                        if (!effect)
+                            throw new Error('Failed to find effect with id: ' + parts[0]);
+                        effect.effects.push(effect.trigger.bind(effect));
+                    }
+                    else {
+                        const handler = handlers[parts[0].toLowerCase()];
+                        if (!handler)
+                            throw new Error('Unknown effect: ' + parts[0]);
+                        parts.shift();
+                        effect.effects.push(handler(parts));
+                    }
+                }
+            });
+        }
+        else {
+            Object.entries(config.effects).forEach(([key, value]) => {
+                const handler = handlers[key.toLowerCase()];
+                if (!handler)
+                    throw new Error('Failed to find handler type: ' + key);
+                effect.effects.push(handler(value));
+            });
+        }
+        if (config.next) {
+            effect.next = make$4(config.next);
+        }
+        return effect;
     }
     function from$4(opts) {
         if (!opts)
             throw new Error('Cannot make effect from null | undefined');
+        if (typeof opts === 'object' && 'trigger' in opts) {
+            return opts;
+        }
         if (typeof opts === 'string') {
-            const effect = effects[opts];
+            const effect = installedEffects[opts];
             if (effect)
                 return effect;
             throw new Error('Unknown effect - ' + opts);
         }
         return make$4(opts);
     }
-    // resetMessageDisplayed
-    function reset(effect) {
-        effect.flags &= ~Effect.E_FIRED;
+    function isEffect(obj) {
+        return typeof obj === 'object' && 'trigger' in obj;
     }
-    function resetAll() {
-        Object.values(effects).forEach((e) => reset(e));
-    }
-    const effects = {};
+    //////////////////////////////
+    // INSTALL
+    const installedEffects = {};
     function install$4(id, config) {
-        const effect = make$4(config);
-        effects[id] = effect;
-        effect.id = id;
+        const effect = isEffect(config) ? config.clone() : make$4(config);
+        installedEffects[id] = effect;
         return effect;
     }
     function installAll$2(effects) {
         Object.entries(effects).forEach(([id, config]) => {
             install$4(id, config);
         });
+    }
+    function resetAll() {
+        Object.values(installedEffects).forEach((e) => (e.seen = false));
     }
 
     class Tile {
@@ -903,11 +1104,16 @@
                     delete effects[key];
                     return;
                 }
-                if (typeof value === 'string') {
+                if (typeof value === 'string' && !value.includes(':')) {
                     effects[key] = value;
                     return;
                 }
-                effects[key] = make$4(value);
+                try {
+                    effects[key] = make$4(value);
+                }
+                catch (e) {
+                    throw new Error(`Failed to add effect to tile => ${key} : ${JSON.stringify(value)} : ` + e.message);
+                }
             });
         }
         const flags = {
@@ -981,144 +1187,8 @@
         });
     }
 
-    // These are the minimal set of tiles to make the diggers work
-    install$3('NULL', {
-        ch: '\u2205',
-        fg: 'white',
-        bg: 'black',
-        flags: 'L_BLOCKS_MOVE',
-        name: 'eerie nothingness',
-        article: 'an',
-        priority: 0,
-    });
-    install$3('FLOOR', {
-        ch: '\u00b7',
-        fg: GWU__namespace.color.from([30, 30, 30]).rand(20, 0, 0, 0),
-        bg: GWU__namespace.color.from([2, 2, 10]).rand(0, 2, 2, 0),
-        priority: 10,
-        article: 'the',
-        flavor: 'the stone floor',
-    });
-    install$3('DOOR', {
-        ch: '+',
-        fg: [100, 40, 40],
-        bg: [30, 60, 60],
-        priority: 30,
-        flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
-        article: 'a',
-        effects: {
-            enter: { tile: 'DOOR_OPEN' },
-            open: { tile: 'DOOR_OPEN_ALWAYS' },
-        },
-        flavor: 'a closed door',
-    });
-    install$3('DOOR_OPEN', 'DOOR', {
-        ch: "'",
-        fg: [100, 40, 40],
-        bg: [30, 60, 60],
-        priority: 40,
-        flags: '!L_BLOCKS_ITEMS, !L_BLOCKS_VISION',
-        name: 'open door',
-        article: 'an',
-        effects: {
-            tick: {
-                chance: 100 * 100,
-                tile: 'DOOR',
-                flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY',
-            },
-            enter: null,
-            open: null,
-            close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
-        },
-        flavor: 'an open door',
-    });
-    install$3('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
-        effects: {
-            tick: null,
-            close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
-        },
-        flavor: 'an open door',
-    });
-    install$3('UP_STAIRS', {
-        ch: '<',
-        fg: [100, 50, 50],
-        bg: [40, 20, 20],
-        priority: 200,
-        flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
-        name: 'upward staircase',
-        article: 'an',
-        effects: {
-            player: { emit: 'UP_STAIRS' },
-        },
-        flavor: 'stairs leading upwards',
-    });
-    install$3('DOWN_STAIRS', {
-        ch: '>',
-        fg: [100, 50, 50],
-        bg: [40, 20, 20],
-        priority: 200,
-        flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
-        name: 'downward staircase',
-        article: 'a',
-        effects: {
-            player: { emit: 'DOWN_STAIRS' },
-        },
-        flavor: 'downward leading stairs',
-    });
-    install$3('WALL', {
-        ch: '#',
-        fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
-        bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
-        priority: 100,
-        flags: 'L_WALL_FLAGS',
-        article: 'a',
-        name: 'stone wall',
-        description: 'A wall made from rough cut stone.',
-        flavor: 'a rough stone wall',
-    });
-    install$3('IMPREGNABLE', {
-        ch: '#',
-        fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
-        bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
-        priority: 100,
-        flags: 'L_WALL_FLAGS, IMPREGNABLE',
-        article: 'a',
-        name: 'impregnable wall',
-        description: 'A wall made from very hard stone.',
-        flavor: 'a very hard wall',
-    });
-    install$3('LAKE', {
-        ch: '~',
-        fg: GWU__namespace.color.from([5, 8, 20]).dance(10, 0, 4, 15),
-        bg: GWU__namespace.color.from([10, 15, 41]).dance(6, 5, 5, 5),
-        priority: 50,
-        flags: 'T_DEEP_WATER',
-        name: 'deep water',
-        article: 'the',
-        flavor: 'some deep water',
-    });
-    install$3('SHALLOW', {
-        ch: '\u00b7',
-        fg: GWU__namespace.color.from([5, 8, 10]).dance(10, 0, 4, 15),
-        bg: GWU__namespace.color.from([10, 30, 30]).dance(6, 0, 10, 10),
-        priority: 20,
-        name: 'shallow water',
-        article: 'the',
-        depth: 'SURFACE',
-        flavor: 'some shallow water',
-    });
-    install$3('BRIDGE', {
-        ch: '=',
-        fg: [100, 40, 40],
-        priority: 40,
-        depth: 'SURFACE',
-        flags: 'T_BRIDGE, L_VISUALLY_DISTINCT',
-        article: 'a',
-        groundTile: 'LAKE',
-        flavor: 'a bridge',
-    });
-
     const flags = { Tile: Tile$1, TileMech };
+    // import './tiles';
 
     var index$8 = /*#__PURE__*/Object.freeze({
         __proto__: null,
@@ -1132,354 +1202,202 @@
         installAll: installAll$1
     });
 
-    async function fire(effect, map, x, y, ctx_ = {}) {
-        if (!effect)
-            return false;
-        if (typeof effect === 'string') {
-            const name = effect;
-            effect = from$4(name);
-            if (!effect)
-                throw new Error('Failed to find effect: ' + name);
-        }
-        const ctx = ctx_;
-        if (!ctx.force && effect.chance && !map.rng.chance(effect.chance, 10000))
-            return false;
-        const grid = (ctx.grid = GWU__namespace.grid.alloc(map.width, map.height));
-        let didSomething = false;
-        const allHandlers = Object.values(handlers);
-        for (let h of allHandlers) {
-            if (await h.fire(effect, map, x, y, ctx)) {
-                didSomething = true;
+    class BasicEffect {
+        constructor(config) {
+            this.effects = [];
+            this.chance = 100 * 100; // 100%
+            this.seen = false;
+            this.flags = 0;
+            this.next = null;
+            if (typeof config === 'object' && !Array.isArray(config)) {
+                this.flags = GWU__namespace.flag.from(Effect, config.flags);
+                this.chance = Number.parseInt(config.chance || '10000');
             }
         }
-        // do the next effect - if applicable
-        if (effect.next &&
-            (didSomething || effect.flags & Effect.E_NEXT_ALWAYS) &&
-            !GWU__namespace.data.gameHasEnded) {
-            const nextInfo = typeof effect.next === 'string' ? from$4(effect.next) : effect.next;
-            if (effect.flags & Effect.E_NEXT_EVERYWHERE) {
-                await grid.forEachAsync(async (v, i, j) => {
-                    if (!v)
-                        return;
-                    didSomething =
-                        (await fire(nextInfo, map, i, j, ctx)) || didSomething;
-                });
-            }
-            else {
-                didSomething =
-                    (await fire(nextInfo, map, x, y, ctx)) || didSomething;
-            }
+        clone() {
+            const other = new this.constructor();
+            other.effects = this.effects.slice();
+            other.chance = this.chance;
+            other.seen = false;
+            other.flags = this.flags;
+            other.next = this.next;
+            return other;
         }
-        // bookkeeping
-        if (didSomething &&
-            // map.isVisible(x, y) &&
-            !(effect.flags & Effect.E_NO_MARK_FIRED)) {
-            effect.flags |= Effect.E_FIRED;
-        }
-        GWU__namespace.grid.free(grid);
-        return didSomething;
-    }
-
-    //////////////////////////////////////////////
-    // EMIT
-    class EmitEffect extends Handler {
-        constructor() {
-            super();
-        }
-        make(src, dest) {
-            if (!src.emit)
-                return true;
-            if (typeof src.emit !== 'string') {
-                throw new Error('emit effects must be string name to emit: { emit: "EVENT" }');
-            }
-            dest.emit = src.emit;
-            return true;
-        }
-        async fire(config, _map, x, y, ctx) {
-            if (config.emit) {
-                await GWU__namespace.events.emit(config.emit, x, y, ctx);
-                return true;
-            }
-            return false;
-        }
-    }
-    installHandler('emit', new EmitEffect());
-
-    //////////////////////////////////////////////
-    // FN
-    class FnEffect extends Handler {
-        constructor() {
-            super();
-        }
-        make(src, dest) {
-            if (!src.fn)
-                return true;
-            if (typeof src.fn !== 'function') {
-                throw new Error('fn effects must be functions.');
-            }
-            dest.fn = src.fn;
-            return true;
-        }
-        async fire(config, map, x, y, ctx) {
-            if (config.fn) {
-                return await config.fn(config, map, x, y, ctx);
-            }
-            return false;
-        }
-    }
-    installHandler('fn', new FnEffect());
-
-    //////////////////////////////////////////////
-    // MESSAGE
-    class MessageEffect extends Handler {
-        constructor() {
-            super();
-        }
-        make(src, dest) {
-            if (!src.message)
-                return true;
-            if (typeof src.message !== 'string') {
-                throw new Error('Emit must be configured with name of event to emit');
-            }
-            dest.message = src.message;
-            return true;
-        }
-        async fire(config, _map, x, y, ctx) {
-            if (!config.message)
-                return false;
-            const fired = !!(config.flags & Effect.E_FIRED);
-            if (config.message &&
-                config.message.length &&
-                !fired
-            // && map.isVisible(x, y)
-            ) {
-                GWU__namespace.message.addAt(x, y, config.message, ctx);
-                return true;
-            }
-            return false;
-        }
-    }
-    installHandler('message', new MessageEffect());
-
-    //////////////////////////////////////////////
-    // ActivateMachine
-    class ActivateMachineEffect extends Handler {
-        constructor() {
-            super();
-        }
-        make(src, dest) {
-            if (!src.activateMachine)
-                return true;
-            dest.activateMachine = true;
-            return true;
-        }
-        async fire(config, map, x, y, ctx) {
-            if (config.activateMachine) {
-                const cell = map.cell(x, y);
-                const machine = cell.machineId;
-                if (!machine)
+        trigger(loc, ctx = {}) {
+            if (!ctx.force && this.chance) {
+                const rng = ctx.rng || loc.map.rng || GWU__namespace.random;
+                if (!rng.chance(this.chance, 10000))
                     return false;
-                return await map.activateMachine(machine, x, y, ctx);
             }
-            return false;
+            let didSomething = false;
+            for (let eff of this.effects) {
+                if (eff(loc, ctx)) {
+                    didSomething = true;
+                }
+            }
+            if (this.next) {
+                const nextAlways = !!(this.flags & Effect.E_NEXT_ALWAYS);
+                if (didSomething || nextAlways) {
+                    return this.next.trigger(loc, ctx);
+                }
+            }
+            return didSomething;
         }
     }
-    installHandler('activateMachine', new ActivateMachineEffect());
-
-    //////////////////////////////////////////////
-    // EMIT
-    class EffectEffect extends Handler {
-        constructor() {
-            super();
+    function makeBasicEffect(config) {
+        if (typeof config !== 'object') {
+            return new BasicEffect();
         }
-        make(src, dest) {
-            if (!src.effect)
-                return true;
-            dest.effect = src.effect;
-            return true;
-        }
-        async fire(config, map, x, y, ctx) {
-            if (config.effect) {
-                return await fire(config.effect, map, x, y, ctx);
-            }
-            return false;
-        }
+        return new BasicEffect(config);
     }
-    installHandler('effect', new EffectEffect());
+    installType('basic', makeBasicEffect);
 
-    class SpawnEffect extends Handler {
-        constructor() {
-            super();
-        }
-        make(src, dest) {
-            var _a, _b, _c, _d, _e, _f, _g;
-            if (!src.tile)
-                return true; // no error
-            let config = src.tile;
+    function makeSpreadEffect(config) {
+        return new SpreadEffect(config);
+    }
+    installType('spread', makeSpreadEffect);
+    class SpreadEffect extends BasicEffect {
+        constructor(config) {
+            super(config);
+            this.grow = 0;
+            this.decrement = 0;
+            this.matchTile = '';
+            if (!config) {
+                config = { grow: 0, decrement: 0, flags: 0 };
+            }
             if (typeof config === 'string') {
-                const parts = config.split(/[,|]/).map((p) => p.trim());
+                config = config.split(':').map((t) => t.trim());
+            }
+            if (Array.isArray(config)) {
+                if (config[0].toLowerCase() === 'spread') {
+                    config.shift();
+                }
                 config = {
-                    tile: parts[0],
-                    grow: Number.parseInt(parts[1] || '0'),
-                    decrement: Number.parseInt(parts[2] || '0'),
+                    grow: config[0] || '0',
+                    decrement: config[1] || '100',
+                    flags: config[2] || '0',
                 };
             }
-            const info = {
-                grow: (_b = (_a = config.grow) !== null && _a !== void 0 ? _a : config.spread) !== null && _b !== void 0 ? _b : 0,
-                decrement: (_c = config.decrement) !== null && _c !== void 0 ? _c : 0,
-                flags: GWU__namespace.flag.from(Effect, config.flags),
-                volume: (_d = config.volume) !== null && _d !== void 0 ? _d : 0,
-                next: (_e = config.next) !== null && _e !== void 0 ? _e : null,
-            };
-            const id = (_f = config.tile) !== null && _f !== void 0 ? _f : config.id;
-            if (typeof id === 'string') {
-                info.tile = id;
+            else if (typeof config.type === 'string' &&
+                config.type.includes(':')) {
+                const parts = config.type.split(':').map((t) => t.trim());
+                if (parts[0].toLowerCase() === 'spread') {
+                    parts.shift();
+                }
+                config.grow = parts[0] || '0';
+                config.decrement = parts[1] || '100';
+                config.flags = config.flags + '|' + parts[2];
             }
-            else {
-                throw new Error('Invalid tile spawn config: ' + id);
-            }
-            if (!info.tile) {
-                throw new Error('Must have tile.');
-            }
-            const match = (_g = config.matchTile) !== null && _g !== void 0 ? _g : config.match;
-            if (typeof match === 'string') {
-                info.matchTile = match;
-            }
-            else if (match) {
-                throw new Error('Invalid tile spawn match tile: ' + config.matchTile);
-            }
-            dest.tile = info;
-            return true;
+            this.grow = Number.parseInt(config.grow || 0);
+            this.decrement = Number.parseInt(config.decrement || 100);
+            this.flags = GWU__namespace.flag.from(Effect, config.flags || 0);
+            this.matchTile = config.matchTile || '';
         }
-        fire(effect, map, x, y, ctx) {
-            if (!effect.tile)
-                return false; // did nothing
-            const id = effect.tile.tile;
-            const tile = tiles[id] || null;
-            if (!tile) {
-                throw new Error('Failed to find tile for effect: ' + id);
-            }
-            const abortIfBlocking = !!(effect.flags & Effect.E_ABORT_IF_BLOCKS_MAP);
-            const isBlocking = !!(abortIfBlocking &&
-                !(effect.flags & Effect.E_PERMIT_BLOCKING) &&
-                (tile.blocksPathing() ||
-                    effect.flags & Effect.E_TREAT_AS_BLOCKING));
+        clone() {
+            const other = super.clone();
+            other.grow = this.grow;
+            other.decrement = this.decrement;
+            other.matchTile = this.matchTile;
+            return other;
+        }
+        trigger(xy, ctx = {}) {
+            const abortIfBlocking = !!(this.flags & Effect.E_ABORT_IF_BLOCKS_MAP);
             let didSomething = false;
-            didSomething = computeSpawnMap(effect, map, x, y, ctx);
+            const map = xy.map;
+            const spawnMap = GWU__namespace.grid.alloc(map.width, map.height);
+            didSomething = computeSpawnMap(this, xy, spawnMap);
             if (!didSomething) {
+                GWU__namespace.grid.free(spawnMap);
                 return false;
             }
-            if (abortIfBlocking &&
-                isBlocking &&
-                this.mapDisruptedBy(map, ctx.grid)) {
-                // GWU.grid.free(spawnMap);
+            if (abortIfBlocking && mapDisruptedBy(map, spawnMap)) {
+                GWU__namespace.grid.free(spawnMap);
                 return false;
             }
-            if (effect.flags & Effect.E_EVACUATE_CREATURES) {
+            if (this.flags & Effect.E_EVACUATE_CREATURES) {
                 // first, evacuate creatures, so that they do not re-trigger the tile.
-                if (evacuateCreatures(map, ctx.grid)) {
+                if (evacuateCreatures(map, spawnMap)) {
                     didSomething = true;
                 }
             }
-            if (effect.flags & Effect.E_EVACUATE_ITEMS) {
+            if (this.flags & Effect.E_EVACUATE_ITEMS) {
                 // first, evacuate items, so that they do not re-trigger the tile.
-                if (evacuateItems(map, ctx.grid)) {
+                if (evacuateItems(map, spawnMap)) {
                     didSomething = true;
                 }
             }
-            if (effect.flags & Effect.E_CLEAR_CELL) {
+            if (this.flags & Effect.E_CLEAR_CELL) {
                 // first, clear other tiles (not base/ground)
-                if (clearCells(map, ctx.grid, effect.flags)) {
+                if (clearCells(map, spawnMap, this.flags)) {
                     didSomething = true;
                 }
             }
-            const spawned = spawnTiles(effect.flags, ctx.grid, map, tile, effect.tile.volume, ctx.machine);
-            return spawned;
+            spawnMap.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                spawnMap[x][y] = 1; // convert from generations to off/on/success
+                for (let eff of this.effects) {
+                    if (eff({ map, x, y }, ctx)) {
+                        didSomething = true;
+                        spawnMap[x][y] = 2;
+                    }
+                }
+            });
+            if (this.next) {
+                const nextAlways = !!(this.flags & Effect.E_NEXT_ALWAYS);
+                if (didSomething || nextAlways) {
+                    if (this.flags & Effect.E_NEXT_EVERYWHERE) {
+                        spawnMap.forEach((v, x, y) => {
+                            if (!v)
+                                return;
+                            if (v == 2 || nextAlways) {
+                                this.next.trigger({ map, x, y }, ctx);
+                            }
+                        });
+                    }
+                    else {
+                        this.next.trigger({ map, x: xy.x, y: xy.y }, ctx);
+                    }
+                }
+            }
+            GWU__namespace.grid.free(spawnMap);
+            return didSomething;
         }
-        mapDisruptedBy(map, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
-            const walkableGrid = GWU__namespace.grid.alloc(map.width, map.height);
-            let disrupts = false;
-            // Get all walkable locations after lake added
-            GWU__namespace.xy.forRect(map.width, map.height, (i, j) => {
-                const lakeX = i + blockingToMapX;
-                const lakeY = j + blockingToMapY;
-                if (blockingGrid.get(lakeX, lakeY)) {
-                    if (map.cell(i, j).isStairs()) {
+    }
+    function mapDisruptedBy(map, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
+        const walkableGrid = GWU__namespace.grid.alloc(map.width, map.height);
+        let disrupts = false;
+        // Get all walkable locations after lake added
+        GWU__namespace.xy.forRect(map.width, map.height, (i, j) => {
+            const lakeX = i + blockingToMapX;
+            const lakeY = j + blockingToMapY;
+            if (blockingGrid.get(lakeX, lakeY)) {
+                if (map.cell(i, j).isStairs()) {
+                    disrupts = true;
+                }
+            }
+            else if (!map.cell(i, j).blocksMove()) {
+                walkableGrid[i][j] = 1;
+            }
+        });
+        let first = true;
+        for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
+            for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
+                if (walkableGrid[i][j] == 1) {
+                    if (first) {
+                        walkableGrid.floodFill(i, j, 1, 2);
+                        first = false;
+                    }
+                    else {
                         disrupts = true;
                     }
                 }
-                else if (!map.cell(i, j).blocksMove()) {
-                    walkableGrid[i][j] = 1;
-                }
-            });
-            let first = true;
-            for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
-                for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-                    if (walkableGrid[i][j] == 1) {
-                        if (first) {
-                            walkableGrid.floodFill(i, j, 1, 2);
-                            first = false;
-                        }
-                        else {
-                            disrupts = true;
-                        }
-                    }
-                }
-            }
-            // console.log('WALKABLE GRID');
-            // walkableGWU.grid.dump();
-            GWU__namespace.grid.free(walkableGrid);
-            return disrupts;
-        }
-    }
-    installHandler('tile', new SpawnEffect());
-    // tick
-    // Spawn
-    function spawnTiles(flags, spawnMap, map, tile, volume = 0, machine) {
-        let i, j;
-        let accomplishedSomething;
-        accomplishedSomething = false;
-        const blockedByOtherLayers = !!(flags & Effect.E_BLOCKED_BY_OTHER_LAYERS);
-        const superpriority = !!(flags & Effect.E_SUPERPRIORITY);
-        const blockedByActors = !!(flags & Effect.E_BLOCKED_BY_ACTORS);
-        const blockedByItems = !!(flags & Effect.E_BLOCKED_BY_ITEMS);
-        // const applyEffects = ctx.refreshCell;
-        volume = volume || 0; // (tile ? tile.volume : 0);
-        for (i = 0; i < spawnMap.width; i++) {
-            for (j = 0; j < spawnMap.height; j++) {
-                if (!spawnMap[i][j])
-                    continue; // If it's not flagged for building in the spawn map,
-                // const isRoot = spawnMap[i][j] === 1;
-                spawnMap[i][j] = 0; // so that the spawnmap reflects what actually got built
-                const cell = map.cell(i, j);
-                if (cell.hasTile(tile)) ;
-                else if (map.setTile(i, j, tile, {
-                    volume,
-                    superpriority,
-                    blockedByOtherLayers,
-                    blockedByActors,
-                    blockedByItems,
-                    machine,
-                })) {
-                    // if the fill won't violate the priority of the most important terrain in this cell:
-                    spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
-                    // map.redrawCell(cell);
-                    // if (volume && cell.gas) {
-                    //     cell.volume += (feat.volume || 0);
-                    // }
-                    cell.flags.cell |= Cell$1.EVENT_FIRED_THIS_TURN;
-                    if (flags & Effect.E_PROTECTED) {
-                        cell.flags.cell |= Cell$1.EVENT_PROTECTED;
-                    }
-                    accomplishedSomething = true;
-                    // debug('- tile', i, j, 'tile=', tile.id);
-                }
             }
         }
-        if (accomplishedSomething) {
-            map.setMapFlag(Map$1.MAP_CHANGED);
-        }
-        return accomplishedSomething;
+        // console.log('WALKABLE GRID');
+        // walkableGWU.grid.dump();
+        GWU__namespace.grid.free(walkableGrid);
+        return disrupts;
     }
     // Spread
     function cellIsOk(effect, map, x, y, isStart) {
@@ -1488,7 +1406,7 @@
         const cell = map.cell(x, y);
         if (cell.hasCellFlag(Cell$1.EVENT_PROTECTED))
             return false;
-        if (cell.blocksEffects() && !effect.tile.matchTile && !isStart) {
+        if (cell.blocksEffects() && !effect.matchTile && !isStart) {
             return false;
         }
         if (effect.flags & Effect.E_BUILD_IN_WALLS) {
@@ -1518,29 +1436,26 @@
                 return false;
         }
         // if (ctx.bounds && !ctx.bounds.containsXY(x, y)) return false;
-        if (effect.tile.matchTile &&
-            !isStart &&
-            !cell.hasTile(effect.tile.matchTile)) {
+        if (effect.matchTile && !isStart && !cell.hasTile(effect.matchTile)) {
             return false;
         }
         return true;
     }
-    function computeSpawnMap(effect, map, x, y, ctx) {
+    function computeSpawnMap(effect, loc, spawnMap) {
         let i, j, dir, t, x2, y2;
         let madeChange;
         // const bounds = ctx.bounds || null;
         // if (bounds) {
         //   // Activation.debug('- bounds', bounds);
         // }
-        const config = effect.tile;
-        let startProb = config.grow || 0;
-        let probDec = config.decrement || 0;
-        const spawnMap = ctx.grid;
+        const map = loc.map;
+        let startProb = effect.grow || 0;
+        let probDec = effect.decrement || 0;
         spawnMap.fill(0);
-        if (!cellIsOk(effect, map, x, y, true)) {
+        if (!cellIsOk(effect, map, loc.x, loc.y, true)) {
             return false;
         }
-        spawnMap[x][y] = t = 1; // incremented before anything else happens
+        spawnMap[loc.x][loc.y] = t = 1; // incremented before anything else happens
         let count = 1;
         if (startProb) {
             madeChange = true;
@@ -1576,83 +1491,6 @@
         }
         return count > 0;
     }
-    // export function spreadCircle(
-    //     this: any,
-    //     ctx: Effect.EffectCtx,
-    //     spawnMap: GWU.grid.NumGrid
-    // ) {
-    //     const x = ctx.x;
-    //     const y = ctx.y;
-    //     let startProb = this.spread || 0;
-    //     let probDec = this.decrement || 0;
-    //     spawnMap.fill(0);
-    //     spawnMap[x][y] = 1; // incremented before anything else happens
-    //     let radius = 0;
-    //     startProb = startProb || 100;
-    //     if (startProb >= 100) {
-    //         probDec = probDec || 100;
-    //     }
-    //     while (map.rng.chance(startProb)) {
-    //         startProb -= probDec;
-    //         ++radius;
-    //     }
-    //     // startProb = 100;
-    //     // probDec = 0;
-    //     spawnMap.updateCircle(x, y, radius, (_v, i, j) => {
-    //         if (!cellIsOk(this, i, j, ctx)) return 0;
-    //         // const dist = Math.floor(GWU.utils.distanceBetween(x, y, i, j));
-    //         // const prob = startProb - dist * probDec;
-    //         // if (!map.rng.chance(prob)) return 0;
-    //         return 1;
-    //     });
-    //     // spawnMap[x][y] = 1;
-    //     // if (!isOk(flags, x, y, ctx)) {
-    //     //     spawnMap[x][y] = 0;
-    //     // }
-    //     return true;
-    // }
-    // export function spreadLine(
-    //     this: any,
-    //     ctx: Effect.EffectCtx,
-    //     spawnMap: GWU.grid.NumGrid
-    // ) {
-    //     let x2, y2;
-    //     let madeChange;
-    //     const x = ctx.x;
-    //     const y = ctx.y;
-    //     let startProb = this.spread || 0;
-    //     let probDec = this.decrement || 0;
-    //     spawnMap.fill(0);
-    //     spawnMap[x][y] = 1; // incremented before anything else happens
-    //     if (startProb) {
-    //         madeChange = true;
-    //         if (startProb >= 100) {
-    //             probDec = probDec || 100;
-    //         }
-    //         x2 = x;
-    //         y2 = y;
-    //         const dir = GWU.xy.DIRS[map.rng.number(4)];
-    //         while (madeChange) {
-    //             madeChange = false;
-    //             x2 = x2 + dir[0];
-    //             y2 = y2 + dir[1];
-    //             if (
-    //                 spawnMap.hasXY(x2, y2) &&
-    //                 !spawnMap[x2][y2] &&
-    //                 cellIsOk(this, x2, y2, ctx) &&
-    //                 map.rng.chance(startProb)
-    //             ) {
-    //                 spawnMap[x2][y2] = 1;
-    //                 madeChange = true;
-    //                 startProb -= probDec;
-    //             }
-    //         }
-    //     }
-    //     if (!cellIsOk(this, x, y, ctx)) {
-    //         spawnMap[x][y] = 0;
-    //     }
-    //     return true;
-    // }
     function clearCells(map, spawnMap, flags = 0) {
         let didSomething = false;
         const clearAll = (flags & Effect.E_CLEAR_CELL) === Effect.E_CLEAR_CELL;
@@ -1725,76 +1563,178 @@
         });
         return didSomething;
     }
-    class ClearTileEffect extends Handler {
-        constructor() {
-            super();
-        }
-        make(src, dest) {
-            if (!src.clear)
-                return true;
-            let config = src.clear;
-            let layers = 0;
-            if (typeof config === 'string') {
-                config = config.split(/[,|]/).map((t) => t.trim());
-            }
-            if (config === true) {
-                layers = Depth$1.ALL_LAYERS;
-            }
-            else if (typeof config === 'number') {
-                layers = config;
-            }
-            else if (Array.isArray(config)) {
-                layers = config.reduce((out, v) => {
-                    if (typeof v === 'number')
-                        return out | v;
-                    const depth = Depth$1[v] || 0;
-                    return out | depth;
-                }, 0);
-            }
-            else {
-                throw new Error('clear effect must have number or string config.');
-            }
-            dest.clear = layers;
-            return layers > 0;
-        }
-        async fire(config, map, x, y, ctx) {
-            return this.fireSync(config, map, x, y, ctx);
-        }
-        fireSync(config, map, x, y, _ctx) {
-            if (!config.clear)
-                return false;
-            if (!map)
-                return false;
-            const cell = map.cell(x, y);
-            return cell.clearDepth(config.clear);
-        }
+
+    //////////////////////////////////////////////
+    // EMIT
+    function makeEmitHandler(config) {
+        if (Array.isArray(config))
+            config = config[0];
+        if (typeof config !== 'string')
+            throw new Error('Invalid EMIT handler config - ' + config);
+        return emitEffect.bind(undefined, config);
     }
-    installHandler('clear', new ClearTileEffect());
+    function emitEffect(id, loc, ctx) {
+        return GWU__namespace.events.emit(id, loc.x, loc.y, ctx);
+    }
+    installHandler('emit', makeEmitHandler);
+
+    //////////////////////////////////////////////
+    // MESSAGE
+    function makeMessageHandler(src) {
+        if (Array.isArray(src))
+            src = src[0];
+        if (typeof src !== 'string') {
+            throw new Error('Need message for message effect.');
+        }
+        const info = {
+            msg: src,
+        };
+        return messageEffect.bind(undefined, info);
+    }
+    function messageEffect(info, loc, ctx) {
+        const seen = ctx.seen;
+        const msg = info.msg;
+        if (msg &&
+            msg.length &&
+            ctx.aware &&
+            !seen
+        // && map.isVisible(x, y)
+        ) {
+            GWU__namespace.message.addAt(loc.x, loc.y, msg, ctx);
+            return true;
+        }
+        return false;
+    }
+    installHandler('msg', makeMessageHandler);
+
+    //////////////////////////////////////////////
+    // ActivateMachine
+    function makeActivateMachine() {
+        return activateMachine.bind(undefined);
+    }
+    function activateMachine(loc, ctx) {
+        const cell = loc.map.cell(loc.x, loc.y);
+        const machine = cell.machineId;
+        if (!machine)
+            return false;
+        return loc.map.activateMachine(machine, loc.x, loc.y, ctx);
+    }
+    installHandler('activateMachine', makeActivateMachine);
+
+    function makeTileHandler(src) {
+        if (!src)
+            throw new Error('Tile effect needs configuration.');
+        if (typeof src === 'string') {
+            src = { id: src };
+        }
+        else if (Array.isArray(src)) {
+            src = { id: src[0] };
+        }
+        else if (!src.id) {
+            throw new Error('Tile effect needs configuration with id.');
+        }
+        const opts = src;
+        if (opts.id.includes('!')) {
+            opts.superpriority = true;
+        }
+        if (opts.id.includes('~')) {
+            opts.blockedByActors = true;
+            opts.blockedByItems = true;
+        }
+        opts.id = opts.id.replace(/[!~]*/g, '');
+        return tileEffect.bind(opts);
+    }
+    function tileEffect(loc, ctx) {
+        this.machine = ctx.machine || 0;
+        const didSomething = loc.map.setTile(loc.x, loc.y, this.id, this);
+        return didSomething;
+    }
+    installHandler('tile', makeTileHandler);
+
+    function makeClearHandler(config) {
+        let layers = 0;
+        if (!config) {
+            layers = Depth$1.ALL_LAYERS;
+        }
+        else if (typeof config === 'number') {
+            layers = config;
+        }
+        else if (typeof config === 'string') {
+            const parts = config.split(/[,|]/g);
+            layers = parts.reduce((out, v) => {
+                if (typeof v === 'number')
+                    return out | v;
+                const depth = Depth$1[v] || 0;
+                return out | depth;
+            }, 0);
+        }
+        else {
+            throw new Error('Invalid config for clear effect: ' + JSON.stringify(config));
+        }
+        return clearEffect.bind(undefined, layers);
+    }
+    function clearEffect(layers, loc, _ctx) {
+        if (!layers)
+            return false;
+        const cell = loc.map.cell(loc.x, loc.y);
+        return cell.clearDepth(layers);
+    }
+    installHandler('clear', makeClearHandler);
+
+    function makeFeatureHandler(id) {
+        if (Array.isArray(id))
+            id = id[0];
+        if (id && typeof id !== 'string') {
+            id = id.id;
+        }
+        if (!id || !id.length)
+            throw new Error('Feature effect needs ID');
+        return featureEffect.bind(undefined, id);
+    }
+    function featureEffect(id, loc, ctx) {
+        const feat = installedEffects[id];
+        if (!feat) {
+            throw new Error('Failed to find feature: ' + id);
+        }
+        return feat.trigger(loc, ctx);
+    }
+    installHandler('feature', makeFeatureHandler);
+    installHandler('effect', makeFeatureHandler);
+    installHandler('id', makeFeatureHandler);
 
     var index$7 = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        Handler: Handler,
         handlers: handlers,
         installHandler: installHandler,
+        effectTypes: effectTypes,
+        installType: installType,
         make: make$4,
         from: from$4,
-        reset: reset,
-        resetAll: resetAll,
-        effects: effects,
+        installedEffects: installedEffects,
         install: install$4,
         installAll: installAll$2,
-        fire: fire,
-        EmitEffect: EmitEffect,
-        FnEffect: FnEffect,
-        MessageEffect: MessageEffect,
-        ActivateMachineEffect: ActivateMachineEffect,
-        EffectEffect: EffectEffect,
-        SpawnEffect: SpawnEffect,
-        spawnTiles: spawnTiles,
+        resetAll: resetAll,
+        BasicEffect: BasicEffect,
+        makeBasicEffect: makeBasicEffect,
+        makeSpreadEffect: makeSpreadEffect,
+        SpreadEffect: SpreadEffect,
+        mapDisruptedBy: mapDisruptedBy,
         computeSpawnMap: computeSpawnMap,
         clearCells: clearCells,
         evacuateCreatures: evacuateCreatures,
-        evacuateItems: evacuateItems
+        evacuateItems: evacuateItems,
+        makeEmitHandler: makeEmitHandler,
+        emitEffect: emitEffect,
+        makeMessageHandler: makeMessageHandler,
+        messageEffect: messageEffect,
+        makeActivateMachine: makeActivateMachine,
+        activateMachine: activateMachine,
+        makeTileHandler: makeTileHandler,
+        tileEffect: tileEffect,
+        makeClearHandler: makeClearHandler,
+        clearEffect: clearEffect,
+        makeFeatureHandler: makeFeatureHandler,
+        featureEffect: featureEffect
     });
 
     GWU__namespace.color.install('cellStatusName', 'light_blue');
@@ -1857,12 +1797,12 @@
     //     }
     // }
     class Cell {
+        // toFire: Partial<Effect.EffectCtx>[] = [];
         constructor(map, x, y, groundTile) {
             this.chokeCount = 0;
             this.machineId = 0;
             this.x = -1;
             this.y = -1;
-            this.toFire = [];
             // this._entities = new CellEntities(this);
             this.flags = { cell: Cell$1.NEEDS_REDRAW };
             this.tiles = [tiles.NULL];
@@ -1983,6 +1923,8 @@
         set needsRedraw(v) {
             if (v) {
                 this.flags.cell |= Cell$1.NEEDS_REDRAW;
+                this.flags.cell &= ~Cell$1.STABLE_SNAPSHOT;
+                this.map.needsRedraw = true;
             }
             else {
                 this.flags.cell &= ~Cell$1.NEEDS_REDRAW;
@@ -2202,50 +2144,34 @@
             });
         }
         // Effects
-        needsToFire() {
-            return this.toFire.length > 0;
-        }
-        willFire(event) {
-            return !!this.toFire.find((ctx) => ctx.event === event);
-        }
-        clearEvents() {
-            this.toFire.length = 0;
-        }
         tileWithEffect(name) {
             return this.tiles.find((t) => t === null || t === void 0 ? void 0 : t.hasEffect(name)) || null;
         }
-        async fireAll() {
-            let ctx;
-            let didSomething = false;
-            for (ctx of this.toFire) {
-                didSomething =
-                    (await this.fireEvent(ctx.event, ctx)) || didSomething;
-            }
-            this.toFire.length = 0; // clear
-            return didSomething;
-        }
-        async fireEvent(event, ctx = {}) {
-            ctx.cell = this;
+        fireEvent(event, ctx = {}) {
+            // ctx.cell = this;
             let didSomething = false;
             // console.log('fire event - %s', event);
-            for (ctx.tile of this.tiles) {
-                if (!ctx.tile || !ctx.tile.effects)
+            for (const tile of this.tiles) {
+                if (!tile || !tile.effects)
                     continue;
-                const ev = ctx.tile.effects[event];
-                if (ev && (await this._activate(ev, ctx))) {
-                    didSomething = true;
+                const ev = tile.effects[event];
+                if (ev) {
+                    const r = this._activate(ev, ctx);
+                    if (r) {
+                        didSomething = true;
+                    }
                 }
             }
             return didSomething;
         }
-        async _activate(effect, ctx) {
+        _activate(effect, ctx) {
             if (typeof effect === 'string') {
-                effect = effects[effect];
+                effect = installedEffects[effect];
             }
             let didSomething = false;
             if (effect) {
                 // console.log(' - spawn event @%d,%d - %s', x, y, name);
-                didSomething = await fire(effect, this.map, this.x, this.y, ctx);
+                didSomething = effect.trigger(this, ctx);
                 // cell.debug(" - spawned");
             }
             return didSomething;
@@ -2274,20 +2200,19 @@
                 if (item.key &&
                     item.key.matches(this.x, this.y) &&
                     this.hasEffect('key')) {
-                    const tile = this.tileWithEffect('key');
-                    this.toFire.push({
-                        event: 'key',
+                    this.fireEvent('key', {
                         key: item,
                         item,
-                        tile,
-                        cell: this,
                     });
                 }
                 else if (this.hasEffect('add_item')) {
-                    const tile = this.tileWithEffect('add_item');
-                    this.toFire.push({ event: 'add_item', item, tile, cell: this });
+                    this.fireEvent('add_item', {
+                        key: item,
+                        item,
+                    });
                 }
             }
+            return true;
         }
         removeItem(item, withEffects = false) {
             let hasItems = false;
@@ -2311,22 +2236,15 @@
             // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
             if (withEffects) {
                 if (item.isKey(this.x, this.y) && this.hasEffect('no_key')) {
-                    const tile = this.tileWithEffect('no_key');
-                    this.toFire.push({
-                        event: 'no_key',
+                    this.fireEvent('no_key', {
                         key: item,
                         item,
-                        tile,
-                        cell: this,
                     });
                 }
                 else if (this.hasEffect('remove_item')) {
-                    const tile = this.tileWithEffect('remove_item');
-                    this.toFire.push({
-                        event: 'remove_item',
+                    this.fireEvent('remove_item', {
+                        key: item,
                         item,
-                        tile,
-                        cell: this,
                     });
                 }
             }
@@ -2353,35 +2271,24 @@
             // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
             if (withEffects) {
                 if (actor.isKey(this.x, this.y) && this.hasEffect('key')) {
-                    const tile = this.tileWithEffect('key');
-                    this.toFire.push({
-                        event: 'key',
+                    this.fireEvent('key', {
                         key: actor,
                         actor,
-                        tile,
-                        cell: this,
                     });
                 }
                 else if (actor.isPlayer() && this.hasEffect('add_player')) {
-                    const tile = this.tileWithEffect('add_player');
-                    this.toFire.push({
-                        event: 'add_player',
-                        actor,
+                    this.fireEvent('add_player', {
                         player: actor,
-                        tile,
-                        cell: this,
+                        actor,
                     });
                 }
                 else if (this.hasEffect('add_actor')) {
-                    const tile = this.tileWithEffect('add_actor');
-                    this.toFire.push({
-                        event: 'add_actor',
+                    this.fireEvent('add_actor', {
                         actor,
-                        tile,
-                        cell: this,
                     });
                 }
             }
+            return true;
         }
         removeActor(actor, withEffects = false) {
             let hasActor = false;
@@ -2405,36 +2312,40 @@
             // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
             if (withEffects) {
                 if (actor.isKey(this.x, this.y) && this.hasEffect('no_key')) {
-                    const tile = this.tileWithEffect('no_key');
-                    this.toFire.push({
-                        event: 'no_key',
+                    this.fireEvent('no_key', {
                         key: actor,
                         actor,
-                        tile,
-                        cell: this,
                     });
                 }
                 else if (actor.isPlayer() && this.hasEffect('remove_player')) {
-                    const tile = this.tileWithEffect('remove_player');
-                    this.toFire.push({
-                        event: 'remove_player',
+                    this.fireEvent('remove_player', {
                         actor,
                         player: actor,
-                        tile,
-                        cell: this,
                     });
                 }
                 else if (this.hasEffect('remove_actor')) {
-                    const tile = this.tileWithEffect('remove_actor');
-                    this.toFire.push({
-                        event: 'remove_actor',
+                    this.fireEvent('remove_actor', {
                         actor,
-                        tile,
-                        cell: this,
                     });
                 }
             }
             return true;
+        }
+        hasFx() {
+            return !!(this.flags.cell & Cell$1.HAS_FX);
+        }
+        get fx() {
+            return this.map.fxAt(this.x, this.y);
+        }
+        _addFx(_fx) {
+            this.setCellFlag(Cell$1.HAS_FX);
+            this.needsRedraw = true;
+        }
+        _removeFx(_fx) {
+            if (!this.fx) {
+                this.clearCellFlag(Cell$1.HAS_FX);
+            }
+            this.needsRedraw = true;
         }
         getDescription() {
             return this.highestPriorityTile().description;
@@ -2519,7 +2430,7 @@
             const cell = this.map.cell(x, y);
             return cell.clearDepth(this.depth);
         }
-        async tick(_dt) {
+        tick(_dt) {
             // Run any tick effects
             // // Bookkeeping for fire, pressure plates and key-activated tiles.
             // for (let x = 0; x < this.map.width; ++x) {
@@ -2587,7 +2498,7 @@
             this.volume.copy(other.volume);
             this.changed = other.changed;
         }
-        async tick(_dt) {
+        tick(_dt) {
             if (!this.changed)
                 return false;
             this.changed = false;
@@ -2677,7 +2588,7 @@
         constructor(map, name = 'tile') {
             super(map, name);
         }
-        async tick(_dt) {
+        tick(_dt) {
             // Run any tick effects
             // Bookkeeping for fire
             for (let x = 0; x < this.map.width; ++x) {
@@ -2692,17 +2603,17 @@
                     const cell = this.map.cell(x, y);
                     if (cell.hasTileFlag(TileFlags.T_IS_FIRE) &&
                         !(cell.flags.cell & CellFlags.CAUGHT_FIRE_THIS_TURN)) {
-                        await this.exposeToFire(x, y, false);
+                        this.exposeToFire(x, y, false);
                         for (let d = 0; d < 4; ++d) {
                             const dir = GWU__namespace.xy.DIRS[d];
-                            await this.exposeToFire(x + dir[0], y + dir[1]);
+                            this.exposeToFire(x + dir[0], y + dir[1]);
                         }
                     }
                 }
             }
             return true;
         }
-        async exposeToFire(x, y, alwaysIgnite = false) {
+        exposeToFire(x, y, alwaysIgnite = false) {
             let ignitionChance = 0, bestExtinguishingPriority = 0, explosiveNeighborCount = 0;
             let fireIgnited = false, explosivePromotion = false;
             const cell = this.map.cell(x, y);
@@ -2758,7 +2669,7 @@
                 //         }
                 //     }
                 // });
-                await cell.fireEvent(event, {
+                cell.fireEvent(event, {
                     force: true,
                 });
                 cell.needsRedraw = true;
@@ -2852,8 +2763,6 @@
             const surface = cell.tiles[Depth$1.SURFACE];
             const liquid = cell.tiles[Depth$1.LIQUID];
             const gas = cell.tiles[Depth$1.GAS]; // How to get volume!?!?!?!
-            const actor = cell.hasActor() ? cell.map.actorAt(cell.x, cell.y) : null;
-            const item = cell.hasItem() ? cell.map.itemAt(cell.x, cell.y) : null;
             dest.drawSprite(ground.sprite);
             if (surface) {
                 dest.drawSprite(surface.sprite);
@@ -2861,15 +2770,24 @@
             if (liquid) {
                 dest.drawSprite(liquid.sprite);
             }
-            if (item) {
-                item.drawInto(dest);
+            if (cell.hasItem()) {
+                const item = cell.map.itemAt(cell.x, cell.y);
+                if (item)
+                    item.drawInto(dest);
             }
-            if (actor) {
-                actor.drawInto(dest);
+            if (cell.hasActor()) {
+                const actor = cell.map.actorAt(cell.x, cell.y);
+                if (actor)
+                    actor.drawInto(dest);
             }
             if (gas) {
                 const opacity = GWU__namespace.rng.cosmetic.number(50) + 25;
                 dest.drawSprite(gas.sprite, opacity);
+            }
+            if (cell.hasFx()) {
+                const fx = cell.map.fxAt(cell.x, cell.y);
+                if (fx)
+                    dest.drawSprite(fx.sprite);
             }
             if (dest.dances) {
                 cell.setCellFlag(Cell$1.COLORS_DANCE);
@@ -2909,6 +2827,9 @@
             this.id = 'MAP';
             this.actors = [];
             this.items = [];
+            this.fx = [];
+            this._animations = [];
+            this._queuedEvents = [];
             this.width = width;
             this.height = height;
             this.flags = { map: 0 };
@@ -3004,20 +2925,31 @@
             if (!this.hasXY(x, y))
                 return false;
             const cell = this.cell(x, y);
-            cell.addItem(item, fireEffects);
-            if (!fireEffects)
+            return cell.addItem(item, fireEffects);
+        }
+        addItemNear(x, y, item, fireEffects = false) {
+            const loc = this.rng.matchingLocNear(x, y, (i, j) => {
+                if (!this.hasXY(i, j))
+                    return false;
+                const cell = this.cell(i, j);
+                if (cell.hasItem())
+                    return false;
+                if (cell.blocksMove())
+                    return false;
+                if (item.avoidsCell(cell))
+                    return false;
                 return true;
-            return cell.fireAll().then(() => true);
+            });
+            if (!loc || loc[0] < 0)
+                return false;
+            const cell = this.cell(loc[0], loc[1]);
+            return cell.addItem(item, fireEffects);
         }
         removeItem(item, fireEffects = false) {
             const cell = this.cell(item.x, item.y);
-            if (!cell.removeItem(item, fireEffects))
-                return false;
-            if (!fireEffects)
-                return true;
-            return cell.fireAll().then(() => true);
+            return cell.removeItem(item, fireEffects);
         }
-        // async moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean> {
+        //  moveItem(item: Item, dir: GWU.xy.Loc | number): boolean {
         //     if (typeof dir === 'number') {
         //         dir = GWU.xy.DIRS[dir];
         //     }
@@ -3027,8 +2959,8 @@
         //     const y = oldY + dir[1];
         //     if (!this.hasXY(x, y)) return false;
         //     const layer = this.layers[item.depth] as Layer.ItemLayer;
-        //     if (!(await layer.removeItem(item))) return false;
-        //     if (!(await this.addItem(x, y, item))) {
+        //     if (!( layer.removeItem(item))) return false;
+        //     if (!( this.addItem(x, y, item))) {
         //         layer.forceItem(item.x, item.y, item);
         //         return false;
         //     }
@@ -3066,20 +2998,31 @@
             if (!this.hasXY(x, y))
                 return false;
             const cell = this.cell(x, y);
-            cell.addActor(actor, fireEffects);
-            if (!fireEffects)
+            return cell.addActor(actor, fireEffects);
+        }
+        addActorNear(x, y, actor, fireEffects = false) {
+            const loc = this.rng.matchingLocNear(x, y, (i, j) => {
+                if (!this.hasXY(i, j))
+                    return false;
+                const cell = this.cell(i, j);
+                if (cell.hasActor())
+                    return false;
+                if (cell.blocksMove())
+                    return false;
+                if (actor.avoidsCell(cell))
+                    return false;
                 return true;
-            return cell.fireAll().then(() => true);
+            });
+            if (!loc || loc[0] < 0)
+                return false;
+            const cell = this.cell(loc[0], loc[1]);
+            return cell.addActor(actor, fireEffects);
         }
         removeActor(actor, fireEffects = false) {
             const cell = this.cell(actor.x, actor.y);
-            if (!cell.removeActor(actor, fireEffects))
-                return false;
-            if (!fireEffects)
-                return true;
-            return cell.fireAll().then(() => true);
+            return cell.removeActor(actor, fireEffects);
         }
-        // async moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean> {
+        //  moveActor(actor: Actor, dir: GWU.xy.Loc | number): boolean {
         //     if (typeof dir === 'number') {
         //         dir = GWU.xy.DIRS[dir];
         //     }
@@ -3089,8 +3032,8 @@
         //     const y = oldY + dir[1];
         //     if (!this.hasXY(x, y)) return false;
         //     const layer = this.layers[actor.depth] as Layer.ActorLayer;
-        //     if (!(await layer.removeActor(actor))) return false;
-        //     if (!(await layer.addActor(x, y, actor))) {
+        //     if (!( layer.removeActor(actor))) return false;
+        //     if (!( layer.addActor(x, y, actor))) {
         //         layer.forceActor(actor.x, actor.y, actor);
         //         return false;
         //     }
@@ -3116,6 +3059,41 @@
         //     // }
         //     return true;
         // }
+        fxAt(x, y) {
+            return this.fx.find((i) => i.isAt(x, y)) || null;
+        }
+        eachFx(cb) {
+            this.fx.forEach(cb);
+        }
+        addFx(x, y, fx) {
+            const cell = this.get(x, y);
+            if (!cell)
+                return false;
+            fx.x = x;
+            fx.y = y;
+            cell._addFx(fx);
+            this.fx.push(fx);
+            return true;
+        }
+        moveFx(fx, x, y) {
+            const current = this.get(fx.x, fx.y);
+            const updated = this.get(x, y);
+            if (!updated)
+                return false;
+            current._removeFx(fx);
+            fx.x = x;
+            fx.y = y;
+            updated._addFx(fx);
+            return true;
+        }
+        removeFx(fx) {
+            const cell = this.get(fx.x, fx.y);
+            GWU__namespace.arrayDelete(this.fx, fx);
+            if (cell) {
+                cell._removeFx(fx);
+            }
+            return true;
+        }
         // Information
         // isVisible(x: number, y: number): boolean {
         //     return this.fov.isAnyKindOfVisible(x, y);
@@ -3148,11 +3126,26 @@
         clearMapFlag(flag) {
             this.flags.map &= ~flag;
         }
+        get needsRedraw() {
+            return this.hasMapFlag(Map$1.MAP_NEEDS_REDRAW);
+        }
+        set needsRedraw(v) {
+            if (v)
+                this.setMapFlag(Map$1.MAP_NEEDS_REDRAW);
+            else
+                this.clearMapFlag(Map$1.MAP_NEEDS_REDRAW);
+        }
+        hasCellFlag(x, y, flag) {
+            return this.cell(x, y).hasCellFlag(flag);
+        }
         setCellFlag(x, y, flag) {
             this.cell(x, y).setCellFlag(flag);
         }
         clearCellFlag(x, y, flag) {
             this.cell(x, y).clearCellFlag(flag);
+        }
+        hasEntityFlag(x, y, flag) {
+            return this.cell(x, y).hasEntityFlag(flag);
         }
         clear() {
             this.light.glowLightChanged = true;
@@ -3187,9 +3180,10 @@
         }
         setTile(x, y, tile, opts) {
             if (!(tile instanceof Tile)) {
-                tile = get$3(tile);
+                const name = tile;
+                tile = get$3(name);
                 if (!tile)
-                    return false;
+                    throw new Error('Failed to find tile: ' + name);
             }
             if (opts === true) {
                 opts = { superpriority: true };
@@ -3204,10 +3198,15 @@
             const cell = this.cell(x, y);
             cell.clearTiles(tile);
         }
-        async tick(dt) {
-            let didSomething = await this.fireAll('tick');
+        tick(dt) {
+            let didSomething = false;
+            this._animations.forEach((a) => {
+                didSomething = a.tick(dt) || didSomething;
+            });
+            this._animations = this._animations.filter((a) => a.isRunning());
+            didSomething = this.fireAll('tick') || didSomething;
             for (let layer of this.layers) {
-                if (layer && (await layer.tick(dt))) {
+                if (layer && layer.tick(dt)) {
                     didSomething = true;
                 }
             }
@@ -3240,11 +3239,22 @@
             other.copy(this);
             return other;
         }
-        async fire(event, x, y, ctx = {}) {
+        queueEvent(x, y, event, ctx) {
+            this._queuedEvents.push({ event, x, y, ctx });
+        }
+        fireQueuedEvents() {
+            for (let i = 0; i < this._queuedEvents.length; ++i) {
+                const info = this._queuedEvents[i];
+                const cell = this.cell(info.x, info.y);
+                cell.fireEvent(info.event, info.ctx);
+            }
+            this._queuedEvents.length = 0;
+        }
+        fire(event, x, y, ctx = {}) {
             const cell = this.cell(x, y);
             return cell.fireEvent(event, ctx);
         }
-        async fireAll(event, ctx = {}) {
+        fireAll(event, ctx = {}) {
             let didSomething = false;
             const willFire = GWU__namespace.grid.alloc(this.width, this.height);
             // Figure out which tiles will fire - before we change everything...
@@ -3284,7 +3294,7 @@
             });
             // Then activate them - so that we don't activate the next generation as part of the forEach
             ctx.force = true;
-            await willFire.forEachAsync(async (w, x, y) => {
+            willFire.forEach((w, x, y) => {
                 if (!w)
                     return;
                 const cell = this.cell(x, y);
@@ -3292,9 +3302,8 @@
                     return;
                 for (let depth = 0; depth <= Depth$1.GAS; ++depth) {
                     if (w & GWU__namespace.flag.fl(depth)) {
-                        await cell.fireEvent(event, {
+                        cell.fireEvent(event, {
                             force: true,
-                            depth,
                         });
                     }
                 }
@@ -3302,7 +3311,7 @@
             GWU__namespace.grid.free(willFire);
             return didSomething;
         }
-        async activateMachine(machineId, originX, originY, ctx = {}) {
+        activateMachine(machineId, originX, originY, ctx = {}) {
             let didSomething = false;
             ctx.originX = originX;
             ctx.originY = originY;
@@ -3313,7 +3322,7 @@
                         continue;
                     if (cell.hasEffect('machine')) {
                         didSomething =
-                            (await cell.fireEvent('machine', ctx)) || didSomething;
+                            cell.fireEvent('machine', ctx) || didSomething;
                     }
                 }
             }
@@ -3350,6 +3359,19 @@
         }
         blocksVision(x, y) {
             return this.cell(x, y).blocksVision();
+        }
+        // redrawCell(x: number, y: number): void {
+        //     // if (clearMemory) {
+        //     //     this.clearMemory(x, y);
+        //     // }
+        //     this.cell(x, y).needsRedraw = true;
+        // }
+        // Animator
+        addAnimation(a) {
+            this._animations.push(a);
+        }
+        removeAnimation(a) {
+            GWU__namespace.arrayDelete(this._animations, a);
         }
     }
     function make$2(w, h, opts = {}, boundary) {
@@ -3448,7 +3470,7 @@
         removeItem() {
             throw new Error('Cannot remove Items from memory!');
         }
-        // async moveItem(): Promise<boolean> {
+        //  moveItem(): boolean {
         //     throw new Error('Cannot move Items on memory!');
         // }
         eachItem(cb) {
@@ -3471,7 +3493,7 @@
         removeActor() {
             throw new Error('Cannot remove Actors from memory!');
         }
-        // async moveActor(): Promise<boolean> {
+        //  moveActor(): boolean {
         //     throw new Error('Cannot move Actors on memory!');
         // }
         eachActor(cb) {
@@ -3672,13 +3694,13 @@
             }
             return flavor;
         }
-        async pickupItem(actor, item, _opts) {
+        pickupItem(actor, item, _opts) {
             if (!GWU__namespace.list.push(actor, 'items', item))
                 return false;
             // TODO - Pickup effects
             return true;
         }
-        async dropItem(actor, item, _opts) {
+        dropItem(actor, item, _opts) {
             if (!GWU__namespace.list.remove(actor, 'items', item))
                 return false;
             // TODO - Drop effects
@@ -4441,18 +4463,18 @@
             this.flags.horde = GWU__namespace.flag.from(Horde$1, config.flags);
             // if (config.requiredTile) this.requiredTile = config.requiredTile;
         }
-        async spawn(map, x = -1, y = -1, opts = {}) {
+        spawn(map, x = -1, y = -1, opts = {}) {
             var _a;
             opts.canSpawn = opts.canSpawn || GWU__namespace.TRUE;
             opts.rng = opts.rng || map.rng;
             opts.machine = (_a = opts.machine) !== null && _a !== void 0 ? _a : 0;
-            const leader = await this._spawnLeader(map, x, y, opts);
+            const leader = this._spawnLeader(map, x, y, opts);
             if (!leader)
                 return null;
-            await this._spawnMembers(leader, map, opts);
+            this._spawnMembers(leader, map, opts);
             return leader;
         }
-        async _spawnLeader(map, x, y, opts) {
+        _spawnLeader(map, x, y, opts) {
             const leaderKind = get$1(this.leader);
             if (!leaderKind) {
                 throw new Error('Failed to find leader kind = ' + this.leader);
@@ -4471,32 +4493,32 @@
                 }
             }
             // pre-placement stuff?  machine? effect?
-            if (!(await this._addLeader(leader, map, x, y, opts))) {
+            if (!this._addLeader(leader, map, x, y, opts)) {
                 return null;
             }
             return leader;
         }
-        async _addLeader(leader, map, x, y, _opts) {
+        _addLeader(leader, map, x, y, _opts) {
             return map.addActor(x, y, leader);
         }
-        async _addMember(member, map, x, y, leader, _opts) {
+        _addMember(member, map, x, y, leader, _opts) {
             member.leader = leader;
             return map.addActor(x, y, member);
         }
-        async _spawnMembers(leader, map, opts) {
+        _spawnMembers(leader, map, opts) {
             const entries = Object.entries(this.members);
             if (entries.length == 0)
                 return 0;
             let count = 0;
-            await Promise.all(entries.map(async ([kindId, countRange]) => {
+            entries.forEach(([kindId, countRange]) => {
                 const count = countRange.value(opts.rng);
                 for (let i = 0; i < count; ++i) {
-                    await this._spawnMember(kindId, map, leader, opts);
+                    this._spawnMember(kindId, map, leader, opts);
                 }
-            }));
+            });
             return count;
         }
-        async _spawnMember(kindId, map, leader, opts) {
+        _spawnMember(kindId, map, leader, opts) {
             const kind = get$1(kindId);
             if (!kind) {
                 throw new Error('Failed to find member kind = ' + kindId);
@@ -4505,14 +4527,13 @@
             if (!member)
                 throw new Error('Failed to make horde member - ' + kindId);
             const [x, y] = this._pickMemberLoc(member, map, leader, opts) || [
-                -1,
-                -1,
+                -1, -1,
             ];
             if (x < 0 || y < 0) {
                 return null;
             }
             // pre-placement stuff?  machine? effect?
-            if (!(await this._addMember(member, map, x, y, leader, opts))) {
+            if (!this._addMember(member, map, x, y, leader, opts)) {
                 return null;
             }
             return member;
@@ -4680,11 +4701,508 @@
         BasicDrawer: BasicDrawer
     });
 
+    // export class SpriteFX extends FX {
+    //     sprite: GWU.sprite.SpriteConfig;
+    //     stepCount: number;
+    //     x: number;
+    //     y: number;
+    //     constructor(
+    //         map: MapType,
+    //         sprite: string | GWU.sprite.SpriteConfig,
+    //         x: number,
+    //         y: number,
+    //         opts: SpriteFxOptions = {}
+    //     ) {
+    //         const count = opts.blink || 1;
+    //         const duration = opts.duration || 1000;
+    //         opts.speed = opts.speed || duration / (2 * count - 1);
+    //         super(map, opts);
+    //         if (typeof sprite === 'string') {
+    //             const name = sprite;
+    //             sprite = GWU.sprite.sprites[sprite];
+    //             if (!sprite) throw new Error('Cannot find sprite! ' + name);
+    //         }
+    //         this.sprite = sprite;
+    //         this.x = x || 0;
+    //         this.y = y || 0;
+    //         this.stepCount = 2 * count - 1;
+    //     }
+    //     start() {
+    //         this.map.addFx(this.x, this.y, this.sprite);
+    //         return super.start();
+    //     }
+    //     step() {
+    //         --this.stepCount;
+    //         if (this.stepCount <= 0) return this.stop();
+    //         if (this.stepCount % 2 == 0) {
+    //             this.map.removeFx(this);
+    //         } else {
+    //             this.map.addFx(this.x, this.y, this);
+    //         }
+    //     }
+    //     stop(result?: any) {
+    //         this.map.removeFx(this);
+    //         return super.stop(result);
+    //     }
+    //     moveDir(dx: number, dy: number) {
+    //         return this.moveTo(this.x + dx, this.y + dy);
+    //     }
+    //     moveTo(x: number, y: number) {
+    //         this.map.moveFx(x, y, this);
+    //         return true;
+    //     }
+    // }
+    async function flashSprite(map, x, y, sprite, duration = 100, count = 1, animator) {
+        if (typeof sprite === 'string') {
+            sprite = GWU__namespace.sprite.from(sprite);
+        }
+        const entity = make$5({ name: 'FX', sprite });
+        map.addFx(x, y, entity);
+        const tween = GWU__namespace.tween
+            .make({ visible: true })
+            .to({ visible: false })
+            .repeat(count)
+            .repeatDelay(duration)
+            .duration(duration)
+            .onUpdate((obj) => {
+            if (obj.visible) {
+                map.addFx(x, y, entity);
+            }
+            else {
+                map.removeFx(entity);
+            }
+        });
+        // realTime
+        animator = animator || GWU__namespace.loop;
+        animator.addAnimation(tween);
+        return tween.start();
+    }
+    GWU__namespace.sprite.install('bump', 'white', 50);
+    async function hit(map, target, sprite, duration, animator) {
+        sprite = sprite || 'hit';
+        duration = duration || 200;
+        await flashSprite(map, target.x, target.y, sprite, duration, 1, animator);
+    }
+    GWU__namespace.sprite.install('hit', 'red', 50);
+    async function miss(map, target, sprite, duration, animator) {
+        sprite = sprite || 'miss';
+        duration = duration || 200;
+        await flashSprite(map, target.x, target.y, sprite, duration, 1, animator);
+    }
+    GWU__namespace.sprite.install('miss', 'green', 50);
+    async function fadeInOut(map, x, y, sprite, duration = 100, animator) {
+        if (typeof sprite === 'string') {
+            sprite = GWU__namespace.sprite.from(sprite).clone();
+        }
+        else {
+            sprite = GWU__namespace.sprite.make(sprite);
+        }
+        const entity = make$5({ name: 'FX', sprite });
+        map.addFx(x, y, entity);
+        const tween = GWU__namespace.tween
+            .make({ opacity: 0 })
+            .to({ opacity: 100 })
+            .repeat(2)
+            .yoyo(true)
+            .duration(Math.floor(duration / 2))
+            .onUpdate((obj) => {
+            entity.sprite.opacity = obj.opacity;
+            map.cell(x, y).needsRedraw = true; // we changed the sprite so redraw
+        })
+            .onFinish(() => {
+            map.removeFx(entity);
+        });
+        // realTime
+        animator = animator || GWU__namespace.loop;
+        animator.addAnimation(tween);
+        return tween.start();
+    }
+    async function moveSprite(map, source, target, sprite, opts = {}) {
+        if (typeof sprite === 'string') {
+            sprite = GWU__namespace.sprite.from(sprite);
+        }
+        const entity = make$5({ name: 'FX', sprite });
+        const from = { x: GWU__namespace.xy.x(source), y: GWU__namespace.xy.y(source) };
+        map.addFx(from.x, from.y, entity);
+        let duration = opts.duration ||
+            Math.ceil(16 * (GWU__namespace.xy.maxAxisFromTo(source, target) / (opts.speed || 8)));
+        if (GWU__namespace.xy.isLoc(target)) {
+            target = { x: target[0], y: target[1] };
+        }
+        const tween = GWU__namespace.tween
+            .make(from)
+            .to(target)
+            .duration(duration)
+            .onUpdate((vals) => {
+            // tweens dont update every step, so...
+            // draw line from current pos to vals pos
+            // check each step for blocking...
+            // end at either vals or last blocking spot
+            const dest = { x: entity.x, y: entity.y };
+            const ok = GWU__namespace.xy.forLineBetween(dest.x, dest.y, vals.x, vals.y, (x, y) => {
+                if (opts.stepFn) {
+                    if (opts.stepFn(x, y)) {
+                        if (!opts.stopBeforeWalls) {
+                            dest.x = x;
+                            dest.y = y;
+                        }
+                        return false;
+                    }
+                }
+                else if (map.hasEntityFlag(x, y, Entity$1.L_BLOCKS_MOVE)) {
+                    if (!opts.stopBeforeWalls) {
+                        dest.x = x;
+                        dest.y = y;
+                    }
+                    return false;
+                }
+                dest.x = x;
+                dest.y = y;
+            });
+            map.moveFx(entity, dest.x, dest.y);
+            if (!ok) {
+                tween.stop();
+            }
+        })
+            .onFinish(() => {
+            map.removeFx(entity);
+            return entity;
+        });
+        const animator = opts.animator || map;
+        animator.addAnimation(tween);
+        return tween.start();
+    }
+    function bolt(map, source, target, sprite, opts = {}) {
+        return moveSprite(map, source, target, sprite, opts);
+    }
+    async function projectile(map, source, target, sprite, opts = {}) {
+        if (typeof sprite === 'string') {
+            sprite = GWU__namespace.sprite.from(sprite);
+        }
+        if (sprite.ch && sprite.ch.length == 4) {
+            const dir = GWU__namespace.xy.dirFromTo(source, target);
+            let index = 0;
+            if (dir[0] && dir[1]) {
+                index = 2;
+                if (dir[0] != dir[1]) {
+                    // remember up is -y
+                    index = 3;
+                }
+            }
+            else if (dir[0]) {
+                index = 1;
+            }
+            const ch = sprite.ch[index];
+            sprite = GWU__namespace.sprite.make(ch, sprite.fg, sprite.bg);
+        }
+        else if (sprite.ch && sprite.ch.length !== 1) {
+            throw new Error('projectile requires 4 chars - vert,horiz,diag-left,diag-right (e.g: "|-\\/")');
+        }
+        return moveSprite(map, source, target, sprite, opts);
+    }
+    function beam(map, from, to, sprite, opts = {}) {
+        opts.fade = opts.fade || 100;
+        if (opts.stopAtWalls === undefined)
+            opts.stopAtWalls = true;
+        const line = [];
+        GWU__namespace.xy.forLineFromTo(from, to, (x, y) => {
+            if (!map.hasXY(x, y))
+                return false;
+            if (opts.stepFn && opts.stepFn(x, y))
+                return false;
+            if (opts.stopAtWalls || opts.stopBeforeWalls) {
+                if (map.hasEntityFlag(x, y, Entity$1.L_BLOCKS_MOVE)) {
+                    if (opts.stopBeforeWalls)
+                        return false;
+                    line.push([x, y]);
+                    return false;
+                }
+            }
+            line.push([x, y]);
+            return true;
+        });
+        const duration = opts.duration || Math.ceil(16 * (line.length / (opts.speed || 8)));
+        const animator = opts.animator || map;
+        const promises = [];
+        let lastIndex = -1;
+        const tween = GWU__namespace.tween
+            .make({ index: 0 })
+            .to({ index: line.length - 1 })
+            .duration(duration)
+            .onUpdate((vals) => {
+            while (lastIndex < vals.index) {
+                ++lastIndex;
+                const loc = line[lastIndex] || [-1, -1];
+                promises.push(fadeInOut(map, loc[0], loc[1], sprite, opts.fade, animator));
+            }
+        })
+            .onFinish(async () => {
+            await Promise.all(promises);
+            const loc = line[line.length - 1];
+            return { x: loc[0], y: loc[1] };
+        });
+        animator.addAnimation(tween);
+        return tween.start();
+    }
+    function isInShape(shape, cx, cy, allowCenter, x, y) {
+        const sx = Math.abs(x - cx);
+        const sy = Math.abs(y - cy);
+        if (sx == 0 && sy == 0 && !allowCenter)
+            return false;
+        switch (shape) {
+            case '+':
+                return sx == 0 || sy == 0;
+            case 'x':
+            case 'X':
+                return sx == sy;
+            case '*':
+                return sx == 0 || sy == 0 || sx == sy;
+            default:
+                return true;
+        }
+    }
+    function checkExplosionOpts(opts) {
+        opts.speed = opts.speed || 2;
+        opts.fade = opts.fade || 100;
+        opts.shape = opts.shape || 'o';
+        if (opts.center === undefined) {
+            opts.center = true;
+        }
+    }
+    function explosion(map, x, y, radius, sprite, opts = {}) {
+        checkExplosionOpts(opts);
+        opts.animator = opts.animator || map;
+        // opts.stepFn = opts.stepFn || ((x, y) => !map.isObstruction(x, y));
+        if (typeof sprite === 'string') {
+            sprite = GWU__namespace.sprite.from(sprite);
+        }
+        const grid = GWU__namespace.grid.alloc(map.width, map.height);
+        const fov = new GWU__namespace.fov.FOV({
+            isBlocked(x, y) {
+                return map.hasEntityFlag(x, y, Entity$1.L_BLOCKS_MOVE);
+            },
+            hasXY(x, y) {
+                return map.hasXY(x, y);
+            },
+        });
+        fov.calculate(x, y, radius, (x1, y1) => {
+            grid[x1][y1] = 1;
+        });
+        const duration = opts.duration || 32 * (radius / opts.speed);
+        const promises = [];
+        const tween = GWU__namespace.tween
+            .make({ r: 0 })
+            .to({ r: radius })
+            .duration(duration)
+            .onUpdate((vals) => {
+            const minX = Math.max(0, x - vals.r);
+            const minY = Math.max(0, y - vals.r);
+            const maxX = Math.min(map.width - 1, x + vals.r);
+            const maxY = Math.min(map.height - 1, y + vals.r);
+            for (let x1 = minX; x1 <= maxX; ++x1) {
+                for (let y1 = minY; y1 <= maxY; ++y1) {
+                    if (grid[x1][y1] &&
+                        GWU__namespace.xy.distanceBetween(x, y, x1, y1) <= vals.r) {
+                        grid[x1][y1] = 0;
+                        if (isInShape(opts.shape, x, y, opts.center, x1, y1)) {
+                            promises.push(fadeInOut(map, x1, y1, sprite, opts.fade, opts.animator));
+                        }
+                    }
+                }
+            }
+        })
+            .onFinish(async (_obj, success) => {
+            GWU__namespace.grid.free(grid);
+            await Promise.all(promises);
+            return success;
+        });
+        opts.animator.addAnimation(tween);
+        return tween.start();
+    }
+    /*
+    export function explosionFor(
+        map: MapType,
+        grid: GWU.grid.NumGrid,
+        x: number,
+        y: number,
+        radius: number,
+        sprite: string | GWU.sprite.SpriteConfig,
+        opts: ExplosionOptions = {}
+    ) {
+        checkExplosionOpts(opts);
+        // opts.stepFn = opts.stepFn || ((x, y) => !map.isObstruction(x, y));
+        const animation = new ExplosionFX(
+            map,
+            grid,
+            x,
+            y,
+            radius,
+            sprite,
+            opts.speed,
+            opts.fade,
+            opts.shape,
+            opts.center,
+            opts.stepFn
+        );
+        return opts.playFn!(animation);
+    }
+    */
+
+    var fx = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        flashSprite: flashSprite,
+        hit: hit,
+        miss: miss,
+        fadeInOut: fadeInOut,
+        moveSprite: moveSprite,
+        bolt: bolt,
+        projectile: projectile,
+        beam: beam,
+        explosion: explosion
+    });
+
+    // These are the minimal set of tiles to make the diggers work
+    install$3('NULL', {
+        ch: '\u2205',
+        fg: 'white',
+        bg: 'black',
+        flags: 'L_BLOCKS_MOVE',
+        name: 'eerie nothingness',
+        article: 'an',
+        priority: 0,
+    });
+    install$3('FLOOR', {
+        ch: '\u00b7',
+        fg: GWU__namespace.color.from([30, 30, 30]).rand(20, 0, 0, 0),
+        bg: GWU__namespace.color.from([2, 2, 10]).rand(0, 2, 2, 0),
+        priority: 10,
+        article: 'the',
+        flavor: 'the stone floor',
+    });
+    install$3('DOOR', {
+        ch: '+',
+        fg: [100, 40, 40],
+        bg: [30, 60, 60],
+        priority: 30,
+        flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
+        article: 'a',
+        effects: {
+            enter: 'TILE:DOOR_OPEN',
+            open: 'TILE:DOOR_OPEN_ALWAYS',
+        },
+        flavor: 'a closed door',
+    });
+    install$3('DOOR_OPEN', 'DOOR', {
+        ch: "'",
+        fg: [100, 40, 40],
+        bg: [30, 60, 60],
+        priority: 40,
+        flags: '!L_BLOCKS_ITEMS, !L_BLOCKS_VISION',
+        name: 'open door',
+        article: 'an',
+        effects: {
+            tick: {
+                chance: 100 * 100,
+                effects: 'TILE:DOOR~!',
+            },
+            enter: null,
+            open: null,
+            close: 'TILE:DOOR~!',
+        },
+        flavor: 'an open door',
+    });
+    install$3('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
+        effects: {
+            tick: null,
+            close: 'TILE:DOOR~!',
+        },
+        flavor: 'an open door',
+    });
+    install$3('UP_STAIRS', {
+        ch: '<',
+        fg: [100, 50, 50],
+        bg: [40, 20, 20],
+        priority: 200,
+        flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+        name: 'upward staircase',
+        article: 'an',
+        effects: {
+            player: 'EMIT:UP_STAIRS',
+        },
+        flavor: 'stairs leading upwards',
+    });
+    install$3('DOWN_STAIRS', {
+        ch: '>',
+        fg: [100, 50, 50],
+        bg: [40, 20, 20],
+        priority: 200,
+        flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+        name: 'downward staircase',
+        article: 'a',
+        effects: {
+            player: 'EMIT:DOWN_STAIRS',
+        },
+        flavor: 'downward leading stairs',
+    });
+    install$3('WALL', {
+        ch: '#',
+        fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
+        bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
+        priority: 100,
+        flags: 'L_WALL_FLAGS',
+        article: 'a',
+        name: 'stone wall',
+        description: 'A wall made from rough cut stone.',
+        flavor: 'a rough stone wall',
+    });
+    install$3('IMPREGNABLE', {
+        ch: '#',
+        fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
+        bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
+        priority: 100,
+        flags: 'L_WALL_FLAGS, IMPREGNABLE',
+        article: 'a',
+        name: 'impregnable wall',
+        description: 'A wall made from very hard stone.',
+        flavor: 'a very hard wall',
+    });
+    install$3('LAKE', {
+        ch: '~',
+        fg: GWU__namespace.color.from([5, 8, 20]).dance(10, 0, 4, 15),
+        bg: GWU__namespace.color.from([10, 15, 41]).dance(6, 5, 5, 5),
+        priority: 50,
+        flags: 'T_DEEP_WATER',
+        name: 'deep water',
+        article: 'the',
+        flavor: 'some deep water',
+    });
+    install$3('SHALLOW', {
+        ch: '\u00b7',
+        fg: GWU__namespace.color.from([5, 8, 10]).dance(10, 0, 4, 15),
+        bg: GWU__namespace.color.from([10, 30, 30]).dance(6, 0, 10, 10),
+        priority: 20,
+        name: 'shallow water',
+        article: 'the',
+        depth: 'SURFACE',
+        flavor: 'some shallow water',
+    });
+    install$3('BRIDGE', {
+        ch: '=',
+        fg: [100, 40, 40],
+        priority: 40,
+        depth: 'SURFACE',
+        flags: 'T_BRIDGE, L_VISUALLY_DISTINCT',
+        article: 'a',
+        groundTile: 'LAKE',
+        flavor: 'a bridge',
+    });
+
     exports.actor = index$4;
     exports.draw = index;
     exports.effect = index$7;
     exports.entity = index$9;
     exports.flags = index$a;
+    exports.fx = fx;
     exports.horde = index$1;
     exports.item = index$3;
     exports.layer = index$6;

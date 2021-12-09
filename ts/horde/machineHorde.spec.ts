@@ -50,7 +50,7 @@ describe('Mixed Item Library', () => {
         });
     });
 
-    test('Tinker Room', async () => {
+    test('Tinker Room', () => {
         const map = GWM.map.make(80, 34, { seed: 12345 });
         map.properties.depth = 1;
 
@@ -62,7 +62,7 @@ describe('Mixed Item Library', () => {
             lakes: false,
         });
 
-        await digger.create(map);
+        digger.create(map);
 
         // const room = GWD.blueprint.install('INVENTOR_ROOM', {
         //     size: '20-50',
@@ -75,13 +75,13 @@ describe('Mixed Item Library', () => {
         //     // blueprints: [room],
         //     // log: true,
         // });
-        // await builder.build(map, room, 63, 8);
+        //  builder.build(map, room, 63, 8);
 
         const horde = GWM.horde.random('SCIENTIST');
         expect(horde).toBe(GWM.horde.hordes.INVENTOR);
 
         if (horde) {
-            const result = await horde.spawn(map);
+            const result = horde.spawn(map);
             expect(result).toBeTruthy();
         }
 

@@ -155,12 +155,12 @@ export class MapSite implements BUILD.BuildSite {
     hasActor(x: number, y: number): boolean {
         return this.map.hasActor(x, y);
     }
-    async spawnHorde(
+    spawnHorde(
         horde: GWM.horde.Horde,
         x: number,
         y: number,
         opts: Partial<GWM.horde.SpawnOptions> = {}
-    ): Promise<GWM.actor.Actor | null> {
+    ): GWM.actor.Actor | null {
         return horde.spawn(this.map, x, y, opts);
     }
 
@@ -278,13 +278,9 @@ export class MapSite implements BUILD.BuildSite {
         }
         this.needsAnalysis = false;
     }
-    async buildEffect(
-        effect: GWM.effect.EffectInfo,
-        x: number,
-        y: number
-    ): Promise<boolean> {
+    buildEffect(effect: GWM.effect.Effect, x: number, y: number): boolean {
         this.needsAnalysis = true;
-        return GWM.effect.fire(effect, this.map, x, y, { rng: this.rng });
+        return effect.trigger({ map: this.map, x, y }, { rng: this.rng });
     }
 
     nextMachineId(): number {
