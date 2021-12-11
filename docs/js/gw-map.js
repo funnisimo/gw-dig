@@ -342,7 +342,7 @@
         //     HORDE_SACRIFICE_TARGET,
     })(Horde$1 || (Horde$1 = {}));
 
-    var index$a = /*#__PURE__*/Object.freeze({
+    var index$d = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get Depth () { return Depth$1; },
         get Entity () { return Entity$1; },
@@ -577,19 +577,412 @@
             return 1;
         }
     }
-    function make$5(opts, makeOpts = {}) {
+    function make$6(opts, makeOpts = {}) {
         const kind = new EntityKind(opts);
         return kind.make(makeOpts);
     }
 
-    var index$9 = /*#__PURE__*/Object.freeze({
+    var index$c = /*#__PURE__*/Object.freeze({
         __proto__: null,
         KeyInfo: KeyInfo,
         makeKeyInfo: makeKeyInfo,
         EntityKind: EntityKind,
-        make: make$5,
+        make: make$6,
         Entity: Entity
     });
+
+    class PainMessages {
+        constructor(msgs = []) {
+            this._msgs = [];
+            msgs.forEach((m) => this.add(m));
+        }
+        add(msg) {
+            this._msgs.push(msg);
+            return this;
+        }
+        get(pct, singular = true) {
+            const index = GWU__namespace.clamp(Math.floor(pct * this._msgs.length), 0, this._msgs.length - 1);
+            const msg = this._msgs[index];
+            return this._format(msg, singular);
+        }
+        _format(msg, singular = true) {
+            return msg.replace(/\[(\w+)\|?(\w*)\]/g, singular ? '$1' : '$2');
+        }
+    }
+    const painMessages = {};
+    function installPain(id, pain) {
+        if (Array.isArray(pain)) {
+            pain = new PainMessages(pain);
+        }
+        painMessages[id] = pain;
+    }
+    function getPain(id) {
+        const m = painMessages[id];
+        if (!m)
+            throw new Error('No such pain message index: ' + id);
+        return m;
+    }
+
+    class Stats {
+        constructor(opts = {}) {
+            this._max = {};
+            this._rate = {};
+            this._value = {};
+            this.init(opts);
+        }
+        get(name) {
+            return this._value[name];
+        }
+        max(name) {
+            return this._max[name] || 0;
+        }
+        regen(name) {
+            return this._rate[name] || null;
+        }
+        init(opts) {
+            for (let name in opts) {
+                this.set(name, opts[name]);
+            }
+        }
+        set(name, v, max) {
+            if (typeof v !== 'number') {
+                const r = GWU__namespace.range.make(v);
+                v = r.value();
+            }
+            this._value[name] = v;
+            this._max[name] = max || v;
+        }
+        gain(name, amount, allowOver = false) {
+            if (typeof amount !== 'number') {
+                amount = GWU__namespace.range.value(amount);
+            }
+            let v = this._value[name] + amount;
+            if (!allowOver) {
+                v = Math.min(v, this._max[name]);
+            }
+            this._value[name] = v;
+        }
+        drain(name, amount) {
+            if (typeof amount !== 'number') {
+                amount = GWU__namespace.range.value(amount);
+            }
+            this._value[name] = Math.max(0, this._value[name] - amount);
+        }
+        raiseMax(name, amount, raiseValue = true) {
+            if (typeof amount !== 'number') {
+                amount = GWU__namespace.range.value(amount);
+            }
+            this._max[name] += amount;
+            if (raiseValue) {
+                this.gain(name, amount);
+            }
+        }
+        reduceMax(name, amount, lowerValue = false) {
+            if (typeof amount !== 'number') {
+                amount = GWU__namespace.range.value(amount);
+            }
+            this._max[name] = Math.max(0, this._max[name] - amount);
+            if (lowerValue) {
+                this.drain(name, amount);
+            }
+        }
+        setRegen(name, turns, count = 1) {
+            const r = (this._rate[name] = this._rate[name] || { elapsed: 0 });
+            r.turns = turns;
+            r.count = count;
+        }
+        regenAll() {
+            for (let name in this._max) {
+                const r = this._rate[name];
+                r.elapsed += 1;
+                if (r.elapsed >= r.turns) {
+                    this.gain(name, r.count);
+                    r.elapsed -= r.turns;
+                }
+            }
+        }
+        restore(name, value) {
+            if (value === undefined)
+                value = this._max[name];
+            this._value[name] = value;
+        }
+        adjust(name, type, amount) {
+            amount = GWU__namespace.range.from(amount);
+            const v = amount.value();
+            const c = this.get(name);
+            if (type === 'inc') {
+                this.gain(name, amount);
+            }
+            else if (type === 'dec') {
+                this.drain(name, amount);
+            }
+            else if (type === 'set') {
+                this.set(name, amount);
+            }
+            else if (type === 'min') {
+                const v = amount.value();
+                if (this.get(name) < v) {
+                    this.set(name, v);
+                }
+            }
+            else if (type === 'max') {
+                if (this.get(name) > v) {
+                    this.set(name, v);
+                }
+            }
+            else {
+                throw new Error('Invalid stat adjust type: ' + type);
+            }
+            return c !== this.get(name);
+        }
+    }
+
+    class Status {
+        constructor() {
+            this._set = {};
+            this._time = {};
+            this._count = {};
+            this._done = {};
+            this._value = {};
+            this.changed = null;
+        }
+        clear(name) {
+            this.clearTime(name);
+            this.clearCount(name);
+            this.setOff(name);
+            return this._update(name);
+        }
+        get(name) {
+            return this._value[name] || false;
+        }
+        has(name) {
+            return this._value[name] || false;
+        }
+        _addDone(name, done) {
+            if (done) {
+                if (!this._done[name]) {
+                    this._done[name] = done;
+                }
+            }
+        }
+        /**
+         * Sets the count for a status variable.
+         * If setting the count turns on the status (it was off),
+         * then this function returns true.  Otherwise, false.
+         * The done variable is only set if there is no other done function
+         * already for this status.
+         * @param {string} name The name of the status to set.
+         * @param {number} count The count to set.
+         * @param {function} [done] The function to call whenever the count goes to 0.
+         * @returns {boolean} Whether or not setting the count turned the status on.
+         */
+        setCount(name, count, done) {
+            const status = this;
+            status._count[name] = Math.max(count, status._count[name] || 0);
+            this._addDone(name, done);
+            return this._update(name);
+        }
+        /**
+         * Increments the count for the status by the given amount (1=default)
+         * If incrementing the count turns on the status (it was off),
+         * then this function returns true.  Otherwise, false.
+         * The done variable is only set if there is no other done function
+         * already for this status.
+         * @param {string} name The name of the status to set.
+         * @param {number} [count=1] The count to incrmeent.
+         * @param {function} [done] The function to call whenever the count goes to 0.
+         * @returns {boolean} Whether or not incrementing the count turned the status on.
+         */
+        increment(name, count = 1, done) {
+            if (typeof count == 'function') {
+                done = count;
+                count = 1;
+            }
+            const status = this;
+            status._count[name] = (status._count[name] || 0) + count;
+            this._addDone(name, done);
+            return this._update(name);
+        }
+        /**
+         * Decrements the count for the status by the given amount (1=default)
+         * If decrementing the count turns off the status (it was on),
+         * then this function returns true.  Otherwise, false.
+         * Also, if the status is turned off, and a done function was set, then it
+         * is called.
+         * @param {string} name The name of the status to adjust.
+         * @param {number} [count=1] The count to decrement.
+         * @returns {boolean} Whether or not decrementing the count turned the status off.
+         */
+        decrement(name, count = 1) {
+            const status = this;
+            status._count[name] = Math.max(0, (status._count[name] || 0) - count);
+            return this._update(name);
+        }
+        /**
+         * Clears all counts from the given status.
+         * If clearing the count turns off the status (it was on),
+         * then this function returns true.  Otherwise, false.
+         * Also, if the status is turned off, and a done function was set, then it
+         * is called.
+         * @param {string} name The name of the status to adjust.
+         * @returns {boolean} Whether or not decrementing the count turned the status off.
+         */
+        clearCount(name) {
+            const status = this;
+            status._count[name] = 0;
+            return this._update(name);
+        }
+        /**
+         * Turns on the given status.
+         * @param {string} name The status to adjust.
+         * @param {function} [done] The function to call when the status is turned off.
+         * @returns {boolean} True if this turns on the status. (It could be on because of a time or count).
+         */
+        setOn(name, done) {
+            const status = this;
+            status._set[name] = true;
+            this._addDone(name, done);
+            return this._update(name);
+        }
+        /**
+         * Turns off the given status.
+         *
+         * @param {string} name The status to adjust.
+         * @returns {boolean} True if this turns off the status. (It could be on because of a time or count).
+         */
+        setOff(name) {
+            const status = this;
+            status._set[name] = false;
+            return this._update(name);
+        }
+        /**
+         * Sets the time for a status variable.
+         * If setting the time turns on the status (it was off),
+         * then this function returns true.  Otherwise, false.
+         * The done variable is only set if there is no other done function
+         * already for this status.
+         * @param {string} name The name of the status to set.
+         * @param {GWU.range.RangeBase} time The time value to set.
+         * @param {function} [done] The function to call whenever the status goes false.
+         * @returns {boolean} Whether or not setting the time turned the status on.
+         */
+        setTime(name, value, done) {
+            const status = this;
+            // if (value === true) {
+            //   return RUT.Status.setOn(source, name, done);
+            // }
+            value = GWU__namespace.range.make(value).value();
+            const current = status._time[name] || 0;
+            status._time[name] = Math.max(value, current);
+            this._addDone(name, done);
+            return this._update(name);
+        }
+        /**
+         * Adds to the time for a status variable.
+         * If adding to the time turns on the status (it was off),
+         * then this function returns true.  Otherwise, false.
+         * The done variable is only set if there is no other done function
+         * already for this status.
+         * @param {string} name The name of the status to set.
+         * @param {GWU.range.RangeBase} time The time value to add.
+         * @param {function} [done] The function to call whenever the status goes false.
+         * @returns {boolean} Whether or not adding the time turned the status on.
+         */
+        addTime(name, value = 1, done) {
+            if (typeof value == 'function') {
+                done = value;
+                value = 1;
+            }
+            const status = this;
+            // if (value === true) {
+            //   return RUT.Status.setOn(source, name, done);
+            // }
+            value = GWU__namespace.range.make(value).value();
+            status._time[name] = (status._time[name] || 0) + value;
+            this._addDone(name, done);
+            return this._update(name);
+        }
+        /**
+         * Removes time for a status variable.
+         * If removing to the time turns off the status (it was on),
+         * then this function returns true.  Otherwise, false.
+         * @param {string} name The name of the status to set.
+         * @param {GWU.range.RangeBase} time The time value to remove.
+         * @returns {boolean} Whether or not removing the time turned the status off.
+         */
+        removeTime(name, value = 1) {
+            const status = this;
+            value = GWU__namespace.range.make(value).value();
+            status._time[name] = Math.max(0, (status._time[name] || 0) - value);
+            return this._update(name);
+        }
+        /**
+         * Removes all time for a status variable.
+         * If removing to the time turns off the status (it was on),
+         * then this function returns true.  Otherwise, false.
+         * @param {string} name The name of the status to set.
+         * @returns {boolean} Whether or not removing the time turned the status off.
+         */
+        clearTime(name) {
+            const status = this;
+            status._time[name] = 0;
+            return this._update(name);
+        }
+        /**
+         * Removes time for all status variables that have time.
+         * If removing the time turns off any status (it was on),
+         * then this function returns an object with all of those statuses as keys and false as the values.  Otherwise, false.
+         * @param {Status|object} source The object to set the status on.  If object.status is set then that is where the values are updated.
+         * @param {string} name The name of the status to set.
+         * @returns {boolean|object} false or an object with the names of the statuses that were cleared as keys and false as the values.
+         */
+        decayAllTimes(delta = 1) {
+            const status = this;
+            const cleared = {};
+            let noticed = false;
+            for (let name in status._time) {
+                if (this.removeTime(name, delta)) {
+                    noticed = true;
+                    cleared[name] = false;
+                }
+            }
+            return noticed ? cleared : false;
+        }
+        /**
+         * Updates the value of the status and returns whether or not this change
+         * turned the status on or off (true = change, false = no change)
+         * @param {string} name The name of the status to update
+         * @returns {boolean} True if the value was turned on or off, False otherwise.
+         */
+        _update(name) {
+            const status = this;
+            const rec = this._value;
+            let was = rec[name];
+            let value = (rec[name] =
+                status._set[name] ||
+                    status._time[name] > 0 ||
+                    status._count[name] > 0 ||
+                    false);
+            const doneFn = this._done[name];
+            if (!value && doneFn) {
+                doneFn(this, name);
+                status._done[name] = null;
+            }
+            if (was && !value) {
+                if (this.changed)
+                    this.changed(this, name);
+                // console.log('called changed: false');
+                return true;
+            }
+            else if (!was && value) {
+                if (this.changed)
+                    this.changed(this, name);
+                // console.log('called changed: true');
+                return true;
+            }
+            return false;
+        }
+    }
 
     class Actor extends Entity {
         constructor(kind) {
@@ -604,6 +997,8 @@
             this.flags.actor = 0;
             this.depth = Depth$1.ACTOR;
             this.kind = kind;
+            this.stats = new Stats();
+            this.status = new Status();
         }
         copy(other) {
             super.copy(other);
@@ -663,7 +1058,18 @@
         isAbleToSense(entity) {
             return this.kind.isAbleToSense(this, entity);
         }
+        ////////////////// ACTOR
+        async act() {
+            return true;
+        }
         ////////////////// INVENTORY
+        avoidsItem(_item) {
+            return false;
+        }
+        canAddItem(_item) {
+            return false;
+        }
+        addItem(_item) { }
         pickupItem(item, opts) {
             return this.kind.pickupItem(this, item, opts);
         }
@@ -795,7 +1201,7 @@
     //     }
     //     return handler(parts);
     // }
-    function make$4(opts) {
+    function make$5(opts) {
         if (!opts)
             throw new Error('opts required to make effect.');
         let config = {};
@@ -896,7 +1302,7 @@
             });
         }
         if (config.next) {
-            effect.next = make$4(config.next);
+            effect.next = make$5(config.next);
         }
         return effect;
     }
@@ -912,7 +1318,7 @@
                 return effect;
             throw new Error('Unknown effect - ' + opts);
         }
-        return make$4(opts);
+        return make$5(opts);
     }
     function isEffect(obj) {
         return typeof obj === 'object' && 'trigger' in obj;
@@ -920,14 +1326,14 @@
     //////////////////////////////
     // INSTALL
     const installedEffects = {};
-    function install$4(id, config) {
-        const effect = isEffect(config) ? config.clone() : make$4(config);
+    function install$5(id, config) {
+        const effect = isEffect(config) ? config.clone() : make$5(config);
         installedEffects[id] = effect;
         return effect;
     }
     function installAll$2(effects) {
         Object.entries(effects).forEach(([id, config]) => {
-            install$4(id, config);
+            install$5(id, config);
         });
     }
     function resetAll() {
@@ -1058,7 +1464,7 @@
             return this.flavor || this.getName(opts);
         }
     }
-    function make$3(options) {
+    function make$4(options) {
         var _a, _b, _c, _d, _e, _f;
         let base = { effects: {}, flags: {}, sprite: {}, priority: 50 };
         if (options.extends) {
@@ -1109,7 +1515,7 @@
                     return;
                 }
                 try {
-                    effects[key] = make$4(value);
+                    effects[key] = make$5(value);
                 }
                 catch (e) {
                     throw new Error(`Failed to add effect to tile => ${key} : ${JSON.stringify(value)} : ` + e.message);
@@ -1161,21 +1567,21 @@
     }
     const tiles = {};
     const all = [];
-    function get$3(id) {
+    function get$4(id) {
         if (id instanceof Tile)
             return id;
         if (typeof id === 'string')
             return tiles[id] || null;
         return all[id] || null;
     }
-    function install$3(id, ...args) {
+    function install$4(id, ...args) {
         let options = args[0];
         if (args.length == 2) {
             options = args[1];
             options.extends = args[0];
         }
         options.id = id;
-        const tile = make$3(options);
+        const tile = make$4(options);
         tile.index = all.length;
         all.push(tile);
         tiles[id] = tile;
@@ -1183,22 +1589,22 @@
     }
     function installAll$1(tiles) {
         Object.entries(tiles).forEach(([id, config]) => {
-            install$3(id, config);
+            install$4(id, config);
         });
     }
 
     const flags = { Tile: Tile$1, TileMech };
     // import './tiles';
 
-    var index$8 = /*#__PURE__*/Object.freeze({
+    var index$b = /*#__PURE__*/Object.freeze({
         __proto__: null,
         flags: flags,
         Tile: Tile,
-        make: make$3,
+        make: make$4,
         tiles: tiles,
         all: all,
-        get: get$3,
-        install: install$3,
+        get: get$4,
+        install: install$4,
         installAll: installAll$1
     });
 
@@ -1702,16 +2108,99 @@
     installHandler('effect', makeFeatureHandler);
     installHandler('id', makeFeatureHandler);
 
-    var index$7 = /*#__PURE__*/Object.freeze({
+    function makeNourishEffect(opts) {
+        if (!opts)
+            throw new Error('Invalid Nourish config.');
+        let info = {};
+        if (typeof opts === 'string') {
+            opts = opts.split(':').map((t) => t.trim());
+        }
+        if (Array.isArray(opts)) {
+            info.type = opts[0] || 'inc';
+            info.amount = GWU__namespace.range.make(opts[1] || 1);
+        }
+        else if (opts.type || opts.amount) {
+            info.type = opts.type || 'inc';
+            info.amount = GWU__namespace.range.make(opts.amount || 1);
+        }
+        else {
+            throw new Error('Invalid Nourish config: ' + JSON.stringify(opts));
+        }
+        return nourishEffect.bind(undefined, info);
+    }
+    function nourishEffect(config, loc, _ctx) {
+        if (!config.amount)
+            return false;
+        // who am I nourishing?
+        const actor = loc.map.actorAt(loc.x, loc.y);
+        if (!actor) {
+            return false;
+        }
+        const stats = actor.stats;
+        const c = stats.get('food');
+        if (!stats.adjust('food', config.type, config.amount))
+            return false;
+        const n = stats.get('food');
+        if (n < c && n / stats.max('food') < 0.1) {
+            GWU__namespace.message.addAt(actor.x, actor.y, nourishEffect.default.pukeMsg, {
+                actor,
+            });
+        }
+        return true;
+    }
+    nourishEffect.default = {
+        pukeMsg: '%you vomit.',
+    };
+    installHandler('nourish', makeNourishEffect);
+
+    function makeStatEffect(opts) {
+        if (!opts)
+            throw new Error('Invalid Stat config.');
+        const info = {};
+        if (typeof opts === 'string') {
+            opts = opts.split(':').map((t) => t.trim());
+        }
+        if (Array.isArray(opts)) {
+            info.stat = opts[0];
+            info.type = opts[1] || 'inc';
+            info.amount = GWU__namespace.range.make(opts[2] || 1);
+        }
+        else if (opts.type || opts.amount) {
+            info.stat = opts.stat;
+            info.type = opts.type || 'inc';
+            info.amount = GWU__namespace.range.make(info.amount || 1);
+        }
+        else {
+            throw new Error('Invalid stat effect configuration: ' + JSON.stringify(opts));
+        }
+        return statEffect.bind(undefined, info);
+    }
+    function statEffect(config, loc, _ctx) {
+        if (!config.amount)
+            return false;
+        // who am I nourishing?
+        const actor = loc.map.actorAt(loc.x, loc.y);
+        if (!actor) {
+            return false;
+        }
+        // sustain?
+        const stats = actor.stats;
+        if (!stats.adjust('food', config.type, config.amount))
+            return false;
+        return true;
+    }
+    installHandler('stat', makeStatEffect);
+
+    var index$a = /*#__PURE__*/Object.freeze({
         __proto__: null,
         handlers: handlers,
         installHandler: installHandler,
         effectTypes: effectTypes,
         installType: installType,
-        make: make$4,
+        make: make$5,
         from: from$4,
         installedEffects: installedEffects,
-        install: install$4,
+        install: install$5,
         installAll: installAll$2,
         resetAll: resetAll,
         BasicEffect: BasicEffect,
@@ -1734,7 +2223,11 @@
         makeClearHandler: makeClearHandler,
         clearEffect: clearEffect,
         makeFeatureHandler: makeFeatureHandler,
-        featureEffect: featureEffect
+        featureEffect: featureEffect,
+        makeNourishEffect: makeNourishEffect,
+        nourishEffect: nourishEffect,
+        makeStatEffect: makeStatEffect,
+        statEffect: statEffect
     });
 
     GWU__namespace.color.install('cellStatusName', 'light_blue');
@@ -1811,7 +2304,7 @@
             this.y = y;
             this.snapshot = GWU__namespace.sprite.makeMixer();
             if (groundTile) {
-                const tile = get$3(groundTile);
+                const tile = get$4(groundTile);
                 this.setTile(tile);
             }
         }
@@ -1947,7 +2440,7 @@
             if (!tile)
                 return this.tiles.some((t) => t);
             if (!(tile instanceof Tile)) {
-                tile = get$3(tile);
+                tile = get$4(tile);
             }
             return this.tiles.includes(tile);
         }
@@ -2030,7 +2523,7 @@
         //          - LIGHT_CHANGED flag set.
         setTile(tile, opts = {}) {
             if (!(tile instanceof Tile)) {
-                tile = get$3(tile);
+                tile = get$4(tile);
                 if (!tile)
                     return false;
             }
@@ -2059,7 +2552,7 @@
             if (tile.depth > Depth$1.GROUND && tile.groundTile) {
                 const ground = this.depthTile(Depth$1.GROUND);
                 if (!ground || ground === tiles.NULL) {
-                    this.tiles[0] = get$3(tile.groundTile);
+                    this.tiles[0] = get$4(tile.groundTile);
                 }
             }
             this.tiles[tile.depth] = tile;
@@ -2678,7 +3171,7 @@
         }
     }
 
-    var index$6 = /*#__PURE__*/Object.freeze({
+    var index$9 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         MapLayer: MapLayer,
         TileLayer: TileLayer,
@@ -3158,8 +3651,8 @@
         }
         // Skips all the logic checks and just forces a clean cell with the given tile
         fill(tile, boundary) {
-            tile = get$3(tile);
-            boundary = get$3(boundary || tile);
+            tile = get$4(tile);
+            boundary = get$4(boundary || tile);
             let i, j;
             for (i = 0; i < this.width; ++i) {
                 for (j = 0; j < this.height; ++j) {
@@ -3181,7 +3674,7 @@
         setTile(x, y, tile, opts) {
             if (!(tile instanceof Tile)) {
                 const name = tile;
-                tile = get$3(name);
+                tile = get$4(name);
                 if (!tile)
                     throw new Error('Failed to find tile: ' + name);
             }
@@ -3374,7 +3867,7 @@
             GWU__namespace.arrayDelete(this._animations, a);
         }
     }
-    function make$2(w, h, opts = {}, boundary) {
+    function make$3(w, h, opts = {}, boundary) {
         if (typeof opts === 'string') {
             opts = { tile: opts };
         }
@@ -3419,7 +3912,7 @@
         if (isStringArray(prefab)) {
             height = prefab.length;
             width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-            map = make$2(width, height, opts);
+            map = make$3(width, height, opts);
             prefab.forEach((line, y) => {
                 for (let x = 0; x < width; ++x) {
                     const ch = line[x] || '.';
@@ -3431,7 +3924,7 @@
         else {
             height = prefab.height;
             width = prefab.width;
-            map = make$2(width, height, opts);
+            map = make$3(width, height, opts);
             prefab.forEach((v, x, y) => {
                 const tile = charToTile[v] || 'FLOOR';
                 map.setTile(x, y, tile);
@@ -3589,7 +4082,7 @@
         }
         actorMemory[map.id] = memory;
     }
-    function get$2(actor, map) {
+    function get$3(actor, map) {
         let actorMemory = cache[actor.id];
         if (actorMemory) {
             const memory = actorMemory[map.id];
@@ -3599,11 +4092,11 @@
         return new Memory(map);
     }
 
-    var index$5 = /*#__PURE__*/Object.freeze({
+    var index$8 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Memory: Memory,
         store: store,
-        get: get$2
+        get: get$3
     });
 
     class ActorKind extends EntityKind {
@@ -3621,6 +4114,7 @@
             if (opts.vision) {
                 this.vision.normal = opts.vision;
             }
+            this.stats = opts.stats || {};
         }
         make(options) {
             const actor = new Actor(this);
@@ -3639,11 +4133,12 @@
             if (this.vision.normal) {
                 actor.visionDistance = this.vision.normal;
             }
+            actor.stats.init(this.stats);
         }
         addToMap(actor, map) {
             super.addToMap(actor, map);
             if (this.hasActorFlag(Actor$1.HAS_MEMORY)) {
-                actor.memory = get$2(actor, map);
+                actor.memory = get$3(actor, map);
             }
             if (this.hasActorFlag(Actor$1.USES_FOV)) {
                 actor.fov = new GWU__namespace.fov.FovSystem(map);
@@ -3708,8 +4203,8 @@
         }
     }
 
-    function make$1(id, makeOptions) {
-        const kind = get$1(id);
+    function make$2(id, makeOptions) {
+        const kind = get$2(id);
         if (!kind)
             throw new Error('Failed to find item kind - ' + id);
         return kind.make(makeOptions);
@@ -3724,7 +4219,7 @@
         let kind;
         if (typeof info === 'string') {
             // @ts-ignore
-            kind = get$1(info);
+            kind = get$2(info);
             if (!kind)
                 throw new Error('Failed to find item kind - ' + info);
         }
@@ -3737,7 +4232,7 @@
         return kind.make(makeOptions);
     }
     const kinds$1 = {};
-    function install$2(id, kind) {
+    function install$3(id, kind) {
         if (kind instanceof ActorKind) {
             kinds$1[id] = kind;
             return kind;
@@ -3747,7 +4242,7 @@
         kinds$1[id] = made;
         return made;
     }
-    function get$1(id) {
+    function get$2(id) {
         if (id instanceof ActorKind)
             return id;
         return kinds$1[id];
@@ -3799,16 +4294,22 @@
         return rng.item(matches) || null;
     }
 
-    var index$4 = /*#__PURE__*/Object.freeze({
+    var index$7 = /*#__PURE__*/Object.freeze({
         __proto__: null,
+        PainMessages: PainMessages,
+        painMessages: painMessages,
+        installPain: installPain,
+        getPain: getPain,
+        Stats: Stats,
+        Status: Status,
         ActorKind: ActorKind,
         Actor: Actor,
-        make: make$1,
+        make: make$2,
         makeRandom: makeRandom$1,
         from: from$2,
         kinds: kinds$1,
-        install: install$2,
-        get: get$1,
+        install: install$3,
+        get: get$2,
         makeKind: makeKind$1,
         randomKind: randomKind$1
     });
@@ -3836,6 +4337,10 @@
         hasAllItemFlags(flags) {
             return (this.flags.item & flags) === flags;
         }
+        getAction(name) {
+            const action = this.kind.actions[name];
+            return action;
+        }
     }
 
     class ItemKind extends EntityKind {
@@ -3845,9 +4350,15 @@
                 item: Item$1.DEFAULT,
                 entity: Entity$1.DEFAULT_ACTOR,
             };
+            this.actions = {};
             if (config.flags) {
                 this.flags.item = GWU__namespace.flag.from(Item$1, this.flags.item, config.flags);
                 this.flags.entity = GWU__namespace.flag.from(Entity$1, this.flags.entity, config.flags);
+            }
+            if (config.actions) {
+                Object.entries(config.actions).forEach(([key, value]) => {
+                    this.actions[key] = value;
+                });
             }
         }
         make(options) {
@@ -3862,8 +4373,8 @@
         }
     }
 
-    function make(id, makeOptions) {
-        const kind = get(id);
+    function make$1(id, makeOptions) {
+        const kind = get$1(id);
         if (!kind)
             throw new Error('Failed to find item kind - ' + id);
         return kind.make(makeOptions);
@@ -3878,7 +4389,7 @@
         let kind;
         if (typeof info === 'string') {
             // @ts-ignore
-            kind = get(info);
+            kind = get$1(info);
             if (!kind)
                 throw new Error('Failed to find item kind - ' + info);
         }
@@ -3891,7 +4402,7 @@
         return kind.make(makeOptions);
     }
     const kinds = {};
-    function install$1(id, kind) {
+    function install$2(id, kind) {
         if (kind instanceof ItemKind) {
             kinds[id] = kind;
             return kind;
@@ -3901,7 +4412,7 @@
         kinds[id] = made;
         return made;
     }
-    function get(id) {
+    function get$1(id) {
         if (id instanceof ItemKind)
             return id;
         return kinds[id];
@@ -3953,16 +4464,16 @@
         return rng.item(matches) || null;
     }
 
-    var index$3 = /*#__PURE__*/Object.freeze({
+    var index$6 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         ItemKind: ItemKind,
         Item: Item,
-        make: make,
+        make: make$1,
         makeRandom: makeRandom,
         from: from$1,
         kinds: kinds,
-        install: install$1,
-        get: get,
+        install: install$2,
+        get: get$1,
         makeKind: makeKind,
         randomKind: randomKind
     });
@@ -4387,11 +4898,11 @@
         }) > 1);
     }
 
-    var index$2 = /*#__PURE__*/Object.freeze({
+    var index$5 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Cell: Cell,
         Map: Map,
-        make: make$2,
+        make: make$3,
         from: from$3,
         analyze: analyze,
         updateChokepoints: updateChokepoints,
@@ -4475,7 +4986,7 @@
             return leader;
         }
         _spawnLeader(map, x, y, opts) {
-            const leaderKind = get$1(this.leader);
+            const leaderKind = get$2(this.leader);
             if (!leaderKind) {
                 throw new Error('Failed to find leader kind = ' + this.leader);
             }
@@ -4483,7 +4994,7 @@
                 if (leaderKind.avoidsCell(map.cell(x, y)))
                     return null;
             }
-            const leader = make$1(leaderKind, { machineHome: opts.machine });
+            const leader = make$2(leaderKind, { machineHome: opts.machine });
             if (!leader)
                 throw new Error('Failed to make horde leader - ' + this.leader);
             if (x < 0 || y < 0) {
@@ -4519,11 +5030,11 @@
             return count;
         }
         _spawnMember(kindId, map, leader, opts) {
-            const kind = get$1(kindId);
+            const kind = get$2(kindId);
             if (!kind) {
                 throw new Error('Failed to find member kind = ' + kindId);
             }
-            const member = make$1(kind, { machineHome: opts.machine });
+            const member = make$2(kind, { machineHome: opts.machine });
             if (!member)
                 throw new Error('Failed to make horde member - ' + kindId);
             const [x, y] = this._pickMemberLoc(member, map, leader, opts) || [
@@ -4574,7 +5085,7 @@
     }
 
     const hordes = {};
-    function install(id, horde) {
+    function install$1(id, horde) {
         if (typeof horde === 'string') {
             horde = { leader: horde };
         }
@@ -4586,7 +5097,7 @@
     }
     function installAll(hordes) {
         Object.entries(hordes).forEach(([id, config]) => {
-            install(id, config);
+            install$1(id, config);
         });
     }
     function from(id) {
@@ -4686,20 +5197,23 @@
         return matches[index];
     }
 
-    var index$1 = /*#__PURE__*/Object.freeze({
+    var index$4 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Horde: Horde,
         hordes: hordes,
-        install: install,
+        install: install$1,
         installAll: installAll,
         from: from,
         random: random
     });
 
-    var index = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        BasicDrawer: BasicDrawer
-    });
+    const actions = {};
+    function install(name, fn) {
+        actions[name] = fn;
+    }
+    function get(name) {
+        return actions[name];
+    }
 
     // export class SpriteFX extends FX {
     //     sprite: GWU.sprite.SpriteConfig;
@@ -4756,7 +5270,7 @@
         if (typeof sprite === 'string') {
             sprite = GWU__namespace.sprite.from(sprite);
         }
-        const entity = make$5({ name: 'FX', sprite });
+        const entity = make$6({ name: 'FX', sprite });
         map.addFx(x, y, entity);
         const tween = GWU__namespace.tween
             .make({ visible: true })
@@ -4773,7 +5287,7 @@
             }
         });
         // realTime
-        animator = animator || GWU__namespace.loop;
+        animator = animator || GWU__namespace.io.loop;
         animator.addAnimation(tween);
         return tween.start();
     }
@@ -4797,7 +5311,7 @@
         else {
             sprite = GWU__namespace.sprite.make(sprite);
         }
-        const entity = make$5({ name: 'FX', sprite });
+        const entity = make$6({ name: 'FX', sprite });
         map.addFx(x, y, entity);
         const tween = GWU__namespace.tween
             .make({ opacity: 0 })
@@ -4813,7 +5327,7 @@
             map.removeFx(entity);
         });
         // realTime
-        animator = animator || GWU__namespace.loop;
+        animator = animator || GWU__namespace.io.loop;
         animator.addAnimation(tween);
         return tween.start();
     }
@@ -4821,7 +5335,7 @@
         if (typeof sprite === 'string') {
             sprite = GWU__namespace.sprite.from(sprite);
         }
-        const entity = make$5({ name: 'FX', sprite });
+        const entity = make$6({ name: 'FX', sprite });
         const from = { x: GWU__namespace.xy.x(source), y: GWU__namespace.xy.y(source) };
         map.addFx(from.x, from.y, entity);
         let duration = opts.duration ||
@@ -5061,8 +5575,797 @@
         explosion: explosion
     });
 
+    // COMMANDS
+    // this === GAME
+    async function moveDir(actor, e) {
+        const dir = e.dir;
+        if (!actor.map || !dir)
+            return false;
+        const newPos = GWU__namespace.xy.add(actor, dir);
+        const cell = actor.map.cell(newPos.x, newPos.y);
+        if (!cell)
+            return false;
+        if (actor.avoidsCell(cell)) {
+            hit(actor.map, newPos, 'hit', 100, this.layer);
+            // todo - should this cost a turn?  Or part of one?
+            return false;
+        }
+        actor.map.removeActor(actor);
+        actor.map.addActor(newPos.x, newPos.y, actor);
+        return true;
+    }
+    install('moveDir', moveDir);
+
+    async function pickup(actor, _ev) {
+        if (!actor.map)
+            return false;
+        const item = actor.map.itemAt(actor.x, actor.y);
+        if (!item) {
+            GWU__namespace.message.addAt(actor.x, actor.y, 'Nothing to pickup.');
+            return false;
+        }
+        const myItem = item;
+        if (actor.avoidsItem(myItem))
+            return false;
+        let action = myItem.getAction('pickup');
+        if (action === false) {
+            GWU__namespace.message.addAt(actor.x, actor.y, 'You cannot pickup %{the.item}.', {
+                item,
+            });
+            return false;
+        }
+        else if (typeof action === 'function') {
+            // You have to do everything
+            return action.call(this, actor, { item: myItem });
+        }
+        // logs error messages
+        if (!actor.canAddItem(myItem)) {
+            return false;
+        }
+        if (!actor.map.removeItem(myItem)) {
+            return false;
+        }
+        actor.addItem(myItem);
+        return true;
+    }
+    install('pickup', pickup);
+
+    var index$3 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        actions: actions,
+        install: install,
+        get: get,
+        moveDir: moveDir,
+        pickup: pickup
+    });
+
+    var index$2 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        BasicDrawer: BasicDrawer
+    });
+
+    /*
+        Attributes
+        ========================
+
+        To configure attributes, set the defaults:
+
+        Attribute.install(')
+
+        const attr = new Attributes(10);
+
+        attr.set('str', 10);
+        attr.set('dex', 10);
+        ...
+        attr.set('chr', 10);
+
+        // to get the current value
+        attr.get('str');
+
+        // To raise an attribute permanently
+        attr.gain('chr', 1);
+
+        // To raise an attribute temporarily
+        attr.gain('chr', 1, false);
+
+        // To lower an attribute permanently
+        attr.drain('chr', 1, true);
+
+        // to lower an attribute temporarily
+        attr.drain('chr', 1);
+
+        // to restore (remove) all temporary changes
+        attr.restore();
+
+        // to add a temporary change that can be removed by itself
+        attr.addBonus('str', 1);
+
+        // to remove the bonus
+        attr.clearBonus('str', 1);
+
+        // adjustments (bonuses) are also possible via:
+        attr.adjust('str', { bonus: 1 });
+
+        // But adjustments can also set the
+        attr.adjust('str', { fixed: 14 });      // temporarily sets base
+        attr.adjust('str', { base: 21 });       // resets the base
+        attr.adjust('str', { restore: true });  // removes all bonuses/penalties
+        attr.adjust('str', { min: 10 });        // limits value
+        attr.adjust('str', { max: 30 });        // limits value
+        attr.adjust('str', { sustain: true });  // turns off lowering values
+    */
+    class Attributes {
+        constructor(baseValues) {
+            this._base = {};
+            this._max = {};
+            this._bonus = {};
+            this._sustain = {};
+            this._value = {};
+            this.changed = null;
+            this.init(baseValues);
+        }
+        init(baseValues) {
+            for (let k in attributes) {
+                const v = typeof baseValues === 'number' ? baseValues : attributes[k];
+                this.set(k, v);
+            }
+            if (typeof baseValues !== 'number') {
+                for (let k in baseValues) {
+                    this.set(k, baseValues[k]);
+                }
+            }
+        }
+        forEach(fn) {
+            Object.keys(attributes).forEach((k) => fn(this.get(k)));
+        }
+        // modifier(name: string) {
+        //     return Math.floor((this.get(name) - 10) / 2);
+        // }
+        get(name) {
+            return this._value[name] || 0;
+        }
+        set(name, value = 0) {
+            this._value[name] = value;
+            this._base[name] = value;
+            this._max[name] = value;
+            this._bonus[name] = [];
+            return value;
+        }
+        base(name) {
+            return this._base[name] || 0;
+        }
+        max(name) {
+            return this._max[name] || 0;
+        }
+        sustain(name) {
+            return this._sustain[name] || false;
+        }
+        gain(name, delta, raiseMax = true) {
+            if (delta < 0 && this._sustain[name])
+                return 0;
+            this._base[name] += delta;
+            if (raiseMax && this._base[name] > this._max[name]) {
+                this._max[name] = this._base[name];
+            }
+            let old = this.get(name);
+            return this._calcValue(name) - old;
+        }
+        drain(name, loss, lowerMax = false) {
+            if (loss < 0)
+                loss = -loss;
+            const changed = this.gain(name, -loss, false);
+            if (changed && lowerMax) {
+                this._max[name] = this._base[name];
+            }
+            return changed;
+        }
+        restore(name) {
+            this._base[name] = this._max[name];
+            let old = this.get(name);
+            return this._calcValue(name) - old;
+        }
+        addBonus(name, bonus) {
+            return this._addBonus(name, { bonus });
+        }
+        _addBonus(name, bonus) {
+            if (typeof bonus === 'number')
+                bonus = { bonus };
+            if (this._value[name] === undefined) {
+                this.set(name, 0);
+            }
+            this._bonus[name].push(bonus);
+            let old = this.get(name);
+            return this._calcValue(name) - old;
+        }
+        clearBonus(name, bonus) {
+            return this._clearBonus(name, { bonus });
+        }
+        _clearBonus(name, bonus) {
+            if (typeof bonus === 'number')
+                bonus = { bonus };
+            let arr = this._bonus[name] || [];
+            let key = JSON.stringify(bonus);
+            let index = arr.findIndex((o) => {
+                return JSON.stringify(o) == key;
+            });
+            if (index > -1) {
+                arr.splice(index, 1);
+                let old = this.get(name);
+                return this._calcValue(name) - old;
+            }
+            return 0;
+        }
+        _calcValue(name) {
+            let allAdjustments = {};
+            this._bonus[name].forEach((adj) => this._applyAdjustment(allAdjustments, adj));
+            this._sustain[name] = allAdjustments.sustain || false;
+            let value = this._base[name] || 0;
+            if (allAdjustments.fixed !== undefined) {
+                value = allAdjustments.fixed;
+            }
+            else {
+                value += allAdjustments.bonus || 0;
+                if (allAdjustments.min !== undefined) {
+                    value = Math.max(allAdjustments.min, value);
+                }
+                if (allAdjustments.max !== undefined) {
+                    value = Math.min(allAdjustments.max, value);
+                }
+            }
+            return (this._value[name] = value);
+        }
+        adjust(name, adj) {
+            let delta = undefined;
+            if (typeof adj === 'number') {
+                adj = { bonus: adj };
+            }
+            if (adj.base) {
+                delta = this.gain(name, adj.base);
+            }
+            else if (adj.restore) {
+                delta = this.restore(name);
+                if (delta == 0)
+                    delta = undefined;
+            }
+            else {
+                delta = this._addBonus(name, adj);
+            }
+            if (this.changed && delta !== undefined)
+                this.changed(this, name);
+            return delta;
+        }
+        clearAdjustment(name, adj) {
+            let delta = undefined;
+            if (typeof adj === 'number') {
+                adj = { bonus: adj };
+            }
+            if (adj.base) {
+                delta = this.drain(name, adj.base, true);
+            }
+            else if (adj.restore) ;
+            else {
+                delta = this._clearBonus(name, adj);
+            }
+            if (this.changed && delta !== undefined)
+                this.changed(this, name);
+            return delta;
+        }
+        _applyAdjustment(total, opts) {
+            if (opts.bonus) {
+                total.bonus = (total.bonus || 0) + opts.bonus;
+            }
+            if (opts.fixed !== undefined) {
+                total.fixed = Math.max(total.fixed || 0, opts.fixed);
+            }
+            if (opts.min !== undefined) {
+                total.min = Math.max(total.min || 0, opts.min);
+            }
+            if (opts.max !== undefined) {
+                total.max = Math.max(total.max || 0, opts.max);
+            }
+            if (opts.sustain !== undefined) {
+                total.sustain = opts.sustain;
+            }
+        }
+    }
+    const attributes = {};
+    function installAttribute(attr) {
+        if (typeof attr === 'string') {
+            attributes[attr] = 0;
+            return;
+        }
+        // clear existing
+        Object.keys(attributes).forEach((k) => {
+            delete attributes[k];
+        });
+        Object.assign(attributes, attr);
+    }
+    function makeAttributes(defaults) {
+        return new Attributes(defaults);
+    }
+    /*
+    function adjust(being, ...args) {
+        let adj;
+        if (args.length == 1 && typeof args[0] == 'number') {
+            adj = RUT.Attributes.map((key) => {
+                return { name: key, bonus: args[0] };
+            });
+        } else {
+            adj = normalize_adjustment(args);
+        }
+
+        let results = adj.reduce((out, a) => {
+            let delta = undefined;
+            if (a.base) {
+                delta = being.attributes.addBase(a.name, a.base);
+            } else if (a.restore) {
+                delta = being.attributes.restoreBase(a.name);
+                if (delta == 0) delta = undefined;
+            } else {
+                delta = being.attributes.addBonus(a.name, a);
+            }
+            if (delta !== undefined) {
+                out[a.name] = delta;
+            }
+            return out;
+        }, {});
+        being.changed({ attributes: results });
+
+        return results;
+    };
+
+     function clearAdjustment(being, ...args) {
+        let adj;
+        if (args.length == 1 && typeof args[0] == 'number') {
+            adj = RUT.Attributes.map((key) => {
+                return { name: key, bonus: args[0] };
+            });
+        } else {
+            adj = normalize_adjustment(args);
+        }
+
+        let results = adj.reduce((out, a) => {
+            let delta = 0;
+            delta += being.attributes.clearBonus(a.name, a);
+
+            out[a.name] = delta;
+            return out;
+        }, {});
+        being.changed({ attributes: results });
+        return results;
+    };
+
+    RUT.Attribute.rollAttributes = function (opts = {}) {
+        let dice = [];
+        let total = 0;
+
+        if (RUT.Calc.isValue(opts)) opts = { value: opts };
+        Object.defaults(opts, RUT.Config.Attribute.rollAttributes);
+
+        let attributes = RUT.Config.Attributes;
+
+        let min_average = Math.max(opts.min_average - 5, 0);
+        let max_average = Math.min(opts.max_average - 5, RUT.Config.ATTRIBUTE_MAX);
+
+        let min_total = min_average * attributes.length;
+        let max_total = max_average * attributes.length;
+
+        do {
+            total = 0;
+            dice = [];
+            for (let i = 0; i < 18; ++i) {
+                dice.push(RUT.RNG.rollDie(3 + (i % 3)));
+                total += dice[i];
+            }
+        } while (total <= min_total || total > max_total);
+
+        let values = attributes.reduce((out, name, i) => {
+            let index = 3 * i;
+            let value = 5 + dice[index] + dice[index + 1] + dice[index + 2];
+            if (opts.value) {
+                value = RUT.Calc.calc(opts.value);
+            } else if (opts[name]) {
+                value = RUT.Calc.calc(opts[name]);
+            }
+            out[name] = value;
+            return out;
+        }, {});
+        return values;
+    };
+    RUT.Config.Attribute.rollAttributes = { min_average: 11, max_average: 14 };
+    */
+    /*
+    export function normalize_adjustment(args: ) {
+        if (args.length == 3) {
+            let opts = args[2];
+            if (RUT.Calc.isValue(opts)) {
+                opts = { bonus: opts };
+            }
+            let name = `${args[0]}.${args[1]}`;
+            return [Object.assign({ name }, opts)];
+        }
+        if (args.length == 2) {
+            let opts = args[1];
+            if (opts === true || opts === false) {
+                opts = { has: opts };
+            } else if (RUT.Calc.isValue(opts)) {
+                opts = { bonus: opts };
+            }
+            return [Object.assign({ name: args[0] }, opts)];
+        }
+
+        let opts = args[0];
+        if (opts.name) {
+            return [opts];
+        }
+        if (opts.attribute) {
+            opts.name = opts.attribute;
+            return [opts];
+        }
+        if (opts.restore) {
+            if (opts.restore == 'all') {
+                return RUT.Attributes.map((a) => {
+                    return { name: a, restore: true };
+                });
+            }
+            return [{ name: opts.restore, restore: true }];
+        }
+        if (opts.skill) {
+            opts.name = opts.skill;
+            return [opts];
+        }
+        if (opts.stat) {
+            opts.name = opts.stat;
+            return [opts];
+        }
+        if (opts.save) {
+            opts.name = opts.save;
+            return [opts];
+        }
+        // if (opts.saves) {
+        //   opts.name = opts.saves;
+        //   return [opts];
+        // }
+        if (opts.ability) {
+            opts.name = opts.ability;
+            return [opts];
+        }
+
+        // now we assume that each key is for a separate skill...
+        return Object.keys(opts).reduce((out, key) => {
+            let opt = opts[key];
+            if (key == 'reset' || key == 'restore') {
+                if (typeof opt == 'string') opt = [opt];
+                opt.forEach((a) => {
+                    out.push({ name: a, restore: true });
+                });
+            } else {
+                if (typeof opt == 'number' || Array.isArray(opt)) {
+                    opt = { bonus: opt };
+                } else if (opt === true || opt === false) {
+                    opt = { has: opt };
+                } else if (opt == 'reset' || opt == 'restore') {
+                    opt = { restore: true };
+                } else if (opt == 'sustain') {
+                    opt = { sustain: true };
+                }
+                out.push(Object.assign({ name: key }, opt));
+            }
+            return out;
+        }, []);
+    }
+    */
+
+    /*
+    Skills
+
+    Skills generally fall into 2 categories - binary and progressive.
+
+
+    // Create a skills object
+    const skills = new Skills();
+
+    // set skills
+    skills.set('diving', true); // = { has: true, level: 0 }
+    skills.set('diving', 10); // = { has: true, level: 10 }
+
+    skills.remove('diving'); // {}
+
+    // adjustments
+    skills.adjust('diving', { bonus: 1 });
+    skills.adjust('diving', { disadvantage: true });
+    skills.adjust('diving', { advantage: 3 });
+    skills.adjust('diving', { fixed: 10 });
+    skills.adjust('diving', { critical: 5 });
+
+
+
+
+
+    */
+    class Skill {
+        constructor(name) {
+            this.name = name;
+        }
+        get has() {
+            return this._bool('_has');
+        }
+        get level() {
+            return this._int('_level');
+        }
+        get disadvantage() {
+            return this._bool('_disadvantage');
+        }
+        get advantage() {
+            return this._bool('_advantage');
+        }
+        get fixed() {
+            return this._int('_fixed');
+        }
+        get bonus() {
+            const b = this._int('_bonus') || 0;
+            if (!this._parent)
+                return b;
+            return b + this._parent.bonus;
+        }
+        get succeed() {
+            return this._bool('_succeed');
+        }
+        get fail() {
+            return this._bool('_fail');
+        }
+        set(value) {
+            if (value === false) {
+                this._has = false;
+                this._level = 0;
+            }
+            else {
+                this._has = true;
+                this._level = value === true ? 0 : value;
+            }
+        }
+        _value(name) {
+            if (this[name] !== undefined) {
+                // @ts-ignore
+                return this[name];
+            }
+            if (this._parent) {
+                // @ts-ignore
+                return this._parent._value(name);
+            }
+            return undefined;
+        }
+        _bool(name) {
+            return !!this._value(name);
+        }
+        _int(name) {
+            return this._value(name);
+        }
+        adjust(adj) {
+            Object.entries(adj).forEach(([key, value]) => {
+                key = '_' + key;
+                if (value === undefined)
+                    return;
+                if (key === '_fixed') {
+                    if (typeof value !== 'number') {
+                        throw new Error('fixed skill adjustment must be a number.');
+                    }
+                    value = Math.max(value, this._fixed || 0);
+                }
+                else if (key === '_bonus') {
+                    if (typeof value !== 'number') {
+                        throw new Error('fixed skill adjustment must be a number.');
+                    }
+                    value = value + (this._bonus || 0);
+                }
+                // @ts-ignore
+                this[key] = value;
+            });
+        }
+        clear(adj) {
+            Object.keys(adj).forEach((key) => {
+                key = '_' + key;
+                // @ts-ignore
+                if (this[key] !== undefined) {
+                    // @ts-ignore
+                    this[key] = undefined;
+                }
+            });
+        }
+    }
+    class Skills {
+        constructor(vals = {}) {
+            this._skills = {};
+            Object.entries(vals).forEach(([key, value]) => {
+                this.set(key, value);
+            });
+        }
+        set(name, value) {
+            const s = this.get(name);
+            s.set(value);
+            return s;
+        }
+        get(name) {
+            let s = this._skills[name];
+            if (s)
+                return s;
+            s = this._skills[name] = new Skill(name);
+            const index = name.lastIndexOf('.');
+            if (index > 0) {
+                s._parent = this.get(name.substring(0, index));
+            }
+            else {
+                s.set(false);
+            }
+            return s;
+        }
+        adjust(name, adj) {
+            if (typeof adj === 'number') {
+                adj = { bonus: adj };
+            }
+            let s = this.get(name);
+            s.adjust(adj);
+            return s;
+        }
+    }
+
+    // import * as GWM from 'gw-map';
+    class Player extends Actor {
+        constructor(kind) {
+            super(kind);
+        }
+    }
+    Player.default = {
+        ch: '@',
+        fg: 'white',
+        name: 'You',
+    };
+    function make(options = {}) {
+        const kind = new PlayerKind(options);
+        return new Player(kind);
+    }
+
+    class PlayerKind extends ActorKind {
+        constructor(opts = {}) {
+            super((() => {
+                if (!opts.sprite) {
+                    opts.ch = opts.ch || Player.default.ch;
+                    opts.fg = opts.fg || Player.default.fg;
+                }
+                if (!opts.name) {
+                    opts.name = Player.default.name;
+                }
+                return opts;
+            })());
+            this.flags.actor |= Actor$1.IS_PLAYER;
+            this.attributes = new Attributes(opts.attributes || {});
+            this.skills = new Skills(opts.skills || {});
+        }
+        make(options) {
+            const actor = new Player(this);
+            this.init(actor, options);
+            return actor;
+        }
+    }
+
+    var index$1 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Attributes: Attributes,
+        attributes: attributes,
+        installAttribute: installAttribute,
+        makeAttributes: makeAttributes,
+        Skills: Skills,
+        PlayerKind: PlayerKind,
+        Player: Player,
+        make: make
+    });
+
+    class Game {
+        constructor(opts) {
+            this.running = false;
+            this.keymap = {};
+            this.ui = new GWU__namespace.ui.UI(opts);
+            this.makeMap = opts.makeMap;
+            this.makePlayer = opts.makePlayer;
+            this.startMap = opts.startMap;
+            if (opts.keymap) {
+                Object.assign(this.keymap, opts.keymap);
+            }
+            this.layer = new GWU__namespace.ui.Layer(this.ui);
+            this.buffer = this.layer.buffer;
+            this.io = this.layer.io;
+        }
+        async start() {
+            this.player = this.makePlayer();
+            this.map = this.makeMap(0);
+            this.startMap(this.map, this.player);
+            this.running = true;
+            while (this.running) {
+                await this.runTurn();
+            }
+        }
+        draw() {
+            if (this.map && this.map.needsRedraw) {
+                this.map.drawInto(this.buffer);
+                this.buffer.render();
+            }
+        }
+        finish() {
+            this.running = false;
+            this.layer.finish();
+        }
+        async runTurn() {
+            const actors = this.map.actors.slice();
+            for (let actor of actors) {
+                this.draw();
+                if (actor === this.player) {
+                    await this.playerTurn(this.player);
+                }
+                else {
+                    await actor.act();
+                }
+                await this.animate();
+            }
+            this.map.tick(50); // turn time
+        }
+        async animate() {
+            if (!this.layer.io._tweens.length)
+                return;
+            const timer = setInterval(() => {
+                const tick = GWU__namespace.io.makeTickEvent(16);
+                this.layer.io.enqueue(tick);
+            }, 16);
+            while (this.layer.io._tweens.length) {
+                const ev = await this.layer.io.nextTick();
+                if (ev && ev.dt) {
+                    this.layer.io._tweens.forEach((a) => a && a.tick(ev.dt));
+                    this.layer.io._tweens = this.layer.io._tweens.filter((a) => a && a.isRunning());
+                }
+                this.draw();
+            }
+            clearInterval(timer);
+        }
+        async playerTurn(player) {
+            let done = false;
+            const timer = setInterval(() => {
+                const tick = GWU__namespace.io.makeTickEvent(16);
+                this.layer.io.enqueue(tick);
+            }, 16);
+            while (!done) {
+                const ev = await this.layer.io.nextEvent(-1);
+                if (ev) {
+                    if (ev.type === GWU__namespace.io.KEYPRESS) {
+                        const handler = GWU__namespace.io.handlerFor(ev, this.keymap);
+                        if (handler) {
+                            if (typeof handler === 'string') {
+                                const action = get(handler);
+                                if (action) {
+                                    await action.call(this, player, ev);
+                                    done = true;
+                                }
+                            }
+                            else if (typeof handler === 'function') {
+                                await handler.call(this, player, ev);
+                                done = true;
+                            }
+                        }
+                    }
+                    else if (ev.type === GWU__namespace.io.TICK) {
+                        this.layer.tick(ev); // timeouts
+                    }
+                }
+            }
+            clearInterval(timer);
+        }
+    }
+
+    var index = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        Game: Game
+    });
+
     // These are the minimal set of tiles to make the diggers work
-    install$3('NULL', {
+    install$4('NULL', {
         ch: '\u2205',
         fg: 'white',
         bg: 'black',
@@ -5071,7 +6374,7 @@
         article: 'an',
         priority: 0,
     });
-    install$3('FLOOR', {
+    install$4('FLOOR', {
         ch: '\u00b7',
         fg: GWU__namespace.color.from([30, 30, 30]).rand(20, 0, 0, 0),
         bg: GWU__namespace.color.from([2, 2, 10]).rand(0, 2, 2, 0),
@@ -5079,7 +6382,7 @@
         article: 'the',
         flavor: 'the stone floor',
     });
-    install$3('DOOR', {
+    install$4('DOOR', {
         ch: '+',
         fg: [100, 40, 40],
         bg: [30, 60, 60],
@@ -5092,7 +6395,7 @@
         },
         flavor: 'a closed door',
     });
-    install$3('DOOR_OPEN', 'DOOR', {
+    install$4('DOOR_OPEN', 'DOOR', {
         ch: "'",
         fg: [100, 40, 40],
         bg: [30, 60, 60],
@@ -5111,14 +6414,14 @@
         },
         flavor: 'an open door',
     });
-    install$3('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
+    install$4('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
         effects: {
             tick: null,
             close: 'TILE:DOOR~!',
         },
         flavor: 'an open door',
     });
-    install$3('UP_STAIRS', {
+    install$4('UP_STAIRS', {
         ch: '<',
         fg: [100, 50, 50],
         bg: [40, 20, 20],
@@ -5131,7 +6434,7 @@
         },
         flavor: 'stairs leading upwards',
     });
-    install$3('DOWN_STAIRS', {
+    install$4('DOWN_STAIRS', {
         ch: '>',
         fg: [100, 50, 50],
         bg: [40, 20, 20],
@@ -5144,7 +6447,7 @@
         },
         flavor: 'downward leading stairs',
     });
-    install$3('WALL', {
+    install$4('WALL', {
         ch: '#',
         fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
         bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
@@ -5155,7 +6458,7 @@
         description: 'A wall made from rough cut stone.',
         flavor: 'a rough stone wall',
     });
-    install$3('IMPREGNABLE', {
+    install$4('IMPREGNABLE', {
         ch: '#',
         fg: GWU__namespace.color.from([7, 7, 7]).rand(0, 3, 3, 3),
         bg: GWU__namespace.color.from([40, 40, 40]).rand(10, 10, 0, 5),
@@ -5166,7 +6469,7 @@
         description: 'A wall made from very hard stone.',
         flavor: 'a very hard wall',
     });
-    install$3('LAKE', {
+    install$4('LAKE', {
         ch: '~',
         fg: GWU__namespace.color.from([5, 8, 20]).dance(10, 0, 4, 15),
         bg: GWU__namespace.color.from([10, 15, 41]).dance(6, 5, 5, 5),
@@ -5176,7 +6479,7 @@
         article: 'the',
         flavor: 'some deep water',
     });
-    install$3('SHALLOW', {
+    install$4('SHALLOW', {
         ch: '\u00b7',
         fg: GWU__namespace.color.from([5, 8, 10]).dance(10, 0, 4, 15),
         bg: GWU__namespace.color.from([10, 30, 30]).dance(6, 0, 10, 10),
@@ -5186,7 +6489,7 @@
         depth: 'SURFACE',
         flavor: 'some shallow water',
     });
-    install$3('BRIDGE', {
+    install$4('BRIDGE', {
         ch: '=',
         fg: [100, 40, 40],
         priority: 40,
@@ -5197,19 +6500,22 @@
         flavor: 'a bridge',
     });
 
-    exports.actor = index$4;
-    exports.draw = index;
-    exports.effect = index$7;
-    exports.entity = index$9;
-    exports.flags = index$a;
+    exports.action = index$3;
+    exports.actor = index$7;
+    exports.draw = index$2;
+    exports.effect = index$a;
+    exports.entity = index$c;
+    exports.flags = index$d;
     exports.fx = fx;
-    exports.horde = index$1;
-    exports.item = index$3;
-    exports.layer = index$6;
-    exports.map = index$2;
-    exports.memory = index$5;
+    exports.game = index;
+    exports.horde = index$4;
+    exports.item = index$6;
+    exports.layer = index$9;
+    exports.map = index$5;
+    exports.memory = index$8;
     exports.path = path;
-    exports.tile = index$8;
+    exports.player = index$1;
+    exports.tile = index$b;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

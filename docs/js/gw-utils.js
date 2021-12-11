@@ -2099,6 +2099,58 @@
         unite: unite
     });
 
+    class AsyncQueue {
+        constructor() {
+            this._waiting = null;
+            this._data = [];
+        }
+        get length() {
+            return this._data.length;
+        }
+        get last() {
+            return this._data[this._data.length - 1];
+        }
+        get first() {
+            return this._data[0];
+        }
+        enqueue(obj) {
+            if (this._waiting) {
+                this._waiting(obj);
+                this._waiting = null;
+            }
+            else {
+                this._data.push(obj);
+            }
+        }
+        prepend(obj) {
+            if (this._waiting) {
+                this._waiting(obj);
+                this._waiting = null;
+            }
+            else {
+                this._data.unshift(obj);
+            }
+        }
+        dequeue() {
+            const t = this._data.shift();
+            if (t) {
+                return Promise.resolve(t);
+            }
+            if (this._waiting) {
+                throw new Error('Too many requesters.');
+            }
+            const p = new Promise((resolve) => {
+                this._waiting = resolve;
+            });
+            return p;
+        }
+    }
+
+    var queue = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        AsyncQueue: AsyncQueue
+    });
+
     function toColorInt(r, g, b, base256) {
         if (base256) {
             r = Math.max(0, Math.min(255, Math.round(r * 2.550001)));
@@ -3420,7 +3472,7 @@
             return x >= 0 && y >= 0 && x < this.width && y < this.height;
         }
         clone() {
-            const other = new Buffer$1(this._width, this._height);
+            const other = new (this.constructor)(this._width, this._height);
             other.copy(this);
             return other;
         }
@@ -3774,6 +3826,7 @@
         'MetaLeft',
         'MetaRight',
     ];
+    // type EventHandler = (event: Event) => void;
     function setKeymap(keymap) {
         IOMAP = keymap;
     }
@@ -3917,54 +3970,34 @@
         ev.target = null;
         return ev;
     }
-    class Loop {
-        constructor() {
-            this.running = true;
-            this.events = [];
+    class Handler {
+        constructor(loop) {
+            this._running = false;
+            this._events = new AsyncQueue();
+            this._result = undefined;
+            this._tweens = [];
+            this._timers = [];
             this.mouse = { x: -1, y: -1 };
-            this._handlers = [];
-            this.PAUSED = false;
-            this.LAST_CLICK = { x: -1, y: -1 };
-            this.interval = 0;
-            this.intervalCount = 0;
-            this.ended = false;
-            this._animations = [];
+            this.lastClick = { x: -1, y: -1 };
+            if (loop) {
+                loop.pushHandler(this);
+            }
         }
-        get CURRENT_HANDLER() {
-            return this._handlers[this._handlers.length - 1] || null;
+        get running() {
+            return this._running;
         }
         hasEvents() {
-            return this.events.length;
+            return this._events.length;
         }
         clearEvents() {
-            while (this.events.length) {
-                const ev = this.events.shift();
+            while (this._events.length) {
+                const ev = this._events._data.shift();
                 DEAD_EVENTS.push(ev);
             }
         }
-        _startTicks() {
-            ++this.intervalCount;
-            if (this.interval)
-                return;
-            this.interval = setInterval(() => {
-                const e = makeTickEvent(16);
-                this.pushEvent(e);
-            }, 16);
-        }
-        _stopTicks() {
-            if (!this.intervalCount)
-                return; // too many calls to stop
-            --this.intervalCount;
-            if (this.intervalCount)
-                return; // still have a loop running
-            clearInterval(this.interval);
-            this.interval = 0;
-        }
-        pushEvent(ev) {
-            if (this.ended)
-                return;
-            if (this.events.length) {
-                const last = this.events[this.events.length - 1];
+        enqueue(ev) {
+            if (this._events.length) {
+                const last = this._events.last;
                 if (last.type === ev.type) {
                     if (last.type === MOUSEMOVE) {
                         last.x = ev.x;
@@ -3976,156 +4009,93 @@
             }
             // Keep clicks down to one per cell if holding down mouse button
             if (ev.type === CLICK) {
-                if (this.LAST_CLICK.x == ev.x && this.LAST_CLICK.y == ev.y) {
+                if (this.lastClick.x == ev.x && this.lastClick.y == ev.y) {
                     recycleEvent(ev);
                     return;
                 }
-                this.LAST_CLICK.x = ev.x;
-                this.LAST_CLICK.y = ev.y;
+                this.lastClick.x = ev.x;
+                this.lastClick.y = ev.y;
             }
             else if (ev.type == MOUSEUP) {
-                this.LAST_CLICK.x = -1;
-                this.LAST_CLICK.y = -1;
+                this.lastClick.x = -1;
+                this.lastClick.y = -1;
                 recycleEvent(ev);
                 return;
             }
-            const h = this.CURRENT_HANDLER;
-            if (h && !this.PAUSED) {
-                h(ev);
-            }
-            else if (ev.type === TICK) {
-                const first = this.events[0];
+            if (ev.type === TICK) {
+                const first = this._events.first;
                 if (first && first.type === TICK) {
                     first.dt += ev.dt;
                     recycleEvent(ev);
                     return;
                 }
-                this.events.unshift(ev); // ticks go first
+                this._events.prepend(ev); // ticks go first
             }
             else {
-                this.events.push(ev);
+                this._events.enqueue(ev);
             }
         }
-        nextEvent(ms = -1, match) {
+        async nextEvent(ms = -1, match) {
             match = match || TRUE;
             let elapsed = 0;
-            while (this.events.length) {
-                const e = this.events.shift();
+            while (ms < 0 || elapsed < ms) {
+                const e = await this._events.dequeue(); // important that ticks are regularly firing
                 if (e.type === MOUSEMOVE) {
                     this.mouse.x = e.x;
                     this.mouse.y = e.y;
                 }
+                if (e.type === TICK) {
+                    this._tick(e.dt); // run animations and timers
+                    if (ms > 0) {
+                        elapsed += e.dt;
+                        if (elapsed > ms) {
+                            return null;
+                        }
+                    }
+                }
                 if (match(e)) {
-                    return Promise.resolve(e);
+                    return e;
                 }
                 recycleEvent(e);
             }
-            let done;
-            if (ms == 0 || this.ended)
-                return Promise.resolve(null);
-            // if (this.CURRENT_HANDLER) {
-            //     throw new Error(
-            //         'OVERWRITE HANDLER -- Check for a missing await around Loop function calls.'
-            //     );
-            // } else
-            if (this.events.length) {
-                console.warn('SET HANDLER WITH QUEUED EVENTS - nextEvent');
-            }
-            const h = (e) => {
-                if (e.type === MOUSEMOVE) {
-                    this.mouse.x = e.x;
-                    this.mouse.y = e.y;
-                }
-                if (e.type === TICK && ms > 0) {
-                    elapsed += e.dt;
-                    if (elapsed < ms) {
-                        return;
-                    }
-                    e.dt = elapsed;
-                }
-                else if (!match(e))
-                    return;
-                this._handlers.pop();
-                done(e);
-            };
-            this._handlers.push(h);
-            return new Promise((resolve) => (done = resolve));
+            return null;
         }
-        async run(keymap, ms = -1) {
-            if (this.ended)
-                return;
-            this.running = true;
+        async run(keymap = {}, ms = -1, thisArg) {
+            if (this._running)
+                throw new Error('IO Handler is already running!');
+            thisArg = thisArg || this;
+            this._running = true;
             this.clearEvents(); // ??? Should we do this?
-            this._startTicks();
             if (keymap.start && typeof keymap.start === 'function') {
-                await keymap.start();
+                await keymap.start.call(thisArg);
             }
-            let running = true;
-            while (this.running && running) {
+            while (this.running) {
                 if (keymap.draw && typeof keymap.draw === 'function') {
-                    keymap.draw();
+                    keymap.draw.call(thisArg);
                 }
-                if (this._animations.length) {
-                    const ev = await this.nextTick();
-                    if (ev && ev.dt) {
-                        this._animations.forEach((a) => a && a.tick(ev.dt));
-                        this._animations = this._animations.filter((a) => a && a.isRunning());
-                    }
-                }
-                else {
-                    const ev = await this.nextEvent(ms);
-                    if (ev && (await dispatchEvent(ev, keymap))) {
-                        running = false;
-                    }
+                const ev = await this.nextEvent(ms);
+                if (ev) {
+                    await dispatchEvent(ev, keymap, thisArg);
                 }
             }
             if (keymap.stop && typeof keymap.stop === 'function') {
-                await keymap.stop();
+                await keymap.stop.call(thisArg);
             }
-            this._stopTicks();
+            return this._result;
         }
-        stop() {
+        finish(result) {
             this.clearEvents();
-            this.running = false;
-            if (this.interval) {
-                clearInterval(this.interval);
-                this.interval = 0;
-            }
-            if (this.CURRENT_HANDLER) {
-                this.pushEvent(makeStopEvent());
-            }
-            // this.CURRENT_HANDLER = null;
+            this._running = false;
+            this._result = result;
+            this.enqueue(makeStopEvent());
+            popHandler(this);
         }
-        end() {
-            this.stop();
-            this.ended = true;
-        }
-        start() {
-            this.ended = false;
-        }
-        // pauseEvents() {
-        //     if (this.PAUSED) return;
-        //     this.PAUSED = true;
-        //     // io.debug('events paused');
-        // }
-        // resumeEvents() {
-        //     if (!this.PAUSED) return;
-        //     this.PAUSED = false;
-        //     // io.debug('resuming events');
-        //     if (this.events.length && this.CURRENT_HANDLER) {
-        //         const e: Event = this.events.shift()!;
-        //         // io.debug('- processing paused event', e.type);
-        //         this.CURRENT_HANDLER(e);
-        //         // io.recycleEvent(e);	// DO NOT DO THIS B/C THE HANDLER MAY PUT IT BACK ON THE QUEUE (see tickMs)
-        //     }
-        //     // io.debug('events resumed');
-        // }
         // IO
-        async tickMs(ms = 1) {
-            let done;
-            setTimeout(() => done(), ms);
-            return new Promise((resolve) => (done = resolve));
-        }
+        // async tickMs(ms = 1) {
+        //     let done: Function;
+        //     setTimeout(() => done(), ms);
+        //     return new Promise((resolve) => (done = resolve));
+        // }
         async nextTick(ms = -1) {
             return this.nextEvent(ms, (e) => e && e.type === TICK);
         }
@@ -4153,34 +4123,166 @@
         }
         async pause(ms) {
             const e = await this.nextKeyOrClick(ms);
-            return e && e.type !== TICK;
+            return !!e && e.type !== TICK;
         }
         waitForAck() {
             return this.pause(5 * 60 * 1000); // 5 min
         }
+        // Animator
+        addAnimation(a) {
+            if (!a.isRunning()) {
+                a.start();
+            }
+            this._tweens.push(a);
+        }
+        removeAnimation(a) {
+            arrayDelete(this._tweens, a);
+        }
+        // Timers
+        setTimeout(action, time) {
+            const slot = this._timers.findIndex((t) => t.time <= 0);
+            if (slot < 0) {
+                this._timers.push({ action, time });
+            }
+            else {
+                this._timers[slot] = { action, time };
+            }
+        }
+        clearTimeout(action) {
+            const timer = this._timers.find((t) => t.action === action);
+            if (timer) {
+                timer.time = -1;
+            }
+        }
+        _tick(dt) {
+            // fire animations
+            this._tweens.forEach((tw) => tw.tick(dt));
+            this._tweens = this._tweens.filter((tw) => tw.isRunning());
+            for (let timer of this._timers) {
+                if (timer.time <= 0)
+                    continue; // ignore fired timers
+                timer.time -= dt;
+                if (timer.time <= 0) {
+                    timer.action();
+                }
+            }
+            return this._tweens.length > 0;
+        }
+    }
+    function make$7(andPush = true) {
+        const handler = new Handler();
+        if (andPush) {
+            pushHandler(handler);
+        }
+        return handler;
+    }
+    const defaultHandler = new Handler();
+    async function nextEvent(ms) {
+        pushHandler(defaultHandler);
+        const r = await defaultHandler.nextEvent(ms);
+        popHandler(defaultHandler);
+        return r;
+    }
+    async function nextTick(ms) {
+        pushHandler(defaultHandler);
+        const r = await defaultHandler.nextTick(ms);
+        popHandler(defaultHandler);
+        return r;
+    }
+    async function nextKeyOrClick(ms, match) {
+        pushHandler(defaultHandler);
+        const r = await defaultHandler.nextKeyOrClick(ms, match);
+        popHandler(defaultHandler);
+        return r;
+    }
+    async function nextKeyPress(ms, match) {
+        pushHandler(defaultHandler);
+        const r = await defaultHandler.nextKeyPress(ms, match);
+        popHandler(defaultHandler);
+        return r;
+    }
+    async function pause(ms) {
+        pushHandler(defaultHandler);
+        const r = await defaultHandler.pause(ms);
+        popHandler(defaultHandler);
+        return r;
+    }
+    async function waitForAck() {
+        pushHandler(defaultHandler);
+        const r = await defaultHandler.waitForAck();
+        popHandler(defaultHandler);
+        return r;
+    }
+    class Loop {
+        constructor() {
+            this.handlers = [];
+            this.currentHandler = null;
+            this._tickInterval = 0;
+        }
+        pushHandler(handler) {
+            if (!this.handlers.includes(handler)) {
+                this.handlers.push(handler);
+            }
+            this.currentHandler = handler;
+            this._startTicks();
+        }
+        popHandler(handler) {
+            arrayDelete(this.handlers, handler);
+            this.currentHandler = this.handlers[this.handlers.length - 1] || null;
+            if (!this.currentHandler) {
+                this._stopTicks();
+            }
+        }
+        enqueue(ev) {
+            if (this.currentHandler) {
+                this.currentHandler.enqueue(ev);
+            }
+        }
+        _startTicks() {
+            if (this._tickInterval)
+                return;
+            this._tickInterval = setInterval(() => {
+                const e = makeTickEvent(16);
+                this.enqueue(e);
+            }, 16);
+        }
+        _stopTicks() {
+            clearInterval(this._tickInterval);
+            this._tickInterval = 0;
+        }
         onkeydown(e) {
             if (ignoreKeyEvent(e))
                 return;
-            if (e.code === 'Escape') {
-                this.clearEvents(); // clear all current events, then push on the escape
+            if (this.currentHandler) {
+                if (e.code === 'Escape') {
+                    this.currentHandler.clearEvents(); // clear all current events, then push on the escape
+                }
+                const ev = makeKeyEvent(e);
+                this.enqueue(ev);
             }
-            const ev = makeKeyEvent(e);
-            this.pushEvent(ev);
             e.preventDefault();
         }
-        // Animator
         addAnimation(a) {
-            this._animations.push(a);
+            if (this.currentHandler) {
+                this.currentHandler.addAnimation(a);
+            }
         }
         removeAnimation(a) {
-            arrayNullify(this._animations, a);
+            if (this.currentHandler) {
+                this.currentHandler.removeAnimation(a);
+            }
         }
     }
-    function make$7() {
-        return new Loop();
+    const loop = new Loop();
+    function pushHandler(handler) {
+        loop.pushHandler(handler);
     }
-    // Makes a default global loop that you access through these funcitons...
-    const loop = make$7();
+    function popHandler(handler) {
+        loop.popHandler(handler);
+    }
+    function enqueue(ev) {
+        loop.enqueue(ev);
+    }
 
     var io = /*#__PURE__*/Object.freeze({
         __proto__: null,
@@ -4201,9 +4303,19 @@
         keyCodeDirection: keyCodeDirection,
         ignoreKeyEvent: ignoreKeyEvent,
         makeMouseEvent: makeMouseEvent,
-        Loop: Loop,
+        Handler: Handler,
         make: make$7,
-        loop: loop
+        nextEvent: nextEvent,
+        nextTick: nextTick,
+        nextKeyOrClick: nextKeyOrClick,
+        nextKeyPress: nextKeyPress,
+        pause: pause,
+        waitForAck: waitForAck,
+        Loop: Loop,
+        loop: loop,
+        pushHandler: pushHandler,
+        popHandler: popHandler,
+        enqueue: enqueue
     });
 
     var FovFlags;
@@ -5294,41 +5406,6 @@
             }
         }
     }
-    // type AsyncQueueHandlerFn<T> = (obj: T) => void;
-    // export class AsyncQueue<T> {
-    //     _data: T[];
-    //     _handler: AsyncQueueHandlerFn<T> | null = null;
-    //     constructor() {
-    //         this._data = [];
-    //     }
-    //     get length(): number {
-    //         return this._data.length;
-    //     }
-    //     get last(): T | undefined {
-    //         return this._data[this._data.length - 1];
-    //     }
-    //     get first(): T | undefined {
-    //         return this._data[0];
-    //     }
-    //     enqueue(obj: T): void {
-    //         if (this._handler) {
-    //             this._handler(obj);
-    //             this._handler = null;
-    //         } else {
-    //             this._data.push(obj);
-    //         }
-    //     }
-    //     dequeue(): Promise<T> {
-    //         const t = this._data.shift();
-    //         if (t) {
-    //             return Promise.resolve(t);
-    //         }
-    //         const p = new Promise((resolve) => {
-    //             this._handler = resolve;
-    //         });
-    //         return p as Promise<T>;
-    //     }
-    // }
 
     var scheduler = /*#__PURE__*/Object.freeze({
         __proto__: null,
@@ -5677,10 +5754,13 @@
             this._renderRequested = false;
             this._width = 100;
             this._height = 38;
+            this._buffers = [];
+            this._current = 0;
+            this.loop = loop;
             this._node = this._createNode();
             this._createContext();
             this._configure(width, height, glyphs);
-            this._buffer = new Buffer(this);
+            this._buffers.push(new Buffer(this));
         }
         get node() {
             return this._node;
@@ -5715,7 +5795,28 @@
             return this._glyphs.forChar(ch);
         }
         get buffer() {
-            return this._buffer;
+            return this._buffers[this._current];
+        }
+        get parentBuffer() {
+            const index = Math.max(0, this._current - 1);
+            return this._buffers[index];
+        }
+        get root() {
+            return this._buffers[0];
+        }
+        pushBuffer() {
+            const current = this.buffer;
+            ++this._current;
+            if (this._current >= this._buffers.length) {
+                this._buffers.push(current.clone());
+            }
+            else {
+                this.buffer.copy(current);
+            }
+            return this.buffer;
+        }
+        popBuffer() {
+            this._current = Math.max(0, this._current - 1);
         }
         _createNode() {
             return document.createElement('canvas');
@@ -5735,9 +5836,7 @@
         resize(width, height) {
             this._width = width;
             this._height = height;
-            if (this._buffer) {
-                this._buffer.resize(width, height);
-            }
+            this._buffers.forEach((b) => b.resize(width, height));
             const node = this.node;
             node.width = this._width * this.tileWidth;
             node.height = this._height * this.tileHeight;
@@ -5902,44 +6001,6 @@
             this._ctx.putImageData(d, px, py);
         }
     }
-    // export function withImage(image: ImageOptions | HTMLImageElement | string) {
-    //     let opts = {} as CanvasOptions;
-    //     if (typeof image === 'string') {
-    //         opts.glyphs = Glyphs.fromImage(image);
-    //     } else if (image instanceof HTMLImageElement) {
-    //         opts.glyphs = Glyphs.fromImage(image);
-    //     } else {
-    //         if (!image.image) throw new Error('You must supply the image.');
-    //         Object.assign(opts, image);
-    //         opts.glyphs = Glyphs.fromImage(image.image);
-    //     }
-    //     let canvas;
-    //     try {
-    //         canvas = new Canvas(opts);
-    //     } catch (e) {
-    //         if (!(e instanceof NotSupportedError)) throw e;
-    //     }
-    //     if (!canvas) {
-    //         canvas = new Canvas2D(opts);
-    //     }
-    //     return canvas;
-    // }
-    // export function withFont(src: FontOptions | string) {
-    //     if (typeof src === 'string') {
-    //         src = { font: src } as FontOptions;
-    //     }
-    //     src.glyphs = Glyphs.fromFont(src);
-    //     let canvas;
-    //     try {
-    //         canvas = new Canvas(src);
-    //     } catch (e) {
-    //         if (!(e instanceof NotSupportedError)) throw e;
-    //     }
-    //     if (!canvas) {
-    //         canvas = new Canvas2D(src);
-    //     }
-    //     return canvas;
-    // }
 
     // Based on: https://github.com/ondras/fastiles/blob/master/ts/shaders.ts (v2.1.0)
     const VS = `
@@ -6046,7 +6107,7 @@ void main() {
                 throw new NotSupportedError('WebGL 2 not supported');
             }
             this._gl = gl;
-            this._buffers = {};
+            this._glBuffers = {};
             this._attribs = {};
             this._uniforms = {};
             const p = createProgram(gl, VS, FS);
@@ -6067,21 +6128,21 @@ void main() {
         }
         _createGeometry() {
             const gl = this._gl;
-            this._buffers.position && gl.deleteBuffer(this._buffers.position);
-            this._buffers.uv && gl.deleteBuffer(this._buffers.uv);
+            this._glBuffers.position && gl.deleteBuffer(this._glBuffers.position);
+            this._glBuffers.uv && gl.deleteBuffer(this._glBuffers.uv);
             let buffers = createGeometry(gl, this._attribs, this.width, this.height);
-            Object.assign(this._buffers, buffers);
+            Object.assign(this._glBuffers, buffers);
         }
         _createData() {
             const gl = this._gl;
             const attribs = this._attribs;
             const tileCount = this.width * this.height;
-            this._buffers.style && gl.deleteBuffer(this._buffers.style);
+            this._glBuffers.style && gl.deleteBuffer(this._glBuffers.style);
             this._data = new Uint32Array(tileCount * VERTICES_PER_TILE);
             const style = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, style);
             gl.vertexAttribIPointer(attribs['style'], 1, gl.UNSIGNED_INT, 0, 0);
-            Object.assign(this._buffers, { style });
+            Object.assign(this._glBuffers, { style });
         }
         _setGlyphs(glyphs) {
             if (!super._setGlyphs(glyphs))
@@ -6159,7 +6220,7 @@ void main() {
                 return;
             }
             this._renderRequested = false;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this._buffers.style);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._glBuffers.style);
             gl.bufferData(gl.ARRAY_BUFFER, this._data, gl.DYNAMIC_DRAW);
             gl.drawArrays(gl.TRIANGLES, 0, this._width * this._height * VERTICES_PER_TILE);
             this.buffer.changed = false;
@@ -6241,7 +6302,7 @@ void main() {
             if (!(e instanceof NotSupportedError))
                 throw e;
         }
-        if (!canvas) {
+        if (canvas === undefined) {
             canvas = new Canvas2D(width, height, glyphs);
         }
         if (opts.div) {
@@ -6259,12 +6320,14 @@ void main() {
                 el.appendChild(canvas.node);
             }
         }
+        if (opts.loop) {
+            canvas.loop = opts.loop;
+        }
         if (opts.io || opts.loop) {
-            let loop$1 = opts.loop || loop;
-            canvas.onclick = (e) => loop$1.pushEvent(e);
-            canvas.onmousemove = (e) => loop$1.pushEvent(e);
-            canvas.onmouseup = (e) => loop$1.pushEvent(e);
-            // canvas.onkeydown = (e) => loop.pushEvent(e); // Keyboard events require tabindex to be set, better to let user do this.
+            canvas.onclick = (e) => canvas.loop.enqueue(e);
+            canvas.onmousemove = (e) => canvas.loop.enqueue(e);
+            canvas.onmouseup = (e) => canvas.loop.enqueue(e);
+            // canvas.onkeydown = (e) => loop.enqueue(e); // Keyboard events require tabindex to be set, better to let user do this.
         }
         return canvas;
     }
@@ -7879,26 +7942,27 @@ void main() {
     const defaultStyle = new Sheet(null);
 
     class Layer {
-        constructor(ui, opts = {}) {
+        // result: any = undefined;
+        // timers: TimerInfo[] = [];
+        // _tweens: Tween.Animation[] = [];
+        // _running = false;
+        // _keymap: IO.IOMap = {};
+        constructor(ui, _opts = {}) {
+            // styles: Style.Sheet;
             this.needsDraw = true;
-            this.result = undefined;
-            this.timers = [];
-            this._tweens = [];
-            this._running = false;
-            this._keymap = {};
-            this.ui = ui;
-            this.buffer = ui.canvas.buffer.clone();
-            this.styles = new Sheet(opts.styles || ui.styles);
-            // this.run(opts);
+            this.canvas = ui instanceof BaseCanvas ? ui : ui.canvas;
+            this.buffer = this.canvas.pushBuffer();
+            this.io = new Handler(this.canvas.loop);
+            // this.styles = new Style.Sheet(opts.styles || ui.styles);
         }
-        get running() {
-            return this._running;
-        }
+        // get running() {
+        //     return this._running;
+        // }
         get width() {
-            return this.ui.width;
+            return this.buffer.width;
         }
         get height() {
-            return this.ui.height;
+            return this.buffer.height;
         }
         // EVENTS
         // on(event: string, cb: Widget.EventCb): this {
@@ -7921,118 +7985,79 @@ void main() {
         dir(_e) {
             return false;
         }
-        tick(e) {
-            const dt = e.dt;
-            // fire animations
-            this._tweens.forEach((tw) => tw.tick(dt));
-            this._tweens = this._tweens.filter((tw) => tw.isRunning());
-            for (let timer of this.timers) {
-                if (timer.time <= 0)
-                    continue; // ignore fired timers
-                timer.time -= dt;
-                if (timer.time <= 0) {
-                    timer.action();
-                }
-            }
+        tick(_e) {
+            // const dt = e.dt;
+            // // fire animations
+            // this._tweens.forEach((tw) => tw.tick(dt));
+            // this._tweens = this._tweens.filter((tw) => tw.isRunning());
+            // for (let timer of this.timers) {
+            //     if (timer.time <= 0) continue; // ignore fired timers
+            //     timer.time -= dt;
+            //     if (timer.time <= 0) {
+            //         timer.action();
+            //     }
+            // }
             return false;
         }
         draw() {
-            console.log('draw');
-            this.buffer.render();
+            if (this.buffer.changed) {
+                console.log('draw');
+                this.buffer.render();
+            }
         }
         // LOOP
         setTimeout(action, time) {
-            const slot = this.timers.findIndex((t) => t.time <= 0);
-            if (slot < 0) {
-                this.timers.push({ action, time });
-            }
-            else {
-                this.timers[slot] = { action, time };
-            }
+            this.io.setTimeout(action, time);
+            // const slot = this.timers.findIndex((t) => t.time <= 0);
+            // if (slot < 0) {
+            //     this.timers.push({ action, time });
+            // } else {
+            //     this.timers[slot] = { action, time };
+            // }
         }
         clearTimeout(action) {
-            const timer = this.timers.find((t) => t.action === action);
-            if (timer) {
-                timer.time = -1;
-            }
+            this.io.clearTimeout(action);
+            // const timer = this.timers.find((t) => t.action === action);
+            // if (timer) {
+            //     timer.time = -1;
+            // }
         }
         // Animator
         addAnimation(a) {
-            if (!a.isRunning())
-                a.start();
-            this._tweens.push(a);
+            this.io.addAnimation(a);
         }
         removeAnimation(a) {
-            arrayNullify(this._tweens, a);
+            this.io.removeAnimation(a);
         }
         // RUN
-        async run(keymap = {}, ms = -1) {
-            if (this._running)
-                throw new Error('Already running!');
-            this.result = undefined;
-            const loop = this.ui.loop;
-            this._running = true;
-            loop.clearEvents(); // ??? Should we do this?
+        run(keymap = {}, ms = -1) {
             ['keypress', 'dir', 'click', 'mousemove', 'tick', 'draw'].forEach((e) => {
                 if (e in keymap)
                     return;
                 keymap[e] = this[e];
             });
-            if (keymap.start && typeof keymap.start === 'function') {
-                await keymap.start.call(this);
-            }
-            let busy = false;
-            const tickLoop = setInterval(() => {
-                if (busy)
-                    return;
-                const e = makeTickEvent(16);
-                loop.pushEvent(e);
-            }, 16);
-            while (this._running) {
-                if (keymap.draw && typeof keymap.draw === 'function') {
-                    keymap.draw.call(this);
-                }
-                if (this._tweens.length) {
-                    const ev = await loop.nextTick();
-                    if (ev && ev.dt) {
-                        this._tweens.forEach((a) => a && a.tick(ev.dt));
-                        this._tweens = this._tweens.filter((a) => a && a.isRunning());
-                    }
-                }
-                else {
-                    const ev = await loop.nextEvent(ms);
-                    busy = true;
-                    if (ev) {
-                        await dispatchEvent(ev, keymap, this); // return code does not matter (call layer.finish() to exit loop)
-                        // this._running = false;
-                    }
-                    busy = false;
-                }
-            }
-            if (keymap.stop && typeof keymap.stop === 'function') {
-                await keymap.stop.call(this);
-            }
-            clearInterval(tickLoop);
-            return this.result;
+            return this.io.run(keymap, ms, this);
         }
         finish(result) {
-            this.result = result;
-            this._running = false;
-            this.ui._finishLayer(this);
+            this.io.finish(result);
+            this.canvas.popBuffer();
+            this.canvas.loop.popHandler(this.io);
+            this.canvas.buffer.render(); // redraw old buffer
         }
     }
 
     // import * as GWU from 'gw-utils';
     class UI {
-        // _promise: Promise<void> | null = null;
+        //     layer: Layer | null = null;
+        //     layers: Layer[] = [];
+        //     // inDialog = false;
+        //     _done = false;
+        //     // _promise: Promise<void> | null = null;
         constructor(opts = {}) {
-            this.layer = null;
-            this.layers = [];
-            // inDialog = false;
-            this._done = false;
             opts.loop = opts.loop || loop;
             this.loop = opts.loop;
             this.canvas = opts.canvas || make$5(opts);
+            this.buffer = this.canvas.buffer;
             // get keyboard input hooked up
             if (this.canvas.node && this.canvas.node.parentElement) {
                 this.canvas.node.parentElement.onkeydown = this.loop.onkeydown.bind(this.loop);
@@ -8045,149 +8070,19 @@ void main() {
         get height() {
             return this.canvas.height;
         }
-        get styles() {
-            return defaultStyle;
+        alert(..._args) {
+            return Promise.resolve(true);
         }
-        // render() {
-        //     this.buffer.render();
-        // }
-        get baseBuffer() {
-            const layer = this.layers[this.layers.length - 2] || null;
-            return layer ? layer.buffer : this.canvas.buffer;
+        confirm(..._args) {
+            return Promise.resolve(true);
         }
-        get canvasBuffer() {
-            return this.canvas.buffer;
-        }
-        get buffer() {
-            return this.layer ? this.layer.buffer : this.canvas.buffer;
-        }
-        startNewLayer(opts = {}) {
-            opts.styles = this.layer ? this.layer.styles : this.styles;
-            const layer = new Layer(this, opts);
-            this.startLayer(layer);
-            return layer;
-        }
-        startLayer(layer) {
-            this.layers.push(layer);
-            // if (!this._promise) {
-            //     this._promise = this.loop.run((this as unknown) as IO.IOMap);
-            // }
-            this.layer = layer;
-        }
-        copyUIBuffer(dest) {
-            const base = this.baseBuffer;
-            dest.copy(base);
-            dest.changed = false; // So you have to draw something to make the canvas render...
-        }
-        finishLayer(layer, result) {
-            layer.finish(result);
-        }
-        _finishLayer(layer) {
-            arrayDelete(this.layers, layer);
-            if (this.layer === layer) {
-                this.layer = this.layers[this.layers.length - 1] || null;
-                this.layer && (this.layer.needsDraw = true);
-            }
-        }
-        stop() {
-            this._done = true;
-            while (this.layer) {
-                this.finishLayer(this.layer);
-            }
-        }
-        // run(): Promise<void> {
-        //     // this._done = false;
-        //     return this.loop.run(this as unknown as IO.IOMap);
-        // }
-        // stop() {
-        //     this._done = true;
-        //     if (this.layer) this.layer.stop();
-        //     this.layers.forEach((l) => l.stop());
-        //     this.layer = null;
-        //     this.layers.length = 0;
-        // }
-        // mousemove(e: IO.Event): boolean {
-        //     if (this.layer) this.layer.mousemove(e);
-        //     return this._done;
-        // }
-        // click(e: IO.Event): boolean {
-        //     if (this.layer) this.layer.click(e);
-        //     return this._done;
-        // }
-        // keypress(e: IO.Event): boolean {
-        //     if (this.layer) this.layer.keypress(e);
-        //     return this._done;
-        // }
-        // dir(e: IO.Event): boolean {
-        //     if (this.layer) this.layer.dir(e);
-        //     return this._done;
-        // }
-        // tick(e: IO.Event): boolean {
-        //     if (this.layer) this.layer.tick(e);
-        //     return this._done;
-        // }
-        // draw() {
-        //     if (this.layer) this.layer.draw();
-        // }
-        addAnimation(a) {
-            var _a;
-            (_a = this.layer) === null || _a === void 0 ? void 0 : _a.addAnimation(a);
-        }
-        removeAnimation(a) {
-            var _a;
-            (_a = this.layer) === null || _a === void 0 ? void 0 : _a.removeAnimation(a);
+        inputbox(..._args) {
+            return Promise.resolve(null);
         }
     }
     function make(opts) {
         return new UI(opts);
     }
-
-    // import * as GWU from 'gw-utils';
-    UI.prototype.alert = function (opts, text, args) {
-        if (typeof opts === 'number') {
-            opts = { duration: opts };
-        }
-        if (args) {
-            text = apply(text, args);
-        }
-        opts.class = opts.class || 'alert';
-        opts.border = opts.border || 'ascii';
-        opts.pad = opts.pad || 1;
-        const layer = this.startWidgetLayer();
-        // Fade the background
-        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
-        layer.body.style().set('bg', BLACK.alpha(opacity));
-        // create the text widget
-        const textWidget = layer
-            .text(text, {
-            id: 'TEXT',
-            class: opts.textClass || opts.class,
-            width: opts.width,
-            height: opts.height,
-        })
-            .center();
-        Object.assign(opts, {
-            width: textWidget.bounds.width,
-            height: textWidget.bounds.height,
-            x: textWidget.bounds.x,
-            y: textWidget.bounds.y,
-            id: 'DIALOG',
-        });
-        const dialog = layer.dialog(opts);
-        textWidget.setParent(dialog);
-        layer.on('click', () => {
-            layer.finish(true);
-            return true;
-        });
-        layer.on('keypress', () => {
-            layer.finish(true);
-            return true;
-        });
-        layer.setTimeout(() => {
-            layer.finish(false);
-        }, opts.duration || 3000);
-        return layer;
-    };
 
     defaultStyle.add('*', {
         fg: 'white',
@@ -8716,6 +8611,7 @@ void main() {
             this._focusWidget = null;
             this._hasTabStop = false;
             this._opts = { x: 0, y: 0 };
+            this.styles = new Sheet(opts.styles || defaultStyle);
             this.body = new Body(this);
         }
         // Style and Opts
@@ -8975,7 +8871,7 @@ void main() {
             if (!this.needsDraw)
                 return;
             this.needsDraw = false;
-            this.ui.copyUIBuffer(this.buffer);
+            this.buffer.copy(this.canvas.parentBuffer);
             // draw from low depth to high depth
             for (let i = this._depthOrder.length - 1; i >= 0; --i) {
                 const w = this._depthOrder[i];
@@ -8986,14 +8882,199 @@ void main() {
         }
         finish(result) {
             super.finish(result);
-            this.body._fireEvent('finish', this.body, this.result);
+            this.body._fireEvent('finish', this.body, result);
         }
     }
-    UI.prototype.startWidgetLayer = function (opts = {}) {
-        opts.styles = this.layer ? this.layer.styles : this.styles;
-        const layer = new WidgetLayer(this, opts);
-        this.startLayer(layer);
-        return layer;
+    // declare module '../ui/ui' {
+    //     interface UI {
+    //         startWidgetLayer(opts?: WidgetLayerOptions): WidgetLayer;
+    //     }
+    // }
+    // UI.prototype.startWidgetLayer = function (
+    //     opts: WidgetLayerOptions = {}
+    // ): WidgetLayer {
+    //     opts.styles = this.layer ? this.layer.styles : this.styles;
+    //     const layer = new WidgetLayer(this, opts);
+    //     this.startLayer(layer);
+    //     return layer;
+    // };
+
+    // import * as GWU from 'gw-utils';
+    // extend WidgetLayer
+    // declare module './ui' {
+    //     interface UI {
+    //         alert(
+    //             opts: AlertOptions | number,
+    //             text: string,
+    //             args?: any
+    //         ): Promise<boolean>;
+    //     }
+    // }
+    UI.prototype.alert = function (...args) {
+        let opts = {};
+        let text;
+        let textArgs = {};
+        if (typeof args[0] === 'number') {
+            opts.duration = args[0];
+            text = args[1];
+            textArgs = args[2];
+        }
+        else if (typeof args[0] === 'string') {
+            text = args[0];
+            textArgs = args[1];
+        }
+        else {
+            opts = args[0];
+            text = args[1];
+            textArgs = args[2];
+        }
+        if (textArgs) {
+            text = apply(text, textArgs);
+        }
+        opts.class = opts.class || 'alert';
+        opts.border = opts.border || 'ascii';
+        opts.pad = opts.pad || 1;
+        const layer = new WidgetLayer(this);
+        // Fade the background
+        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
+        layer.body.style().set('bg', BLACK.alpha(opacity));
+        // create the text widget
+        const textWidget = layer
+            .text(text, {
+            id: 'TEXT',
+            class: opts.textClass || opts.class,
+            width: opts.width,
+            height: opts.height,
+        })
+            .center();
+        Object.assign(opts, {
+            width: textWidget.bounds.width,
+            height: textWidget.bounds.height,
+            x: textWidget.bounds.x,
+            y: textWidget.bounds.y,
+            id: 'DIALOG',
+        });
+        const dialog = layer.dialog(opts);
+        textWidget.setParent(dialog);
+        layer.on('click', () => {
+            layer.finish(true);
+            return true;
+        });
+        layer.on('keypress', () => {
+            layer.finish(true);
+            return true;
+        });
+        layer.setTimeout(() => {
+            layer.finish(false);
+        }, opts.duration || 3000);
+        return layer.run();
+    };
+
+    // import * as GWU from 'gw-utils';
+    // extend WidgetLayer
+    // declare module './ui' {
+    //     interface UI {
+    //         confirm(text: string, args?: any): Promise<boolean>;
+    //         confirm(
+    //             opts: ConfirmOptions,
+    //             text: string,
+    //             args?: any
+    //         ): Promise<boolean>;
+    //     }
+    // }
+    UI.prototype.confirm = function (...args) {
+        let opts = {};
+        let text;
+        let textArgs = {};
+        if (typeof args[0] === 'string') {
+            text = args[0];
+            textArgs = args[1];
+        }
+        else {
+            opts = args[0];
+            text = args[1];
+            textArgs = args[2];
+        }
+        if (textArgs) {
+            text = apply(text, textArgs);
+        }
+        opts.class = opts.class || 'confirm';
+        opts.border = opts.border || 'ascii';
+        opts.pad = opts.pad || 1;
+        const layer = new WidgetLayer(this);
+        // Fade the background
+        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
+        layer.body.style().set('bg', BLACK.alpha(opacity));
+        if (opts.cancel === undefined) {
+            opts.cancel = 'Cancel';
+        }
+        else if (opts.cancel === true) {
+            opts.cancel = 'Cancel';
+        }
+        else if (!opts.cancel) {
+            opts.cancel = '';
+        }
+        opts.ok = opts.ok || 'Ok';
+        let buttonWidth = opts.buttonWidth || 0;
+        if (!buttonWidth) {
+            buttonWidth = Math.max(opts.ok.length, opts.cancel.length);
+        }
+        const width = Math.max(opts.width || 0, buttonWidth * 2 + 2);
+        // create the text widget
+        const textWidget = layer
+            .text(text, {
+            class: opts.textClass || opts.class,
+            width: width,
+            height: opts.height,
+        })
+            .center();
+        Object.assign(opts, {
+            width: textWidget.bounds.width,
+            height: textWidget.bounds.height + 2,
+            x: textWidget.bounds.x,
+            y: textWidget.bounds.y,
+            tag: 'confirm',
+        });
+        const dialog = layer.dialog(opts);
+        textWidget.setParent(dialog);
+        layer
+            .button(opts.ok, {
+            class: opts.okClass || opts.class,
+            width: buttonWidth,
+            id: 'OK',
+            parent: dialog,
+            x: dialog._innerLeft + dialog._innerWidth - buttonWidth,
+            y: dialog._innerTop + dialog._innerHeight - 1,
+        })
+            .on('click', () => {
+            layer.finish(true);
+            return true;
+        });
+        if (opts.cancel.length) {
+            layer
+                .button(opts.cancel, {
+                class: opts.cancelClass || opts.class,
+                width: buttonWidth,
+                id: 'CANCEL',
+                parent: dialog,
+                x: dialog._innerLeft,
+                y: dialog._innerTop + dialog._innerHeight - 1,
+            })
+                .on('click', () => {
+                layer.finish(false);
+                return true;
+            });
+        }
+        layer.on('keypress', (_n, _w, e) => {
+            if (e.key === 'Escape') {
+                layer.finish(false);
+            }
+            else if (e.key === 'Enter') {
+                layer.finish(true);
+            }
+            return true;
+        });
+        return layer.run();
     };
 
     // import * as GWU from 'gw-utils';
@@ -9110,108 +9191,37 @@ void main() {
     };
 
     // import * as GWU from 'gw-utils';
-    UI.prototype.confirm = function (opts, text, args) {
-        if (typeof opts === 'string') {
-            args = text;
-            text = opts;
-            opts = {};
+    // extend WidgetLayer
+    // declare module './ui' {
+    //     interface UI {
+    //         inputbox(text: string, args?: any): Promise<string>;
+    //         inputbox(
+    //             opts: InputBoxOptions,
+    //             text: string,
+    //             args?: any
+    //         ): Promise<string>;
+    //     }
+    // }
+    UI.prototype.inputbox = function (...args) {
+        let opts = {};
+        let text;
+        let textArgs = {};
+        if (typeof args[1] === 'string') {
+            opts.default = args[0];
+            text = args[1];
+            textArgs = args[2];
         }
-        if (args) {
-            text = apply(text, args);
+        else {
+            text = args[0];
+            textArgs = args[1];
         }
-        opts.class = opts.class || 'confirm';
-        opts.border = opts.border || 'ascii';
-        opts.pad = opts.pad || 1;
-        const layer = this.startWidgetLayer();
-        // Fade the background
-        const opacity = opts.opacity !== undefined ? opts.opacity : 50;
-        layer.body.style().set('bg', BLACK.alpha(opacity));
-        if (opts.cancel === undefined) {
-            opts.cancel = 'Cancel';
-        }
-        else if (opts.cancel === true) {
-            opts.cancel = 'Cancel';
-        }
-        else if (!opts.cancel) {
-            opts.cancel = '';
-        }
-        opts.ok = opts.ok || 'Ok';
-        let buttonWidth = opts.buttonWidth || 0;
-        if (!buttonWidth) {
-            buttonWidth = Math.max(opts.ok.length, opts.cancel.length);
-        }
-        const width = Math.max(opts.width || 0, buttonWidth * 2 + 2);
-        // create the text widget
-        const textWidget = layer
-            .text(text, {
-            class: opts.textClass || opts.class,
-            width: width,
-            height: opts.height,
-        })
-            .center();
-        Object.assign(opts, {
-            width: textWidget.bounds.width,
-            height: textWidget.bounds.height + 2,
-            x: textWidget.bounds.x,
-            y: textWidget.bounds.y,
-            tag: 'confirm',
-        });
-        const dialog = layer.dialog(opts);
-        textWidget.setParent(dialog);
-        layer
-            .button(opts.ok, {
-            class: opts.okClass || opts.class,
-            width: buttonWidth,
-            id: 'OK',
-            parent: dialog,
-            x: dialog._innerLeft + dialog._innerWidth - buttonWidth,
-            y: dialog._innerTop + dialog._innerHeight - 1,
-        })
-            .on('click', () => {
-            layer.finish(true);
-            return true;
-        });
-        if (opts.cancel.length) {
-            layer
-                .button(opts.cancel, {
-                class: opts.cancelClass || opts.class,
-                width: buttonWidth,
-                id: 'CANCEL',
-                parent: dialog,
-                x: dialog._innerLeft,
-                y: dialog._innerTop + dialog._innerHeight - 1,
-            })
-                .on('click', () => {
-                layer.finish(false);
-                return true;
-            });
-        }
-        layer.on('keypress', (_n, _w, e) => {
-            if (e.key === 'Escape') {
-                layer.finish(false);
-            }
-            else if (e.key === 'Enter') {
-                layer.finish(true);
-            }
-            return true;
-        });
-        return layer;
-    };
-
-    // import * as GWU from 'gw-utils';
-    UI.prototype.inputbox = function (opts, text, args) {
-        if (typeof opts === 'string') {
-            args = text;
-            text = opts;
-            opts = {};
-        }
-        if (args) {
-            text = apply(text, args);
+        if (textArgs) {
+            text = apply(text, textArgs);
         }
         opts.class = opts.class || 'confirm';
         opts.border = opts.border || 'ascii';
         opts.pad = opts.pad || 1;
-        const layer = this.startWidgetLayer();
+        const layer = new WidgetLayer(this);
         // Fade the background
         const opacity = opts.opacity !== undefined ? opts.opacity : 50;
         layer.body.style().set('bg', BLACK.alpha(opacity));
@@ -9265,7 +9275,7 @@ void main() {
             }
             return false;
         });
-        return layer;
+        return layer.run();
     };
 
     var index$1 = /*#__PURE__*/Object.freeze({
@@ -9359,6 +9369,10 @@ void main() {
         }
         throw new Error('Invalid pad: ' + pad);
     }
+    defaultStyle.add('dialog', {
+        bg: 'darkest_gray',
+        fg: 'light_gray',
+    });
     class Dialog extends Widget {
         constructor(layer, opts) {
             super(layer, (() => {
@@ -11137,12 +11151,12 @@ void main() {
     exports.lerp = lerp;
     exports.light = index$2;
     exports.list = list;
-    exports.loop = loop;
     exports.message = message;
     exports.nextIndex = nextIndex;
     exports.object = object;
     exports.path = path;
     exports.prevIndex = prevIndex;
+    exports.queue = queue;
     exports.random = random;
     exports.range = range;
     exports.rng = rng;
