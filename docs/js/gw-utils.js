@@ -5413,17 +5413,21 @@
     });
 
     class Buffer extends Buffer$1 {
-        constructor(canvas) {
+        constructor(canvas, parent) {
             super(canvas.width, canvas.height);
+            this._parent = null;
             this._target = canvas;
+            this._parent = parent || null;
             canvas.copyTo(this);
         }
         // get canvas() { return this._target; }
-        clone() {
-            const other = new (this.constructor)(this._target);
-            other.copy(this);
-            return other;
-        }
+        // clone(): this {
+        //     const other = new (<new (canvas: BufferTarget) => this>(
+        //         this.constructor
+        //     ))(this._target);
+        //     other.copy(this);
+        //     return other;
+        // }
         toGlyph(ch) {
             return this._target.toGlyph(ch);
         }
@@ -5431,9 +5435,17 @@
             this._target.draw(this);
             return this;
         }
-        load() {
-            this._target.copyTo(this);
-            return this;
+        // load() {
+        //     this._target.copyTo(this);
+        //     return this;
+        // }
+        reset() {
+            if (this._parent) {
+                this.copy(this._parent);
+            }
+            else {
+                this.fill(0);
+            }
         }
     }
 
@@ -5808,7 +5820,9 @@
             const current = this.buffer;
             ++this._current;
             if (this._current >= this._buffers.length) {
-                this._buffers.push(current.clone());
+                const newBuffer = new Buffer(this, current);
+                newBuffer.reset();
+                this._buffers.push(newBuffer);
             }
             else {
                 this.buffer.copy(current);
@@ -7950,9 +7964,9 @@ void main() {
         constructor(ui, _opts = {}) {
             // styles: Style.Sheet;
             this.needsDraw = true;
-            this.canvas = ui instanceof BaseCanvas ? ui : ui.canvas;
-            this.buffer = this.canvas.pushBuffer();
-            this.io = new Handler(this.canvas.loop);
+            this.ui = ui;
+            this.buffer = ui.canvas.pushBuffer();
+            this.io = new Handler(ui.loop);
             // this.styles = new Style.Sheet(opts.styles || ui.styles);
         }
         // get running() {
@@ -8040,9 +8054,9 @@ void main() {
         }
         finish(result) {
             this.io.finish(result);
-            this.canvas.popBuffer();
-            this.canvas.loop.popHandler(this.io);
-            this.canvas.buffer.render(); // redraw old buffer
+            this.ui.canvas.popBuffer();
+            this.ui.loop.popHandler(this.io);
+            this.ui.canvas.buffer.render(); // redraw old buffer
         }
     }
 
@@ -8871,7 +8885,7 @@ void main() {
             if (!this.needsDraw)
                 return;
             this.needsDraw = false;
-            this.buffer.copy(this.canvas.parentBuffer);
+            this.buffer.reset();
             // draw from low depth to high depth
             for (let i = this._depthOrder.length - 1; i >= 0; --i) {
                 const w = this._depthOrder[i];
