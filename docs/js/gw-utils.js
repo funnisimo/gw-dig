@@ -4219,6 +4219,11 @@
             this.currentHandler = null;
             this._tickInterval = 0;
         }
+        finish() {
+            this._stopTicks();
+            this.handlers.length = 0;
+            this.currentHandler = null;
+        }
         pushHandler(handler) {
             if (!this.handlers.includes(handler)) {
                 this.handlers.push(handler);
@@ -7967,6 +7972,7 @@ void main() {
             this.ui = ui;
             this.buffer = ui.canvas.pushBuffer();
             this.io = new Handler(ui.loop);
+            ui.pushLayer(this);
             // this.styles = new Style.Sheet(opts.styles || ui.styles);
         }
         // get running() {
@@ -8062,12 +8068,11 @@ void main() {
 
     // import * as GWU from 'gw-utils';
     class UI {
-        //     layer: Layer | null = null;
-        //     layers: Layer[] = [];
         //     // inDialog = false;
         //     _done = false;
         //     // _promise: Promise<void> | null = null;
         constructor(opts = {}) {
+            this.layers = [];
             opts.loop = opts.loop || loop;
             this.loop = opts.loop;
             this.canvas = opts.canvas || make$5(opts);
@@ -8077,12 +8082,33 @@ void main() {
                 this.canvas.node.parentElement.onkeydown = this.loop.onkeydown.bind(this.loop);
                 this.canvas.node.parentElement.tabIndex = 1;
             }
+            if (opts.layer !== false) {
+                this._layer = new Layer(this);
+            }
         }
         get width() {
             return this.canvas.width;
         }
         get height() {
             return this.canvas.height;
+        }
+        finish() {
+            if (this._layer)
+                this._layer.finish();
+        }
+        get layer() {
+            return this._layer;
+        }
+        pushLayer(layer) {
+            this.layers.push(layer);
+        }
+        popLayer(layer) {
+            if (layer === this.layers[0])
+                return;
+            arrayDelete(this.layers, layer);
+            if (layer === this._layer) {
+                this._layer = this.layers[this.layers.length - 1];
+            }
         }
         alert(..._args) {
             return Promise.resolve(true);
