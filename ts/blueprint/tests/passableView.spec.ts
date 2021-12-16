@@ -73,7 +73,7 @@ describe('inPassableViewOfOrigin', () => {
             steps: [],
         });
 
-        map.dump();
+        // map.dump();
 
         const builder = new GWD.blueprint.Builder();
 
@@ -105,13 +105,9 @@ describe('inPassableViewOfOrigin', () => {
         leverStep.markCandidates(data, candidates);
 
         // data.interior.dump();
-        candidates.dump((v) => (v == 7 ? ' ' : '' + v.toString(16)));
+        // candidates.dump((v) => (v == 7 ? ' ' : '' + v.toString(16)));
 
-        expect(candidates.count((v) => v == CandidateType.OK)).toBeGreaterThan(
-            5
-        );
-
-        // steps to side of origin should not be there...
+        expect(candidates.count((v) => v == CandidateType.OK)).toEqual(3);
         expect(candidates[72][14]).toEqual(CandidateType.INVALID_WALL);
         expect(candidates[74][14]).toEqual(CandidateType.INVALID_WALL);
     });

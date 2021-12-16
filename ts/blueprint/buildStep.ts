@@ -510,11 +510,13 @@ export function cellIsCandidate(
             site.isWall(x, y)
         ) {
             let ok = false;
+            let failed = false;
             // ...and this location is a wall that's not already machined...
             GWU.xy.eachNeighbor(
                 x,
                 y,
                 (newX, newY) => {
+                    if (failed) return;
                     if (!site.hasXY(newX, newY)) return;
                     if (
                         !builder.interior[newX][newY] &&
@@ -530,7 +532,21 @@ export function cellIsCandidate(
                             neighborMachine == builder.machineNumber) &&
                         !(newX == builder.originX && newY == builder.originY)
                     ) {
-                        ok = true;
+                        if (
+                            buildStep.notInHallway &&
+                            GWU.xy.arcCount(
+                                newX,
+                                newY,
+                                (i, j) =>
+                                    site.hasXY(i, j) && site.isPassable(i, j)
+                            ) > 1
+                        ) {
+                            // return CandidateType.IN_HALLWAY;
+                            failed = true;
+                            ok = false;
+                        } else {
+                            ok = true;
+                        }
                     }
                 },
                 true
