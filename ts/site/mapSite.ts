@@ -284,7 +284,7 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     nextMachineId(): number {
-        return ++this.map.machineCount;
+        return ++this.map.properties.machineCount;
     }
     getMachine(x: number, y: number) {
         return this.map.cell(x, y).machineId;

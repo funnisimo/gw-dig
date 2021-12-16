@@ -837,7 +837,7 @@ class MapSite {
         return effect.trigger({ map: this.map, x, y }, { rng: this.rng });
     }
     nextMachineId() {
-        return ++this.map.machineCount;
+        return ++this.map.properties.machineCount;
     }
     getMachine(x, y) {
         return this.map.cell(x, y).machineId;

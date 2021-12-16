@@ -4865,6 +4865,7 @@
     const FORBIDDEN = -1;
     const OBSTRUCTION = -2;
     const AVOIDED = 10;
+    const OK = 1;
     const NO_PATH = 30000;
     function makeCostLink(i) {
         return {
@@ -4987,6 +4988,82 @@
             return true;
         return false;
     }
+    function batchInput(map, distanceMap, costMap, eightWays = false, maxDistance = NO_PATH) {
+        let i, j;
+        map.eightWays = eightWays;
+        let left = null;
+        let right = null;
+        map.front.right = null;
+        for (i = 0; i < distanceMap.width; i++) {
+            for (j = 0; j < distanceMap.height; j++) {
+                let link = getLink(map, i, j);
+                if (distanceMap) {
+                    link.distance = distanceMap[i][j];
+                }
+                else {
+                    if (costMap) {
+                        // totally hackish; refactor
+                        link.distance = maxDistance;
+                    }
+                }
+                let cost;
+                if (i == 0 ||
+                    j == 0 ||
+                    i == distanceMap.width - 1 ||
+                    j == distanceMap.height - 1) {
+                    cost = OBSTRUCTION;
+                    // }
+                    // else if (costMap === null) {
+                    //     if (
+                    //         cellHasEntityFlag(i, j, L_BLOCKS_MOVE) &&
+                    //         cellHasEntityFlag(i, j, L_BLOCKS_DIAGONAL)
+                    //     ) {
+                    //         cost = OBSTRUCTION;
+                    //     } else {
+                    //         cost = FORBIDDEN;
+                    //     }
+                }
+                else {
+                    cost = costMap[i][j];
+                }
+                link.cost = cost;
+                if (cost > 0) {
+                    if (link.distance < maxDistance) {
+                        // @ts-ignore
+                        if (right === null || right.distance > link.distance) {
+                            // left and right are used to traverse the list; if many cells have similar values,
+                            // some time can be saved by not clearing them with each insertion.  this time,
+                            // sadly, we have to start from the front.
+                            left = map.front;
+                            right = map.front.right;
+                        }
+                        // @ts-ignore
+                        while (right !== null && right.distance < link.distance) {
+                            left = right;
+                            // @ts-ignore
+                            right = right.right;
+                        }
+                        link.right = right;
+                        link.left = left;
+                        // @ts-ignore
+                        left.right = link;
+                        // @ts-ignore
+                        if (right !== null)
+                            right.left = link;
+                        left = link;
+                    }
+                    else {
+                        link.right = null;
+                        link.left = null;
+                    }
+                }
+                else {
+                    link.right = null;
+                    link.left = null;
+                }
+            }
+        }
+    }
     function batchOutput(map, distanceMap) {
         let i, j;
         update(map);
@@ -5024,6 +5101,12 @@
         // TODO - Add this where called!
         //   distanceMap.x = destinationX;
         //   distanceMap.y = destinationY;
+    }
+    function rescan(distanceMap, costMap, eightWays = false, maxDistance = NO_PATH) {
+        if (!DIJKSTRA_MAP)
+            throw new Error('You must scan the map first.');
+        batchInput(DIJKSTRA_MAP, distanceMap, costMap, eightWays, maxDistance);
+        batchOutput(DIJKSTRA_MAP, distanceMap);
     }
     // Returns null if there are no beneficial moves.
     // If preferDiagonals is true, we will prefer diagonal moves.
@@ -5111,8 +5194,10 @@
         FORBIDDEN: FORBIDDEN,
         OBSTRUCTION: OBSTRUCTION,
         AVOIDED: AVOIDED,
+        OK: OK,
         NO_PATH: NO_PATH,
         calculateDistances: calculateDistances,
+        rescan: rescan,
         nextStep: nextStep,
         getPath: getPath
     });
@@ -5120,7 +5205,7 @@
     /**
      * Data for an event listener.
      */
-    class Listener {
+    class EventListener {
         /**
          * Creates a Listener.
          * @param {EventFn} fn The listener function.
@@ -5146,144 +5231,140 @@
                 (!context || this.context === context));
         }
     }
-    var EVENTS = {};
-    /**
-     * Add a listener for a given event.
-     *
-     * @param {String} event The event name.
-     * @param {EventFn} fn The listener function.
-     * @param {*} context The context to invoke the listener with.
-     * @param {boolean} once Specify if the listener is a one-time listener.
-     * @returns {Listener}
-     */
-    function addListener(event, fn, context, once = false) {
-        if (typeof fn !== 'function') {
-            throw new TypeError('The listener must be a function');
+    class EventEmitter {
+        constructor() {
+            this._events = {};
         }
-        const listener = new Listener(fn, context || null, once);
-        push(EVENTS, event, listener);
-        return listener;
-    }
-    /**
-     * Add a listener for a given event.
-     *
-     * @param {String} event The event name.
-     * @param {EventFn} fn The listener function.
-     * @param {*} context The context to invoke the listener with.
-     * @param {boolean} once Specify if the listener is a one-time listener.
-     * @returns {Listener}
-     */
-    function on(event, fn, context, once = false) {
-        return addListener(event, fn, context, once);
-    }
-    /**
-     * Add a one-time listener for a given event.
-     *
-     * @param {(String|Symbol)} event The event name.
-     * @param {EventFn} fn The listener function.
-     * @param {*} [context=this] The context to invoke the listener with.
-     * @returns {EventEmitter} `this`.
-     * @public
-     */
-    function once(event, fn, context) {
-        return addListener(event, fn, context, true);
-    }
-    /**
-     * Remove the listeners of a given event.
-     *
-     * @param {String} event The event name.
-     * @param {EventFn} fn Only remove the listeners that match this function.
-     * @param {*} context Only remove the listeners that have this context.
-     * @param {boolean} once Only remove one-time listeners.
-     * @returns {EventEmitter} `this`.
-     * @public
-     */
-    function removeListener(event, fn, context, once = false) {
-        if (!EVENTS[event])
-            return false;
-        if (!fn)
-            return false;
-        let success = false;
-        forEach(EVENTS[event], (obj) => {
-            if (obj.matches(fn, context, once)) {
-                remove(EVENTS, event, obj);
-                success = true;
+        /**
+         * Add a listener for a given event.
+         *
+         * @param {String} event The event name.
+         * @param {EventFn} fn The listener function.
+         * @param {*} context The context to invoke the listener with.
+         * @param {boolean} once Specify if the listener is a one-time listener.
+         * @returns {Listener}
+         */
+        addListener(event, fn, context, once = false) {
+            if (typeof fn !== 'function') {
+                throw new TypeError('The listener must be a function');
             }
-        });
-        return success;
-    }
-    /**
-     * Remove the listeners of a given event.
-     *
-     * @param {String} event The event name.
-     * @param {EventFn} fn Only remove the listeners that match this function.
-     * @param {*} context Only remove the listeners that have this context.
-     * @param {boolean} once Only remove one-time listeners.
-     * @returns {EventEmitter} `this`.
-     * @public
-     */
-    function off(event, fn, context, once = false) {
-        return removeListener(event, fn, context, once);
-    }
-    /**
-     * Clear event by name.
-     *
-     * @param {String} evt The Event name.
-     */
-    function clearEvent(event) {
-        if (EVENTS[event]) {
-            EVENTS[event] = null;
+            const listener = new EventListener(fn, context || null, once);
+            push(this._events, event, listener);
+            return this;
         }
-    }
-    /**
-     * Remove all listeners, or those of the specified event.
-     *
-     * @param {(String|Symbol)} [event] The event name.
-     * @returns {EventEmitter} `this`.
-     * @public
-     */
-    function removeAllListeners(event) {
-        if (event) {
-            clearEvent(event);
+        /**
+         * Add a listener for a given event.
+         *
+         * @param {String} event The event name.
+         * @param {EventFn} fn The listener function.
+         * @param {*} context The context to invoke the listener with.
+         * @param {boolean} once Specify if the listener is a one-time listener.
+         * @returns {Listener}
+         */
+        on(event, fn, context, once = false) {
+            return this.addListener(event, fn, context, once);
         }
-        else {
-            EVENTS = {};
+        /**
+         * Add a one-time listener for a given event.
+         *
+         * @param {(String|Symbol)} event The event name.
+         * @param {EventFn} fn The listener function.
+         * @param {*} [context=this] The context to invoke the listener with.
+         * @returns {EventEmitter} `this`.
+         * @public
+         */
+        once(event, fn, context) {
+            return this.addListener(event, fn, context, true);
         }
-    }
-    /**
-     * Calls each of the listeners registered for a given event.
-     *
-     * @param {String} event The event name.
-     * @param {...*} args The additional arguments to the event handlers.
-     * @returns {boolean} `true` if the event had listeners, else `false`.
-     * @public
-     */
-    function emit(...args) {
-        const event = args[0];
-        if (!EVENTS[event])
-            return false; // no events to send
-        let listener = EVENTS[event];
-        while (listener) {
-            let next = listener.next;
-            if (listener.once)
-                remove(EVENTS, event, listener);
-            listener.fn.apply(listener.context, args);
-            listener = next;
+        /**
+         * Remove the listeners of a given event.
+         *
+         * @param {String} event The event name.
+         * @param {EventFn} fn Only remove the listeners that match this function.
+         * @param {*} context Only remove the listeners that have this context.
+         * @param {boolean} once Only remove one-time listeners.
+         * @returns {EventEmitter} `this`.
+         * @public
+         */
+        removeListener(event, fn, context, once = false) {
+            if (!this._events[event])
+                return this;
+            if (!fn)
+                return this;
+            forEach(this._events[event], (obj) => {
+                if (obj.matches(fn, context, once)) {
+                    remove(this._events, event, obj);
+                }
+            });
+            return this;
         }
-        return true;
+        /**
+         * Remove the listeners of a given event.
+         *
+         * @param {String} event The event name.
+         * @param {EventFn} fn Only remove the listeners that match this function.
+         * @param {*} context Only remove the listeners that have this context.
+         * @param {boolean} once Only remove one-time listeners.
+         * @returns {EventEmitter} `this`.
+         * @public
+         */
+        off(event, fn, context, once = false) {
+            return this.removeListener(event, fn, context, once);
+        }
+        /**
+         * Clear event by name.
+         *
+         * @param {String} evt The Event name.
+         */
+        clearEvent(event) {
+            if (this._events[event]) {
+                this._events[event] = null;
+            }
+            return this;
+        }
+        /**
+         * Remove all listeners, or those of the specified event.
+         *
+         * @param {(String|Symbol)} [event] The event name.
+         * @returns {EventEmitter} `this`.
+         * @public
+         */
+        removeAllListeners(event) {
+            if (event) {
+                this.clearEvent(event);
+            }
+            else {
+                this._events = {};
+            }
+            return this;
+        }
+        /**
+         * Calls each of the listeners registered for a given event.
+         *
+         * @param {String} event The event name.
+         * @param {...*} args The additional arguments to the event handlers.
+         * @returns {boolean} `true` if the event had listeners, else `false`.
+         * @public
+         */
+        emit(event, ...args) {
+            if (!this._events[event])
+                return false; // no events to send
+            let listener = this._events[event];
+            while (listener) {
+                let next = listener.next;
+                if (listener.once)
+                    remove(this._events, event, listener);
+                listener.fn.apply(listener.context, args);
+                listener = next;
+            }
+            return true;
+        }
     }
 
     var events = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        Listener: Listener,
-        addListener: addListener,
-        on: on,
-        once: once,
-        removeListener: removeListener,
-        off: off,
-        clearEvent: clearEvent,
-        removeAllListeners: removeAllListeners,
-        emit: emit
+        EventListener: EventListener,
+        EventEmitter: EventEmitter
     });
 
     function make$6(v) {
@@ -5356,32 +5437,32 @@
                 this.cache = current;
             }
         }
-        push(fn, delay = 1) {
-            let item;
+        push(item, delay = 1) {
+            let entry;
             if (this.cache) {
-                item = this.cache;
-                this.cache = item.next;
-                item.next = null;
+                entry = this.cache;
+                this.cache = entry.next;
+                entry.next = null;
             }
             else {
-                item = { fn: null, time: 0, next: null };
+                entry = { item: null, time: 0, next: null };
             }
-            item.fn = fn;
-            item.time = this.time + delay;
+            entry.item = item;
+            entry.time = this.time + delay;
             if (!this.next) {
-                this.next = item;
+                this.next = entry;
             }
             else {
                 let current = this;
                 let next = current.next;
-                while (next && next.time <= item.time) {
+                while (next && next.time <= entry.time) {
                     current = next;
                     next = current.next;
                 }
-                item.next = current.next;
-                current.next = item;
+                entry.next = current.next;
+                current.next = entry;
             }
-            return item;
+            return entry;
         }
         pop() {
             const n = this.next;
@@ -5391,22 +5472,22 @@
             n.next = this.cache;
             this.cache = n;
             this.time = Math.max(n.time, this.time); // so you can schedule -1 as a time uint
-            return n.fn;
+            return n.item;
         }
         remove(item) {
             if (!item || !this.next)
                 return;
-            if (this.next === item) {
+            if (this.next.item === item) {
                 this.next = item.next;
                 return;
             }
             let prev = this.next;
             let current = prev.next;
-            while (current && current !== item) {
+            while (current && current.item !== item) {
                 prev = current;
                 current = current.next;
             }
-            if (current === item) {
+            if (current && current.item === item) {
                 prev.next = current.next;
             }
         }

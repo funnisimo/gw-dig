@@ -1,11 +1,15 @@
 import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 import * as GWD from '../..';
-import { BuildData, CandidateType } from '..';
+import { BuildData, CandidateType, StepFlags } from '..';
 import { MapSite } from '../../site';
 
 describe('inPassableViewOfOrigin', () => {
     let candidates: GWU.grid.NumGrid;
+
+    beforeEach(() => {
+        GWU.random.seed(12345);
+    });
 
     afterEach(() => {
         GWU.grid.free(candidates);
@@ -19,7 +23,8 @@ describe('inPassableViewOfOrigin', () => {
             priority: '+1',
             fg: 0x800,
             bg: GWM.tile.tiles.FLOOR.sprite.bg,
-            flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
+            flags:
+                '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
         });
 
         GWM.tile.install('WALL_LEVER', {
@@ -51,11 +56,13 @@ describe('inPassableViewOfOrigin', () => {
             steps: [
                 {
                     tile: 'PORTCULLIS_CLOSED',
-                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags:
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'WALL_LEVER',
-                    flags: 'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAYS',
+                    flags:
+                        'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAY',
                 },
             ],
         });
@@ -66,13 +73,16 @@ describe('inPassableViewOfOrigin', () => {
             steps: [],
         });
 
-        // map.dump();
+        map.dump();
 
         const builder = new GWD.blueprint.Builder();
 
         expect(builder.build(map, room, 73, 14)).toBeTruthy();
 
-        const data = new BuildData(new MapSite(map), vestibule);
+        const site = new MapSite(map);
+        site.analyze();
+
+        const data = new BuildData(site, vestibule);
         data.originX = 73;
         data.originY = 14;
         vestibule.fillInterior(data);
@@ -83,15 +93,25 @@ describe('inPassableViewOfOrigin', () => {
         candidates = GWU.grid.alloc(map.width, map.height);
 
         const leverStep = vestibule.steps[1];
+        expect(leverStep.flags & StepFlags.BS_BUILD_IN_WALLS).toBeTruthy();
+        expect(
+            leverStep.flags & StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN
+        ).toBeTruthy();
+        expect(
+            leverStep.flags & StepFlags.BS_BUILD_ANYWHERE_ON_LEVEL
+        ).toBeTruthy();
+        expect(leverStep.flags & StepFlags.BS_NOT_IN_HALLWAY).toBeTruthy();
+
         leverStep.markCandidates(data, candidates);
 
         // data.interior.dump();
-        // candidates.dump();
+        candidates.dump((v) => (v == 7 ? ' ' : '' + v.toString(16)));
 
-        // steps to side of origin (now blocked) should not be there...
         expect(candidates.count((v) => v == CandidateType.OK)).toBeGreaterThan(
             5
         );
+
+        // steps to side of origin should not be there...
         expect(candidates[72][14]).toEqual(CandidateType.INVALID_WALL);
         expect(candidates[74][14]).toEqual(CandidateType.INVALID_WALL);
     });
