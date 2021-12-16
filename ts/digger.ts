@@ -29,11 +29,11 @@ export interface DiggerOptions {
     halls?: Partial<HALL.HallOptions> | boolean;
     loops?: Partial<LOOP.LoopOptions> | boolean;
     lakes?: Partial<LAKE.LakeOpts> | boolean;
-    bridges?: Partial<BRIDGE.BridgeOpts> | boolean;
+    bridges?: Partial<BRIDGE.BridgeOpts> | boolean | number;
     stairs?: Partial<STAIRS.StairOpts> | boolean;
     doors?: Partial<DoorOpts> | boolean;
 
-    rooms: Partial<RoomOptions>;
+    rooms: number | Partial<RoomOptions>;
 
     startLoc?: GWU.xy.Loc;
     endLoc?: GWU.xy.Loc;
@@ -45,26 +45,29 @@ export interface DiggerOptions {
 }
 
 export class Digger {
-    public site!: SITE.DigSite;
+    site!: SITE.DigSite;
 
-    public seed = 0;
-    public rooms: Partial<RoomOptions> = { fails: 20 };
-    public doors: Partial<DoorOpts> = { chance: 15 };
-    public halls: Partial<HALL.HallOptions> = { chance: 15 };
-    public loops: Partial<LOOP.LoopOptions> | null = {};
-    public lakes: Partial<LAKE.LakeOpts> | null = {};
-    public bridges: Partial<BRIDGE.BridgeOpts> | null = {};
-    public stairs: Partial<STAIRS.StairOpts> | null = {};
-    public boundary: boolean = true;
+    seed = 0;
+    rooms: Partial<RoomOptions> = { fails: 20 };
+    doors: Partial<DoorOpts> = { chance: 15 };
+    halls: Partial<HALL.HallOptions> = { chance: 15 };
+    loops: Partial<LOOP.LoopOptions> | null = {};
+    lakes: Partial<LAKE.LakeOpts> | null = {};
+    bridges: Partial<BRIDGE.BridgeOpts> | null = {};
+    stairs: Partial<STAIRS.StairOpts> | null = {};
+    boundary: boolean = true;
 
-    public startLoc: GWU.xy.Loc = [-1, -1];
-    public endLoc: GWU.xy.Loc = [-1, -1];
+    startLoc: GWU.xy.Loc = [-1, -1];
+    endLoc: GWU.xy.Loc = [-1, -1];
 
-    public seq!: number[];
-    public log: LOGGER.Logger;
+    seq!: number[];
+    log: LOGGER.Logger;
 
     constructor(options: Partial<DiggerOptions> = {}) {
         this.seed = options.seed || 0;
+        if (typeof options.rooms === 'number') {
+            options.rooms = { count: options.rooms };
+        }
         GWU.object.setOptions(this.rooms, options.rooms);
 
         // Doors
@@ -106,6 +109,9 @@ export class Digger {
         if (options.bridges === false) {
             this.bridges = null;
         } else {
+            if (typeof options.bridges === 'number') {
+                options.bridges = { maxLength: options.bridges };
+            }
             if (options.bridges === true) options.bridges = {};
             GWU.object.setOptions(this.bridges, options.bridges);
         }
@@ -170,6 +176,61 @@ export class Digger {
     _create(site: SITE.DigSite): boolean {
         this.start(site);
 
+        this.addRooms(site);
+
+        if (this.loops) {
+            this.addLoops(site, this.loops);
+            this.log.onLoopsAdded(site);
+        }
+        if (this.lakes) {
+            this.addLakes(site, this.lakes);
+            this.log.onLakesAdded(site);
+        }
+        if (this.bridges) {
+            this.addBridges(site, this.bridges);
+            this.log.onBridgesAdded(site);
+        }
+        if (this.stairs) {
+            this.addStairs(site, this.stairs);
+            this.log.onStairsAdded(site);
+        }
+
+        this.finish(site);
+
+        return true;
+    }
+
+    start(site: SITE.DigSite) {
+        this.site = site;
+
+        const seed = this.seed || GWU.rng.random.number();
+        site.setSeed(seed);
+
+        site.clear();
+        this.seq = site.rng.sequence(site.width * site.height);
+
+        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+            this.startLoc[0] = Math.floor(site.width / 2);
+            this.startLoc[1] = site.height - 2;
+        }
+    }
+
+    getDigger(
+        id: string | string[] | Record<string, number> | ROOM.RoomDigger
+    ) {
+        if (!id) throw new Error('Missing digger!');
+        if (id instanceof ROOM.RoomDigger) return id;
+        if (typeof id === 'string') {
+            const digger = ROOM.rooms[id];
+            if (!digger) {
+                throw new Error('Failed to find digger - ' + id);
+            }
+            return digger;
+        }
+        return new ROOM.ChoiceRoom(id);
+    }
+
+    addRooms(site: SITE.DigSite) {
         let tries = 20;
         while (--tries) {
             if (this.addFirstRoom(site)) break;
@@ -201,55 +262,6 @@ export class Digger {
                 ++fails;
             }
         }
-
-        if (this.loops) {
-            this.addLoops(site, this.loops);
-            this.log.onLoopsAdded(site);
-        }
-        if (this.lakes) {
-            this.addLakes(site, this.lakes);
-            this.log.onLakesAdded(site);
-        }
-        if (this.bridges) {
-            this.addBridges(site, this.bridges);
-            this.log.onBridgesAdded(site);
-        }
-        if (this.stairs) {
-            this.addStairs(site, this.stairs);
-            this.log.onStairsAdded(site);
-        }
-
-        this.finish(site);
-
-        return true;
-    }
-
-    start(site: SITE.DigSite) {
-        const seed = this.seed || GWU.rng.random.number();
-        site.setSeed(seed);
-
-        site.clear();
-        this.seq = site.rng.sequence(site.width * site.height);
-
-        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
-            this.startLoc[0] = Math.floor(site.width / 2);
-            this.startLoc[1] = site.height - 2;
-        }
-    }
-
-    getDigger(
-        id: string | string[] | Record<string, number> | ROOM.RoomDigger
-    ) {
-        if (!id) throw new Error('Missing digger!');
-        if (id instanceof ROOM.RoomDigger) return id;
-        if (typeof id === 'string') {
-            const digger = ROOM.rooms[id];
-            if (!digger) {
-                throw new Error('Failed to find digger - ' + id);
-            }
-            return digger;
-        }
-        return new ROOM.ChoiceRoom(id);
     }
 
     addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
@@ -566,24 +578,25 @@ export class Digger {
 
             // todo - isDoorway...
             if (site.isDoor(x, y)) {
+                // if (
+                //     // TODO - isPassable
+                //     (site.isPassable(x + 1, y) || site.isPassable(x - 1, y)) &&
+                //     (site.isPassable(x, y + 1) || site.isPassable(x, y - 1))
+                // ) {
+                //     // If there's passable terrain to the left or right, and there's passable terrain
+                //     // above or below, then the door is orphaned and must be removed.
+                //     site.setTile(x, y, SITE.FLOOR); // todo - take passable neighbor value
+                // } else
                 if (
-                    // TODO - isPassable
-                    (site.isFloor(x + 1, y) || site.isFloor(x - 1, y)) &&
-                    (site.isFloor(x, y + 1) || site.isFloor(x, y - 1))
-                ) {
-                    // If there's passable terrain to the left or right, and there's passable terrain
-                    // above or below, then the door is orphaned and must be removed.
-                    site.setTile(x, y, SITE.FLOOR); // todo - take passable neighbor value
-                } else if (
-                    (site.blocksPathing(x + 1, y) ? 1 : 0) +
-                        (site.blocksPathing(x - 1, y) ? 1 : 0) +
-                        (site.blocksPathing(x, y + 1) ? 1 : 0) +
-                        (site.blocksPathing(x, y - 1) ? 1 : 0) >=
-                    3
+                    (site.isWall(x + 1, y) ? 1 : 0) +
+                        (site.isWall(x - 1, y) ? 1 : 0) +
+                        (site.isWall(x, y + 1) ? 1 : 0) +
+                        (site.isWall(x, y - 1) ? 1 : 0) !=
+                    2
                 ) {
                     // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                     // then the door is orphaned and must be removed.
-                    site.setTile(x, y, SITE.FLOOR); // todo - take passable neighbor
+                    site.setTile(x, y, SITE.FLOOR, { superpriority: true }); // todo - take passable neighbor
                 }
             }
         });

@@ -46,7 +46,7 @@ export class Bridges {
                 // map.hasXY(x, y) &&
                 // map.get(x, y) &&
                 site.isPassable(x, y) &&
-                !site.isAnyLiquid(x, y)
+                (site.isBridge(x, y) || !site.isAnyLiquid(x, y))
             ) {
                 for (d = 0; d <= 1; d++) {
                     // Try right, then down
@@ -59,13 +59,19 @@ export class Bridges {
 
                     // check for line of lake tiles
                     // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                    if (site.isAnyLiquid(newX, newY)) {
+                    if (
+                        site.isAnyLiquid(newX, newY) &&
+                        !site.isBridge(newX, newY)
+                    ) {
                         for (j = 0; j < maxLength; ++j) {
                             newX += bridgeDir[0];
                             newY += bridgeDir[1];
 
                             // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                            if (!site.isAnyLiquid(newX, newY)) {
+                            if (
+                                site.isBridge(newX, newY) ||
+                                !site.isAnyLiquid(newX, newY)
+                            ) {
                                 break;
                             }
                         }
@@ -135,12 +141,12 @@ export class Bridges {
         site: SITE.DigSite,
         x: number,
         y: number,
-        bridgeDir: [number, number]
+        _bridgeDir: [number, number]
     ) {
         if (site.isBridge(x, y)) return true;
         if (!site.isAnyLiquid(x, y)) return false;
-        if (!site.isAnyLiquid(x + bridgeDir[1], y + bridgeDir[0])) return false;
-        if (!site.isAnyLiquid(x - bridgeDir[1], y - bridgeDir[0])) return false;
+        // if (!site.isAnyLiquid(x + bridgeDir[1], y + bridgeDir[0])) return false;
+        // if (!site.isAnyLiquid(x - bridgeDir[1], y - bridgeDir[0])) return false;
         return true;
     }
 }

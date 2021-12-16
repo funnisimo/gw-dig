@@ -512,7 +512,7 @@ declare class Bridges {
     options: BridgeOpts;
     constructor(options?: Partial<BridgeOpts>);
     create(site: DigSite): number;
-    isBridgeCandidate(site: DigSite, x: number, y: number, bridgeDir: [number, number]): boolean;
+    isBridgeCandidate(site: DigSite, x: number, y: number, _bridgeDir: [number, number]): boolean;
 }
 
 type bridge_d_BridgeOpts = BridgeOpts;
@@ -833,10 +833,10 @@ interface DiggerOptions {
     halls?: Partial<HallOptions> | boolean;
     loops?: Partial<LoopOptions> | boolean;
     lakes?: Partial<LakeOpts> | boolean;
-    bridges?: Partial<BridgeOpts> | boolean;
+    bridges?: Partial<BridgeOpts> | boolean | number;
     stairs?: Partial<StairOpts> | boolean;
     doors?: Partial<DoorOpts> | boolean;
-    rooms: Partial<RoomOptions>;
+    rooms: number | Partial<RoomOptions>;
     startLoc?: GWU.xy.Loc;
     endLoc?: GWU.xy.Loc;
     seed?: number;
@@ -867,6 +867,7 @@ declare class Digger {
     _create(site: DigSite): boolean;
     start(site: DigSite): void;
     getDigger(id: string | string[] | Record<string, number> | RoomDigger): RoomDigger;
+    addRooms(site: DigSite): void;
     addFirstRoom(site: DigSite): Room | null;
     addRoom(site: DigSite): Room | null;
     _attachRoom(site: DigSite, roomSite: DigSite, room: Room): boolean;

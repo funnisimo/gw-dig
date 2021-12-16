@@ -828,15 +828,22 @@
             if (!this.hasXY(x, y))
                 return false;
             const cell = this.map.cell(x, y);
-            return (cell.hasDepthTile(GWM__namespace.flags.Depth.LIQUID) ||
-                cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_IS_DEEP_LIQUID));
+            return (
+            // cell.hasDepthTile(GWM.flags.Depth.LIQUID) ||
+            cell.hasTileFlag(GWM__namespace.tile.flags.Tile.T_ANY_LIQUID));
         }
         isOccupied(x, y) {
             return this.hasItem(x, y) || this.hasActor(x, y);
         }
         isPassable(x, y) {
             const info = this.map.cell(x, y);
-            return !(info.blocksMove() || info.blocksPathing());
+            if (info.blocksMove())
+                return false;
+            if (info.hasTileFlag(GWM__namespace.flags.Tile.T_BRIDGE))
+                return true;
+            if (info.blocksPathing())
+                return false;
+            return true;
         }
         // tileBlocksMove(tile: number): boolean {
         //     return GWM.tile.get(tile).blocksMove();
@@ -1625,10 +1632,12 @@
                     maxWidth: width,
                     maxHeight: height,
                     percentSeeded: 55,
-                    birthParameters: 'ffffftttt',
-                    survivalParameters: 'ffffttttt',
+                    // birthParameters: 'ffffftttt',
+                    // survivalParameters: 'ffffttttt',
                 });
+                lakeGrid.fill(0);
                 const bounds = blob.carve(lakeGrid.width, lakeGrid.height, (x, y) => (lakeGrid[x][y] = 1));
+                // console.log('LAKE ATTEMPT');
                 // lakeGrid.dump();
                 let success = false;
                 for (k = 0; k < tries && !success; k++) {
@@ -1650,12 +1659,16 @@
                                     const sy = j + bounds.y + y;
                                     site.setTile(sx, sy, tile);
                                     if (hasWreath) {
-                                        GWU__namespace.xy.forCircle(sx, sy, wreathSize, (i, j) => {
-                                            if (site.isPassable(i, j)
+                                        if (site.hasTile(sx, sy, wreathTile)) {
+                                            site.clearCell(sx, sy, wreathTile);
+                                        }
+                                        GWU__namespace.xy.forCircle(sx, sy, wreathSize, (i2, j2) => {
+                                            if (site.isPassable(i2, j2) &&
+                                                !lakeGrid[i2 - x][j2 - y]
                                             // SITE.isFloor(map, i, j) ||
                                             // SITE.isDoor(map, i, j)
                                             ) {
-                                                site.setTile(i, j, wreathTile);
+                                                site.setTile(i2, j2, wreathTile);
                                             }
                                         });
                                     }
@@ -1667,6 +1680,7 @@
                 }
                 if (success) {
                     ++count;
+                    attempts = 0;
                 }
                 else {
                     ++attempts;
@@ -1746,7 +1760,7 @@
                 // map.hasXY(x, y) &&
                 // map.get(x, y) &&
                 site.isPassable(x, y) &&
-                    !site.isAnyLiquid(x, y)) {
+                    (site.isBridge(x, y) || !site.isAnyLiquid(x, y))) {
                     for (d = 0; d <= 1; d++) {
                         // Try right, then down
                         const bridgeDir = dirCoords[d];
@@ -1756,12 +1770,14 @@
                         // if (!map.hasXY(newX, newY)) continue;
                         // check for line of lake tiles
                         // if (isBridgeCandidate(newX, newY, bridgeDir)) {
-                        if (site.isAnyLiquid(newX, newY)) {
+                        if (site.isAnyLiquid(newX, newY) &&
+                            !site.isBridge(newX, newY)) {
                             for (j = 0; j < maxLength; ++j) {
                                 newX += bridgeDir[0];
                                 newY += bridgeDir[1];
                                 // if (!isBridgeCandidate(newX, newY, bridgeDir)) {
-                                if (!site.isAnyLiquid(newX, newY)) {
+                                if (site.isBridge(newX, newY) ||
+                                    !site.isAnyLiquid(newX, newY)) {
                                     break;
                                 }
                             }
@@ -1808,15 +1824,13 @@
             GWU__namespace.grid.free(costGrid);
             return count;
         }
-        isBridgeCandidate(site, x, y, bridgeDir) {
+        isBridgeCandidate(site, x, y, _bridgeDir) {
             if (site.isBridge(x, y))
                 return true;
             if (!site.isAnyLiquid(x, y))
                 return false;
-            if (!site.isAnyLiquid(x + bridgeDir[1], y + bridgeDir[0]))
-                return false;
-            if (!site.isAnyLiquid(x - bridgeDir[1], y - bridgeDir[0]))
-                return false;
+            // if (!site.isAnyLiquid(x + bridgeDir[1], y + bridgeDir[0])) return false;
+            // if (!site.isAnyLiquid(x - bridgeDir[1], y - bridgeDir[0])) return false;
             return true;
         }
     }
@@ -3514,6 +3528,9 @@
             this.startLoc = [-1, -1];
             this.endLoc = [-1, -1];
             this.seed = options.seed || 0;
+            if (typeof options.rooms === 'number') {
+                options.rooms = { count: options.rooms };
+            }
             GWU__namespace.object.setOptions(this.rooms, options.rooms);
             // Doors
             if (options.doors === false) {
@@ -3557,6 +3574,9 @@
                 this.bridges = null;
             }
             else {
+                if (typeof options.bridges === 'number') {
+                    options.bridges = { maxLength: options.bridges };
+                }
                 if (options.bridges === true)
                     options.bridges = {};
                 GWU__namespace.object.setOptions(this.bridges, options.bridges);
@@ -3614,6 +3634,52 @@
         }
         _create(site) {
             this.start(site);
+            this.addRooms(site);
+            if (this.loops) {
+                this.addLoops(site, this.loops);
+                this.log.onLoopsAdded(site);
+            }
+            if (this.lakes) {
+                this.addLakes(site, this.lakes);
+                this.log.onLakesAdded(site);
+            }
+            if (this.bridges) {
+                this.addBridges(site, this.bridges);
+                this.log.onBridgesAdded(site);
+            }
+            if (this.stairs) {
+                this.addStairs(site, this.stairs);
+                this.log.onStairsAdded(site);
+            }
+            this.finish(site);
+            return true;
+        }
+        start(site) {
+            this.site = site;
+            const seed = this.seed || GWU__namespace.rng.random.number();
+            site.setSeed(seed);
+            site.clear();
+            this.seq = site.rng.sequence(site.width * site.height);
+            if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+                this.startLoc[0] = Math.floor(site.width / 2);
+                this.startLoc[1] = site.height - 2;
+            }
+        }
+        getDigger(id) {
+            if (!id)
+                throw new Error('Missing digger!');
+            if (id instanceof RoomDigger)
+                return id;
+            if (typeof id === 'string') {
+                const digger = rooms[id];
+                if (!digger) {
+                    throw new Error('Failed to find digger - ' + id);
+                }
+                return digger;
+            }
+            return new ChoiceRoom(id);
+        }
+        addRooms(site) {
             let tries = 20;
             while (--tries) {
                 if (this.addFirstRoom(site))
@@ -3643,48 +3709,6 @@
                     ++fails;
                 }
             }
-            if (this.loops) {
-                this.addLoops(site, this.loops);
-                this.log.onLoopsAdded(site);
-            }
-            if (this.lakes) {
-                this.addLakes(site, this.lakes);
-                this.log.onLakesAdded(site);
-            }
-            if (this.bridges) {
-                this.addBridges(site, this.bridges);
-                this.log.onBridgesAdded(site);
-            }
-            if (this.stairs) {
-                this.addStairs(site, this.stairs);
-                this.log.onStairsAdded(site);
-            }
-            this.finish(site);
-            return true;
-        }
-        start(site) {
-            const seed = this.seed || GWU__namespace.rng.random.number();
-            site.setSeed(seed);
-            site.clear();
-            this.seq = site.rng.sequence(site.width * site.height);
-            if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
-                this.startLoc[0] = Math.floor(site.width / 2);
-                this.startLoc[1] = site.height - 2;
-            }
-        }
-        getDigger(id) {
-            if (!id)
-                throw new Error('Missing digger!');
-            if (id instanceof RoomDigger)
-                return id;
-            if (typeof id === 'string') {
-                const digger = rooms[id];
-                if (!digger) {
-                    throw new Error('Failed to find digger - ' + id);
-                }
-                return digger;
-            }
-            return new ChoiceRoom(id);
         }
         addFirstRoom(site) {
             const roomSite = this._makeRoomSite(site.width, site.height);
@@ -3925,22 +3949,23 @@
                     return;
                 // todo - isDoorway...
                 if (site.isDoor(x, y)) {
-                    if (
-                    // TODO - isPassable
-                    (site.isFloor(x + 1, y) || site.isFloor(x - 1, y)) &&
-                        (site.isFloor(x, y + 1) || site.isFloor(x, y - 1))) {
-                        // If there's passable terrain to the left or right, and there's passable terrain
-                        // above or below, then the door is orphaned and must be removed.
-                        site.setTile(x, y, FLOOR); // todo - take passable neighbor value
-                    }
-                    else if ((site.blocksPathing(x + 1, y) ? 1 : 0) +
-                        (site.blocksPathing(x - 1, y) ? 1 : 0) +
-                        (site.blocksPathing(x, y + 1) ? 1 : 0) +
-                        (site.blocksPathing(x, y - 1) ? 1 : 0) >=
-                        3) {
+                    // if (
+                    //     // TODO - isPassable
+                    //     (site.isPassable(x + 1, y) || site.isPassable(x - 1, y)) &&
+                    //     (site.isPassable(x, y + 1) || site.isPassable(x, y - 1))
+                    // ) {
+                    //     // If there's passable terrain to the left or right, and there's passable terrain
+                    //     // above or below, then the door is orphaned and must be removed.
+                    //     site.setTile(x, y, SITE.FLOOR); // todo - take passable neighbor value
+                    // } else
+                    if ((site.isWall(x + 1, y) ? 1 : 0) +
+                        (site.isWall(x - 1, y) ? 1 : 0) +
+                        (site.isWall(x, y + 1) ? 1 : 0) +
+                        (site.isWall(x, y - 1) ? 1 : 0) !=
+                        2) {
                         // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                         // then the door is orphaned and must be removed.
-                        site.setTile(x, y, FLOOR); // todo - take passable neighbor
+                        site.setTile(x, y, FLOOR, { superpriority: true }); // todo - take passable neighbor
                     }
                 }
             });

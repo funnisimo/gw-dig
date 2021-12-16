@@ -15,7 +15,7 @@ export interface LakeOpts {
 }
 
 export class Lakes {
-    public options: LakeOpts = {
+    options: LakeOpts = {
         height: 15,
         width: 30,
         minSize: 5,
@@ -34,7 +34,7 @@ export class Lakes {
 
     create(site: SITE.DigSite): number {
         let i, j, k;
-        let x, y;
+        let x: number, y: number;
         let lakeMaxHeight,
             lakeMaxWidth,
             lakeMinSize,
@@ -81,16 +81,18 @@ export class Lakes {
                 maxWidth: width,
                 maxHeight: height,
                 percentSeeded: 55,
-                birthParameters: 'ffffftttt',
-                survivalParameters: 'ffffttttt',
+                // birthParameters: 'ffffftttt',
+                // survivalParameters: 'ffffttttt',
             });
 
+            lakeGrid.fill(0);
             const bounds = blob.carve(
                 lakeGrid.width,
                 lakeGrid.height,
                 (x, y) => (lakeGrid[x][y] = 1)
             );
 
+            // console.log('LAKE ATTEMPT');
             // lakeGrid.dump();
 
             let success = false;
@@ -122,17 +124,25 @@ export class Lakes {
                                 site.setTile(sx, sy, tile);
 
                                 if (hasWreath) {
+                                    if (site.hasTile(sx, sy, wreathTile)) {
+                                        site.clearCell(sx, sy, wreathTile);
+                                    }
                                     GWU.xy.forCircle(
                                         sx,
                                         sy,
                                         wreathSize,
-                                        (i, j) => {
+                                        (i2, j2) => {
                                             if (
-                                                site.isPassable(i, j)
+                                                site.isPassable(i2, j2) &&
+                                                !lakeGrid[i2 - x][j2 - y]
                                                 // SITE.isFloor(map, i, j) ||
                                                 // SITE.isDoor(map, i, j)
                                             ) {
-                                                site.setTile(i, j, wreathTile);
+                                                site.setTile(
+                                                    i2,
+                                                    j2,
+                                                    wreathTile
+                                                );
                                             }
                                         }
                                     );
@@ -146,6 +156,7 @@ export class Lakes {
 
             if (success) {
                 ++count;
+                attempts = 0;
             } else {
                 ++attempts;
             }

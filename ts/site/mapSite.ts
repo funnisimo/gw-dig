@@ -243,8 +243,8 @@ export class MapSite implements BUILD.BuildSite {
         if (!this.hasXY(x, y)) return false;
         const cell = this.map.cell(x, y);
         return (
-            cell.hasDepthTile(GWM.flags.Depth.LIQUID) ||
-            cell.hasTileFlag(GWM.tile.flags.Tile.T_IS_DEEP_LIQUID)
+            // cell.hasDepthTile(GWM.flags.Depth.LIQUID) ||
+            cell.hasTileFlag(GWM.tile.flags.Tile.T_ANY_LIQUID)
         );
     }
     isOccupied(x: number, y: number) {
@@ -253,7 +253,10 @@ export class MapSite implements BUILD.BuildSite {
 
     isPassable(x: number, y: number): boolean {
         const info = this.map.cell(x, y);
-        return !(info.blocksMove() || info.blocksPathing());
+        if (info.blocksMove()) return false;
+        if (info.hasTileFlag(GWM.flags.Tile.T_BRIDGE)) return true;
+        if (info.blocksPathing()) return false;
+        return true;
     }
 
     // tileBlocksMove(tile: number): boolean {

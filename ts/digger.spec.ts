@@ -172,4 +172,58 @@ describe('Level', () => {
 
         expect(lines).toEqual(lines2);
     });
+
+    describe('seeds', () => {
+        test('682067209748479 - shallows over lakes', () => {
+            const seed = 682067209748479;
+            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
+            Dig.digMap(map, { stairs: false, seed });
+
+            // map.dump();
+
+            const both: GWU.xy.Loc[] = [];
+            map.eachCell((c, x, y) => {
+                if (c.hasTile('LAKE') && c.hasTile('SHALLOW')) {
+                    both.push([x, y]);
+                }
+            });
+
+            expect(both).toHaveLength(0);
+            expect(map.hasTile(42, 17, 'LAKE')).toBeTruthy();
+            expect(map.hasTile(42, 17, 'SHALLOW')).toBeFalsy();
+        });
+
+        test.todo('171105058815999 - bridge too short @ 49,12');
+        test.todo('2645057213562879 - bridge too short');
+
+        test.skip('3636220756230143 - bridge too short : h & v', () => {
+            const seed = 3636220756230143;
+            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
+            Dig.digMap(map, { stairs: false, seed, bridges: 10 });
+
+            map.dump();
+            expect(map.hasTile(39, 15, 'BRIDGE')).toBeTruthy();
+        });
+
+        test('2385039633416191 - door orphaned @ 48,27', () => {
+            const seed = 2385039633416191;
+            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
+            Dig.digMap(map, { stairs: false, seed });
+
+            // map.dump();
+            expect(map.hasTile(48, 27, 'DOOR')).toBeFalsy();
+        });
+
+        test('1200255339069439 - 2 doors @ 61,21', () => {
+            const seed = 1200255339069439;
+            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
+            Dig.digMap(map, { stairs: false, seed });
+
+            // map.dump();
+
+            expect(
+                map.hasTile(61, 21, 'DOOR') && map.hasTile(62, 21, 'DOOR')
+            ).toBeFalsy();
+        });
+    });
 });
