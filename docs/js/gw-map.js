@@ -3909,6 +3909,9 @@
         hasEntityFlag(x, y, flag) {
             return this.cell(x, y).hasEntityFlag(flag);
         }
+        hasTileFlag(x, y, flag) {
+            return this.cell(x, y).hasTileFlag(flag);
+        }
         clear() {
             this.light.glowLightChanged = true;
             // this.fov.needsUpdate = true;
@@ -7168,7 +7171,7 @@
         flavor: 'some shallow water',
     });
     install$6('BRIDGE', {
-        ch: '=',
+        ch: '\u2630',
         fg: [100, 40, 40],
         priority: 40,
         depth: 'SURFACE',
