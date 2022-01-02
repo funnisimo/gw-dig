@@ -25,7 +25,7 @@ export class Stairs {
     };
 
     constructor(options: Partial<StairOpts> = {}) {
-        Object.assign(this.options, options);
+        GWU.object.assignObject(this.options, options);
     }
 
     create(site: SITE.DigSite) {

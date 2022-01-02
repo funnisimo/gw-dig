@@ -1597,7 +1597,7 @@
                 wreathSize: 1,
                 tile: DEEP,
             };
-            Object.assign(this.options, options);
+            GWU__namespace.object.assignObject(this.options, options);
         }
         create(site) {
             let i, j, k;
@@ -1737,7 +1737,7 @@
                 minDistance: 20,
                 maxLength: 5,
             };
-            Object.assign(this.options, options);
+            GWU__namespace.object.assignObject(this.options, options);
         }
         create(site) {
             let count = 0;
@@ -1851,7 +1851,7 @@
                 downTile: DOWN_STAIRS,
                 wall: IMPREGNABLE,
             };
-            Object.assign(this.options, options);
+            GWU__namespace.object.assignObject(this.options, options);
         }
         create(site) {
             let needUp = this.options.up !== false;
@@ -2012,7 +2012,7 @@
                 maxLength: 1,
                 doorChance: 50,
             };
-            Object.assign(this.options, options);
+            GWU__namespace.object.assignObject(this.options, options);
         }
         create(site) {
             let startX, startY, endX, endY;
@@ -3555,6 +3555,9 @@
             else {
                 if (options.loops === true)
                     options.loops = {};
+                if (typeof options.loops === 'number') {
+                    options.loops = { maxLength: options.loops };
+                }
                 options.loops = options.loops || {};
                 options.loops.doorChance =
                     (_a = options.loops.doorChance) !== null && _a !== void 0 ? _a : (_b = options.doors) === null || _b === void 0 ? void 0 : _b.chance;
@@ -3567,6 +3570,9 @@
             else {
                 if (options.lakes === true)
                     options.lakes = {};
+                if (typeof options.lakes === 'number') {
+                    options.lakes = { count: options.lakes };
+                }
                 GWU__namespace.object.setOptions(this.lakes, options.lakes);
             }
             // Bridges

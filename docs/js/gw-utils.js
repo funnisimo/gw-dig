@@ -807,7 +807,7 @@
         else if (current && Array.isArray(current)) {
             current.length = 0;
         }
-        else {
+        else if (updated !== undefined) {
             dest[key] = updated;
         }
     }
@@ -945,7 +945,7 @@
             if (typeof arg !== 'object' || Array.isArray(arg)) {
                 return arg;
             }
-            if (arg[field] !== undefined) {
+            if (arg && arg[field] !== undefined) {
                 return arg[field];
             }
         }
@@ -2267,7 +2267,7 @@
             else {
                 H = 60 * (6 - (B - G) / (R - G));
             }
-            return Math.round(H);
+            return Math.round(H) || 0;
         }
         equals(other) {
             if (typeof other === 'string') {
@@ -4563,27 +4563,31 @@
             return !!((this.flags.get(x, y) || 0) & FovFlags.WAS_ANY_KIND_OF_VISIBLE);
         }
         makeAlwaysVisible() {
-            this.flags.update((v) => v |
-                (FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE));
-            // TODO - onFovChange?
             this.changed = true;
+            this.flags.forEach((_v, x, y) => {
+                this.flags[x][y] |=
+                    FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
+                this.callback(x, y, true);
+            });
         }
         makeCellAlwaysVisible(x, y) {
+            this.changed = true;
             this.flags[x][y] |=
                 FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
-            // TODO - onFovChange?
-            this.changed = true;
+            this.callback(x, y, true);
         }
         revealAll(makeVisibleToo = true) {
             const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
             this.flags.update((v) => v | flag);
-            // TODO - onFovChange?
+            this.flags.forEach((v, x, y) => {
+                this.callback(x, y, !!(v & FovFlags.VISIBLE));
+            });
             this.changed = true;
         }
         revealCell(x, y, makeVisibleToo = true) {
             const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
             this.flags[x][y] |= flag;
-            // TODO - onFovChange?
+            this.callback(x, y, !!(flag & FovFlags.VISIBLE));
             this.changed = true;
         }
         hideCell(x, y) {
@@ -4591,18 +4595,20 @@
                 FovFlags.REVEALED |
                 FovFlags.ALWAYS_VISIBLE);
             this.flags[x][y] = this.demoteCellVisibility(this.flags[x][y]); // clears visible, etc...
-            // TODO - onFovChange?
+            this.callback(x, y, false);
             this.changed = true;
         }
         magicMapCell(x, y) {
             this.flags[x][y] |= FovFlags.MAGIC_MAPPED;
             this.changed = true;
-            // TODO - onFovChange?
+            this.callback(x, y, true);
         }
         reset() {
             this.flags.fill(0);
             this.changed = true;
-            // TODO - onFovChange?
+            this.flags.forEach((_v, x, y) => {
+                this.callback(x, y, false);
+            });
         }
         // get changed(): boolean {
         //     return this._changed;
@@ -4664,7 +4670,9 @@
         //////////////////////////
         // UPDATE
         demoteCellVisibility(flag) {
-            flag &= ~(FovFlags.WAS_ANY_KIND_OF_VISIBLE | FovFlags.WAS_IN_FOV | FovFlags.WAS_DETECTED);
+            flag &= ~(FovFlags.WAS_ANY_KIND_OF_VISIBLE |
+                FovFlags.WAS_IN_FOV |
+                FovFlags.WAS_DETECTED);
             if (flag & FovFlags.IN_FOV) {
                 flag &= ~FovFlags.IN_FOV;
                 flag |= FovFlags.WAS_IN_FOV;
@@ -5107,8 +5115,8 @@
         setDistance(DIJKSTRA_MAP, destinationX, destinationY, 0);
         batchOutput(DIJKSTRA_MAP, distanceMap);
         // TODO - Add this where called!
-        //   distanceMap.x = destinationX;
-        //   distanceMap.y = destinationY;
+        distanceMap.x = destinationX;
+        distanceMap.y = destinationY;
     }
     function rescan(distanceMap, costMap, eightWays = false, maxDistance = NO_PATH) {
         if (!DIJKSTRA_MAP)
@@ -5123,19 +5131,21 @@
     // a cell that the monster avoids.
     function nextStep(distanceMap, x, y, isBlocked, useDiagonals = false) {
         let newX, newY, bestScore;
-        let dir, bestDir;
-        let blocked;
+        let dir;
         // brogueAssert(coordinatesAreInMap(x, y));
         bestScore = 0;
-        bestDir = NO_DIRECTION;
+        let bestDir = NO_DIRECTION;
+        const dist = distanceMap[x][y];
         for (dir = 0; dir < (useDiagonals ? 8 : 4); ++dir) {
             newX = x + DIRS$2[dir][0];
             newY = y + DIRS$2[dir][1];
-            blocked = isBlocked(newX, newY, x, y, distanceMap);
-            if (!blocked &&
-                distanceMap[x][y] - distanceMap[newX][newY] > bestScore) {
-                bestDir = dir;
-                bestScore = distanceMap[x][y] - distanceMap[newX][newY];
+            const newDist = distanceMap[newX][newY];
+            if (newDist < dist) {
+                const diff = dist - newDist;
+                if (diff > bestScore && !isBlocked(newX, newY, x, y, distanceMap)) {
+                    bestDir = dir;
+                    bestScore = diff;
+                }
             }
         }
         return DIRS$2[bestDir] || null;
@@ -5172,29 +5182,27 @@
         // actor = actor || GW.PLAYER;
         let x = originX;
         let y = originY;
-        let steps = 0;
         if (distanceMap[x][y] < 0 || distanceMap[x][y] >= NO_PATH) {
             const loc = getClosestValidLocationOnMap(distanceMap, x, y);
-            if (loc) {
-                x = loc[0];
-                y = loc[1];
-            }
+            if (!loc)
+                return null;
+            x = loc[0];
+            y = loc[1];
         }
-        const path = [[x, y]];
+        const path = [];
         let dir;
         do {
             dir = nextStep(distanceMap, x, y, isBlocked, eightWays);
             if (dir) {
+                path.push([x, y]);
                 x += dir[0];
                 y += dir[1];
                 // path[steps][0] = x;
                 // path[steps][1] = y;
-                path.push([x, y]);
-                steps++;
                 // brogueAssert(coordinatesAreInMap(x, y));
             }
         } while (dir);
-        return steps ? path : null;
+        return path.length ? path : null;
     }
 
     var path = /*#__PURE__*/Object.freeze({
@@ -6303,8 +6311,9 @@ void main() {
             }
             data._data.forEach((style, i) => {
                 const index = i * VERTICES_PER_TILE;
-                this._data[index + 2] = style;
-                this._data[index + 5] = style;
+                for (let j = 0; j < VERTICES_PER_TILE; ++j) {
+                    this._data[index + j] = style;
+                }
             });
             this._requestRender();
             data.changed = false;
@@ -6315,7 +6324,7 @@ void main() {
             const n = this.width * this.height;
             for (let i = 0; i < n; ++i) {
                 const index = i * VERTICES_PER_TILE;
-                data._data[i] = this._data[index + 2];
+                data._data[i] = this._data[index + 0];
             }
         }
         _render() {

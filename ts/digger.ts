@@ -28,7 +28,7 @@ export interface RoomOptions {
 export interface DiggerOptions {
     halls?: Partial<HALL.HallOptions> | boolean;
     loops?: Partial<LOOP.LoopOptions> | boolean;
-    lakes?: Partial<LAKE.LakeOpts> | boolean;
+    lakes?: Partial<LAKE.LakeOpts> | boolean | number;
     bridges?: Partial<BRIDGE.BridgeOpts> | boolean | number;
     stairs?: Partial<STAIRS.StairOpts> | boolean;
     doors?: Partial<DoorOpts> | boolean;
@@ -91,6 +91,9 @@ export class Digger {
             this.loops = null;
         } else {
             if (options.loops === true) options.loops = {};
+            if (typeof options.loops === 'number') {
+                options.loops = { maxLength: options.loops };
+            }
             options.loops = options.loops || {};
             options.loops.doorChance =
                 options.loops.doorChance ?? options.doors?.chance;
@@ -102,6 +105,9 @@ export class Digger {
             this.lakes = null;
         } else {
             if (options.lakes === true) options.lakes = {};
+            if (typeof options.lakes === 'number') {
+                options.lakes = { count: options.lakes };
+            }
             GWU.object.setOptions(this.lakes, options.lakes);
         }
 

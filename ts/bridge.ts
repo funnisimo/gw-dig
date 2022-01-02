@@ -13,7 +13,7 @@ export class Bridges {
     };
 
     constructor(options: Partial<BridgeOpts> = {}) {
-        Object.assign(this.options, options);
+        GWU.object.assignObject(this.options, options);
     }
 
     create(site: SITE.DigSite): number {

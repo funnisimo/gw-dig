@@ -21,7 +21,7 @@ export class LoopDigger {
     };
 
     constructor(options: Partial<LoopOptions> = {}) {
-        Object.assign(this.options, options);
+        GWU.object.assignObject(this.options, options);
     }
 
     create(site: SITE.DigSite) {

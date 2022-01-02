@@ -832,7 +832,7 @@ interface RoomOptions {
 interface DiggerOptions {
     halls?: Partial<HallOptions> | boolean;
     loops?: Partial<LoopOptions> | boolean;
-    lakes?: Partial<LakeOpts> | boolean;
+    lakes?: Partial<LakeOpts> | boolean | number;
     bridges?: Partial<BridgeOpts> | boolean | number;
     stairs?: Partial<StairOpts> | boolean;
     doors?: Partial<DoorOpts> | boolean;
