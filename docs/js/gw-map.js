@@ -6378,6 +6378,29 @@
         });
         return count;
     }
+    function getCellPathCost(map, x, y) {
+        const cell = map.cell(x, y);
+        if (cell.blocksMove())
+            return GWU__namespace.path.OBSTRUCTION;
+        if (cell.blocksPathing())
+            return GWU__namespace.path.FORBIDDEN;
+        if (cell.hasActor())
+            return 10;
+        return 1;
+    }
+    function fillCostMap(map, costMap) {
+        costMap.update((_v, x, y) => getCellPathCost(map, x, y));
+    }
+    function getPathBetween(map, x0, y0, x1, y1, options = {}) {
+        const distanceMap = GWU__namespace.grid.alloc(map.width, map.height);
+        const costMap = GWU__namespace.grid.alloc(map.width, map.height);
+        fillCostMap(map, costMap);
+        GWU__namespace.path.calculateDistances(distanceMap, x0, y0, costMap, options.eightWays, GWU__namespace.xy.straightDistanceBetween(x0, y0, x1, y1) + 1);
+        const path = GWU__namespace.path.getPath(distanceMap, x1, y1, (x, y) => map.cell(x, y).blocksMove(), options.eightWays);
+        GWU__namespace.grid.free(costMap);
+        GWU__namespace.grid.free(distanceMap);
+        return path;
+    }
 
     function make$1(w, h, opts = {}, boundary) {
         if (typeof opts === 'string') {
@@ -6471,6 +6494,9 @@
         SnapshotManager: SnapshotManager,
         isHallway: isHallway,
         replaceTile: replaceTile,
+        getCellPathCost: getCellPathCost,
+        fillCostMap: fillCostMap,
+        getPathBetween: getPathBetween,
         make: make$1,
         from: from$1
     });

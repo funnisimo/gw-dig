@@ -3549,6 +3549,7 @@
             // startLoc: GWU.xy.Loc = [-1, -1];
             // endLoc: GWU.xy.Loc = [-1, -1];
             this.locations = {};
+            this._locs = {};
             this.goesUp = false;
             this.seed = options.seed || 0;
             if (typeof options.rooms === 'number') {
@@ -3556,22 +3557,11 @@
             }
             GWU__namespace.object.setOptions(this.rooms, options.rooms);
             this.goesUp = options.goesUp || false;
-            if (this.goesUp) {
-                this.locations.start = this.locations.down = options.startLoc || [
-                    -1,
-                    -1,
-                ];
-                this.locations.end = this.locations.up = options.endLoc || [-1, -1];
+            if (options.startLoc) {
+                this._locs.start = options.startLoc;
             }
-            else {
-                this.locations.start = this.locations.up = options.startLoc || [
-                    -1,
-                    -1,
-                ];
-                this.locations.end = this.locations.down = options.endLoc || [
-                    -1,
-                    -1,
-                ];
+            if (options.endLoc) {
+                this._locs.end = options.endLoc;
             }
             // Doors
             if (options.doors === false) {
@@ -3637,18 +3627,6 @@
                     options.stairs = {};
                 GWU__namespace.object.setOptions(this.stairs, options.stairs);
                 this.stairs.start = this.goesUp ? 'down' : 'up';
-                if (this.locations.up && this.locations.up[0] >= 0) {
-                    this.stairs.up = this.locations.up;
-                }
-                else if (Array.isArray(this.stairs.up)) {
-                    this.locations.up = this.stairs.up;
-                }
-                if (this.locations.down && this.locations.down[0] >= 0) {
-                    this.stairs.down = this.locations.down;
-                }
-                else if (Array.isArray(this.stairs.down)) {
-                    this.locations.down = this.stairs.down;
-                }
             }
             // this.startLoc = options.startLoc || [-1, -1];
             // this.endLoc = options.endLoc || [-1, -1];
@@ -3660,14 +3638,6 @@
             }
             else {
                 this.log = new NullLogger();
-            }
-            if (this.goesUp) {
-                this.locations.start = this.locations.down;
-                this.locations.end = this.locations.up;
-            }
-            else {
-                this.locations.start = this.locations.up;
-                this.locations.end = this.locations.down;
             }
         }
         _makeRoomSite(width, height) {
@@ -3728,6 +3698,28 @@
             site.setSeed(seed);
             site.clear();
             this.seq = site.rng.sequence(site.width * site.height);
+            this.locations = Object.assign({}, this._locs);
+            if (!this.locations.start || this.locations.start[0] < 0) {
+                const stair = this.goesUp ? 'down' : 'up';
+                if (this.stairs && Array.isArray(this.stairs[stair])) {
+                    this.locations.start = this.stairs[stair];
+                }
+                else {
+                    this.locations.start = [
+                        Math.floor(site.width / 2),
+                        site.height - 2,
+                    ];
+                    if (this.stairs && this.stairs[stair]) {
+                        this.stairs[stair] = this.locations.start;
+                    }
+                }
+            }
+            if (!this.locations.end || this.locations.end[0] < 0) {
+                const stair = this.goesUp ? 'up' : 'down';
+                if (this.stairs && Array.isArray(this.stairs[stair])) {
+                    this.locations.end = this.stairs[stair];
+                }
+            }
             // if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
             //     this.startLoc[0] = Math.floor(site.width / 2);
             //     this.startLoc[1] = site.height - 2;

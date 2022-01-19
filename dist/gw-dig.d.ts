@@ -862,6 +862,7 @@ declare class Digger {
     stairs: Partial<StairOpts> | null;
     boundary: boolean;
     locations: Record<string, GWU.xy.Loc>;
+    _locs: Record<string, GWU.xy.Loc>;
     goesUp: boolean;
     seq: number[];
     log: Logger;
