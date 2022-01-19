@@ -223,7 +223,7 @@ describe('buildStep', () => {
 
         beforeEach(() => {
             map = GWM.map.make(80, 34);
-            map.properties.depth = 1;
+            map.data.depth = 1;
 
             const digger = new DIG.Digger({
                 seed: 12345,
@@ -249,7 +249,8 @@ describe('buildStep', () => {
                 id: 'TEST',
                 size: '30-50',
                 frequency: '1-12: 30',
-                flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+                flags:
+                    'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
 
                 steps: [
                     {

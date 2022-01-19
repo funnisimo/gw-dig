@@ -45,9 +45,9 @@ interface DigSite {
     isDeep: GWU.xy.XYMatchFunc;
     isShallow: GWU.xy.XYMatchFunc;
     isAnyLiquid: GWU.xy.XYMatchFunc;
-    setTile(x: number, y: number, tile: string | number | GWM.tile.Tile, opts?: GWM.map.SetTileOptions): boolean;
-    clearCell(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
-    hasTile(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
+    setTile(x: number, y: number, tile: GWM.tile.TileBase, opts?: GWM.map.SetTileOptions): boolean;
+    clearCell(x: number, y: number, tile: GWM.tile.TileBase): boolean;
+    hasTile(x: number, y: number, tile: GWM.tile.TileBase): boolean;
     getTileIndex(x: number, y: number): number;
     getMachine(x: number, y: number): number;
     updateDoorDirs(): void;
@@ -130,9 +130,9 @@ declare class GridSite implements DigSite {
     isAnyLiquid(x: number, y: number): boolean;
     isSet(x: number, y: number): boolean;
     getTileIndex(x: number, y: number): number;
-    setTile(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
-    clearCell(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
-    hasTile(x: number, y: number, tile: number | string | GWM.tile.Tile): boolean;
+    setTile(x: number, y: number, tile: GWM.tile.TileBase): boolean;
+    clearCell(x: number, y: number, tile: GWM.tile.TileBase): boolean;
+    hasTile(x: number, y: number, tile: GWM.tile.TileBase): boolean;
     getMachine(_x: number, _y: number): number;
     updateDoorDirs(): void;
     getDoorDir(x: number, y: number): number;
@@ -167,9 +167,9 @@ declare class MapSite implements BuildSite {
     hasCellFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
-    hasTile(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
-    setTile(x: number, y: number, tile: string | number | GWM.tile.Tile, opts?: Partial<GWM.map.SetOptions>): boolean;
-    clearCell(x: number, y: number, tile: string | number | GWM.tile.Tile): boolean;
+    hasTile(x: number, y: number, tile: GWM.tile.TileBase): boolean;
+    setTile(x: number, y: number, tile: GWM.tile.TileBase, opts?: Partial<GWM.map.SetOptions>): boolean;
+    clearCell(x: number, y: number, tile: GWM.tile.TileBase): boolean;
     getTileIndex(x: number, y: number): number;
     clear(): void;
     hasItem(x: number, y: number): boolean;
@@ -209,6 +209,8 @@ declare class MapSite implements BuildSite {
     updateDoorDirs(): void;
     getDoorDir(x: number, y: number): number;
 }
+declare function digSiteFrom(source: GWM.map.Map | DigSite): DigSite;
+declare function buildSiteFrom(source: GWM.map.Map | BuildSite): BuildSite;
 
 declare const index_d$3_NOTHING: typeof NOTHING;
 declare const index_d$3_FLOOR: typeof FLOOR;
@@ -241,6 +243,8 @@ type index_d$3_MapSnapshot = MapSnapshot;
 declare const index_d$3_MapSnapshot: typeof MapSnapshot;
 type index_d$3_MapSite = MapSite;
 declare const index_d$3_MapSite: typeof MapSite;
+declare const index_d$3_digSiteFrom: typeof digSiteFrom;
+declare const index_d$3_buildSiteFrom: typeof buildSiteFrom;
 declare namespace index_d$3 {
   export {
     index_d$3_NOTHING as NOTHING,
@@ -271,6 +275,8 @@ declare namespace index_d$3 {
     index_d$3_GridSite as GridSite,
     index_d$3_MapSnapshot as MapSnapshot,
     index_d$3_MapSite as MapSite,
+    index_d$3_digSiteFrom as digSiteFrom,
+    index_d$3_buildSiteFrom as buildSiteFrom,
   };
 }
 
@@ -530,9 +536,9 @@ interface StairOpts {
     down: boolean | GWU.xy.Loc;
     minDistance: number;
     start: boolean | string | GWU.xy.Loc;
-    upTile: number;
-    downTile: number;
-    wall: number;
+    upTile: GWM.tile.TileBase;
+    downTile: GWM.tile.TileBase;
+    wall: GWM.tile.TileBase;
 }
 declare class Stairs {
     options: StairOpts;
@@ -540,7 +546,7 @@ declare class Stairs {
     create(site: DigSite): Record<string, GWU.types.Loc> | null;
     hasXY(site: DigSite, x: number, y: number): boolean;
     isStairXY(site: DigSite, x: number, y: number): boolean;
-    setupStairs(site: DigSite, x: number, y: number, tile: number): boolean;
+    setupStairs(site: DigSite, x: number, y: number, tile: GWM.tile.TileBase, wallTile: GWM.tile.TileBase): boolean;
 }
 
 type stairs_d_StairOpts = StairOpts;
@@ -839,6 +845,7 @@ interface DiggerOptions {
     rooms: number | Partial<RoomOptions>;
     startLoc?: GWU.xy.Loc;
     endLoc?: GWU.xy.Loc;
+    goesUp?: boolean;
     seed?: number;
     boundary?: boolean;
     log?: Logger | boolean;
@@ -854,8 +861,8 @@ declare class Digger {
     bridges: Partial<BridgeOpts> | null;
     stairs: Partial<StairOpts> | null;
     boundary: boolean;
-    startLoc: GWU.xy.Loc;
-    endLoc: GWU.xy.Loc;
+    locations: Record<string, GWU.xy.Loc>;
+    goesUp: boolean;
     seq: number[];
     log: Logger;
     constructor(options?: Partial<DiggerOptions>);
@@ -877,7 +884,7 @@ declare class Digger {
     addLoops(site: DigSite, opts: Partial<LoopOptions>): number;
     addLakes(site: DigSite, opts: Partial<LakeOpts>): number;
     addBridges(site: DigSite, opts: Partial<BridgeOpts>): number;
-    addStairs(site: DigSite, opts: Partial<StairOpts>): Record<string, GWU.types.Loc> | null;
+    addStairs(site: DigSite, opts: Partial<StairOpts>): boolean;
     finish(site: DigSite): void;
     _removeDiagonalOpenings(site: DigSite): void;
     _finishDoors(site: DigSite): void;
@@ -885,28 +892,17 @@ declare class Digger {
 }
 declare function digMap(map: GWM.map.Map, options?: Partial<DiggerOptions>): boolean;
 
-interface DungeonOptions {
-    seed?: number;
+interface DungeonOptions extends DiggerOptions {
     levels: number;
     goesUp?: boolean;
     width: number;
     height: number;
+    entrance?: string | string[] | Record<string, number> | RoomDigger;
     startLoc?: GWU.xy.Loc;
-    startTile?: number;
+    startTile?: GWM.tile.TileBase;
     stairDistance?: number;
-    endTile?: number;
-    rooms: {
-        count: number;
-        digger: string | RoomDigger;
-        entrance?: string | RoomDigger;
-        first?: string | RoomDigger;
-    };
-    halls: Partial<HallOptions>;
-    loops: Partial<LoopOptions>;
-    lakes: Partial<LakeOpts>;
-    bridges: Partial<BridgeOpts>;
-    stairs: Partial<StairOpts>;
-    boundary: boolean;
+    endLoc?: GWU.xy.Loc;
+    endTile?: GWM.tile.TileBase;
 }
 declare type LocPair = [GWU.xy.Loc, GWU.xy.Loc];
 declare class Dungeon {
@@ -914,11 +910,11 @@ declare class Dungeon {
     seeds: number[];
     stairLocs: LocPair[];
     constructor(options?: Partial<DungeonOptions>);
-    get levels(): number;
-    initSeeds(): void;
-    initStairLocs(): void;
-    getLevel(id: number, cb: DigFn): boolean;
-    makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn): boolean;
+    get length(): number;
+    _initSeeds(): void;
+    _initStairLocs(): void;
+    getLevel(id: number, cb: DigFn | GWM.map.Map): boolean;
+    _makeLevel(id: number, opts: Partial<DiggerOptions>, cb: DigFn | GWM.map.Map): boolean;
 }
 
 declare type BlueType = Blueprint | string;

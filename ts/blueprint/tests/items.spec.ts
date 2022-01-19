@@ -167,7 +167,7 @@ describe('Mixed Item Library', () => {
 
     test('Good Item Room', () => {
         const map = GWM.map.make(80, 34);
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,
@@ -198,7 +198,8 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('GOOD_ITEM_ROOM', {
             size: '10-30',
             frequency: '5-16: 30',
-            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags:
+                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {
@@ -213,7 +214,8 @@ describe('Mixed Item Library', () => {
                         make: { runic: true, cursed: false },
                     },
                     pad: 1,
-                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 {
                     tile: 'PEDESTAL',
@@ -222,7 +224,8 @@ describe('Mixed Item Library', () => {
                         make: { runic: true, cursed: false },
                     },
                     pad: 1,
-                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 {
                     tile: 'PEDESTAL',
@@ -232,7 +235,8 @@ describe('Mixed Item Library', () => {
                     },
                     pad: 1,
                     count: 2,
-                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 { flags: 'BS_BUILD_VESTIBULE' },
             ],
@@ -277,7 +281,7 @@ describe('Mixed Item Library', () => {
 
     test('Specific Item', () => {
         const map = GWM.map.make(80, 34);
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,
@@ -307,7 +311,8 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('SPECIFIC_ITEM_ROOM', {
             size: '10-30',
             frequency: '5-16: 30',
-            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags:
+                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {
@@ -322,7 +327,8 @@ describe('Mixed Item Library', () => {
                         id: 'MENU',
                     },
                     pad: 1,
-                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 {
                     tile: 'PEDESTAL',
@@ -330,7 +336,8 @@ describe('Mixed Item Library', () => {
                         id: 'ORANGE_JUICE',
                     },
                     pad: 1,
-                    flags: 'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
+                    flags:
+                        'BS_TREAT_AS_BLOCKING, BS_ALTERNATIVE, BS_ITEM_IDENTIFIED',
                 },
                 { flags: 'BS_BUILD_VESTIBULE' },
             ],

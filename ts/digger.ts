@@ -37,6 +37,7 @@ export interface DiggerOptions {
 
     startLoc?: GWU.xy.Loc;
     endLoc?: GWU.xy.Loc;
+    goesUp?: boolean;
 
     seed?: number;
     boundary?: boolean;
@@ -57,8 +58,12 @@ export class Digger {
     stairs: Partial<STAIRS.StairOpts> | null = {};
     boundary: boolean = true;
 
-    startLoc: GWU.xy.Loc = [-1, -1];
-    endLoc: GWU.xy.Loc = [-1, -1];
+    // startLoc: GWU.xy.Loc = [-1, -1];
+    // endLoc: GWU.xy.Loc = [-1, -1];
+
+    locations: Record<string, GWU.xy.Loc> = {};
+    _locs: Record<string, GWU.xy.Loc> = {};
+    goesUp = false;
 
     seq!: number[];
     log: LOGGER.Logger;
@@ -69,6 +74,14 @@ export class Digger {
             options.rooms = { count: options.rooms };
         }
         GWU.object.setOptions(this.rooms, options.rooms);
+
+        this.goesUp = options.goesUp || false;
+        if (options.startLoc) {
+            this._locs.start = options.startLoc;
+        }
+        if (options.endLoc) {
+            this._locs.end = options.endLoc;
+        }
 
         // Doors
         if (options.doors === false) {
@@ -126,12 +139,13 @@ export class Digger {
         if (options.stairs === false) {
             this.stairs = null;
         } else {
-            if (options.stairs === true) options.stairs = {};
+            if (typeof options.stairs !== 'object') options.stairs = {};
             GWU.object.setOptions(this.stairs, options.stairs);
+            this.stairs!.start = this.goesUp ? 'down' : 'up';
         }
 
-        this.startLoc = options.startLoc || [-1, -1];
-        this.endLoc = options.endLoc || [-1, -1];
+        // this.startLoc = options.startLoc || [-1, -1];
+        // this.endLoc = options.endLoc || [-1, -1];
 
         if (options.log === true) {
             this.log = new ConsoleLogger();
@@ -215,10 +229,34 @@ export class Digger {
         site.clear();
         this.seq = site.rng.sequence(site.width * site.height);
 
-        if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
-            this.startLoc[0] = Math.floor(site.width / 2);
-            this.startLoc[1] = site.height - 2;
+        this.locations = Object.assign({}, this._locs);
+
+        if (!this.locations.start || this.locations.start[0] < 0) {
+            const stair = this.goesUp ? 'down' : 'up';
+            if (this.stairs && Array.isArray(this.stairs[stair])) {
+                this.locations.start = this.stairs[stair] as GWU.xy.Loc;
+            } else {
+                this.locations.start = [
+                    Math.floor(site.width / 2),
+                    site.height - 2,
+                ];
+                if (this.stairs && this.stairs[stair]) {
+                    this.stairs[stair] = this.locations.start;
+                }
+            }
         }
+
+        if (!this.locations.end || this.locations.end[0] < 0) {
+            const stair = this.goesUp ? 'up' : 'down';
+            if (this.stairs && Array.isArray(this.stairs[stair])) {
+                this.locations.end = this.stairs[stair] as GWU.xy.Loc;
+            }
+        }
+
+        // if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+        //     this.startLoc[0] = Math.floor(site.width / 2);
+        //     this.startLoc[1] = site.height - 2;
+        // }
     }
 
     getDigger(
@@ -280,7 +318,7 @@ export class Digger {
 
         if (
             room &&
-            !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)
+            !this._attachRoomAtLoc(site, roomSite, room, this.locations.start)
         ) {
             room = null;
         }
@@ -536,7 +574,9 @@ export class Digger {
 
     addStairs(site: SITE.DigSite, opts: Partial<STAIRS.StairOpts>) {
         const digger = new STAIRS.Stairs(opts);
-        return digger.create(site);
+        const locs = digger.create(site);
+        if (locs) Object.assign(this.locations, locs);
+        return !!locs;
     }
 
     finish(site: SITE.DigSite) {

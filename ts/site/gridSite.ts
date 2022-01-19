@@ -68,7 +68,7 @@ export class GridSite implements DIG.DigSite {
 
     isDiggable(x: number, y: number) {
         const v = this.tiles.get(x, y);
-        return v === DIG.NOTHING;
+        return v === DIG.NOTHING || v === DIG.WALL;
     }
 
     isFloor(x: number, y: number) {
@@ -148,7 +148,7 @@ export class GridSite implements DIG.DigSite {
     getTileIndex(x: number, y: number): number {
         return this.tiles.get(x, y) || 0;
     }
-    setTile(x: number, y: number, tile: number | string | GWM.tile.Tile) {
+    setTile(x: number, y: number, tile: GWM.tile.TileBase) {
         if (tile instanceof GWM.tile.Tile) {
             tile = tile.index;
         }
@@ -161,15 +161,11 @@ export class GridSite implements DIG.DigSite {
         this.tiles[x][y] = tile;
         return true;
     }
-    clearCell(x: number, y: number, tile: number | string | GWM.tile.Tile) {
+    clearCell(x: number, y: number, tile: GWM.tile.TileBase) {
         return this.setTile(x, y, tile);
     }
 
-    hasTile(
-        x: number,
-        y: number,
-        tile: number | string | GWM.tile.Tile
-    ): boolean {
+    hasTile(x: number, y: number, tile: GWM.tile.TileBase): boolean {
         if (tile instanceof GWM.tile.Tile) {
             tile = tile.index;
         }

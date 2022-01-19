@@ -136,7 +136,7 @@ describe('Mixed Item Library', () => {
 
     test('Single Horde Room', () => {
         const map = GWM.map.make(80, 34);
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,
@@ -172,7 +172,7 @@ describe('Mixed Item Library', () => {
     });
 
     function addManacle(
-        map: GWM.map.MapType,
+        map: GWM.map.Map,
         x: number,
         y: number,
         dirIndex: number
@@ -235,7 +235,7 @@ describe('Mixed Item Library', () => {
 
     test('horde with effect', () => {
         const map = GWM.map.make(80, 34);
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,
@@ -318,7 +318,7 @@ describe('Mixed Item Library', () => {
         });
 
         const map = GWM.map.make(80, 34);
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,

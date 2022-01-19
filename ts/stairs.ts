@@ -1,4 +1,5 @@
 import * as GWU from 'gw-utils';
+import * as GWM from 'gw-map';
 
 import * as SITE from './site';
 
@@ -8,9 +9,10 @@ export interface StairOpts {
     minDistance: number;
 
     start: boolean | string | GWU.xy.Loc;
-    upTile: number;
-    downTile: number;
-    wall: number;
+
+    upTile: GWM.tile.TileBase;
+    downTile: GWM.tile.TileBase;
+    wall: GWM.tile.TileBase;
 }
 
 export class Stairs {
@@ -151,8 +153,18 @@ export class Stairs {
 
         if (upLoc) {
             locations.up = upLoc.slice() as GWU.xy.Loc;
-            this.setupStairs(site, upLoc[0], upLoc[1], this.options.upTile);
-            if (this.options.start === 'up') locations.start = locations.up;
+            this.setupStairs(
+                site,
+                upLoc[0],
+                upLoc[1],
+                this.options.upTile,
+                this.options.wall
+            );
+            if (this.options.start === 'up') {
+                locations.start = locations.up;
+            } else {
+                locations.end = locations.up;
+            }
         }
         if (downLoc) {
             locations.down = downLoc.slice() as GWU.xy.Loc;
@@ -160,9 +172,14 @@ export class Stairs {
                 site,
                 downLoc[0],
                 downLoc[1],
-                this.options.downTile
+                this.options.downTile,
+                this.options.wall
             );
-            if (this.options.start === 'down') locations.start = locations.down;
+            if (this.options.start === 'down') {
+                locations.start = locations.down;
+            } else {
+                locations.end = locations.down;
+            }
         }
 
         return upLoc || downLoc ? locations : null;
@@ -195,7 +212,13 @@ export class Stairs {
         return count == 1;
     }
 
-    setupStairs(site: SITE.DigSite, x: number, y: number, tile: number) {
+    setupStairs(
+        site: SITE.DigSite,
+        x: number,
+        y: number,
+        tile: GWM.tile.TileBase,
+        wallTile: GWM.tile.TileBase
+    ) {
         const indexes = site.rng.sequence(4);
 
         let dir: GWU.xy.Loc | null = null;
@@ -219,14 +242,12 @@ export class Stairs {
             (d) => d[0] == dir[0] && d[1] == dir[1]
         );
 
-        const wall = this.options.wall;
-
         for (let i = 0; i < GWU.xy.CLOCK_DIRS.length; ++i) {
             const l = i ? i - 1 : 7;
             const r = (i + 1) % 8;
             if (i == dirIndex || l == dirIndex || r == dirIndex) continue;
             const d = GWU.xy.CLOCK_DIRS[i];
-            site.setTile(x + d[0], y + d[1], wall);
+            site.setTile(x + d[0], y + d[1], wallTile);
             // map.setCellFlags(x + d[0], y + d[1], Flags.Cell.IMPREGNABLE);
         }
 

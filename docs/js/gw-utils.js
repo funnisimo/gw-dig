@@ -761,6 +761,1319 @@
         every: every
     });
 
+    var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+
+    /**
+     * Checks if `value` is classified as an `Array` object.
+     *
+     * @static
+     * @memberOf _
+     * @since 0.1.0
+     * @category Lang
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is an array, else `false`.
+     * @example
+     *
+     * _.isArray([1, 2, 3]);
+     * // => true
+     *
+     * _.isArray(document.body.children);
+     * // => false
+     *
+     * _.isArray('abc');
+     * // => false
+     *
+     * _.isArray(_.noop);
+     * // => false
+     */
+
+    var isArray$3 = Array.isArray;
+
+    var isArray_1 = isArray$3;
+
+    /** Detect free variable `global` from Node.js. */
+
+    var freeGlobal$1 = typeof commonjsGlobal == 'object' && commonjsGlobal && commonjsGlobal.Object === Object && commonjsGlobal;
+
+    var _freeGlobal = freeGlobal$1;
+
+    var freeGlobal = _freeGlobal;
+
+    /** Detect free variable `self`. */
+    var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
+
+    /** Used as a reference to the global object. */
+    var root$3 = freeGlobal || freeSelf || Function('return this')();
+
+    var _root = root$3;
+
+    var root$2 = _root;
+
+    /** Built-in value references. */
+    var Symbol$3 = root$2.Symbol;
+
+    var _Symbol = Symbol$3;
+
+    var Symbol$2 = _Symbol;
+
+    /** Used for built-in method references. */
+    var objectProto$4 = Object.prototype;
+
+    /** Used to check objects for own properties. */
+    var hasOwnProperty$3 = objectProto$4.hasOwnProperty;
+
+    /**
+     * Used to resolve the
+     * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
+     * of values.
+     */
+    var nativeObjectToString$1 = objectProto$4.toString;
+
+    /** Built-in value references. */
+    var symToStringTag$1 = Symbol$2 ? Symbol$2.toStringTag : undefined;
+
+    /**
+     * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.
+     *
+     * @private
+     * @param {*} value The value to query.
+     * @returns {string} Returns the raw `toStringTag`.
+     */
+    function getRawTag$1(value) {
+      var isOwn = hasOwnProperty$3.call(value, symToStringTag$1),
+          tag = value[symToStringTag$1];
+
+      try {
+        value[symToStringTag$1] = undefined;
+        var unmasked = true;
+      } catch (e) {}
+
+      var result = nativeObjectToString$1.call(value);
+      if (unmasked) {
+        if (isOwn) {
+          value[symToStringTag$1] = tag;
+        } else {
+          delete value[symToStringTag$1];
+        }
+      }
+      return result;
+    }
+
+    var _getRawTag = getRawTag$1;
+
+    /** Used for built-in method references. */
+
+    var objectProto$3 = Object.prototype;
+
+    /**
+     * Used to resolve the
+     * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
+     * of values.
+     */
+    var nativeObjectToString = objectProto$3.toString;
+
+    /**
+     * Converts `value` to a string using `Object.prototype.toString`.
+     *
+     * @private
+     * @param {*} value The value to convert.
+     * @returns {string} Returns the converted string.
+     */
+    function objectToString$1(value) {
+      return nativeObjectToString.call(value);
+    }
+
+    var _objectToString = objectToString$1;
+
+    var Symbol$1 = _Symbol,
+        getRawTag = _getRawTag,
+        objectToString = _objectToString;
+
+    /** `Object#toString` result references. */
+    var nullTag = '[object Null]',
+        undefinedTag = '[object Undefined]';
+
+    /** Built-in value references. */
+    var symToStringTag = Symbol$1 ? Symbol$1.toStringTag : undefined;
+
+    /**
+     * The base implementation of `getTag` without fallbacks for buggy environments.
+     *
+     * @private
+     * @param {*} value The value to query.
+     * @returns {string} Returns the `toStringTag`.
+     */
+    function baseGetTag$2(value) {
+      if (value == null) {
+        return value === undefined ? undefinedTag : nullTag;
+      }
+      return (symToStringTag && symToStringTag in Object(value))
+        ? getRawTag(value)
+        : objectToString(value);
+    }
+
+    var _baseGetTag = baseGetTag$2;
+
+    /**
+     * Checks if `value` is object-like. A value is object-like if it's not `null`
+     * and has a `typeof` result of "object".
+     *
+     * @static
+     * @memberOf _
+     * @since 4.0.0
+     * @category Lang
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+     * @example
+     *
+     * _.isObjectLike({});
+     * // => true
+     *
+     * _.isObjectLike([1, 2, 3]);
+     * // => true
+     *
+     * _.isObjectLike(_.noop);
+     * // => false
+     *
+     * _.isObjectLike(null);
+     * // => false
+     */
+
+    function isObjectLike$1(value) {
+      return value != null && typeof value == 'object';
+    }
+
+    var isObjectLike_1 = isObjectLike$1;
+
+    var baseGetTag$1 = _baseGetTag,
+        isObjectLike = isObjectLike_1;
+
+    /** `Object#toString` result references. */
+    var symbolTag = '[object Symbol]';
+
+    /**
+     * Checks if `value` is classified as a `Symbol` primitive or object.
+     *
+     * @static
+     * @memberOf _
+     * @since 4.0.0
+     * @category Lang
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.
+     * @example
+     *
+     * _.isSymbol(Symbol.iterator);
+     * // => true
+     *
+     * _.isSymbol('abc');
+     * // => false
+     */
+    function isSymbol$3(value) {
+      return typeof value == 'symbol' ||
+        (isObjectLike(value) && baseGetTag$1(value) == symbolTag);
+    }
+
+    var isSymbol_1 = isSymbol$3;
+
+    var isArray$2 = isArray_1,
+        isSymbol$2 = isSymbol_1;
+
+    /** Used to match property names within property paths. */
+    var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/,
+        reIsPlainProp = /^\w*$/;
+
+    /**
+     * Checks if `value` is a property name and not a property path.
+     *
+     * @private
+     * @param {*} value The value to check.
+     * @param {Object} [object] The object to query keys on.
+     * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
+     */
+    function isKey$1(value, object) {
+      if (isArray$2(value)) {
+        return false;
+      }
+      var type = typeof value;
+      if (type == 'number' || type == 'symbol' || type == 'boolean' ||
+          value == null || isSymbol$2(value)) {
+        return true;
+      }
+      return reIsPlainProp.test(value) || !reIsDeepProp.test(value) ||
+        (object != null && value in Object(object));
+    }
+
+    var _isKey = isKey$1;
+
+    /**
+     * Checks if `value` is the
+     * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
+     * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+     *
+     * @static
+     * @memberOf _
+     * @since 0.1.0
+     * @category Lang
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+     * @example
+     *
+     * _.isObject({});
+     * // => true
+     *
+     * _.isObject([1, 2, 3]);
+     * // => true
+     *
+     * _.isObject(_.noop);
+     * // => true
+     *
+     * _.isObject(null);
+     * // => false
+     */
+
+    function isObject$2(value) {
+      var type = typeof value;
+      return value != null && (type == 'object' || type == 'function');
+    }
+
+    var isObject_1 = isObject$2;
+
+    var baseGetTag = _baseGetTag,
+        isObject$1 = isObject_1;
+
+    /** `Object#toString` result references. */
+    var asyncTag = '[object AsyncFunction]',
+        funcTag = '[object Function]',
+        genTag = '[object GeneratorFunction]',
+        proxyTag = '[object Proxy]';
+
+    /**
+     * Checks if `value` is classified as a `Function` object.
+     *
+     * @static
+     * @memberOf _
+     * @since 0.1.0
+     * @category Lang
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is a function, else `false`.
+     * @example
+     *
+     * _.isFunction(_);
+     * // => true
+     *
+     * _.isFunction(/abc/);
+     * // => false
+     */
+    function isFunction$1(value) {
+      if (!isObject$1(value)) {
+        return false;
+      }
+      // The use of `Object#toString` avoids issues with the `typeof` operator
+      // in Safari 9 which returns 'object' for typed arrays and other constructors.
+      var tag = baseGetTag(value);
+      return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
+    }
+
+    var isFunction_1 = isFunction$1;
+
+    var root$1 = _root;
+
+    /** Used to detect overreaching core-js shims. */
+    var coreJsData$1 = root$1['__core-js_shared__'];
+
+    var _coreJsData = coreJsData$1;
+
+    var coreJsData = _coreJsData;
+
+    /** Used to detect methods masquerading as native. */
+    var maskSrcKey = (function() {
+      var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
+      return uid ? ('Symbol(src)_1.' + uid) : '';
+    }());
+
+    /**
+     * Checks if `func` has its source masked.
+     *
+     * @private
+     * @param {Function} func The function to check.
+     * @returns {boolean} Returns `true` if `func` is masked, else `false`.
+     */
+    function isMasked$1(func) {
+      return !!maskSrcKey && (maskSrcKey in func);
+    }
+
+    var _isMasked = isMasked$1;
+
+    /** Used for built-in method references. */
+
+    var funcProto$1 = Function.prototype;
+
+    /** Used to resolve the decompiled source of functions. */
+    var funcToString$1 = funcProto$1.toString;
+
+    /**
+     * Converts `func` to its source code.
+     *
+     * @private
+     * @param {Function} func The function to convert.
+     * @returns {string} Returns the source code.
+     */
+    function toSource$1(func) {
+      if (func != null) {
+        try {
+          return funcToString$1.call(func);
+        } catch (e) {}
+        try {
+          return (func + '');
+        } catch (e) {}
+      }
+      return '';
+    }
+
+    var _toSource = toSource$1;
+
+    var isFunction = isFunction_1,
+        isMasked = _isMasked,
+        isObject = isObject_1,
+        toSource = _toSource;
+
+    /**
+     * Used to match `RegExp`
+     * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
+     */
+    var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
+
+    /** Used to detect host constructors (Safari). */
+    var reIsHostCtor = /^\[object .+?Constructor\]$/;
+
+    /** Used for built-in method references. */
+    var funcProto = Function.prototype,
+        objectProto$2 = Object.prototype;
+
+    /** Used to resolve the decompiled source of functions. */
+    var funcToString = funcProto.toString;
+
+    /** Used to check objects for own properties. */
+    var hasOwnProperty$2 = objectProto$2.hasOwnProperty;
+
+    /** Used to detect if a method is native. */
+    var reIsNative = RegExp('^' +
+      funcToString.call(hasOwnProperty$2).replace(reRegExpChar, '\\$&')
+      .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
+    );
+
+    /**
+     * The base implementation of `_.isNative` without bad shim checks.
+     *
+     * @private
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is a native function,
+     *  else `false`.
+     */
+    function baseIsNative$1(value) {
+      if (!isObject(value) || isMasked(value)) {
+        return false;
+      }
+      var pattern = isFunction(value) ? reIsNative : reIsHostCtor;
+      return pattern.test(toSource(value));
+    }
+
+    var _baseIsNative = baseIsNative$1;
+
+    /**
+     * Gets the value at `key` of `object`.
+     *
+     * @private
+     * @param {Object} [object] The object to query.
+     * @param {string} key The key of the property to get.
+     * @returns {*} Returns the property value.
+     */
+
+    function getValue$2(object, key) {
+      return object == null ? undefined : object[key];
+    }
+
+    var _getValue = getValue$2;
+
+    var baseIsNative = _baseIsNative,
+        getValue$1 = _getValue;
+
+    /**
+     * Gets the native function at `key` of `object`.
+     *
+     * @private
+     * @param {Object} object The object to query.
+     * @param {string} key The key of the method to get.
+     * @returns {*} Returns the function if it's native, else `undefined`.
+     */
+    function getNative$2(object, key) {
+      var value = getValue$1(object, key);
+      return baseIsNative(value) ? value : undefined;
+    }
+
+    var _getNative = getNative$2;
+
+    var getNative$1 = _getNative;
+
+    /* Built-in method references that are verified to be native. */
+    var nativeCreate$4 = getNative$1(Object, 'create');
+
+    var _nativeCreate = nativeCreate$4;
+
+    var nativeCreate$3 = _nativeCreate;
+
+    /**
+     * Removes all key-value entries from the hash.
+     *
+     * @private
+     * @name clear
+     * @memberOf Hash
+     */
+    function hashClear$1() {
+      this.__data__ = nativeCreate$3 ? nativeCreate$3(null) : {};
+      this.size = 0;
+    }
+
+    var _hashClear = hashClear$1;
+
+    /**
+     * Removes `key` and its value from the hash.
+     *
+     * @private
+     * @name delete
+     * @memberOf Hash
+     * @param {Object} hash The hash to modify.
+     * @param {string} key The key of the value to remove.
+     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+     */
+
+    function hashDelete$1(key) {
+      var result = this.has(key) && delete this.__data__[key];
+      this.size -= result ? 1 : 0;
+      return result;
+    }
+
+    var _hashDelete = hashDelete$1;
+
+    var nativeCreate$2 = _nativeCreate;
+
+    /** Used to stand-in for `undefined` hash values. */
+    var HASH_UNDEFINED$1 = '__lodash_hash_undefined__';
+
+    /** Used for built-in method references. */
+    var objectProto$1 = Object.prototype;
+
+    /** Used to check objects for own properties. */
+    var hasOwnProperty$1 = objectProto$1.hasOwnProperty;
+
+    /**
+     * Gets the hash value for `key`.
+     *
+     * @private
+     * @name get
+     * @memberOf Hash
+     * @param {string} key The key of the value to get.
+     * @returns {*} Returns the entry value.
+     */
+    function hashGet$1(key) {
+      var data = this.__data__;
+      if (nativeCreate$2) {
+        var result = data[key];
+        return result === HASH_UNDEFINED$1 ? undefined : result;
+      }
+      return hasOwnProperty$1.call(data, key) ? data[key] : undefined;
+    }
+
+    var _hashGet = hashGet$1;
+
+    var nativeCreate$1 = _nativeCreate;
+
+    /** Used for built-in method references. */
+    var objectProto = Object.prototype;
+
+    /** Used to check objects for own properties. */
+    var hasOwnProperty = objectProto.hasOwnProperty;
+
+    /**
+     * Checks if a hash value for `key` exists.
+     *
+     * @private
+     * @name has
+     * @memberOf Hash
+     * @param {string} key The key of the entry to check.
+     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+     */
+    function hashHas$1(key) {
+      var data = this.__data__;
+      return nativeCreate$1 ? (data[key] !== undefined) : hasOwnProperty.call(data, key);
+    }
+
+    var _hashHas = hashHas$1;
+
+    var nativeCreate = _nativeCreate;
+
+    /** Used to stand-in for `undefined` hash values. */
+    var HASH_UNDEFINED = '__lodash_hash_undefined__';
+
+    /**
+     * Sets the hash `key` to `value`.
+     *
+     * @private
+     * @name set
+     * @memberOf Hash
+     * @param {string} key The key of the value to set.
+     * @param {*} value The value to set.
+     * @returns {Object} Returns the hash instance.
+     */
+    function hashSet$1(key, value) {
+      var data = this.__data__;
+      this.size += this.has(key) ? 0 : 1;
+      data[key] = (nativeCreate && value === undefined) ? HASH_UNDEFINED : value;
+      return this;
+    }
+
+    var _hashSet = hashSet$1;
+
+    var hashClear = _hashClear,
+        hashDelete = _hashDelete,
+        hashGet = _hashGet,
+        hashHas = _hashHas,
+        hashSet = _hashSet;
+
+    /**
+     * Creates a hash object.
+     *
+     * @private
+     * @constructor
+     * @param {Array} [entries] The key-value pairs to cache.
+     */
+    function Hash$1(entries) {
+      var index = -1,
+          length = entries == null ? 0 : entries.length;
+
+      this.clear();
+      while (++index < length) {
+        var entry = entries[index];
+        this.set(entry[0], entry[1]);
+      }
+    }
+
+    // Add methods to `Hash`.
+    Hash$1.prototype.clear = hashClear;
+    Hash$1.prototype['delete'] = hashDelete;
+    Hash$1.prototype.get = hashGet;
+    Hash$1.prototype.has = hashHas;
+    Hash$1.prototype.set = hashSet;
+
+    var _Hash = Hash$1;
+
+    /**
+     * Removes all key-value entries from the list cache.
+     *
+     * @private
+     * @name clear
+     * @memberOf ListCache
+     */
+
+    function listCacheClear$1() {
+      this.__data__ = [];
+      this.size = 0;
+    }
+
+    var _listCacheClear = listCacheClear$1;
+
+    /**
+     * Performs a
+     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+     * comparison between two values to determine if they are equivalent.
+     *
+     * @static
+     * @memberOf _
+     * @since 4.0.0
+     * @category Lang
+     * @param {*} value The value to compare.
+     * @param {*} other The other value to compare.
+     * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+     * @example
+     *
+     * var object = { 'a': 1 };
+     * var other = { 'a': 1 };
+     *
+     * _.eq(object, object);
+     * // => true
+     *
+     * _.eq(object, other);
+     * // => false
+     *
+     * _.eq('a', 'a');
+     * // => true
+     *
+     * _.eq('a', Object('a'));
+     * // => false
+     *
+     * _.eq(NaN, NaN);
+     * // => true
+     */
+
+    function eq$1(value, other) {
+      return value === other || (value !== value && other !== other);
+    }
+
+    var eq_1 = eq$1;
+
+    var eq = eq_1;
+
+    /**
+     * Gets the index at which the `key` is found in `array` of key-value pairs.
+     *
+     * @private
+     * @param {Array} array The array to inspect.
+     * @param {*} key The key to search for.
+     * @returns {number} Returns the index of the matched value, else `-1`.
+     */
+    function assocIndexOf$4(array, key) {
+      var length = array.length;
+      while (length--) {
+        if (eq(array[length][0], key)) {
+          return length;
+        }
+      }
+      return -1;
+    }
+
+    var _assocIndexOf = assocIndexOf$4;
+
+    var assocIndexOf$3 = _assocIndexOf;
+
+    /** Used for built-in method references. */
+    var arrayProto = Array.prototype;
+
+    /** Built-in value references. */
+    var splice = arrayProto.splice;
+
+    /**
+     * Removes `key` and its value from the list cache.
+     *
+     * @private
+     * @name delete
+     * @memberOf ListCache
+     * @param {string} key The key of the value to remove.
+     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+     */
+    function listCacheDelete$1(key) {
+      var data = this.__data__,
+          index = assocIndexOf$3(data, key);
+
+      if (index < 0) {
+        return false;
+      }
+      var lastIndex = data.length - 1;
+      if (index == lastIndex) {
+        data.pop();
+      } else {
+        splice.call(data, index, 1);
+      }
+      --this.size;
+      return true;
+    }
+
+    var _listCacheDelete = listCacheDelete$1;
+
+    var assocIndexOf$2 = _assocIndexOf;
+
+    /**
+     * Gets the list cache value for `key`.
+     *
+     * @private
+     * @name get
+     * @memberOf ListCache
+     * @param {string} key The key of the value to get.
+     * @returns {*} Returns the entry value.
+     */
+    function listCacheGet$1(key) {
+      var data = this.__data__,
+          index = assocIndexOf$2(data, key);
+
+      return index < 0 ? undefined : data[index][1];
+    }
+
+    var _listCacheGet = listCacheGet$1;
+
+    var assocIndexOf$1 = _assocIndexOf;
+
+    /**
+     * Checks if a list cache value for `key` exists.
+     *
+     * @private
+     * @name has
+     * @memberOf ListCache
+     * @param {string} key The key of the entry to check.
+     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+     */
+    function listCacheHas$1(key) {
+      return assocIndexOf$1(this.__data__, key) > -1;
+    }
+
+    var _listCacheHas = listCacheHas$1;
+
+    var assocIndexOf = _assocIndexOf;
+
+    /**
+     * Sets the list cache `key` to `value`.
+     *
+     * @private
+     * @name set
+     * @memberOf ListCache
+     * @param {string} key The key of the value to set.
+     * @param {*} value The value to set.
+     * @returns {Object} Returns the list cache instance.
+     */
+    function listCacheSet$1(key, value) {
+      var data = this.__data__,
+          index = assocIndexOf(data, key);
+
+      if (index < 0) {
+        ++this.size;
+        data.push([key, value]);
+      } else {
+        data[index][1] = value;
+      }
+      return this;
+    }
+
+    var _listCacheSet = listCacheSet$1;
+
+    var listCacheClear = _listCacheClear,
+        listCacheDelete = _listCacheDelete,
+        listCacheGet = _listCacheGet,
+        listCacheHas = _listCacheHas,
+        listCacheSet = _listCacheSet;
+
+    /**
+     * Creates an list cache object.
+     *
+     * @private
+     * @constructor
+     * @param {Array} [entries] The key-value pairs to cache.
+     */
+    function ListCache$1(entries) {
+      var index = -1,
+          length = entries == null ? 0 : entries.length;
+
+      this.clear();
+      while (++index < length) {
+        var entry = entries[index];
+        this.set(entry[0], entry[1]);
+      }
+    }
+
+    // Add methods to `ListCache`.
+    ListCache$1.prototype.clear = listCacheClear;
+    ListCache$1.prototype['delete'] = listCacheDelete;
+    ListCache$1.prototype.get = listCacheGet;
+    ListCache$1.prototype.has = listCacheHas;
+    ListCache$1.prototype.set = listCacheSet;
+
+    var _ListCache = ListCache$1;
+
+    var getNative = _getNative,
+        root = _root;
+
+    /* Built-in method references that are verified to be native. */
+    var Map$1 = getNative(root, 'Map');
+
+    var _Map = Map$1;
+
+    var Hash = _Hash,
+        ListCache = _ListCache,
+        Map = _Map;
+
+    /**
+     * Removes all key-value entries from the map.
+     *
+     * @private
+     * @name clear
+     * @memberOf MapCache
+     */
+    function mapCacheClear$1() {
+      this.size = 0;
+      this.__data__ = {
+        'hash': new Hash,
+        'map': new (Map || ListCache),
+        'string': new Hash
+      };
+    }
+
+    var _mapCacheClear = mapCacheClear$1;
+
+    /**
+     * Checks if `value` is suitable for use as unique object key.
+     *
+     * @private
+     * @param {*} value The value to check.
+     * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
+     */
+
+    function isKeyable$1(value) {
+      var type = typeof value;
+      return (type == 'string' || type == 'number' || type == 'symbol' || type == 'boolean')
+        ? (value !== '__proto__')
+        : (value === null);
+    }
+
+    var _isKeyable = isKeyable$1;
+
+    var isKeyable = _isKeyable;
+
+    /**
+     * Gets the data for `map`.
+     *
+     * @private
+     * @param {Object} map The map to query.
+     * @param {string} key The reference key.
+     * @returns {*} Returns the map data.
+     */
+    function getMapData$4(map, key) {
+      var data = map.__data__;
+      return isKeyable(key)
+        ? data[typeof key == 'string' ? 'string' : 'hash']
+        : data.map;
+    }
+
+    var _getMapData = getMapData$4;
+
+    var getMapData$3 = _getMapData;
+
+    /**
+     * Removes `key` and its value from the map.
+     *
+     * @private
+     * @name delete
+     * @memberOf MapCache
+     * @param {string} key The key of the value to remove.
+     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+     */
+    function mapCacheDelete$1(key) {
+      var result = getMapData$3(this, key)['delete'](key);
+      this.size -= result ? 1 : 0;
+      return result;
+    }
+
+    var _mapCacheDelete = mapCacheDelete$1;
+
+    var getMapData$2 = _getMapData;
+
+    /**
+     * Gets the map value for `key`.
+     *
+     * @private
+     * @name get
+     * @memberOf MapCache
+     * @param {string} key The key of the value to get.
+     * @returns {*} Returns the entry value.
+     */
+    function mapCacheGet$1(key) {
+      return getMapData$2(this, key).get(key);
+    }
+
+    var _mapCacheGet = mapCacheGet$1;
+
+    var getMapData$1 = _getMapData;
+
+    /**
+     * Checks if a map value for `key` exists.
+     *
+     * @private
+     * @name has
+     * @memberOf MapCache
+     * @param {string} key The key of the entry to check.
+     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+     */
+    function mapCacheHas$1(key) {
+      return getMapData$1(this, key).has(key);
+    }
+
+    var _mapCacheHas = mapCacheHas$1;
+
+    var getMapData = _getMapData;
+
+    /**
+     * Sets the map `key` to `value`.
+     *
+     * @private
+     * @name set
+     * @memberOf MapCache
+     * @param {string} key The key of the value to set.
+     * @param {*} value The value to set.
+     * @returns {Object} Returns the map cache instance.
+     */
+    function mapCacheSet$1(key, value) {
+      var data = getMapData(this, key),
+          size = data.size;
+
+      data.set(key, value);
+      this.size += data.size == size ? 0 : 1;
+      return this;
+    }
+
+    var _mapCacheSet = mapCacheSet$1;
+
+    var mapCacheClear = _mapCacheClear,
+        mapCacheDelete = _mapCacheDelete,
+        mapCacheGet = _mapCacheGet,
+        mapCacheHas = _mapCacheHas,
+        mapCacheSet = _mapCacheSet;
+
+    /**
+     * Creates a map cache object to store key-value pairs.
+     *
+     * @private
+     * @constructor
+     * @param {Array} [entries] The key-value pairs to cache.
+     */
+    function MapCache$1(entries) {
+      var index = -1,
+          length = entries == null ? 0 : entries.length;
+
+      this.clear();
+      while (++index < length) {
+        var entry = entries[index];
+        this.set(entry[0], entry[1]);
+      }
+    }
+
+    // Add methods to `MapCache`.
+    MapCache$1.prototype.clear = mapCacheClear;
+    MapCache$1.prototype['delete'] = mapCacheDelete;
+    MapCache$1.prototype.get = mapCacheGet;
+    MapCache$1.prototype.has = mapCacheHas;
+    MapCache$1.prototype.set = mapCacheSet;
+
+    var _MapCache = MapCache$1;
+
+    var MapCache = _MapCache;
+
+    /** Error message constants. */
+    var FUNC_ERROR_TEXT = 'Expected a function';
+
+    /**
+     * Creates a function that memoizes the result of `func`. If `resolver` is
+     * provided, it determines the cache key for storing the result based on the
+     * arguments provided to the memoized function. By default, the first argument
+     * provided to the memoized function is used as the map cache key. The `func`
+     * is invoked with the `this` binding of the memoized function.
+     *
+     * **Note:** The cache is exposed as the `cache` property on the memoized
+     * function. Its creation may be customized by replacing the `_.memoize.Cache`
+     * constructor with one whose instances implement the
+     * [`Map`](http://ecma-international.org/ecma-262/7.0/#sec-properties-of-the-map-prototype-object)
+     * method interface of `clear`, `delete`, `get`, `has`, and `set`.
+     *
+     * @static
+     * @memberOf _
+     * @since 0.1.0
+     * @category Function
+     * @param {Function} func The function to have its output memoized.
+     * @param {Function} [resolver] The function to resolve the cache key.
+     * @returns {Function} Returns the new memoized function.
+     * @example
+     *
+     * var object = { 'a': 1, 'b': 2 };
+     * var other = { 'c': 3, 'd': 4 };
+     *
+     * var values = _.memoize(_.values);
+     * values(object);
+     * // => [1, 2]
+     *
+     * values(other);
+     * // => [3, 4]
+     *
+     * object.a = 2;
+     * values(object);
+     * // => [1, 2]
+     *
+     * // Modify the result cache.
+     * values.cache.set(object, ['a', 'b']);
+     * values(object);
+     * // => ['a', 'b']
+     *
+     * // Replace `_.memoize.Cache`.
+     * _.memoize.Cache = WeakMap;
+     */
+    function memoize$1(func, resolver) {
+      if (typeof func != 'function' || (resolver != null && typeof resolver != 'function')) {
+        throw new TypeError(FUNC_ERROR_TEXT);
+      }
+      var memoized = function() {
+        var args = arguments,
+            key = resolver ? resolver.apply(this, args) : args[0],
+            cache = memoized.cache;
+
+        if (cache.has(key)) {
+          return cache.get(key);
+        }
+        var result = func.apply(this, args);
+        memoized.cache = cache.set(key, result) || cache;
+        return result;
+      };
+      memoized.cache = new (memoize$1.Cache || MapCache);
+      return memoized;
+    }
+
+    // Expose `MapCache`.
+    memoize$1.Cache = MapCache;
+
+    var memoize_1 = memoize$1;
+
+    var memoize = memoize_1;
+
+    /** Used as the maximum memoize cache size. */
+    var MAX_MEMOIZE_SIZE = 500;
+
+    /**
+     * A specialized version of `_.memoize` which clears the memoized function's
+     * cache when it exceeds `MAX_MEMOIZE_SIZE`.
+     *
+     * @private
+     * @param {Function} func The function to have its output memoized.
+     * @returns {Function} Returns the new memoized function.
+     */
+    function memoizeCapped$1(func) {
+      var result = memoize(func, function(key) {
+        if (cache.size === MAX_MEMOIZE_SIZE) {
+          cache.clear();
+        }
+        return key;
+      });
+
+      var cache = result.cache;
+      return result;
+    }
+
+    var _memoizeCapped = memoizeCapped$1;
+
+    var memoizeCapped = _memoizeCapped;
+
+    /** Used to match property names within property paths. */
+    var rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
+
+    /** Used to match backslashes in property paths. */
+    var reEscapeChar = /\\(\\)?/g;
+
+    /**
+     * Converts `string` to a property path array.
+     *
+     * @private
+     * @param {string} string The string to convert.
+     * @returns {Array} Returns the property path array.
+     */
+    var stringToPath$1 = memoizeCapped(function(string) {
+      var result = [];
+      if (string.charCodeAt(0) === 46 /* . */) {
+        result.push('');
+      }
+      string.replace(rePropName, function(match, number, quote, subString) {
+        result.push(quote ? subString.replace(reEscapeChar, '$1') : (number || match));
+      });
+      return result;
+    });
+
+    var _stringToPath = stringToPath$1;
+
+    /**
+     * A specialized version of `_.map` for arrays without support for iteratee
+     * shorthands.
+     *
+     * @private
+     * @param {Array} [array] The array to iterate over.
+     * @param {Function} iteratee The function invoked per iteration.
+     * @returns {Array} Returns the new mapped array.
+     */
+
+    function arrayMap$1(array, iteratee) {
+      var index = -1,
+          length = array == null ? 0 : array.length,
+          result = Array(length);
+
+      while (++index < length) {
+        result[index] = iteratee(array[index], index, array);
+      }
+      return result;
+    }
+
+    var _arrayMap = arrayMap$1;
+
+    var Symbol = _Symbol,
+        arrayMap = _arrayMap,
+        isArray$1 = isArray_1,
+        isSymbol$1 = isSymbol_1;
+
+    /** Used as references for various `Number` constants. */
+    var INFINITY$1 = 1 / 0;
+
+    /** Used to convert symbols to primitives and strings. */
+    var symbolProto = Symbol ? Symbol.prototype : undefined,
+        symbolToString = symbolProto ? symbolProto.toString : undefined;
+
+    /**
+     * The base implementation of `_.toString` which doesn't convert nullish
+     * values to empty strings.
+     *
+     * @private
+     * @param {*} value The value to process.
+     * @returns {string} Returns the string.
+     */
+    function baseToString$1(value) {
+      // Exit early for strings to avoid a performance hit in some environments.
+      if (typeof value == 'string') {
+        return value;
+      }
+      if (isArray$1(value)) {
+        // Recursively convert values (susceptible to call stack limits).
+        return arrayMap(value, baseToString$1) + '';
+      }
+      if (isSymbol$1(value)) {
+        return symbolToString ? symbolToString.call(value) : '';
+      }
+      var result = (value + '');
+      return (result == '0' && (1 / value) == -INFINITY$1) ? '-0' : result;
+    }
+
+    var _baseToString = baseToString$1;
+
+    var baseToString = _baseToString;
+
+    /**
+     * Converts `value` to a string. An empty string is returned for `null`
+     * and `undefined` values. The sign of `-0` is preserved.
+     *
+     * @static
+     * @memberOf _
+     * @since 4.0.0
+     * @category Lang
+     * @param {*} value The value to convert.
+     * @returns {string} Returns the converted string.
+     * @example
+     *
+     * _.toString(null);
+     * // => ''
+     *
+     * _.toString(-0);
+     * // => '-0'
+     *
+     * _.toString([1, 2, 3]);
+     * // => '1,2,3'
+     */
+    function toString$2(value) {
+      return value == null ? '' : baseToString(value);
+    }
+
+    var toString_1 = toString$2;
+
+    var isArray = isArray_1,
+        isKey = _isKey,
+        stringToPath = _stringToPath,
+        toString$1 = toString_1;
+
+    /**
+     * Casts `value` to a path array if it's not one.
+     *
+     * @private
+     * @param {*} value The value to inspect.
+     * @param {Object} [object] The object to query keys on.
+     * @returns {Array} Returns the cast property path array.
+     */
+    function castPath$1(value, object) {
+      if (isArray(value)) {
+        return value;
+      }
+      return isKey(value, object) ? [value] : stringToPath(toString$1(value));
+    }
+
+    var _castPath = castPath$1;
+
+    var isSymbol = isSymbol_1;
+
+    /** Used as references for various `Number` constants. */
+    var INFINITY = 1 / 0;
+
+    /**
+     * Converts `value` to a string key if it's not a string or symbol.
+     *
+     * @private
+     * @param {*} value The value to inspect.
+     * @returns {string|symbol} Returns the key.
+     */
+    function toKey$1(value) {
+      if (typeof value == 'string' || isSymbol(value)) {
+        return value;
+      }
+      var result = (value + '');
+      return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
+    }
+
+    var _toKey = toKey$1;
+
+    var castPath = _castPath,
+        toKey = _toKey;
+
+    /**
+     * The base implementation of `_.get` without support for default values.
+     *
+     * @private
+     * @param {Object} object The object to query.
+     * @param {Array|string} path The path of the property to get.
+     * @returns {*} Returns the resolved value.
+     */
+    function baseGet$1(object, path) {
+      path = castPath(path, object);
+
+      var index = 0,
+          length = path.length;
+
+      while (object != null && index < length) {
+        object = object[toKey(path[index++])];
+      }
+      return (index && index == length) ? object : undefined;
+    }
+
+    var _baseGet = baseGet$1;
+
+    var baseGet = _baseGet;
+
+    /**
+     * Gets the value at `path` of `object`. If the resolved value is
+     * `undefined`, the `defaultValue` is returned in its place.
+     *
+     * @static
+     * @memberOf _
+     * @since 3.7.0
+     * @category Object
+     * @param {Object} object The object to query.
+     * @param {Array|string} path The path of the property to get.
+     * @param {*} [defaultValue] The value returned for `undefined` resolved values.
+     * @returns {*} Returns the resolved value.
+     * @example
+     *
+     * var object = { 'a': [{ 'b': { 'c': 3 } }] };
+     *
+     * _.get(object, 'a[0].b.c');
+     * // => 3
+     *
+     * _.get(object, ['a', '0', 'b', 'c']);
+     * // => 3
+     *
+     * _.get(object, 'a.b.c', 'default');
+     * // => 'default'
+     */
+    function get$1(object, path, defaultValue) {
+      var result = object == null ? undefined : baseGet(object, path);
+      return result === undefined ? defaultValue : result;
+    }
+
+    var get_1 = get$1;
+
+    const getValue = get_1;
     // export function extend(obj, name, fn) {
     //   const base = obj[name] || NOOP;
     //   const newFn = fn.bind(obj, base.bind(obj));
@@ -954,6 +2267,7 @@
 
     var object = /*#__PURE__*/Object.freeze({
         __proto__: null,
+        getValue: getValue,
         copyObject: copyObject,
         assignObject: assignObject,
         assignOmitting: assignOmitting,
@@ -2437,6 +3751,10 @@
                 return this;
             return make$9(Math.round((100 * this._ra) / max), Math.round((100 * this._ga) / max), Math.round((100 * this._ba) / max), 100);
         }
+        inverse() {
+            const other = new Color(100 - this.r, 100 - this.g, 100 - this.b, this.a);
+            return other;
+        }
         /**
          * Returns the css code for the current RGB values of the color.
          * @param base256 - Show in base 256 (#abcdef) instead of base 16 (#abc)
@@ -2746,8 +4064,13 @@
                 this.bg = this.bg.mix(src.bg, opacity);
             return this._changed();
         }
-        invert() {
+        swap() {
             [this.bg, this.fg] = [this.fg, this.bg];
+            return this._changed();
+        }
+        invert() {
+            this.bg = this.bg.inverse();
+            this.fg = this.fg.inverse();
             return this._changed();
         }
         multiply(color, fg = true, bg = true) {
@@ -2811,314 +4134,193 @@
     }
 
     var options = {
-        colorStart: 'Ω',
-        colorEnd: '∆',
-        field: '§',
+        colorStart: '#{',
+        colorEnd: '}',
+        field: '{{',
+        fieldEnd: '}}',
         defaultFg: null,
         defaultBg: null,
     };
     var helpers = {
-        default: (_name, _, _value) => {
-            return '';
+        default: (name, view, args) => {
+            if (args.length === 0)
+                return name;
+            if (args.length === 1) {
+                return '' + getValue(view, args[0]);
+            }
+            return args.map((a) => getValue(view, a)).join(' ');
         },
-        debug: (name, _, value) => {
-            if (value !== undefined)
-                return `${value}.!!${name}!!`;
-            return `!!${name}!!`;
+        debug: (name, _view, args) => {
+            if (args.length) {
+                return `{{${name} ${args.join(' ')}}}`;
+            }
+            return `{{${name}}}`;
         },
     };
     function addHelper(name, fn) {
         helpers[name] = fn;
     }
 
-    function compile$1(template, opts = {}) {
-        const F = opts.field || options.field;
-        const parts = template.split(F);
-        const sections = parts.map((part, i) => {
-            if (i % 2 == 0)
-                return textSegment(part);
-            if (part.length == 0)
-                return textSegment(F);
-            return makeVariable(part, opts);
-        });
-        return function (args = {}) {
-            if (typeof args === 'string') {
-                args = { value: args };
-            }
-            return sections.map((f) => f(args)).join('');
-        };
-    }
-    function apply(template, args = {}) {
-        const fn = compile$1(template);
-        const result = fn(args);
-        return result;
-    }
-    function textSegment(value) {
-        return () => value;
-    }
-    function baseValue(name, debug = false) {
-        return function (args) {
-            let h = helpers[name];
-            if (h) {
-                return h(name, args);
-            }
-            const v = args[name];
-            if (v !== undefined)
-                return v;
-            h = debug ? helpers.debug : helpers.default;
-            return h(name, args);
-        };
-    }
-    function fieldValue(name, source, debug = false) {
-        const helper = debug ? helpers.debug : helpers.default;
-        return function (args) {
-            const obj = source(args);
-            if (!obj)
-                return helper(name, args, obj);
-            const value = obj[name];
-            if (value === undefined)
-                return helper(name, args, obj);
-            return value;
-        };
-    }
-    function helperValue(name, source, debug = false) {
-        const helper = helpers[name] ||
-            (debug ? helpers.debug : helpers.default);
-        return function (args) {
-            const base = source(args);
-            return helper(name, args, base);
-        };
-    }
-    function stringFormat(format, source) {
-        const data = /%(-?\d*)s/.exec(format) || [];
-        const length = Number.parseInt(data[1] || '0');
-        return function (args) {
-            let text = '' + source(args);
-            if (length < 0) {
-                text = text.padEnd(-length);
-            }
-            else if (length) {
-                text = text.padStart(length);
-            }
-            return text;
-        };
-    }
-    function intFormat(format, source) {
-        const data = /%([\+-]*)(\d*)d/.exec(format) || ['', '', '0'];
-        let length = Number.parseInt(data[2] || '0');
-        const wantSign = data[1].includes('+');
-        const left = data[1].includes('-');
-        return function (args) {
-            const value = Number.parseInt(source(args) || 0);
-            let text = '' + value;
-            if (value > 0 && wantSign) {
-                text = '+' + text;
-            }
-            if (length && left) {
-                return text.padEnd(length);
-            }
-            else if (length) {
-                return text.padStart(length);
-            }
-            return text;
-        };
-    }
-    function floatFormat(format, source) {
-        const data = /%([\+-]*)(\d*)(\.(\d+))?f/.exec(format) || ['', '', '0'];
-        let length = Number.parseInt(data[2] || '0');
-        const wantSign = data[1].includes('+');
-        const left = data[1].includes('-');
-        const fixed = Number.parseInt(data[4]) || 0;
-        return function (args) {
-            const value = Number.parseFloat(source(args) || 0);
-            let text;
-            if (fixed) {
-                text = value.toFixed(fixed);
-            }
-            else {
-                text = '' + value;
-            }
-            if (value > 0 && wantSign) {
-                text = '+' + text;
-            }
-            if (length && left) {
-                return text.padEnd(length);
-            }
-            else if (length) {
-                return text.padStart(length);
-            }
-            return text;
-        };
-    }
-    function makeVariable(pattern, opts = {}) {
-        const data = /((\w+) )?(\w+)(\.(\w+))?(%[\+\.\-\d]*[dsf])?/.exec(pattern) || [];
-        const helper = data[2];
-        const base = data[3];
-        const field = data[5];
-        const format = data[6];
-        let result = baseValue(base, opts.debug);
-        if (field && field.length) {
-            result = fieldValue(field, result, opts.debug);
-        }
-        if (helper && helper.length) {
-            result = helperValue(helper, result, opts.debug);
-        }
-        if (format && format.length) {
-            if (format.endsWith('s')) {
-                result = stringFormat(format, result);
-            }
-            else if (format.endsWith('d')) {
-                result = intFormat(format, result);
-            }
-            else {
-                result = floatFormat(format, result);
-            }
-        }
-        return result;
-    }
-
-    function eachChar(text, fn, opts = {}) {
-        if (text === null || text === undefined)
-            return;
-        if (!fn)
-            return;
-        text = '' + text; // force string
-        if (!text.length)
-            return;
-        const colors = [];
-        const colorFn = opts.eachColor || NOOP;
-        let fg = opts.fg || options.defaultFg;
-        let bg = opts.bg || options.defaultBg;
-        const ctx = {
-            fg,
-            bg,
-        };
-        const CS = opts.colorStart || options.colorStart;
-        const CE = opts.colorEnd || options.colorEnd;
-        colorFn(ctx);
-        let n = 0;
-        for (let i = 0; i < text.length; ++i) {
-            const ch = text[i];
-            if (ch == CS) {
-                let j = i + 1;
-                while (j < text.length && text[j] != CS) {
-                    ++j;
-                }
-                if (j == text.length) {
-                    console.warn(`Reached end of string while seeking end of color start section.\n- text: ${text}\n- start @: ${i}`);
-                    return; // reached end - done (error though)
-                }
-                if (j == i + 1) {
-                    // next char
-                    ++i; // fall through
-                }
-                else {
-                    colors.push([ctx.fg, ctx.bg]);
-                    const color = text.substring(i + 1, j);
-                    const newColors = color.split('|');
-                    ctx.fg = newColors[0] || ctx.fg;
-                    ctx.bg = newColors[1] || ctx.bg;
-                    colorFn(ctx);
-                    i = j;
-                    continue;
-                }
-            }
-            else if (ch == CE) {
-                if (text[i + 1] == CE) {
-                    ++i;
-                }
-                else {
-                    const c = colors.pop(); // if you pop too many times colors still revert to what you passed in
-                    [ctx.fg, ctx.bg] = c || [fg, bg];
-                    // colorFn(ctx);
-                    continue;
-                }
-            }
-            fn(ch, ctx.fg, ctx.bg, n, i);
-            ++n;
-        }
-    }
-
     function length(text) {
         if (!text || text.length == 0)
             return 0;
         let len = 0;
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        for (let i = 0; i < text.length; ++i) {
-            const ch = text[i];
-            if (ch == CS) {
-                const end = text.indexOf(CS, i + 1);
-                i = end;
+        let inside = false;
+        let inline = false;
+        for (let index = 0; index < text.length; ++index) {
+            const ch = text.charAt(index);
+            if (inline) {
+                if (ch === '}') {
+                    inline = false;
+                    inside = false;
+                }
+                else {
+                    len += 1;
+                }
             }
-            else if (ch == CE) ;
+            else if (inside) {
+                if (ch === ' ') {
+                    inline = true;
+                }
+                else if (ch === '}') {
+                    inside = false;
+                }
+            }
+            else if (ch === '#') {
+                if (text.charAt(index + 1) === '{') {
+                    inside = true;
+                    index += 1;
+                }
+                else {
+                    len += 1;
+                }
+            }
+            else if (ch === '\\') {
+                if (text.charAt(index + 1) === '#') {
+                    index += 1; // skip next char
+                }
+                len += 1;
+            }
             else {
-                ++len;
+                len += 1;
             }
         }
         return len;
     }
-    let inColor = false;
+    // let inColor = false;
     function advanceChars(text, start, count) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        inColor = false;
-        let i = start;
-        while (count > 0 && i < text.length) {
-            const ch = text[i];
-            if (ch === CS) {
-                ++i;
-                if (text[i] === CS) {
-                    --count;
+        let len = 0;
+        let inside = false;
+        let inline = false;
+        let index = start || 0;
+        while (len < count) {
+            const ch = text.charAt(index);
+            if (inline) {
+                if (ch === '}') {
+                    inline = false;
+                    inside = false;
                 }
                 else {
-                    while (text[i] !== CS)
-                        ++i;
-                    inColor = true;
+                    len += 1;
                 }
-                ++i;
             }
-            else if (ch === CE) {
-                if (text[i + 1] === CE) {
-                    --count;
-                    ++i;
+            else if (inside) {
+                if (ch === ' ') {
+                    inline = true;
+                }
+                else if (ch === '}') {
+                    inside = false;
+                }
+            }
+            else if (ch === '#') {
+                if (text.charAt(index + 1) === '{') {
+                    inside = true;
+                    index += 1;
                 }
                 else {
-                    inColor = false;
+                    len += 1;
                 }
-                ++i;
+            }
+            else if (ch === '\\') {
+                if (text.charAt(index + 1) === '#') {
+                    index += 1; // skip next char
+                }
+                len += 1;
             }
             else {
-                --count;
-                ++i;
+                len += 1;
             }
+            ++index;
         }
-        return i;
+        return index;
+    }
+    function findChar(text, matchFn, start = 0) {
+        let inside = false;
+        let inline = false;
+        let index = start;
+        while (index < text.length) {
+            let ch = text.charAt(index);
+            if (inline) {
+                if (ch === '}') {
+                    inline = false;
+                    inside = false;
+                }
+                else {
+                    if (matchFn(ch, index))
+                        return index;
+                }
+            }
+            else if (inside) {
+                if (ch === ' ') {
+                    inline = true;
+                }
+                else if (ch === '}') {
+                    inside = false;
+                }
+            }
+            else if (ch === '#') {
+                if (text.charAt(index + 1) === '{') {
+                    inside = true;
+                    index += 1;
+                }
+                else {
+                    if (matchFn(ch, index))
+                        return index;
+                }
+            }
+            else if (ch === '\\') {
+                if (text.charAt(index + 1) === '#') {
+                    index += 1; // skip next char
+                    ch = text.charAt(index);
+                }
+                if (matchFn(ch, index))
+                    return index;
+            }
+            else {
+                if (matchFn(ch, index))
+                    return index;
+            }
+            ++index;
+        }
+        return -1;
     }
     function firstChar(text) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let i = 0;
-        while (i < text.length) {
-            const ch = text[i];
-            if (ch === CS) {
-                if (text[i + 1] === CS)
-                    return CS;
-                ++i;
-                while (text[i] !== CS)
-                    ++i;
-                ++i;
-            }
-            else if (ch === CE) {
-                if (text[i + 1] === CE)
-                    return CE;
-                ++i;
-            }
-            else {
-                return ch;
+        const index = findChar(text, TRUE);
+        if (index < 0)
+            return '';
+        return text.charAt(index);
+    }
+    function startsWith(text, match) {
+        if (typeof match === 'string') {
+            if (match.length === 1) {
+                return firstChar(text) === match;
             }
         }
-        return null;
+        const noColors = removeColors(text);
+        if (typeof match === 'string') {
+            return noColors.startsWith(match);
+        }
+        return match.exec(noColors) !== null;
     }
     function padStart(text, width, pad = ' ') {
         const len = length(text);
@@ -3144,74 +4346,117 @@
         return text.padStart(rawLen + left, pad).padEnd(rawLen + padLen, pad);
     }
     function truncate(text, width) {
-        const len = length(text);
-        if (len <= width)
-            return text;
-        const index = advanceChars(text, 0, width);
-        if (!inColor)
-            return text.substring(0, index);
-        const CE = options.colorEnd;
-        return text.substring(0, index) + CE;
-    }
-    function capitalize(text) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let i = 0;
-        while (i < text.length) {
-            const ch = text[i];
-            if (ch == CS) {
-                ++i;
-                while (text[i] != CS && i < text.length) {
-                    ++i;
+        let len = 0;
+        let inside = false;
+        let inline = false;
+        let index = 0;
+        let colorCount = 0;
+        while (len < width) {
+            const ch = text.charAt(index);
+            if (inline) {
+                if (ch === '}') {
+                    inline = false;
+                    inside = false;
+                    colorCount -= 1;
                 }
-                ++i;
-            }
-            else if (ch == CE) {
-                ++i;
-                while (text[i] == CE && i < text.length) {
-                    ++i;
+                else {
+                    len += 1;
                 }
             }
-            else if (/[A-Za-z]/.test(ch)) {
-                return (text.substring(0, i) + ch.toUpperCase() + text.substring(i + 1));
+            else if (inside) {
+                if (ch === ' ') {
+                    inline = true;
+                }
+                else if (ch === '}') {
+                    inside = false;
+                }
+            }
+            else if (ch === '#') {
+                if (text.charAt(index + 1) === '{') {
+                    if (text.charAt(index + 2) === '}') {
+                        index += 2;
+                        colorCount = 0;
+                    }
+                    else {
+                        inside = true;
+                        index += 1;
+                        colorCount += 1;
+                    }
+                }
+                else {
+                    len += 1;
+                }
+            }
+            else if (ch === '\\') {
+                if (text.charAt(index + 1) === '#') {
+                    index += 1; // skip next char
+                }
+                len += 1;
             }
             else {
-                ++i;
+                len += 1;
             }
+            ++index;
         }
-        return text;
+        if (inline) {
+            return text.substring(0, index) + '}' + (colorCount > 1 ? '#{}' : '');
+        }
+        return text.substring(0, index) + (colorCount ? '#{}' : '');
+    }
+    function capitalize(text) {
+        // TODO - better test for first letter
+        const i = findChar(text, (ch) => ch !== ' ');
+        if (i < 0)
+            return text;
+        const ch = text.charAt(i);
+        return text.substring(0, i) + ch.toUpperCase() + text.substring(i + 1);
     }
     function removeColors(text) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
         let out = '';
-        let start = 0;
-        for (let i = 0; i < text.length; ++i) {
-            const k = text[i];
-            if (k === CS) {
-                if (text[i + 1] == CS) {
-                    ++i;
-                    continue;
+        let inside = false;
+        let inline = false;
+        let index = 0;
+        while (index < text.length) {
+            let ch = text.charAt(index);
+            if (inline) {
+                if (ch === '}') {
+                    inline = false;
+                    inside = false;
                 }
-                out += text.substring(start, i);
-                ++i;
-                while (text[i] != CS && i < text.length) {
-                    ++i;
+                else {
+                    out += ch;
                 }
-                start = i + 1;
             }
-            else if (k === CE) {
-                if (text[i + 1] == CE) {
-                    ++i;
-                    continue;
+            else if (inside) {
+                if (ch === ' ') {
+                    inline = true;
                 }
-                out += text.substring(start, i);
-                start = i + 1;
+                else if (ch === '}') {
+                    inside = false;
+                }
             }
+            else if (ch === '#') {
+                if (text.charAt(index + 1) === '{') {
+                    inside = true;
+                    index += 1;
+                }
+                else {
+                    out += ch;
+                }
+            }
+            else if (ch === '\\') {
+                if (text.charAt(index + 1) === '#') {
+                    out += ch;
+                    index += 1; // skip next char
+                    ch = text.charAt(index);
+                }
+                out += ch;
+            }
+            else {
+                out += ch;
+            }
+            ++index;
         }
-        if (start == 0)
-            return text;
-        out += text.substring(start);
         return out;
     }
     function spliceRaw(msg, begin, deleteLength, add = '') {
@@ -3235,180 +4480,673 @@
         }
         return hash;
     }
-
-    function nextBreak(text, start) {
-        const CS = options.colorStart;
-        const CE = options.colorEnd;
-        let i = start;
-        let l = 0;
-        let count = true;
-        while (i < text.length) {
-            const ch = text[i];
-            if (ch == ' ') {
-                while (text[i + 1] == ' ') {
-                    ++i;
-                    ++l; // need to count the extra spaces as part of the word
+    function splitArgs(text) {
+        const output = [];
+        let index = 0;
+        let start = 0;
+        let insideQuote = false;
+        let insideSingle = false;
+        while (index < text.length) {
+            const ch = text.charAt(index);
+            if (insideQuote) {
+                if (ch === '"') {
+                    output.push(text.substring(start, index));
+                    start = index + 1;
+                    insideSingle = false;
+                    insideQuote = false;
                 }
-                return [i, l];
             }
-            if (ch == '-') {
-                return [i, l];
-            }
-            if (ch == '\n') {
-                return [i, l];
-            }
-            if (ch == CS) {
-                if (text[i + 1] == CS && count) {
-                    l += 1;
-                    i += 2;
-                    continue;
+            else if (insideSingle) {
+                if (ch === "'") {
+                    output.push(text.substring(start, index));
+                    start = index + 1;
+                    insideSingle = false;
+                    insideQuote = false;
                 }
-                count = !count;
-                ++i;
-                continue;
             }
-            else if (ch == CE) {
-                if (text[i + 1] == CE) {
-                    l += 1;
-                    ++i;
+            else if (ch === ' ') {
+                if (start !== index) {
+                    output.push(text.substring(start, index));
                 }
-                i++;
-                continue;
+                start = index + 1;
             }
-            l += count ? 1 : 0;
-            ++i;
+            else if (ch === '"') {
+                start = index + 1;
+                insideQuote = true;
+            }
+            else if (ch === "'") {
+                start = index + 1;
+                insideSingle = true;
+            }
+            ++index;
         }
-        return [i, l];
+        if (start === 0) {
+            output.push(text);
+        }
+        else if (start < index) {
+            output.push(text.substring(start));
+        }
+        return output;
     }
-    function splice(text, start, len, add = '') {
-        return text.substring(0, start) + add + text.substring(start + len);
+
+    function fieldSplit(template, _opts = {}) {
+        // const FS = opts.field || Config.options.field;
+        // const FE = opts.fieldEnd || Config.options.fieldEnd;
+        const output = [];
+        let inside = false;
+        let start = 0;
+        let hasEscape = false;
+        let index = 0;
+        while (index < template.length) {
+            const ch = template.charAt(index);
+            if (inside) {
+                if (ch === '}') {
+                    if (template.charAt(index + 1) !== '}') {
+                        throw new Error('Templates cannot contain }');
+                    }
+                    const snipet = template.slice(start, index);
+                    output.push(snipet);
+                    ++index;
+                    inside = false;
+                    start = index + 1;
+                }
+            }
+            else {
+                if (ch === '\\') {
+                    if (template.charAt(index + 1) === '{') {
+                        ++index;
+                        hasEscape = true;
+                    }
+                }
+                else if (ch === '{') {
+                    if (template.charAt(index + 1) === '{') {
+                        while (template.charAt(index + 1) === '{') {
+                            ++index;
+                        }
+                        inside = true;
+                        let snipet = template.slice(start, index - 1);
+                        if (hasEscape) {
+                            snipet = snipet.replace(/\\\{/g, '{');
+                        }
+                        output.push(snipet);
+                        start = index + 1;
+                        hasEscape = false;
+                    }
+                }
+            }
+            ++index;
+        }
+        if (start !== template.length) {
+            let snipet = template.slice(start);
+            if (hasEscape) {
+                snipet = snipet.replace(/\\\{/g, '{');
+            }
+            output.push(snipet);
+        }
+        return output;
     }
-    function hyphenate(text, lineWidth, start, end, wordWidth, spaceLeftOnLine) {
-        while (start < end) {
+    function compile$1(template, opts = {}) {
+        const F = opts.field || options.field;
+        const parts = fieldSplit(template);
+        const sections = parts.map((part, i) => {
+            if (i % 2 == 0)
+                return textSegment(part);
+            if (part.length == 0)
+                return textSegment(F);
+            return makeVariable(part, opts);
+        });
+        return function (view = {}) {
+            if (typeof view === 'string') {
+                view = { value: view };
+            }
+            return sections.map((f) => f(view)).join('');
+        };
+    }
+    function apply(template, view = {}) {
+        const fn = compile$1(template);
+        const result = fn(view);
+        return result;
+    }
+    function textSegment(value) {
+        return () => value;
+    }
+    // export function baseValue(name: string, debug = false): FieldFn {
+    //     return function (view: Config.View) {
+    //         let h = Config.helpers[name];
+    //         if (h) {
+    //             return h(name, view);
+    //         }
+    //         const v = view[name];
+    //         if (v !== undefined) return v;
+    //         h = debug ? Config.helpers.debug : Config.helpers.default;
+    //         return h(name, view);
+    //     };
+    // }
+    // export function fieldValue(
+    //     name: string,
+    //     source: FieldFn,
+    //     debug = false
+    // ): FieldFn {
+    //     const helper = debug ? Config.helpers.debug : Config.helpers.default;
+    //     return function (view: Config.View) {
+    //         const obj = source(view);
+    //         if (!obj) return helper(name, view, obj);
+    //         const value = obj[name];
+    //         if (value === undefined) return helper(name, view, obj);
+    //         return value;
+    //     };
+    // }
+    // export function helperValue(
+    //     name: string,
+    //     source: FieldFn,
+    //     debug = false
+    // ): FieldFn {
+    //     const helper =
+    //         Config.helpers[name] ||
+    //         (debug ? Config.helpers.debug : Config.helpers.default);
+    //     return function (view: Config.View) {
+    //         const base = source(view);
+    //         return helper(name, view, base);
+    //     };
+    // }
+    function stringFormat(format, source) {
+        const data = /%(-?\d*)s/.exec(format) || [];
+        const length = Number.parseInt(data[1] || '0');
+        return function (view) {
+            let text = '' + source(view);
+            if (length < 0) {
+                text = text.padEnd(-length);
+            }
+            else if (length) {
+                text = text.padStart(length);
+            }
+            return text;
+        };
+    }
+    function intFormat(format, source) {
+        const data = /%([\+-]*)(\d*)d/.exec(format) || ['', '', '0'];
+        let length = Number.parseInt(data[2] || '0');
+        const wantSign = data[1].includes('+');
+        const left = data[1].includes('-');
+        return function (view) {
+            const value = Number.parseInt(source(view) || '0');
+            let text = '' + value;
+            if (value > 0 && wantSign) {
+                text = '+' + text;
+            }
+            if (length && left) {
+                return text.padEnd(length);
+            }
+            else if (length) {
+                return text.padStart(length);
+            }
+            return text;
+        };
+    }
+    function floatFormat(format, source) {
+        const data = /%([\+-]*)(\d*)(\.(\d+))?f/.exec(format) || ['', '', '0'];
+        let length = Number.parseInt(data[2] || '0');
+        const wantSign = data[1].includes('+');
+        const left = data[1].includes('-');
+        const fixed = Number.parseInt(data[4]) || 0;
+        return function (view) {
+            const value = Number.parseFloat(source(view) || '0');
+            let text;
+            if (fixed) {
+                text = value.toFixed(fixed);
+            }
+            else {
+                text = '' + value;
+            }
+            if (value > 0 && wantSign) {
+                text = '+' + text;
+            }
+            if (length && left) {
+                return text.padEnd(length);
+            }
+            else if (length) {
+                return text.padStart(length);
+            }
+            return text;
+        };
+    }
+    function makeVariable(pattern, _opts = {}) {
+        let format = '';
+        const formatStart = pattern.indexOf('%');
+        if (formatStart > 0) {
+            format = pattern.substring(formatStart);
+            pattern = pattern.substring(0, formatStart);
+        }
+        const parts = splitArgs(pattern);
+        let name = 'default';
+        if (parts[0] in helpers) {
+            name = parts[0];
+            parts.shift();
+        }
+        const helper = helpers[name];
+        function base(view) {
+            return helper.call(this, name, view, parts);
+        }
+        const valueFn = base.bind({ get: getValue });
+        if (format.length) {
+            if (format.endsWith('d')) {
+                return intFormat(format, valueFn);
+            }
+            else if (format.endsWith('f')) {
+                return floatFormat(format, valueFn);
+            }
+            else {
+                return stringFormat(format, valueFn);
+            }
+        }
+        return valueFn || (() => '!!!');
+        // const data =
+        //     /((\w+) )?(\w+)(\.(\w+))?(%[\+\.\-\d]*[dsf])?/.exec(pattern) || [];
+        // const helper = data[2];
+        // const base = data[3];
+        // const field = data[5];
+        // const format = data[6];
+        // let result = baseValue(base, opts.debug);
+        // if (field && field.length) {
+        //     result = fieldValue(field, result, opts.debug);
+        // }
+        // if (helper && helper.length) {
+        //     result = helperValue(helper, result, opts.debug);
+        // }
+        // if (format && format.length) {
+        //     if (format.endsWith('s')) {
+        //         result = stringFormat(format, result);
+        //     } else if (format.endsWith('d')) {
+        //         result = intFormat(format, result);
+        //     } else {
+        //         result = floatFormat(format, result);
+        //     }
+        // }
+        // return result;
+    }
+
+    function eachChar(text, fn, opts = {}) {
+        if (text === null || text === undefined)
+            return;
+        if (!fn)
+            return;
+        text = '' + text; // force string
+        if (!text.length)
+            return;
+        const colorFn = opts.eachColor || NOOP;
+        const fg = opts.fg || options.defaultFg;
+        const bg = opts.bg || options.defaultBg;
+        const ctx = {
+            fg,
+            bg,
+        };
+        colorFn(ctx);
+        const priorCtx = Object.assign({}, ctx);
+        let len = 0;
+        let inside = false;
+        let inline = false;
+        let index = 0;
+        let colorText = '';
+        while (index < text.length) {
+            const ch = text.charAt(index);
+            if (inline) {
+                if (ch === '}') {
+                    inline = false;
+                    inside = false;
+                    Object.assign(ctx, priorCtx);
+                    colorFn(ctx);
+                }
+                else {
+                    fn(ch, ctx.fg, ctx.bg, len, index);
+                    ++len;
+                }
+            }
+            else if (inside) {
+                if (ch === ' ') {
+                    inline = true;
+                    Object.assign(priorCtx, ctx);
+                    const colors = colorText.split(':');
+                    if (colors[0].length) {
+                        ctx.fg = colors[0];
+                    }
+                    if (colors[1]) {
+                        ctx.bg = colors[1];
+                    }
+                    colorFn(ctx);
+                    colorText = '';
+                }
+                else if (ch === '}') {
+                    inside = false;
+                    const colors = colorText.split(':');
+                    if (colors[0].length) {
+                        ctx.fg = colors[0];
+                    }
+                    if (colors[1]) {
+                        ctx.bg = colors[1];
+                    }
+                    colorFn(ctx);
+                    colorText = '';
+                }
+                else {
+                    colorText += ch;
+                }
+            }
+            else if (ch === '#') {
+                if (text.charAt(index + 1) === '{') {
+                    if (text.charAt(index + 2) === '}') {
+                        index += 2;
+                        ctx.fg = fg;
+                        ctx.bg = bg;
+                        colorFn(ctx);
+                    }
+                    else {
+                        inside = true;
+                        index += 1;
+                    }
+                }
+                else {
+                    fn(ch, ctx.fg, ctx.bg, len, index);
+                    ++len;
+                }
+            }
+            else if (ch === '\\') {
+                index += 1; // skip next char
+                const ch = text.charAt(index);
+                fn(ch, ctx.fg, ctx.bg, len, index);
+                ++len;
+            }
+            else {
+                fn(ch, ctx.fg, ctx.bg, len, index);
+                ++len;
+            }
+            ++index;
+        }
+        if (inline) {
+            console.warn('Ended text without ending inline color!');
+        }
+    }
+    function eachWord(text, fn, opts = {}) {
+        let currentWord = '';
+        let fg = '';
+        let bg = '';
+        let prefix = '';
+        eachChar(text, (ch, fg0, bg0) => {
+            if (fg0 !== fg || bg0 !== bg) {
+                if (currentWord.length) {
+                    fn(currentWord, fg, bg, prefix);
+                    currentWord = '';
+                    prefix = '';
+                }
+                fg = fg0;
+                bg = bg0;
+            }
+            if (ch === ' ') {
+                if (currentWord.length) {
+                    fn(currentWord, fg, bg, prefix);
+                    currentWord = '';
+                    prefix = '';
+                }
+                prefix += ' ';
+            }
+            else if (ch === '\n') {
+                if (currentWord.length) {
+                    fn(currentWord, fg, bg, prefix);
+                    currentWord = '';
+                    prefix = '';
+                }
+                fn('\n', fg, bg, prefix);
+                prefix = '';
+            }
+            else if (ch === '-') {
+                currentWord += ch;
+                if (currentWord.length > 3) {
+                    fn(currentWord, fg, bg, prefix);
+                    currentWord = '';
+                    prefix = '';
+                }
+            }
+            else {
+                currentWord += ch;
+            }
+        }, opts);
+        if (currentWord) {
+            fn(currentWord, fg, bg, prefix);
+        }
+    }
+
+    // import { Color } from '../color';
+    function wordWrap(text, lineWidth, opts = {}) {
+        // let inside = false;
+        // let inline = false;
+        if (lineWidth < 5)
+            return text;
+        // hyphenate is the wordlen needed to hyphenate
+        // smaller words are not hyphenated
+        let hyphenLen = lineWidth;
+        if (opts.hyphenate) {
+            if (opts.hyphenate === true) {
+                opts.hyphenate = Math.floor(lineWidth / 2);
+            }
+            hyphenLen = clamp(opts.hyphenate, 6, lineWidth + 1);
+        }
+        opts.indent = opts.indent || 0;
+        const indent = ' '.repeat(opts.indent);
+        let output = '';
+        let lastFg = null;
+        let lastBg = null;
+        let lineLeft = lineWidth;
+        lineWidth -= opts.indent;
+        eachWord(text, (word, fg, bg, prefix) => {
+            let totalLen = prefix.length + word.length;
+            // console.log('word', word, lineLen, newLen);
+            if (totalLen > lineLeft && word.length > hyphenLen) {
+                const parts = splitWord(word, lineWidth, lineLeft - prefix.length);
+                if (parts[0].length === 0) {
+                    // line doesn't have enough space left, end it
+                    output += '\n';
+                    if (fg || bg) {
+                        output += `#{${fg ? fg : ''}${bg ? ':' + bg : ''}}`;
+                    }
+                    lineLeft = lineWidth;
+                    parts.shift();
+                }
+                else {
+                    output += prefix;
+                    lineLeft -= prefix.length;
+                }
+                while (parts.length > 1) {
+                    output += parts.shift() + '-\n';
+                    if (fg || bg) {
+                        output += `#{${fg ? fg : ''}${bg ? ':' + bg : ''}}`;
+                    }
+                    output += indent;
+                }
+                output += parts[0];
+                lineLeft = lineWidth - parts[0].length - indent.length;
+                return;
+            }
+            if (word === '\n' || totalLen > lineLeft) {
+                output += '\n';
+                // if (fg || bg || lastFg !== fg || lastBg !== bg) {
+                //     output += `#{${fg ? fg : ''}${bg ? ':' + bg : ''}}`;
+                // }
+                // lastFg = fg;
+                // lastBg = bg;
+                if (fg || bg) {
+                    lastFg = 'INVALID';
+                    lastBg = 'INVALID';
+                }
+                lineLeft = lineWidth;
+                output += indent;
+                lineLeft -= indent.length;
+                if (word === '\n')
+                    return;
+                // lineLeft -= word.length;
+                prefix = '';
+            }
+            if (prefix.length) {
+                output += prefix;
+                lineLeft -= prefix.length;
+            }
+            if (fg !== lastFg || bg !== lastBg) {
+                lastFg = fg;
+                lastBg = bg;
+                output += `#{${fg ? fg : ''}${bg ? ':' + bg : ''}}`;
+            }
+            lineLeft -= word.length;
+            output += word;
+        });
+        return output;
+    }
+    function splitWord(word, lineWidth, firstWidth) {
+        let index = 0;
+        let output = [];
+        let spaceLeftOnLine = firstWidth || lineWidth;
+        while (index < word.length) {
+            const wordWidth = word.length - index;
             // do not need to hyphenate
-            if (spaceLeftOnLine >= wordWidth)
-                return [text, end];
-            // not much room left and word fits on next line
-            if (spaceLeftOnLine < 4 && wordWidth <= lineWidth) {
-                text = splice(text, start - 1, 1, '\n');
-                return [text, end + 1];
+            if (spaceLeftOnLine >= wordWidth) {
+                output.push(word.substring(index));
+                return output;
+            }
+            // not much room left
+            if (spaceLeftOnLine < 4) {
+                spaceLeftOnLine = lineWidth;
+                output.push(''); // need to fill first line
             }
             // if will fit on this line and next...
             if (wordWidth < spaceLeftOnLine + lineWidth) {
-                const w = advanceChars(text, start, spaceLeftOnLine - 1);
-                text = splice(text, w, 0, '-\n');
-                return [text, end + 2];
+                output.push(word.substring(index, index + spaceLeftOnLine - 1));
+                output.push(word.substring(index + spaceLeftOnLine - 1));
+                return output;
             }
-            if (spaceLeftOnLine < 5) {
-                text = splice(text, start - 1, 1, '\n');
-                spaceLeftOnLine = lineWidth;
-                continue;
-            }
-            // one hyphen will work...
+            // hyphenate next part
             const hyphenAt = Math.min(spaceLeftOnLine - 1, Math.floor(wordWidth / 2));
-            const w = advanceChars(text, start, hyphenAt);
-            text = splice(text, w, 0, '-\n');
-            start = w + 2;
-            end += 2;
-            wordWidth -= hyphenAt;
-        }
-        return [text, end];
-    }
-    function wordWrap(text, width, indent = 0) {
-        if (!width)
-            throw new Error('Need string and width');
-        if (text.length < width)
-            return text;
-        if (length(text) < width)
-            return text;
-        if (text.indexOf('\n') == -1) {
-            return wrapLine(text, width, indent);
-        }
-        const lines = text.split('\n');
-        const split = lines.map((line, i) => wrapLine(line, width, i ? indent : 0));
-        return split.join('\n');
-    }
-    // Returns the number of lines, including the newlines already in the text.
-    // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
-    function wrapLine(text, width, indent) {
-        if (text.length < width)
-            return text;
-        if (length(text) < width)
-            return text;
-        let spaceLeftOnLine = width;
-        width = width - indent;
-        let printString = text;
-        // Now go through and replace spaces with newlines as needed.
-        // console.log('wordWrap - ', text, width, indent);
-        let removeSpace = true;
-        let i = -1;
-        while (i < printString.length) {
-            // wordWidth counts the word width of the next word without color escapes.
-            // w indicates the position of the space or newline or null terminator that terminates the word.
-            let [w, wordWidth] = nextBreak(printString, i + (removeSpace ? 1 : 0));
-            let hyphen = false;
-            if (printString[w] == '-') {
-                w++;
-                wordWidth++;
-                hyphen = true;
-            }
-            // console.log('- w=%d, width=%d, space=%d, word=%s', w, wordWidth, spaceLeftOnLine, printString.substring(i, w));
-            if (wordWidth > width) {
-                [printString, w] = hyphenate(printString, width, i + 1, w, wordWidth, spaceLeftOnLine);
-            }
-            else if (wordWidth == spaceLeftOnLine) {
-                const nl = w < printString.length ? '\n' : '';
-                const remove = hyphen ? 0 : 1;
-                printString = splice(printString, w, remove, nl); // [i] = '\n';
-                w += 1 - remove; // if we change the length we need to advance our pointer
-                spaceLeftOnLine = width;
-            }
-            else if (wordWidth > spaceLeftOnLine) {
-                const remove = removeSpace ? 1 : 0;
-                printString = splice(printString, i, remove, '\n'); // [i] = '\n';
-                w += 1 - remove; // if we change the length we need to advance our pointer
-                const extra = hyphen ? 0 : 1;
-                spaceLeftOnLine = width - wordWidth - extra; // line width minus the width of the word we just wrapped and the space
-                //printf("\n\n%s", printString);
-            }
-            else {
-                const extra = hyphen ? 0 : 1;
-                spaceLeftOnLine -= wordWidth + extra;
-            }
-            removeSpace = !hyphen;
-            i = w; // Advance to the terminator that follows the word.
-        }
-        return printString;
-    }
-    // Returns the number of lines, including the newlines already in the text.
-    // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
-    function splitIntoLines(source, width = 200, indent = 0) {
-        const CS = options.colorStart;
-        const output = [];
-        if (!source)
-            return output;
-        if (width <= 0)
-            width = 200;
-        let text = wordWrap(source, width, indent);
-        let start = 0;
-        let fg0 = null;
-        let bg0 = null;
-        eachChar(text, (ch, fg, bg, _, n) => {
-            if (ch == '\n') {
-                let color = fg0 || bg0
-                    ? `${CS}${fg0 ? fg0 : ''}${bg0 ? '|' + bg0 : ''}${CS}`
-                    : '';
-                output.push(color + text.substring(start, n));
-                start = n + 1;
-                fg0 = fg;
-                bg0 = bg;
-            }
-        });
-        let color = fg0 || bg0 ? `${CS}${fg0 ? fg0 : ''}${bg0 ? '|' + bg0 : ''}${CS}` : '';
-        if (start < text.length) {
-            output.push(color + text.substring(start));
+            const hyphen = word.substring(index, index + hyphenAt);
+            output.push(hyphen);
+            index += hyphenAt;
+            spaceLeftOnLine = lineWidth;
         }
         return output;
+    }
+    // // Returns the number of lines, including the newlines already in the text.
+    // // Puts the output in "to" only if we receive a "to" -- can make it null and just get a line count.
+    // export function splitIntoLines(source: string, width = 200, indent = 0) {
+    //     const output: string[] = [];
+    //     if (!source) return output;
+    //     if (width <= 0) width = 200;
+    //     let text = wordWrap(source, width, indent);
+    //     let start = 0;
+    //     let fg0: Color | number | null = null;
+    //     let bg0: Color | number | null = null;
+    //     eachChar(text, (ch, fg, bg, _, n) => {
+    //         if (ch == '\n') {
+    //             let color =
+    //                 fg0 || bg0 ? `#{${fg0 ? fg0 : ''}${bg0 ? ':' + bg0 : ''}}` : '';
+    //             output.push(color + text.substring(start, n));
+    //             start = n + 1;
+    //             fg0 = fg;
+    //             bg0 = bg;
+    //         }
+    //     });
+    //     let color = fg0 || bg0 ? `#{${fg0 ? fg0 : ''}${bg0 ? ':' + bg0 : ''}}` : '';
+    //     if (start < text.length) {
+    //         output.push(color + text.substring(start));
+    //     }
+    //     return output;
+    // }
+    function splitIntoLines(text, width = 200, opts = {}) {
+        if (typeof text !== 'string')
+            return [];
+        text = text.trimEnd();
+        // if (text.endsWith('\n')) {
+        //     text = text.trimEnd();
+        // }
+        const updated = wordWrap(text, width, opts);
+        return updated.split('\n');
+    }
+
+    //
+    // Formats:
+    // moose
+    // taco~
+    // tomatoe[s]
+    // |goose|geese|
+    // go[es]
+    const RE_BRACKETS = /\[(\w+)(?:\|(\w+))?\]/;
+    const RE_ALTS = /\|(\w+)\|(\w+)\|/;
+    // VERBS
+    function toSingularVerb(text) {
+        if (text.includes('~')) {
+            return text.replace('~', 's');
+        }
+        let match = RE_BRACKETS.exec(text);
+        if (match) {
+            return text.replace(match[0], match[1]);
+        }
+        match = RE_ALTS.exec(text);
+        if (match) {
+            return match[1];
+        }
+        return text;
+    }
+    function toPluralVerb(text) {
+        if (text.includes('~')) {
+            return text.replace('~', '');
+        }
+        let match = RE_BRACKETS.exec(text);
+        if (match) {
+            return text.replace(match[0], match[2] || '');
+        }
+        match = RE_ALTS.exec(text);
+        if (match) {
+            return match[2];
+        }
+        return text;
+    }
+    // NOUNS
+    function toSingularNoun(text) {
+        text = text.replace('& ', '');
+        if (text.includes('~')) {
+            return text.replace('~', '');
+        }
+        let match = RE_BRACKETS.exec(text);
+        if (match) {
+            return text.replace(match[0], match[2] || '');
+        }
+        match = RE_ALTS.exec(text);
+        if (match) {
+            return match[1];
+        }
+        return text;
+    }
+    function toPluralNoun(text) {
+        text = text.replace('& ', '');
+        if (text.includes('~')) {
+            return text.replace('~', 's');
+        }
+        let match = RE_BRACKETS.exec(text);
+        if (match) {
+            return text.replace(match[0], match[1]);
+        }
+        match = RE_ALTS.exec(text);
+        if (match) {
+            return match[2];
+        }
+        return text;
+    }
+    function toQuantity(text, count) {
+        if (count == 1) {
+            text = toSingularNoun(text);
+        }
+        else {
+            text = toPluralNoun(text);
+        }
+        const countText = count > 1 ? '' + count : 'a';
+        if (text.includes('&')) {
+            return text.replace('&', countText);
+        }
+        return countText + ' ' + text;
     }
 
     function configure(opts = {}) {
@@ -3441,7 +5179,9 @@
         options: options,
         length: length,
         advanceChars: advanceChars,
+        findChar: findChar,
         firstChar: firstChar,
+        startsWith: startsWith,
         padStart: padStart,
         padEnd: padEnd,
         center: center,
@@ -3449,7 +5189,13 @@
         capitalize: capitalize,
         removeColors: removeColors,
         spliceRaw: spliceRaw,
-        hash: hash
+        hash: hash,
+        splitArgs: splitArgs,
+        toSingularVerb: toSingularVerb,
+        toPluralVerb: toPluralVerb,
+        toSingularNoun: toSingularNoun,
+        toPluralNoun: toPluralNoun,
+        toQuantity: toQuantity
     });
 
     class Buffer$1 {
@@ -3611,14 +5357,15 @@
             }, { fg, bg });
             return 1; // used 1 line
         }
-        wrapText(x, y, width, text, fg = 0xfff, bg = -1, indent = 0) {
+        wrapText(x, y, width, text, fg = 0xfff, bg = -1, indent = 0 // TODO - convert to WrapOptions
+        ) {
             // if (!this.hasXY(x, y)) return 0;
             if (typeof fg !== 'number')
                 fg = from$2(fg);
             if (typeof bg !== 'number')
                 bg = from$2(bg);
             width = Math.min(width, this.width - x);
-            text = wordWrap(text, width, indent);
+            text = wordWrap(text, width, { indent });
             let lineCount = 0;
             let xi = x;
             eachChar(text, (ch, fg0, bg0) => {
@@ -3637,6 +5384,9 @@
             }
             return lineCount + 1;
         }
+        fillBounds(bounds, ch = -1, fg = -1, bg = -1) {
+            return this.fillRect(bounds.x, bounds.y, bounds.width, bounds.height, ch, fg, bg);
+        }
         fillRect(x, y, w, h, ch = -1, fg = -1, bg = -1) {
             if (ch === null)
                 ch = -1;
@@ -3654,6 +5404,9 @@
                 }
             }
             return this;
+        }
+        blackOutBounds(bounds, bg = 0) {
+            return this.blackOutRect(bounds.x, bounds.y, bounds.width, bounds.height, bg);
         }
         blackOutRect(x, y, w, h, bg = 0) {
             if (typeof bg !== 'number')
@@ -4584,10 +6337,12 @@
             });
             this.changed = true;
         }
-        revealCell(x, y, makeVisibleToo = true) {
+        revealCell(x, y, radius = 0, makeVisibleToo = true) {
             const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
-            this.flags[x][y] |= flag;
-            this.callback(x, y, !!(flag & FovFlags.VISIBLE));
+            this.fov.calculate(x, y, radius, (x0, y0) => {
+                this.flags[x0][y0] |= flag;
+                this.callback(x0, y0, !!(flag & FovFlags.VISIBLE));
+            });
             this.changed = true;
         }
         hideCell(x, y) {
@@ -4710,10 +6465,12 @@
                 // if the cell became visible this move
                 this.flags[x][y] |= FovFlags.REVEALED;
                 this._callback(x, y, isVisible);
+                this.changed = true;
             }
             else if (!isVisible && wasVisible) {
                 // if the cell ceased being visible this move
                 this._callback(x, y, isVisible);
+                this.changed = true;
             }
             return isVisible;
         }
@@ -4760,10 +6517,12 @@
             else if (!isDetect && wasDetect) {
                 // ceased being detected visible
                 this._callback(x, y, isDetect);
+                this.changed = true;
             }
             else if (!wasDetect && isDetect) {
                 // became detected visible
                 this._callback(x, y, isDetect);
+                this.changed = true;
             }
             return isDetect;
         }
@@ -4818,7 +6577,7 @@
                 cr = this.site.width + this.site.height;
             }
             // this.needsUpdate = false;
-            this.changed = true; // we updated something...
+            this.changed = false;
             this.flags.update(this.demoteCellVisibility.bind(this));
             this.site.eachViewport((x, y, radius, type) => {
                 let flag = type & FovFlags.VIEWPORT_TYPES;
@@ -4867,7 +6626,7 @@
             // 		}
             // 	}
             // }
-            return true;
+            return this.changed;
         }
     }
 
@@ -5150,7 +6909,7 @@
         }
         return DIRS$2[bestDir] || null;
     }
-    function getClosestValidLocationOnMap(distanceMap, x, y) {
+    function getClosestValidLocation(distanceMap, x, y, blocked = FALSE) {
         let i, j, dist, closestDistance, lowestMapScore;
         let locX = -1;
         let locY = -1;
@@ -5160,7 +6919,9 @@
         lowestMapScore = 10000;
         for (i = 1; i < width - 1; i++) {
             for (j = 1; j < height - 1; j++) {
-                if (distanceMap[i][j] >= 0 && distanceMap[i][j] < NO_PATH) {
+                if (distanceMap[i][j] >= 0 &&
+                    distanceMap[i][j] < NO_PATH &&
+                    !blocked(i, j, i, j, distanceMap)) {
                     dist = (i - x) * (i - x) + (j - y) * (j - y);
                     if (dist < closestDistance ||
                         (dist == closestDistance &&
@@ -5182,8 +6943,10 @@
         // actor = actor || GW.PLAYER;
         let x = originX;
         let y = originY;
-        if (distanceMap[x][y] < 0 || distanceMap[x][y] >= NO_PATH) {
-            const loc = getClosestValidLocationOnMap(distanceMap, x, y);
+        if (distanceMap[x][y] < 0 ||
+            distanceMap[x][y] >= NO_PATH ||
+            isBlocked(x, y, x, y, distanceMap)) {
+            const loc = getClosestValidLocation(distanceMap, x, y, isBlocked);
             if (!loc)
                 return null;
             x = loc[0];
@@ -5215,6 +6978,7 @@
         calculateDistances: calculateDistances,
         rescan: rescan,
         nextStep: nextStep,
+        getClosestValidLocation: getClosestValidLocation,
         getPath: getPath
     });
 
@@ -6605,7 +8369,7 @@ void main() {
         else if (args) {
             msg = apply(msg, args);
         }
-        handlers.forEach((h) => h.addMessage(x, y, msg));
+        handlers.forEach((h) => h.addMessage.call(h, x, y, msg));
     }
     function addCombat(x, y, msg, args) {
         const template = templates[msg];
@@ -6615,7 +8379,7 @@ void main() {
         else if (args) {
             msg = apply(msg, args);
         }
-        handlers.forEach((h) => h.addCombatMessage(x, y, msg));
+        handlers.forEach((h) => h.addCombatMessage.call(h, x, y, msg));
     }
     class MessageCache {
         constructor(opts = {}) {
@@ -6629,11 +8393,17 @@ void main() {
             this.matchFn = opts.match || TRUE;
             this.ARCHIVE_LINES = opts.length || 30;
             this.MSG_WIDTH = opts.width || 80;
+            this.clear();
+            handlers.push(this);
+        }
+        clear() {
             for (let i = 0; i < this.ARCHIVE_LINES; ++i) {
                 this.ARCHIVE[i] = null;
                 this.CONFIRMED[i] = false;
             }
-            handlers.push(this);
+            this.NEXT_WRITE_INDEX = 0;
+            this.NEEDS_UPDATE = true;
+            this.COMBAT_MESSAGE = null;
         }
         get needsUpdate() {
             return this.NEEDS_UPDATE;
@@ -6653,7 +8423,7 @@ void main() {
                 (this.NEXT_WRITE_INDEX + 1) % this.ARCHIVE_LINES;
         }
         addMessage(x, y, msg) {
-            if (!this.matchFn(x, y))
+            if (this.matchFn(x, y) === false)
                 return;
             this.commitCombatMessage();
             this._addMessage(msg);
@@ -8117,6 +9887,9 @@ void main() {
             // }
             return false;
         }
+        reset() {
+            this.buffer.copy(this.ui.baseBuffer);
+        }
         draw() {
             if (this.buffer.changed) {
                 console.log('draw');
@@ -8197,6 +9970,11 @@ void main() {
         get layer() {
             return this._layer;
         }
+        startNewLayer() {
+            const layer = new Layer(this);
+            this.pushLayer(layer);
+            return layer;
+        }
         pushLayer(layer) {
             this.layers.push(layer);
             this._layer = layer;
@@ -8218,6 +9996,114 @@ void main() {
         }
         inputbox(..._args) {
             return Promise.resolve(null);
+        }
+        //     get styles(): Sheet {
+        //         return defaultStyle;
+        //     }
+        //     // render() {
+        //     //     this.buffer.render();
+        //     // }
+        get baseBuffer() {
+            const layer = this.layers[this.layers.length - 2] || null;
+            return layer ? layer.buffer : this.canvas.buffer;
+        }
+        //     get canvasBuffer(): Canvas.Buffer {
+        //         return this.canvas.buffer;
+        //     }
+        //     get buffer(): Canvas.Buffer {
+        //         return this.layer ? this.layer.buffer : this.canvas.buffer;
+        //     }
+        //     startNewLayer(opts: LayerOptions = {}): Layer {
+        //         opts.styles = this.layer ? this.layer.styles : this.styles;
+        //         const layer = new Layer(this, opts);
+        //         this.startLayer(layer);
+        //         return layer;
+        //     }
+        //     startLayer(layer: Layer) {
+        //         this.layers.push(layer);
+        //         // if (!this._promise) {
+        //         //     this._promise = this.loop.run((this as unknown) as IO.IOMap);
+        //         // }
+        //         this.layer = layer;
+        //     }
+        //     copyUIBuffer(dest: Buffer.Buffer): void {
+        //         const base = this.baseBuffer;
+        //         dest.copy(base);
+        //         dest.changed = false; // So you have to draw something to make the canvas render...
+        //     }
+        //     finishLayer(layer: Layer, result?: any): void {
+        //         layer.finish(result);
+        //     }
+        //     _finishLayer(layer: Layer): void {
+        //         Utils.arrayDelete(this.layers, layer);
+        //         if (this.layer === layer) {
+        //             this.layer = this.layers[this.layers.length - 1] || null;
+        //             this.layer && (this.layer.needsDraw = true);
+        //         }
+        //     }
+        //     stop(): void {
+        //         this._done = true;
+        //         while (this.layer) {
+        //             this.finishLayer(this.layer);
+        //         }
+        //     }
+        //     // run(): Promise<void> {
+        //     //     // this._done = false;
+        //     //     return this.loop.run(this as unknown as IO.IOMap);
+        //     // }
+        //     // stop() {
+        //     //     this._done = true;
+        //     //     if (this.layer) this.layer.stop();
+        //     //     this.layers.forEach((l) => l.stop());
+        //     //     this.layer = null;
+        //     //     this.layers.length = 0;
+        //     // }
+        //     // mousemove(e: IO.Event): boolean {
+        //     //     if (this.layer) this.layer.mousemove(e);
+        //     //     return this._done;
+        //     // }
+        //     // click(e: IO.Event): boolean {
+        //     //     if (this.layer) this.layer.click(e);
+        //     //     return this._done;
+        //     // }
+        //     // keypress(e: IO.Event): boolean {
+        //     //     if (this.layer) this.layer.keypress(e);
+        //     //     return this._done;
+        //     // }
+        //     // dir(e: IO.Event): boolean {
+        //     //     if (this.layer) this.layer.dir(e);
+        //     //     return this._done;
+        //     // }
+        //     // tick(e: IO.Event): boolean {
+        //     //     if (this.layer) this.layer.tick(e);
+        //     //     return this._done;
+        //     // }
+        //     // draw() {
+        //     //     if (this.layer) this.layer.draw();
+        //     // }
+        //     addAnimation(a: Tween.Animation): void {
+        //         this.layer?.addAnimation(a);
+        //     }
+        //     removeAnimation(a: Tween.Animation): void {
+        //         this.layer?.removeAnimation(a);
+        //     }
+        //     // UTILITY FUNCTIONS
+        async fadeTo(color = 'black', duration = 1000) {
+            color = from$2(color);
+            const layer = this.startNewLayer();
+            let pct = 0;
+            let elapsed = 0;
+            while (elapsed < duration) {
+                elapsed += 32;
+                if (await layer.io.pause(32)) {
+                    elapsed = duration;
+                }
+                pct = Math.floor((100 * elapsed) / duration);
+                layer.reset();
+                layer.buffer.mix(color, pct);
+                layer.draw();
+            }
+            layer.finish();
         }
     }
     function make(opts) {

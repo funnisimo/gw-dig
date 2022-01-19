@@ -90,7 +90,7 @@ describe('Mixed Item Library', () => {
 
     test('Treasure Room', () => {
         const map = GWM.map.make(80, 34);
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,
@@ -121,7 +121,8 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('MIXED_ITEM_LIBRARY', {
             size: '20-40',
             frequency: '8-40: 20',
-            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags:
+                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {

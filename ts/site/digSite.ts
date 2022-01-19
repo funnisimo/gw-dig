@@ -74,20 +74,12 @@ export interface DigSite {
     setTile(
         x: number,
         y: number,
-        tile: string | number | GWM.tile.Tile,
+        tile: GWM.tile.TileBase,
         opts?: GWM.map.SetTileOptions
     ): boolean;
-    clearCell(
-        x: number,
-        y: number,
-        tile: string | number | GWM.tile.Tile
-    ): boolean;
+    clearCell(x: number, y: number, tile: GWM.tile.TileBase): boolean;
 
-    hasTile(
-        x: number,
-        y: number,
-        tile: string | number | GWM.tile.Tile
-    ): boolean;
+    hasTile(x: number, y: number, tile: GWM.tile.TileBase): boolean;
     getTileIndex(x: number, y: number): number;
 
     getMachine(x: number, y: number): number;

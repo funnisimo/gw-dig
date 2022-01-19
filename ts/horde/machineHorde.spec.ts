@@ -52,7 +52,7 @@ describe('Mixed Item Library', () => {
 
     test('Tinker Room', () => {
         const map = GWM.map.make(80, 34, { seed: 12345 });
-        map.properties.depth = 1;
+        map.data.depth = 1;
 
         const digger = new GWD.Digger({
             seed: 12345,

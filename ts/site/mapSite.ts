@@ -2,6 +2,7 @@ import * as GWU from 'gw-utils';
 import * as GWM from 'gw-map';
 
 import * as BUILD from './buildSite';
+import { DigSite } from './digSite';
 import * as Utils from './utils';
 
 const Flags = GWM.flags.Cell;
@@ -47,7 +48,7 @@ export class MapSite implements BUILD.BuildSite {
         return this.map.rng;
     }
     get depth(): number {
-        return this.map.properties.depth || 0;
+        return this.map.data.depth || 0;
     }
     // get seed() {
     //     return this.map.seed;
@@ -95,28 +96,20 @@ export class MapSite implements BUILD.BuildSite {
         this.map.cell(x, y).clearCellFlag(flag);
     }
 
-    hasTile(
-        x: number,
-        y: number,
-        tile: string | number | GWM.tile.Tile
-    ): boolean {
+    hasTile(x: number, y: number, tile: GWM.tile.TileBase): boolean {
         return this.map.cell(x, y).hasTile(tile);
     }
 
     setTile(
         x: number,
         y: number,
-        tile: string | number | GWM.tile.Tile,
+        tile: GWM.tile.TileBase,
         opts?: Partial<GWM.map.SetOptions>
     ): boolean {
         this.needsAnalysis = true;
         return this.map.setTile(x, y, tile, opts);
     }
-    clearCell(
-        x: number,
-        y: number,
-        tile: string | number | GWM.tile.Tile
-    ): boolean {
+    clearCell(x: number, y: number, tile: GWM.tile.TileBase): boolean {
         this.needsAnalysis = true;
         this.map.clearTiles(x, y, tile);
         return true;
@@ -287,7 +280,7 @@ export class MapSite implements BUILD.BuildSite {
     }
 
     nextMachineId(): number {
-        return ++this.map.properties.machineCount;
+        return ++this.map.data.machineCount;
     }
     getMachine(x: number, y: number) {
         return this.map.cell(x, y).machineId;
@@ -314,4 +307,20 @@ export class MapSite implements BUILD.BuildSite {
     getDoorDir(x: number, y: number): number {
         return this.doors[x][y];
     }
+}
+
+export function digSiteFrom(source: GWM.map.Map | DigSite): DigSite {
+    if (source instanceof GWM.map.Map) {
+        return new MapSite(source);
+    }
+    return source;
+}
+
+export function buildSiteFrom(
+    source: GWM.map.Map | BUILD.BuildSite
+): BUILD.BuildSite {
+    if (source instanceof GWM.map.Map) {
+        return new MapSite(source);
+    }
+    return source;
 }

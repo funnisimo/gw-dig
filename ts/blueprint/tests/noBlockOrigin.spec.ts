@@ -40,11 +40,13 @@ describe('buildStep - noBlockOrigin', () => {
             steps: [
                 {
                     tile: 'DOOR',
-                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags:
+                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'TRAP',
-                    flags: 'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
+                    flags:
+                        'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
                 },
             ],
         });
@@ -71,7 +73,7 @@ describe('buildStep - noBlockOrigin', () => {
         expect(result).toBeTruthy();
         expect(map.hasTile(4, 26, 'TRAP')).toBeFalsy();
 
-        const path = GWM.path.getPathBetween(map, 4, 25, 9, 30, {
+        const path = GWM.map.getPathBetween(map, 4, 25, 9, 30, {
             eightWays: false,
         });
         // console.log(path);

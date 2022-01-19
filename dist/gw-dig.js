@@ -529,7 +529,7 @@
         }
         isDiggable(x, y) {
             const v = this.tiles.get(x, y);
-            return v === NOTHING;
+            return v === NOTHING || v === WALL;
         }
         isFloor(x, y) {
             return this.tiles.get(x, y) == FLOOR;
@@ -664,7 +664,7 @@
             return this.map.rng;
         }
         get depth() {
-            return this.map.properties.depth || 0;
+            return this.map.data.depth || 0;
         }
         // get seed() {
         //     return this.map.seed;
@@ -868,7 +868,7 @@
             return effect.trigger({ map: this.map, x, y }, { rng: this.rng });
         }
         nextMachineId() {
-            return ++this.map.properties.machineCount;
+            return ++this.map.data.machineCount;
         }
         getMachine(x, y) {
             return this.map.cell(x, y).machineId;
@@ -891,6 +891,18 @@
         getDoorDir(x, y) {
             return this.doors[x][y];
         }
+    }
+    function digSiteFrom(source) {
+        if (source instanceof GWM__namespace.map.Map) {
+            return new MapSite(source);
+        }
+        return source;
+    }
+    function buildSiteFrom(source) {
+        if (source instanceof GWM__namespace.map.Map) {
+            return new MapSite(source);
+        }
+        return source;
     }
 
     var index$3 = /*#__PURE__*/Object.freeze({
@@ -918,7 +930,9 @@
         clearInteriorFlag: clearInteriorFlag,
         GridSite: GridSite,
         MapSnapshot: MapSnapshot,
-        MapSite: MapSite
+        MapSite: MapSite,
+        digSiteFrom: digSiteFrom,
+        buildSiteFrom: buildSiteFrom
     });
 
     class Hall extends GWU__namespace.xy.Bounds {
@@ -1924,15 +1938,23 @@
             }
             if (upLoc) {
                 locations.up = upLoc.slice();
-                this.setupStairs(site, upLoc[0], upLoc[1], this.options.upTile);
-                if (this.options.start === 'up')
+                this.setupStairs(site, upLoc[0], upLoc[1], this.options.upTile, this.options.wall);
+                if (this.options.start === 'up') {
                     locations.start = locations.up;
+                }
+                else {
+                    locations.end = locations.up;
+                }
             }
             if (downLoc) {
                 locations.down = downLoc.slice();
-                this.setupStairs(site, downLoc[0], downLoc[1], this.options.downTile);
-                if (this.options.start === 'down')
+                this.setupStairs(site, downLoc[0], downLoc[1], this.options.downTile, this.options.wall);
+                if (this.options.start === 'down') {
                     locations.start = locations.down;
+                }
+                else {
+                    locations.end = locations.down;
+                }
             }
             return upLoc || downLoc ? locations : null;
         }
@@ -1966,7 +1988,7 @@
             }
             return count == 1;
         }
-        setupStairs(site, x, y, tile) {
+        setupStairs(site, x, y, tile, wallTile) {
             const indexes = site.rng.sequence(4);
             let dir = null;
             for (let i = 0; i < indexes.length; ++i) {
@@ -1985,14 +2007,13 @@
             const dirIndex = GWU__namespace.xy.CLOCK_DIRS.findIndex(
             // @ts-ignore
             (d) => d[0] == dir[0] && d[1] == dir[1]);
-            const wall = this.options.wall;
             for (let i = 0; i < GWU__namespace.xy.CLOCK_DIRS.length; ++i) {
                 const l = i ? i - 1 : 7;
                 const r = (i + 1) % 8;
                 if (i == dirIndex || l == dirIndex || r == dirIndex)
                     continue;
                 const d = GWU__namespace.xy.CLOCK_DIRS[i];
-                site.setTile(x + d[0], y + d[1], wall);
+                site.setTile(x + d[0], y + d[1], wallTile);
                 // map.setCellFlags(x + d[0], y + d[1], Flags.Cell.IMPREGNABLE);
             }
             // dungeon.debug('setup stairs', x, y, tile);
@@ -3525,13 +3546,33 @@
             this.bridges = {};
             this.stairs = {};
             this.boundary = true;
-            this.startLoc = [-1, -1];
-            this.endLoc = [-1, -1];
+            // startLoc: GWU.xy.Loc = [-1, -1];
+            // endLoc: GWU.xy.Loc = [-1, -1];
+            this.locations = {};
+            this.goesUp = false;
             this.seed = options.seed || 0;
             if (typeof options.rooms === 'number') {
                 options.rooms = { count: options.rooms };
             }
             GWU__namespace.object.setOptions(this.rooms, options.rooms);
+            this.goesUp = options.goesUp || false;
+            if (this.goesUp) {
+                this.locations.start = this.locations.down = options.startLoc || [
+                    -1,
+                    -1,
+                ];
+                this.locations.end = this.locations.up = options.endLoc || [-1, -1];
+            }
+            else {
+                this.locations.start = this.locations.up = options.startLoc || [
+                    -1,
+                    -1,
+                ];
+                this.locations.end = this.locations.down = options.endLoc || [
+                    -1,
+                    -1,
+                ];
+            }
             // Doors
             if (options.doors === false) {
                 options.doors = { chance: 0 };
@@ -3592,12 +3633,25 @@
                 this.stairs = null;
             }
             else {
-                if (options.stairs === true)
+                if (typeof options.stairs !== 'object')
                     options.stairs = {};
                 GWU__namespace.object.setOptions(this.stairs, options.stairs);
+                this.stairs.start = this.goesUp ? 'down' : 'up';
+                if (this.locations.up && this.locations.up[0] >= 0) {
+                    this.stairs.up = this.locations.up;
+                }
+                else if (Array.isArray(this.stairs.up)) {
+                    this.locations.up = this.stairs.up;
+                }
+                if (this.locations.down && this.locations.down[0] >= 0) {
+                    this.stairs.down = this.locations.down;
+                }
+                else if (Array.isArray(this.stairs.down)) {
+                    this.locations.down = this.stairs.down;
+                }
             }
-            this.startLoc = options.startLoc || [-1, -1];
-            this.endLoc = options.endLoc || [-1, -1];
+            // this.startLoc = options.startLoc || [-1, -1];
+            // this.endLoc = options.endLoc || [-1, -1];
             if (options.log === true) {
                 this.log = new ConsoleLogger();
             }
@@ -3606,6 +3660,14 @@
             }
             else {
                 this.log = new NullLogger();
+            }
+            if (this.goesUp) {
+                this.locations.start = this.locations.down;
+                this.locations.end = this.locations.up;
+            }
+            else {
+                this.locations.start = this.locations.up;
+                this.locations.end = this.locations.down;
             }
         }
         _makeRoomSite(width, height) {
@@ -3666,10 +3728,10 @@
             site.setSeed(seed);
             site.clear();
             this.seq = site.rng.sequence(site.width * site.height);
-            if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
-                this.startLoc[0] = Math.floor(site.width / 2);
-                this.startLoc[1] = site.height - 2;
-            }
+            // if (this.startLoc[0] < 0 && this.startLoc[0] < 0) {
+            //     this.startLoc[0] = Math.floor(site.width / 2);
+            //     this.startLoc[1] = site.height - 2;
+            // }
         }
         getDigger(id) {
             if (!id)
@@ -3721,7 +3783,7 @@
             let digger = this.getDigger(this.rooms.first || this.rooms.digger || 'DEFAULT');
             let room = digger.create(roomSite);
             if (room &&
-                !this._attachRoomAtLoc(site, roomSite, room, this.startLoc)) {
+                !this._attachRoomAtLoc(site, roomSite, room, this.locations.start)) {
                 room = null;
             }
             roomSite.free();
@@ -3912,7 +3974,10 @@
         }
         addStairs(site, opts) {
             const digger = new Stairs(opts);
-            return digger.create(site);
+            const locs = digger.create(site);
+            if (locs)
+                Object.assign(this.locations, locs);
+            return !!locs;
         }
         finish(site) {
             this._removeDiagonalOpenings(site);
@@ -4001,12 +4066,13 @@
                 levels: 1,
                 width: 80,
                 height: 34,
-                rooms: { count: 20, digger: 'DEFAULT' },
-                halls: {},
-                loops: {},
-                lakes: {},
-                bridges: {},
-                stairs: {},
+                rooms: { fails: 20 },
+                // rooms: { count: 20, digger: 'DEFAULT' },
+                // halls: {},
+                // loops: {},
+                // lakes: {},
+                // bridges: {},
+                // stairs: {},
                 boundary: true,
             };
             this.seeds = [];
@@ -4015,34 +4081,68 @@
             if (this.config.seed) {
                 GWU__namespace.rng.random.seed(this.config.seed);
             }
-            this.initSeeds();
-            this.initStairLocs();
+            if (typeof this.config.stairs === 'boolean' || !this.config.stairs) {
+                this.config.stairs = {};
+            }
+            if (!this.config.rooms) {
+                this.config.rooms = {};
+            }
+            else if (typeof this.config.rooms === 'number') {
+                this.config.rooms = { count: this.config.rooms };
+            }
+            this._initSeeds();
+            this._initStairLocs();
         }
-        get levels() {
+        get length() {
             return this.config.levels;
         }
-        initSeeds() {
+        _initSeeds() {
             for (let i = 0; i < this.config.levels; ++i) {
                 this.seeds[i] = GWU__namespace.rng.random.number(2 ** 32);
             }
         }
-        initStairLocs() {
+        _initStairLocs() {
             let startLoc = this.config.startLoc || [
                 Math.floor(this.config.width / 2),
                 this.config.height - 2,
             ];
             const minDistance = this.config.stairDistance ||
                 Math.floor(Math.max(this.config.width / 2, this.config.height / 2));
+            let needUpdate = false;
             for (let i = 0; i < this.config.levels; ++i) {
-                const endLoc = GWU__namespace.rng.random.matchingLoc(this.config.width, this.config.height, (x, y) => {
-                    return (GWU__namespace.xy.distanceBetween(startLoc[0], startLoc[1], x, y) >
-                        minDistance);
-                });
-                this.stairLocs.push([
+                let endLoc;
+                if (this.stairLocs[i] &&
+                    this.stairLocs[i][1] &&
+                    this.stairLocs[i][1][0] > 0) {
+                    endLoc = this.stairLocs[i][1];
+                    needUpdate =
+                        GWU__namespace.xy.distanceBetween(startLoc[0], startLoc[1], endLoc[0], endLoc[1]) < minDistance;
+                }
+                else {
+                    endLoc = GWU__namespace.rng.random.matchingLoc(this.config.width, this.config.height, (x, y) => {
+                        return (GWU__namespace.xy.distanceBetween(startLoc[0], startLoc[1], x, y) > minDistance);
+                    });
+                }
+                this.stairLocs[i] = [
                     [startLoc[0], startLoc[1]],
                     [endLoc[0], endLoc[1]],
-                ]);
+                ];
                 startLoc = endLoc;
+            }
+            if (needUpdate) {
+                // loop does not go all the way to level 0
+                for (let i = this.config.levels - 1; i > 0; --i) {
+                    let [startLoc, endLoc] = this.stairLocs[i];
+                    if (GWU__namespace.xy.distanceBetween(startLoc[0], startLoc[1], endLoc[0], endLoc[1]) > minDistance) {
+                        break;
+                    }
+                    startLoc = GWU__namespace.rng.random.matchingLoc(this.config.width, this.config.height, (x, y) => {
+                        return (GWU__namespace.xy.distanceBetween(endLoc[0], endLoc[1], x, y) >
+                            minDistance);
+                    });
+                    this.stairLocs[i][0] = startLoc;
+                    this.stairLocs[i - 1][1] = startLoc;
+                }
             }
         }
         getLevel(id, cb) {
@@ -4072,8 +4172,13 @@
                 }
             }
             const rooms = Object.assign({}, this.config.rooms);
-            if (id === 0 && rooms.entrance) {
-                rooms.first = rooms.entrance;
+            if (id === 0 && this.config.entrance) {
+                rooms.first = this.config.entrance;
+            }
+            let width = this.config.width, height = this.config.height;
+            if (cb instanceof GWM__namespace.map.Map) {
+                width = cb.width;
+                height = cb.height;
             }
             const levelOpts = {
                 seed: this.seeds[id],
@@ -4083,18 +4188,33 @@
                 rooms: rooms,
                 stairs: stairOpts,
                 boundary: this.config.boundary,
-                width: this.config.width,
-                height: this.config.height,
+                goesUp: this.config.goesUp,
+                width,
+                height,
             };
-            return this.makeLevel(id, levelOpts, cb);
+            return this._makeLevel(id, levelOpts, cb);
             // TODO - Update startLoc, endLoc
         }
-        makeLevel(id, opts, cb) {
+        _makeLevel(id, opts, cb) {
             const digger = new Digger(opts);
-            const result = digger.create(this.config.width, this.config.height, cb);
-            if (!GWU__namespace.xy.equalsXY(digger.endLoc, opts.endLoc) ||
-                !GWU__namespace.xy.equalsXY(digger.startLoc, opts.startLoc)) {
-                this.stairLocs[id] = [digger.startLoc, digger.endLoc];
+            let result = false;
+            if (cb instanceof GWM__namespace.map.Map) {
+                result = digger.create(cb);
+            }
+            else {
+                result = digger.create(this.config.width, this.config.height, cb);
+            }
+            this.stairLocs[id] = [digger.locations.start, digger.locations.end];
+            if (cb instanceof GWM__namespace.map.Map) {
+                const locs = this.stairLocs[id];
+                if (this.config.goesUp) {
+                    cb.locations.down = cb.locations.start = locs[0];
+                    cb.locations.up = cb.locations.end = locs[1];
+                }
+                else {
+                    cb.locations.down = cb.locations.start = locs[1];
+                    cb.locations.up = cb.locations.end = locs[0];
+                }
             }
             return result;
         }
