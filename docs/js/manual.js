@@ -35,7 +35,7 @@ class Example {
         this._time = $('<div></div>').addClass('time');
 
         this._timers = [];
-        this._loop = new GWU.io.Loop();
+        this._loop = new GWU.app.Loop();
 
         this._useCode(node.textContent);
     }
@@ -72,7 +72,7 @@ class Example {
     stop() {
         this._timers.forEach((t) => clearTimeout(t));
         this._timers = [];
-        // this._loop.end();
+        this._loop.stop();
     }
 
     /**
@@ -151,8 +151,8 @@ class Example {
             SHOW(e);
         }
 
-        this._result.keydown(LOOP.onkeydown.bind(LOOP));
-        this._result.attr('tabindex', 1);
+        // this._result.keydown(LOOP.onkeydown.bind(LOOP));
+        // this._result.attr('tabindex', 1);
     }
 }
 
