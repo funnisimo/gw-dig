@@ -4,11 +4,7 @@ import * as TYPES from './types';
 
 const DIRS = GWU.xy.DIRS;
 
-export function isDoorLoc(
-    site: SITE.DigSite,
-    loc: GWU.xy.Loc,
-    dir: GWU.xy.Loc
-) {
+export function isDoorLoc(site: SITE.Site, loc: GWU.xy.Loc, dir: GWU.xy.Loc) {
     if (!site.hasXY(loc[0], loc[1])) return false;
     // TODO - boundary?
     if (!site.isDiggable(loc[0], loc[1])) return false; // must be a wall/diggable space
@@ -59,7 +55,7 @@ export function pickLength(
 }
 
 export function pickHallDirection(
-    site: SITE.DigSite,
+    site: SITE.Site,
     doors: GWU.xy.Loc[],
     lengths: [GWU.range.Range, GWU.range.Range]
 ): number {
@@ -85,7 +81,7 @@ export function pickHallDirection(
 }
 
 export function pickHallExits(
-    site: SITE.DigSite,
+    site: SITE.Site,
     x: number,
     y: number,
     dir: number,
@@ -237,7 +233,7 @@ export function pickHallExits(
 export interface HallOptions {
     width: number | string;
     length: number | string | number[] | string[];
-    tile: number;
+    tile: TYPES.TileId;
     obliqueChance: number;
     chance: number;
 }
@@ -245,7 +241,7 @@ export interface HallOptions {
 export interface HallConfig {
     width: WidthBase;
     length: [GWU.range.Range, GWU.range.Range];
-    tile: number;
+    tile: string;
     obliqueChance: number;
     chance: number;
 }
@@ -254,7 +250,7 @@ export class HallDigger {
     public config: HallConfig = {
         width: 1,
         length: [GWU.range.make('2-15'), GWU.range.make('2-9')],
-        tile: SITE.FLOOR,
+        tile: 'FLOOR',
         obliqueChance: 15,
         chance: 100,
     };
@@ -281,7 +277,7 @@ export class HallDigger {
         }
     }
 
-    create(site: SITE.DigSite, doors: GWU.xy.Loc[] = []): TYPES.Hall | null {
+    create(site: SITE.Site, doors: GWU.xy.Loc[] = []): TYPES.Hall | null {
         doors = doors || SITE.chooseRandomDoorSites(site);
 
         if (!site.rng.chance(this.config.chance)) return null;
@@ -302,7 +298,7 @@ export class HallDigger {
     }
 
     _digLine(
-        site: SITE.DigSite,
+        site: SITE.Site,
         door: GWU.xy.Loc,
         dir: GWU.xy.Loc,
         length: number
@@ -323,7 +319,7 @@ export class HallDigger {
         return [x, y];
     }
 
-    dig(site: SITE.DigSite, dir: number, door: GWU.xy.Loc, length: number) {
+    dig(site: SITE.Site, dir: number, door: GWU.xy.Loc, length: number) {
         const DIR = DIRS[dir];
         const [x, y] = this._digLine(site, door, DIR, length);
         const hall = TYPES.makeHall(door, dir, length);
@@ -332,7 +328,7 @@ export class HallDigger {
     }
 
     digWide(
-        site: SITE.DigSite,
+        site: SITE.Site,
         dir: number,
         door: GWU.xy.Loc,
         length: number,
@@ -375,7 +371,7 @@ export class HallDigger {
 
 export function dig(
     config: Partial<HallOptions>,
-    site: SITE.DigSite,
+    site: SITE.Site,
     doors: GWU.xy.Loc[]
 ) {
     const digger = new HallDigger(config);

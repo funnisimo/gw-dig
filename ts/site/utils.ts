@@ -1,10 +1,27 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
-import * as DIG from './digSite';
-import * as BUILD from './buildSite';
-// import * as TYPES from './types';
+// import * as GWM from 'gw-map';
+import * as DIG from './site';
 
 const DIRS = GWU.xy.DIRS;
+
+export function loadSite(
+    site: DIG.Site,
+    cells: string[],
+    tiles: Record<string, string>
+) {
+    const w = site.width;
+    const h = site.height;
+
+    cells.forEach((line, j) => {
+        if (j >= h) return;
+        for (let i = 0; i < w && i < line.length; ++i) {
+            const ch = line[i];
+            const tile = tiles[ch] || 'FLOOR';
+
+            site.setTile(i, j, tile);
+        }
+    });
+}
 
 // export function attachRoom(
 //     map: GWU.grid.NumGrid,
@@ -155,7 +172,7 @@ const DIRS = GWU.xy.DIRS;
 // a door out of that room, then return the outbound direction that the door faces.
 // Otherwise, return def.NO_DIRECTION.
 export function directionOfDoorSite(
-    site: DIG.DigSite,
+    site: DIG.Site,
     x: number,
     y: number
 ): number {
@@ -184,7 +201,7 @@ export function directionOfDoorSite(
     return solutionDir;
 }
 
-export function chooseRandomDoorSites(site: DIG.DigSite): GWU.xy.Loc[] {
+export function chooseRandomDoorSites(site: DIG.Site): GWU.xy.Loc[] {
     let i, j, k, newX, newY;
     let dir;
     let doorSiteFailed;
@@ -350,22 +367,7 @@ export function chooseRandomDoorSites(site: DIG.DigSite): GWU.xy.Loc[] {
 //     return false;
 // }
 
-export function copySite(
-    dest: DIG.DigSite,
-    source: DIG.DigSite,
-    offsetX = 0,
-    offsetY = 0
-) {
-    GWU.xy.forRect(dest.width, dest.height, (x, y) => {
-        const otherX = x - offsetX;
-        const otherY = y - offsetY;
-        const v = source.getTileIndex(otherX, otherY);
-        if (!v) return;
-        dest.setTile(x, y, v);
-    });
-}
-
-export function fillCostGrid(source: DIG.DigSite, costGrid: GWU.grid.NumGrid) {
+export function fillCostGrid(source: DIG.Site, costGrid: GWU.grid.NumGrid) {
     costGrid.update((_v, x, y) =>
         source.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION
     );
@@ -379,7 +381,7 @@ export interface DisruptOptions {
 }
 
 export function siteDisruptedByXY(
-    site: DIG.DigSite,
+    site: DIG.Site,
     x: number,
     y: number,
     options: Partial<DisruptOptions> = {}
@@ -403,7 +405,7 @@ export function siteDisruptedByXY(
 }
 
 export function siteDisruptedBy(
-    site: DIG.DigSite,
+    site: DIG.Site,
     blockingGrid: GWU.grid.NumGrid,
     options: Partial<DisruptOptions> = {}
 ) {
@@ -459,7 +461,7 @@ export function siteDisruptedBy(
 }
 
 export function siteDisruptedSize(
-    site: DIG.DigSite,
+    site: DIG.Site,
     blockingGrid: GWU.grid.NumGrid,
     blockingToMapX = 0,
     blockingToMapY = 0
@@ -507,7 +509,7 @@ export function siteDisruptedSize(
 }
 
 export function computeDistanceMap(
-    site: DIG.DigSite,
+    site: DIG.Site,
     distanceMap: GWU.grid.NumGrid,
     originX: number,
     originY: number,
@@ -527,17 +529,10 @@ export function computeDistanceMap(
     GWU.grid.free(costGrid);
 }
 
-export function clearInteriorFlag(site: BUILD.BuildSite, machine: number) {
+export function clearInteriorFlag(site: DIG.Site, machine: number) {
     for (let i = 0; i < site.width; i++) {
         for (let j = 0; j < site.height; j++) {
-            if (
-                site.getMachine(i, j) == machine &&
-                !site.hasCellFlag(
-                    i,
-                    j,
-                    GWM.flags.Cell.IS_WIRED | GWM.flags.Cell.IS_CIRCUIT_BREAKER
-                )
-            ) {
+            if (site.getMachine(i, j) == machine && !site.needsMachine(i, j)) {
                 site.setMachine(i, j, 0);
             }
         }

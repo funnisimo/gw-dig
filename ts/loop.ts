@@ -24,7 +24,7 @@ export class LoopDigger {
         GWU.object.assignObject(this.options, options);
     }
 
-    create(site: SITE.DigSite) {
+    create(site: SITE.Site) {
         let startX, startY, endX, endY;
         let i, j, d, x, y;
 
@@ -154,7 +154,7 @@ export class LoopDigger {
 
                             while (endX !== startX || endY !== startY) {
                                 if (site.isNothing(endX, endY)) {
-                                    site.setTile(endX, endY, SITE.FLOOR);
+                                    site.setTile(endX, endY, 'FLOOR');
                                     costGrid[endX][endY] = 1; // (Cost map also needs updating.)
                                 }
                                 endX += dir[0];
@@ -164,8 +164,8 @@ export class LoopDigger {
                             const tile = site.rng.chance(
                                 this.options.doorChance
                             )
-                                ? SITE.DOOR
-                                : SITE.FLOOR;
+                                ? 'DOOR'
+                                : 'FLOOR';
                             site.setTile(x, y, tile); // then turn the tile into a doorway.
                             ++count;
                             break;
@@ -182,7 +182,7 @@ export class LoopDigger {
 }
 
 // Add some loops to the otherwise simply connected network of rooms.
-export function digLoops(site: SITE.DigSite, opts: Partial<LoopOptions> = {}) {
+export function digLoops(site: SITE.Site, opts: Partial<LoopOptions> = {}) {
     const digger = new LoopDigger(opts);
     return digger.create(site);
 }

@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
+// import * as GWM from 'gw-map';
 import * as Digger from './digger';
 // import * as Lake from './lake';
-import { MapSite } from './site';
+import * as SITE from './site';
 
 describe('Lakes', () => {
     beforeEach(() => {
@@ -13,8 +13,8 @@ describe('Lakes', () => {
         const digger = new Digger.Digger({
             rooms: 40,
         });
-        const map = GWM.map.make(80, 40);
-        const site = new MapSite(map);
+        // const map = GWM.map.make(80, 40);
+        const site = new SITE.Site(80, 40);
 
         digger.start(site);
         digger.addRooms(site);
@@ -23,6 +23,8 @@ describe('Lakes', () => {
 
         // map.dump();
 
-        expect(map.count((c) => c.hasTile('LAKE'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count((t) => t === SITE.tileId('DEEP'))
+        ).toBeGreaterThan(0);
     });
 });

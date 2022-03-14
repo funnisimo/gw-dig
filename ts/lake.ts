@@ -1,6 +1,8 @@
 import * as GWU from 'gw-utils';
 import * as SITE from './site';
 
+import * as TYPES from './types';
+
 export interface LakeOpts {
     height: number;
     width: number;
@@ -8,10 +10,10 @@ export interface LakeOpts {
     tries: number;
     count: number;
     canDisrupt: boolean;
-    wreathTile: number;
+    wreathTile: TYPES.TileId;
     wreathChance: number;
     wreathSize: number;
-    tile: number;
+    tile: TYPES.TileId;
 }
 
 export class Lakes {
@@ -22,17 +24,17 @@ export class Lakes {
         tries: 20,
         count: 1,
         canDisrupt: false,
-        wreathTile: SITE.SHALLOW,
+        wreathTile: 'SHALLOW',
         wreathChance: 50,
         wreathSize: 1,
-        tile: SITE.DEEP,
+        tile: 'DEEP',
     };
 
     constructor(options: Partial<LakeOpts> = {}) {
         GWU.object.assignObject(this.options, options);
     }
 
-    create(site: SITE.DigSite): number {
+    create(site: SITE.Site): number {
         let i, j, k;
         let x: number, y: number;
         let lakeMaxHeight,
@@ -52,9 +54,9 @@ export class Lakes {
         const hasWreath = site.rng.chance(this.options.wreathChance)
             ? true
             : false;
-        const wreathTile = this.options.wreathTile || SITE.SHALLOW;
+        const wreathTile = this.options.wreathTile || 'SHALLOW';
         const wreathSize = this.options.wreathSize || 1; // TODO - make this a range "0-2" or a weighted choice { 0: 50, 1: 40, 2" 10 }
-        const tile = this.options.tile || SITE.DEEP;
+        const tile = this.options.tile || 'DEEP';
 
         const lakeGrid = GWU.grid.alloc(site.width, site.height, 0);
 
@@ -124,9 +126,9 @@ export class Lakes {
                                 site.setTile(sx, sy, tile);
 
                                 if (hasWreath) {
-                                    if (site.hasTile(sx, sy, wreathTile)) {
-                                        site.clearCell(sx, sy, wreathTile);
-                                    }
+                                    // if (site.hasTile(sx, sy, wreathTile)) {
+                                    //     site.clearTile(sx, sy, wreathTile);
+                                    // }
                                     GWU.xy.forCircle(
                                         sx,
                                         sy,
@@ -166,7 +168,7 @@ export class Lakes {
     }
 
     isDisruptedBy(
-        site: SITE.DigSite,
+        site: SITE.Site,
         lakeGrid: GWU.grid.NumGrid,
         lakeToMapX = 0,
         lakeToMapY = 0

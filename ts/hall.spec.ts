@@ -112,13 +112,14 @@ describe('Hall', () => {
     // });
 
     describe('digHall', () => {
-        let site: SITE.GridSite;
+        let site: SITE.Site;
         let room: Room;
 
         beforeEach(() => {
             room = new Room(20, 20, 10, 10);
-            site = new SITE.GridSite(50, 50);
-            site.tiles.fillRect(20, 20, 10, 10, 1);
+            SITE.installTile('TEST');
+            site = new SITE.Site(50, 50);
+            site._tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
             //     [-1, -1],
             //     [-1, -1],
@@ -250,15 +251,15 @@ describe('Hall', () => {
                 [10, 25],
             ]);
 
-            expect(site.tiles.count(10)).toEqual(0);
+            expect(site._tiles.count(10)).toEqual(0);
         });
 
         test('basic hall - right, width:3', () => {
             room.doors[GWU.xy.RIGHT] = [30, 25];
-            const digger = new HALL.HallDigger({ width: 3, tile: 10 });
+            const digger = new HALL.HallDigger({ width: 3, tile: 'TEST' });
             const hall = digger.create(site, room.doors);
 
-            // site.tiles.dump();
+            // site._tiles.dump();
 
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(30);
@@ -267,18 +268,19 @@ describe('Hall', () => {
             expect(hall!.width).toEqual(9);
             expect(hall!.doors).toEqual([undefined, [39, 25]]);
 
-            expect(site.tiles.count(10)).toBeGreaterThan(0);
+            expect(site._tiles.count(SITE.tileId('TEST'))).toBeGreaterThan(0);
         });
     });
 
     describe('tile', () => {
-        let site: SITE.GridSite;
+        let site: SITE.Site;
         let room: Room;
 
         beforeEach(() => {
             room = new Room(20, 20, 10, 10);
-            site = new SITE.GridSite(50, 50);
-            site.tiles.fillRect(20, 20, 10, 10, 1);
+            SITE.installTile('TEST');
+            site = new SITE.Site(50, 50);
+            site._tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
             //     [-1, -1],
             //     [-1, -1],
@@ -293,10 +295,10 @@ describe('Hall', () => {
 
         test('can set tile', () => {
             room.doors[GWU.xy.DOWN] = [25, 30];
-            const digger = new HALL.HallDigger({ tile: 10 });
+            const digger = new HALL.HallDigger({ tile: 'TEST' });
             const hall = digger.create(site, room.doors);
 
-            // grid.dump();
+            // site.dump();
             expect(hall).not.toBeNull();
             expect(hall!.x).toEqual(25);
             expect(hall!.y).toEqual(30);
@@ -304,7 +306,7 @@ describe('Hall', () => {
             expect(hall!.width).toEqual(1);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
 
-            expect(site.tiles[hall!.x][hall!.y]).toEqual(10);
+            expect(site._tiles[hall!.x][hall!.y]).toEqual(SITE.tileId('TEST'));
         });
     });
 });

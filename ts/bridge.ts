@@ -16,7 +16,7 @@ export class Bridges {
         GWU.object.assignObject(this.options, options);
     }
 
-    create(site: SITE.DigSite): number {
+    create(site: SITE.Site): number {
         let count = 0;
         let newX, newY;
         let i, j, d, x, y;
@@ -116,10 +116,10 @@ export class Bridges {
                                         bridgeDir
                                     )
                                 ) {
-                                    site.setTile(x, y, SITE.BRIDGE); // map[x][y] = SITE.BRIDGE;
+                                    site.setTile(x, y, 'BRIDGE'); // map[x][y] = SITE.BRIDGE;
                                     costGrid[x][y] = 1; // (Cost map also needs updating.)
                                 } else {
-                                    site.setTile(x, y, SITE.FLOOR); // map[x][y] = SITE.FLOOR;
+                                    site.setTile(x, y, 'FLOOR'); // map[x][y] = SITE.FLOOR;
                                     costGrid[x][y] = 1;
                                 }
                                 x += bridgeDir[0];
@@ -138,7 +138,7 @@ export class Bridges {
     }
 
     isBridgeCandidate(
-        site: SITE.DigSite,
+        site: SITE.Site,
         x: number,
         y: number,
         _bridgeDir: [number, number]

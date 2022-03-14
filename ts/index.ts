@@ -8,6 +8,5 @@ export * as loop from './loop';
 export * from './types';
 export * from './digger';
 export * from './dungeon';
-export * as blueprint from './blueprint';
-export * as log from './log';
-export * as horde from './horde';
+export * as feature from './feature';
+export * as blueprint from './build';

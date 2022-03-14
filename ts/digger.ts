@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
+// import * as GWM from 'gw-map';
 
 import * as TYPES from './types';
 import * as SITE from './site';
@@ -10,12 +10,12 @@ import * as LAKE from './lake';
 import * as BRIDGE from './bridge';
 import * as STAIRS from './stairs';
 
-import * as LOGGER from './log/logger';
-import { ConsoleLogger } from './log/consoleLogger';
+import * as LOGGER from './site/log/logger';
+import { ConsoleLogger } from './site/log/consoleLogger';
 
 export interface DoorOpts {
     chance: number;
-    tile: number;
+    tile: string;
 }
 
 export interface RoomOptions {
@@ -33,7 +33,7 @@ export interface DiggerOptions {
     stairs?: Partial<STAIRS.StairOpts> | boolean;
     doors?: Partial<DoorOpts> | boolean;
 
-    rooms: number | Partial<RoomOptions>;
+    rooms?: number | Partial<RoomOptions>;
 
     startLoc?: GWU.xy.Loc;
     endLoc?: GWU.xy.Loc;
@@ -46,7 +46,7 @@ export interface DiggerOptions {
 }
 
 export class Digger {
-    site!: SITE.DigSite;
+    site!: SITE.Site;
 
     seed = 0;
     rooms: Partial<RoomOptions> = { fails: 20 };
@@ -68,8 +68,9 @@ export class Digger {
     seq!: number[];
     log: LOGGER.Logger;
 
-    constructor(options: Partial<DiggerOptions> = {}) {
+    constructor(options: DiggerOptions = {}) {
         this.seed = options.seed || 0;
+
         if (typeof options.rooms === 'number') {
             options.rooms = { count: options.rooms };
         }
@@ -104,12 +105,13 @@ export class Digger {
             this.loops = null;
         } else {
             if (options.loops === true) options.loops = {};
-            if (typeof options.loops === 'number') {
+            else if (typeof options.loops === 'number') {
                 options.loops = { maxLength: options.loops };
             }
             options.loops = options.loops || {};
             options.loops.doorChance =
                 options.loops.doorChance ?? options.doors?.chance;
+            // @ts-ignore
             GWU.object.setOptions(this.loops, options.loops);
         }
 
@@ -118,9 +120,11 @@ export class Digger {
             this.lakes = null;
         } else {
             if (options.lakes === true) options.lakes = {};
-            if (typeof options.lakes === 'number') {
+            else if (typeof options.lakes === 'number') {
                 options.lakes = { count: options.lakes };
             }
+            options.lakes = options.lakes || {};
+            // @ts-ignore
             GWU.object.setOptions(this.lakes, options.lakes);
         }
 
@@ -132,6 +136,7 @@ export class Digger {
                 options.bridges = { maxLength: options.bridges };
             }
             if (options.bridges === true) options.bridges = {};
+            // @ts-ignore
             GWU.object.setOptions(this.bridges, options.bridges);
         }
 
@@ -140,6 +145,7 @@ export class Digger {
             this.stairs = null;
         } else {
             if (typeof options.stairs !== 'object') options.stairs = {};
+            // @ts-ignore
             GWU.object.setOptions(this.stairs, options.stairs);
             this.stairs!.start = this.goesUp ? 'down' : 'up';
         }
@@ -157,43 +163,50 @@ export class Digger {
     }
 
     _makeRoomSite(width: number, height: number) {
-        const site = new SITE.GridSite(width, height);
+        const site = new SITE.Site(width, height);
         site.rng = this.site.rng;
         return site;
     }
 
-    _createSite(map: GWM.map.Map): void;
-    _createSite(width: number, height: number): void;
-    _createSite(a: number | GWM.map.Map, b?: number): void {
-        if (a instanceof GWM.map.Map) {
-            this.site = new SITE.MapSite(a);
-        } else if (b) {
-            this.site = new SITE.GridSite(a, b!);
-        } else {
-            throw new Error('Invlaid digger arguments.');
-        }
+    _createSite(width: number, height: number): void {
+        this.site = new SITE.Site(width, height);
     }
 
     create(width: number, height: number, cb: TYPES.DigFn): boolean;
-    create(map: GWM.map.Map): boolean;
+    create(map: GWU.grid.NumGrid): boolean;
+    create(map: SITE.Site): boolean;
     create(...args: any[]): boolean {
-        this._createSite(args[0], args[1]);
+        let needsFree = true;
+        if (args.length == 1) {
+            const dest = args[0];
+            if (dest instanceof SITE.Site) {
+                this.site = dest;
+                needsFree = false;
+            } else {
+                this._createSite(dest.width, dest.height);
+            }
+        } else {
+            this._createSite(args[0], args[1]);
+        }
 
         const result = this._create(this.site);
 
         const cb = args[2] || null;
         if (cb) {
             GWU.xy.forRect(this.site.width, this.site.height, (x, y) => {
-                const t = this.site.getTileIndex(x, y);
+                const t = this.site._tiles[x][y];
                 if (t) cb(x, y, t);
             });
+        } else if (args.length == 1 && needsFree) {
+            const dest = args[0];
+            dest.copy(this.site._tiles);
         }
 
-        this.site.free();
+        needsFree && this.site.free();
         return result;
     }
 
-    _create(site: SITE.DigSite): boolean {
+    _create(site: SITE.Site): boolean {
         this.start(site);
 
         this.addRooms(site);
@@ -220,7 +233,7 @@ export class Digger {
         return true;
     }
 
-    start(site: SITE.DigSite) {
+    start(site: SITE.Site) {
         this.site = site;
 
         const seed = this.seed || GWU.rng.random.number();
@@ -274,7 +287,7 @@ export class Digger {
         return new ROOM.ChoiceRoom(id);
     }
 
-    addRooms(site: SITE.DigSite) {
+    addRooms(site: SITE.Site) {
         let tries = 20;
         while (--tries) {
             if (this.addFirstRoom(site)) break;
@@ -308,7 +321,7 @@ export class Digger {
         }
     }
 
-    addFirstRoom(site: SITE.DigSite): TYPES.Room | null {
+    addFirstRoom(site: SITE.Site): TYPES.Room | null {
         const roomSite = this._makeRoomSite(site.width, site.height);
 
         let digger: ROOM.RoomDigger = this.getDigger(
@@ -327,7 +340,7 @@ export class Digger {
         return room;
     }
 
-    addRoom(site: SITE.DigSite): TYPES.Room | null {
+    addRoom(site: SITE.Site): TYPES.Room | null {
         const roomSite = this._makeRoomSite(site.width, site.height);
         let digger: ROOM.RoomDigger = this.getDigger(
             this.rooms.digger || 'DEFAULT'
@@ -366,8 +379,8 @@ export class Digger {
     }
 
     _attachRoom(
-        site: SITE.DigSite,
-        roomSite: SITE.DigSite,
+        site: SITE.Site,
+        roomSite: SITE.Site,
         room: TYPES.Room
     ): boolean {
         // console.log('attachRoom');
@@ -394,7 +407,7 @@ export class Digger {
                     this._roomFitsAt(site, roomSite, room, offsetX, offsetY)
                 ) {
                     // TYPES.Room fits here.
-                    SITE.copySite(site, roomSite, offsetX, offsetY);
+                    site.copyTiles(roomSite, offsetX, offsetY);
                     this._attachDoor(site, room, x, y, oppDir);
 
                     // door[0] = -1;
@@ -409,8 +422,8 @@ export class Digger {
     }
 
     _attachRoomAtLoc(
-        site: SITE.DigSite,
-        roomSite: SITE.DigSite,
+        site: SITE.Site,
+        roomSite: SITE.Site,
         room: TYPES.Room,
         attachLoc: GWU.xy.Loc
     ): boolean {
@@ -432,7 +445,7 @@ export class Digger {
                 // dungeon.debug("attachRoom: ", x, y, oppDir);
 
                 // TYPES.Room fits here.
-                SITE.copySite(site, roomSite, offX, offY);
+                site.copyTiles(roomSite, offX, offY);
                 // this._attachDoor(site, room, x, y, oppDir);  // No door on first room!
                 room.translate(offX, offY);
                 // const newDoors = doorSites.map((site) => {
@@ -449,8 +462,8 @@ export class Digger {
     }
 
     _roomFitsAt(
-        map: SITE.DigSite,
-        roomGrid: SITE.DigSite,
+        map: SITE.Site,
+        roomGrid: SITE.Site,
         room: TYPES.Room,
         roomToSiteX: number,
         roomToSiteY: number
@@ -493,7 +506,7 @@ export class Digger {
     }
 
     _attachDoor(
-        site: SITE.DigSite,
+        site: SITE.Site,
         room: TYPES.Room,
         x: number,
         y: number,
@@ -506,7 +519,7 @@ export class Digger {
             isDoor = true;
         }
 
-        const tile = isDoor ? opts.tile || SITE.DOOR : SITE.FLOOR;
+        const tile = isDoor ? opts.tile || 'DOOR' : 'FLOOR';
         site.setTile(x, y, tile); // Door site.
 
         // most cases...
@@ -557,35 +570,35 @@ export class Digger {
         }
     }
 
-    addLoops(site: SITE.DigSite, opts: Partial<LOOP.LoopOptions>) {
+    addLoops(site: SITE.Site, opts: Partial<LOOP.LoopOptions>) {
         const digger = new LOOP.LoopDigger(opts);
         return digger.create(site);
     }
 
-    addLakes(site: SITE.DigSite, opts: Partial<LAKE.LakeOpts>) {
+    addLakes(site: SITE.Site, opts: Partial<LAKE.LakeOpts>) {
         const digger = new LAKE.Lakes(opts);
         return digger.create(site);
     }
 
-    addBridges(site: SITE.DigSite, opts: Partial<BRIDGE.BridgeOpts>) {
+    addBridges(site: SITE.Site, opts: Partial<BRIDGE.BridgeOpts>) {
         const digger = new BRIDGE.Bridges(opts);
         return digger.create(site);
     }
 
-    addStairs(site: SITE.DigSite, opts: Partial<STAIRS.StairOpts>) {
+    addStairs(site: SITE.Site, opts: Partial<STAIRS.StairOpts>) {
         const digger = new STAIRS.Stairs(opts);
         const locs = digger.create(site);
         if (locs) Object.assign(this.locations, locs);
         return !!locs;
     }
 
-    finish(site: SITE.DigSite) {
+    finish(site: SITE.Site) {
         this._removeDiagonalOpenings(site);
         this._finishWalls(site);
         this._finishDoors(site);
     }
 
-    _removeDiagonalOpenings(site: SITE.DigSite) {
+    _removeDiagonalOpenings(site: SITE.Site) {
         let i, j, k, x1, y1;
         let diagonalCornerRemoved;
 
@@ -610,7 +623,7 @@ export class Digger {
                                 y1 = j + 1;
                             }
                             diagonalCornerRemoved = true;
-                            site.setTile(x1, y1, SITE.FLOOR); // todo - pick one of the passable tiles around it...
+                            site.setTile(x1, y1, 'FLOOR'); // todo - pick one of the passable tiles around it...
                         }
                     }
                 }
@@ -618,7 +631,7 @@ export class Digger {
         } while (diagonalCornerRemoved == true);
     }
 
-    _finishDoors(site: SITE.DigSite) {
+    _finishDoors(site: SITE.Site) {
         GWU.xy.forRect(site.width, site.height, (x, y) => {
             if (site.isBoundaryXY(x, y)) return;
 
@@ -642,27 +655,27 @@ export class Digger {
                 ) {
                     // If the door has three or more pathing blocker neighbors in the four cardinal directions,
                     // then the door is orphaned and must be removed.
-                    site.setTile(x, y, SITE.FLOOR, { superpriority: true }); // todo - take passable neighbor
+                    site.setTile(x, y, 'FLOOR', { superpriority: true }); // todo - take passable neighbor
                 }
             }
         });
     }
 
-    _finishWalls(site: SITE.DigSite) {
-        const boundaryTile = this.boundary ? SITE.IMPREGNABLE : SITE.WALL;
+    _finishWalls(site: SITE.Site) {
+        const boundaryTile = this.boundary ? 'IMPREGNABLE' : 'WALL';
         GWU.xy.forRect(site.width, site.height, (x, y) => {
             if (site.isNothing(x, y)) {
                 if (site.isBoundaryXY(x, y)) {
                     site.setTile(x, y, boundaryTile);
                 } else {
-                    site.setTile(x, y, SITE.WALL);
+                    site.setTile(x, y, 'WALL');
                 }
             }
         });
     }
 }
 
-export function digMap(map: GWM.map.Map, options: Partial<DiggerOptions> = {}) {
-    const digger = new Digger(options);
-    return digger.create(map);
-}
+// export function digMap(map: GWM.map.Map, options: Partial<DiggerOptions> = {}) {
+//     const digger = new Digger(options);
+//     return digger.create(map);
+// }

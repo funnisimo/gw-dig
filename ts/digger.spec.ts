@@ -1,7 +1,8 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
+// import * as GWM from 'gw-map';
 import * as Dig from './index';
 import { Digger } from './digger';
+import * as SITE from './site';
 
 describe('Level', () => {
     test('basic', () => {
@@ -39,31 +40,29 @@ describe('Level', () => {
         //     return '' + v;
         // });
 
-        expect(grid.count(Dig.site.NOTHING)).toEqual(0);
-        expect(grid.count(Dig.site.FLOOR)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.WALL)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.DOOR)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.DEEP)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.SHALLOW)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.BRIDGE)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.DOWN_STAIRS)).toEqual(1);
-        expect(grid.count(Dig.site.IMPREGNABLE)).toBeGreaterThan(0);
-        expect(grid.count(Dig.site.UP_STAIRS)).toEqual(1);
+        expect(grid.count(SITE.tileId('NOTHING'))).toEqual(0);
+        expect(grid.count(SITE.tileId('FLOOR'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('WALL'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('DOOR'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('DEEP'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('SHALLOW'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('BRIDGE'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('DOWN_STAIRS'))).toEqual(1);
+        expect(grid.count(SITE.tileId('IMPREGNABLE'))).toBeGreaterThan(0);
+        expect(grid.count(SITE.tileId('UP_STAIRS'))).toEqual(1);
     });
 
     describe('roomFitsAt', () => {
         test('roomFitsAt - just room', () => {
-            const site = new Dig.site.GridSite(100, 100);
-            const roomSite = new Dig.site.GridSite(100, 100);
+            const site = new SITE.Site(100, 100);
+            const roomSite = new SITE.Site(100, 100);
             const digger = new Digger();
 
             // Top left of site
-            GWU.xy.forRect(1, 1, 9, 9, (x, y) =>
-                site.setTile(x, y, Dig.site.FLOOR)
-            );
+            GWU.xy.forRect(1, 1, 9, 9, (x, y) => site.setTile(x, y, 'FLOOR'));
 
             GWU.xy.forRect(45, 45, 9, 9, (x, y) =>
-                roomSite.setTile(x, y, Dig.site.FLOOR)
+                roomSite.setTile(x, y, 'FLOOR')
             );
             const room = new Dig.Room(45, 45, 10, 10);
             // room.doors[GWU.xy.UP] = [-1,-1];
@@ -91,22 +90,20 @@ describe('Level', () => {
         });
 
         test('roomFitsAt - up hall', () => {
-            const site = new Dig.site.GridSite(100, 100);
-            const roomSite = new Dig.site.GridSite(100, 100);
+            const site = new SITE.Site(100, 100);
+            const roomSite = new SITE.Site(100, 100);
             const digger = new Digger();
 
             // Top left of site
-            GWU.xy.forRect(1, 1, 9, 9, (x, y) =>
-                site.setTile(x, y, Dig.site.FLOOR)
-            );
+            GWU.xy.forRect(1, 1, 9, 9, (x, y) => site.setTile(x, y, 'FLOOR'));
 
             GWU.xy.forRect(45, 45, 9, 9, (x, y) =>
-                roomSite.setTile(x, y, Dig.site.FLOOR)
+                roomSite.setTile(x, y, 'FLOOR')
             );
             const room = new Dig.Room(45, 45, 10, 10);
 
             GWU.xy.forLine(50, 44, [0, -1], 5, (x, y) =>
-                roomSite.setTile(x, y, Dig.site.FLOOR)
+                roomSite.setTile(x, y, 'FLOOR')
             );
             const hall = Dig.makeHall([50, 44], 0, 5);
             expect(hall.x).toEqual(50);
@@ -147,7 +144,7 @@ describe('Level', () => {
             new Dig.room.Rectangular({ width: '4-10', height: '4-10' })
         );
 
-        const map = GWM.map.make(80, 34);
+        const grid = GWU.grid.make(40, 40);
 
         const digger = new Dig.Digger({
             seed: 12345,
@@ -156,17 +153,21 @@ describe('Level', () => {
             loops: false,
             lakes: false,
         });
-        digger.create(map);
+        digger.create(40, 40, (x, y, v) => {
+            grid[x][y] = v;
+        });
 
         let lines: string[] = [];
-        map.dump(undefined, (line: string) => {
+        grid.dump(undefined, (line: string) => {
             lines.push(line);
         });
-        map.clear();
+        grid.fill(0);
 
-        digger.create(map);
+        digger.create(40, 40, (x, y, v) => {
+            grid[x][y] = v;
+        });
         let lines2: string[] = [];
-        map.dump(undefined, (line: string) => {
+        grid.dump(undefined, (line: string) => {
             lines2.push(line);
         });
 
@@ -176,21 +177,18 @@ describe('Level', () => {
     describe('seeds', () => {
         test('682067209748479 - shallows over lakes', () => {
             const seed = 682067209748479;
-            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            Dig.digMap(map, { stairs: false, seed });
 
-            // map.dump();
-
-            const both: GWU.xy.Loc[] = [];
-            map.eachCell((c, x, y) => {
-                if (c.hasTile('LAKE') && c.hasTile('SHALLOW')) {
-                    both.push([x, y]);
-                }
+            const grid = GWU.grid.make(80, 40);
+            const digger = new Dig.Digger({
+                seed,
+                stairs: false,
+            });
+            digger.create(80, 40, (x, y, v) => {
+                grid[x][y] = v;
             });
 
-            expect(both).toHaveLength(0);
-            expect(map.hasTile(42, 17, 'LAKE')).toBeTruthy();
-            expect(map.hasTile(42, 17, 'SHALLOW')).toBeFalsy();
+            // map.dump();
+            expect(grid.get(42, 17)).toEqual(SITE.tileId('LAKE'));
         });
 
         test.todo('171105058815999 - bridge too short @ 49,12');
@@ -198,32 +196,50 @@ describe('Level', () => {
 
         test.skip('3636220756230143 - bridge too short : h & v', () => {
             const seed = 3636220756230143;
-            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            Dig.digMap(map, { stairs: false, seed, bridges: 10 });
+            const grid = GWU.grid.make(80, 40);
+            const digger = new Dig.Digger({
+                seed,
+                stairs: false,
+                bridges: 10,
+            });
+            digger.create(80, 40, (x, y, v) => {
+                grid[x][y] = v;
+            });
 
-            map.dump();
-            expect(map.hasTile(39, 15, 'BRIDGE')).toBeTruthy();
+            grid.dump();
+            expect(grid.get(39, 15)).toEqual(SITE.tileId('BRIDGE'));
         });
 
         test('2385039633416191 - door orphaned @ 48,27', () => {
             const seed = 2385039633416191;
-            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            Dig.digMap(map, { stairs: false, seed });
 
-            // map.dump();
-            expect(map.hasTile(48, 27, 'DOOR')).toBeFalsy();
+            const grid = GWU.grid.make(80, 40);
+            const digger = new Dig.Digger({
+                seed,
+                stairs: false,
+            });
+            digger.create(80, 40, (x, y, v) => {
+                grid[x][y] = v;
+            });
+
+            // grid.dump();
+            expect(grid.get(48, 27)).not.toEqual(SITE.tileId('DOOR'));
         });
 
         test('1200255339069439 - 2 doors @ 61,21', () => {
             const seed = 1200255339069439;
-            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            Dig.digMap(map, { stairs: false, seed });
 
-            // map.dump();
+            const grid = GWU.grid.make(80, 40);
+            const digger = new Dig.Digger({
+                seed,
+                stairs: false,
+            });
+            digger.create(grid);
 
-            expect(
-                map.hasTile(61, 21, 'DOOR') && map.hasTile(62, 21, 'DOOR')
-            ).toBeFalsy();
+            // grid.dump();
+
+            expect(grid.get(61, 21)).toEqual(SITE.tileId('DOOR'));
+            expect(grid.get(62, 21)).not.toEqual(SITE.tileId('DOOR'));
         });
     });
 });

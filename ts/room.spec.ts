@@ -5,12 +5,13 @@ import * as Dig from './index';
 import * as Site from './site';
 
 describe('dig', () => {
-    let site: Site.GridSite;
+    let site: Site.Site;
 
     beforeEach(() => {
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
-        site = new Site.GridSite(50, 30);
+        Site.installTile('TEST');
+        site = new Site.Site(50, 30);
     });
 
     afterEach(() => {
@@ -71,40 +72,40 @@ describe('dig', () => {
                 {
                     height: '8',
                 },
-                { width: 10, height: [3 - 6], tile: 1 }
+                { width: 10, height: [3 - 6], tile: 'TEST' }
             );
 
             expect(config.width.value()).toEqual(10);
             expect(config.height.value()).toEqual(8);
-            expect(config.tile).toEqual(1);
+            expect(config.tile).toEqual('TEST');
         });
 
         test('tile - passed', () => {
             const config = Dig.room.checkConfig(
                 {
                     height: '8',
-                    tile: 8,
+                    tile: 'TEST',
                 },
                 { width: 10, height: [3 - 6] }
             );
 
             expect(config.width.value()).toEqual(10);
             expect(config.height.value()).toEqual(8);
-            expect(config.tile).toEqual(8);
+            expect(config.tile).toEqual('TEST');
         });
 
         test('tile - both', () => {
             const config = Dig.room.checkConfig(
                 {
                     height: '8',
-                    tile: 8,
+                    tile: 'TEST',
                 },
-                { width: 10, height: [3 - 6], tile: 3 }
+                { width: 10, height: [3 - 6], tile: 'SHALLOW' }
             );
 
             expect(config.width.value()).toEqual(10);
             expect(config.height.value()).toEqual(8);
-            expect(config.tile).toEqual(8);
+            expect(config.tile).toEqual('TEST');
         });
     });
 
@@ -118,7 +119,7 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
-        site.tiles.forEach((v, i, j) => {
+        site._tiles.forEach((v, i, j) => {
             if (site.isBoundaryXY(i, j)) {
                 expect(v).toEqual(0);
             } else {
@@ -137,24 +138,24 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
-        expect(site.tiles.count(1)).toBeWithin(16, 36);
+        expect(site._tiles.count(1)).toBeWithin(16, 36);
     });
 
     test('rectangular - tile', () => {
         GWU.rng.random.seed(12345);
 
         const room = Dig.room.rectangular(
-            { width: site.width - 2, height: site.height - 2, tile: 10 },
+            { width: site.width - 2, height: site.height - 2, tile: 'TEST' },
             site
         );
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
-        site.tiles.forEach((v, i, j) => {
+        site._tiles.forEach((v, i, j) => {
             if (site.isBoundaryXY(i, j)) {
                 expect(v).toEqual(0);
             } else {
-                expect(v).toEqual(10);
+                expect(v).toEqual(Site.tileId('TEST'));
             }
         });
     });
@@ -168,7 +169,7 @@ describe('dig', () => {
         // grid.dump();
 
         expect(room).toMatchObject({ x: 22, y: 12, width: 7, height: 7 });
-        expect(site.tiles.count(1)).toBeGreaterThan(0);
+        expect(site._tiles.count(Site.tileId('FLOOR'))).toBeGreaterThan(0);
         // expect(room.cx).toEqual(25);
         // expect(room.cy).toEqual(15);
         // expect(grid[room.cx][room.cy]).toEqual(1);
@@ -177,14 +178,14 @@ describe('dig', () => {
     test('circular - tile', () => {
         GWU.rng.random.seed(12345);
 
-        const room = Dig.room.circular({ tile: 10 }, site);
+        const room = Dig.room.circular({ tile: 'FLOOR' }, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
 
         expect(room).toMatchObject({ x: 22, y: 12, width: 7, height: 7 });
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(Site.tileId('DOOR'))).toEqual(0);
+        expect(site._tiles.count(Site.tileId('FLOOR'))).toBeGreaterThan(0);
         // expect(room.cx).toEqual(25);
         // expect(room.cy).toEqual(15);
         // expect(grid[room.cx][room.cy]).toEqual(10);
@@ -197,7 +198,7 @@ describe('dig', () => {
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
-        expect(site.getTileIndex(25, 15)).toEqual(0);
+        expect(site._tiles.get(25, 15)).toEqual(0);
         expect(room).toMatchObject({ x: 18, y: 8, width: 15, height: 15 });
         // expect(grid[room.cx][room.cy]).toEqual(0);
     });
@@ -206,16 +207,16 @@ describe('dig', () => {
         GWU.rng.random.seed(123456);
 
         const room = Dig.room.brogueDonut(
-            { holeChance: 100, radius: 7, tile: 10 },
+            { holeChance: 100, radius: 7, tile: 'TEST' },
             site
         );
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
-        expect(site.getTileIndex(25, 15)).toEqual(0);
+        expect(site._tiles.get(25, 15)).toEqual(0);
         expect(room).toMatchObject({ x: 18, y: 8, width: 15, height: 15 });
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
         // expect(grid[room.cx][room.cy]).toEqual(0);
     });
 
@@ -227,56 +228,59 @@ describe('dig', () => {
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
         expect(room).toMatchObject({ x: 21, y: 12, width: 10, height: 8 });
-        expect(site.tiles.count(1)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toBeGreaterThan(0);
     });
 
     test('chunkyRoom - tile', () => {
         GWU.rng.random.seed(123456);
 
-        const room = Dig.room.chunkyRoom({ tile: 10 }, site);
+        const room = Dig.room.chunkyRoom({ tile: 'TEST' }, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
         // grid.dump();
         expect(room).toMatchObject({ x: 21, y: 12, width: 10, height: 8 });
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
     });
 
     test('cavern', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
         const room = Dig.room.cavern({ width: 10, height: 10 }, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toBeGreaterThan(0);
     });
 
     test('cavern - tile', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
-        const room = Dig.room.cavern({ width: 10, height: 10, tile: 10 }, site);
+        const room = Dig.room.cavern(
+            { width: 10, height: 10, tile: 'TEST' },
+            site
+        );
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
     });
 
     test('entrance', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
         const room = Dig.room.brogueEntrance({}, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toBeGreaterThan(0);
         expect(room.x).toEqual(14);
         expect(room.y).toEqual(18);
         expect(room.width).toEqual(20);
@@ -285,15 +289,15 @@ describe('dig', () => {
 
     test('entrance - tile', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
-        const room = Dig.room.brogueEntrance({ tile: 10 }, site);
+        const room = Dig.room.brogueEntrance({ tile: 'TEST' }, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
         expect(room.x).toEqual(14);
         expect(room.y).toEqual(18);
         expect(room.width).toEqual(20);
@@ -302,14 +306,14 @@ describe('dig', () => {
 
     test('cross', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
         const room = Dig.room.cross({}, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toBeGreaterThan(0);
         expect(room.x).toEqual(19);
         expect(room.y).toEqual(5);
         expect(room.width).toEqual(12);
@@ -318,15 +322,15 @@ describe('dig', () => {
 
     test('cross - tile', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
-        const room = Dig.room.cross({ tile: 10 }, site);
+        const room = Dig.room.cross({ tile: 'TEST' }, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
         expect(room.x).toEqual(19);
         expect(room.y).toEqual(5);
         expect(room.width).toEqual(12);
@@ -335,14 +339,14 @@ describe('dig', () => {
 
     test('symmetricalCross', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
         const room = Dig.room.symmetricalCross({}, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toBeGreaterThan(0);
         expect(room.x).toEqual(21);
         expect(room.y).toEqual(11);
         expect(room.width).toEqual(7);
@@ -351,15 +355,15 @@ describe('dig', () => {
 
     test('symmetricalCross - tile', () => {
         GWU.rng.random.seed(123456);
-        expect(site.tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(1)).toEqual(0);
 
-        const room = Dig.room.symmetricalCross({ tile: 10 }, site);
+        const room = Dig.room.symmetricalCross({ tile: 'TEST' }, site);
 
         expect(room).toContainKeys(['x', 'y', 'width', 'height']);
 
         // grid.dump();
-        expect(site.tiles.count(1)).toEqual(0);
-        expect(site.tiles.count(10)).toBeGreaterThan(0);
+        expect(site._tiles.count(1)).toEqual(0);
+        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
         expect(room.x).toEqual(21);
         expect(room.y).toEqual(11);
         expect(room.width).toEqual(7);

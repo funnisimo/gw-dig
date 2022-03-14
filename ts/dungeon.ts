@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
+// import * as GWM from 'gw-map';
 import * as LEVEL from './digger';
 
 import * as TYPES from './types';
@@ -23,11 +23,11 @@ export interface DungeonOptions extends DIG.DiggerOptions {
     entrance?: string | string[] | Record<string, number> | ROOM.RoomDigger;
 
     startLoc?: GWU.xy.Loc;
-    startTile?: GWM.tile.TileBase;
+    startTile?: TYPES.TileId;
     stairDistance?: number;
 
     endLoc?: GWU.xy.Loc;
-    endTile?: GWM.tile.TileBase;
+    endTile?: TYPES.TileId;
 
     // rooms?: {
     //     count?: number;
@@ -48,7 +48,8 @@ export interface DungeonOptions extends DIG.DiggerOptions {
 export type LocPair = [GWU.xy.Loc, GWU.xy.Loc];
 
 export class Dungeon {
-    public config: DungeonOptions = {
+    // @ts-ignore
+    config: DungeonOptions = {
         levels: 1,
         width: 80,
         height: 34,
@@ -62,10 +63,10 @@ export class Dungeon {
 
         boundary: true,
     };
-    public seeds: number[] = [];
-    public stairLocs: LocPair[] = [];
+    seeds: number[] = [];
+    stairLocs: LocPair[] = [];
 
-    constructor(options: Partial<DungeonOptions> = {}) {
+    constructor(options: DungeonOptions) {
         GWU.object.setOptions(this.config, options);
 
         if (this.config.seed) {
@@ -179,7 +180,7 @@ export class Dungeon {
         }
     }
 
-    getLevel(id: number, cb: TYPES.DigFn | GWM.map.Map) {
+    getLevel(id: number, cb: TYPES.DigFn) {
         if (id < 0 || id > this.config.levels)
             throw new Error('Invalid level id: ' + id);
 
@@ -220,10 +221,10 @@ export class Dungeon {
 
         let width = this.config.width,
             height = this.config.height;
-        if (cb instanceof GWM.map.Map) {
-            width = cb.width;
-            height = cb.height;
-        }
+        // if (cb instanceof GWM.map.Map) {
+        //     width = cb.width;
+        //     height = cb.height;
+        // }
 
         const levelOpts = {
             seed: this.seeds[id],
@@ -246,31 +247,27 @@ export class Dungeon {
         // TODO - Update startLoc, endLoc
     }
 
-    _makeLevel(
-        id: number,
-        opts: Partial<LEVEL.DiggerOptions>,
-        cb: TYPES.DigFn | GWM.map.Map
-    ) {
+    _makeLevel(id: number, opts: LEVEL.DiggerOptions, cb: TYPES.DigFn) {
         const digger = new LEVEL.Digger(opts);
         let result = false;
-        if (cb instanceof GWM.map.Map) {
-            result = digger.create(cb);
-        } else {
-            result = digger.create(this.config.width, this.config.height, cb);
-        }
+        // if (cb instanceof GWM.map.Map) {
+        //     result = digger.create(cb);
+        // } else {
+        result = digger.create(this.config.width, this.config.height, cb);
+        // }
 
         this.stairLocs[id] = [digger.locations.start, digger.locations.end];
 
-        if (cb instanceof GWM.map.Map) {
-            const locs = this.stairLocs[id];
-            if (this.config.goesUp) {
-                cb.locations.down = cb.locations.start = locs[0];
-                cb.locations.up = cb.locations.end = locs[1];
-            } else {
-                cb.locations.down = cb.locations.start = locs[1];
-                cb.locations.up = cb.locations.end = locs[0];
-            }
-        }
+        // if (cb instanceof GWM.map.Map) {
+        //     const locs = this.stairLocs[id];
+        //     if (this.config.goesUp) {
+        //         cb.locations.down = cb.locations.start = locs[0];
+        //         cb.locations.up = cb.locations.end = locs[1];
+        //     } else {
+        //         cb.locations.down = cb.locations.start = locs[1];
+        //         cb.locations.up = cb.locations.end = locs[0];
+        //     }
+        // }
         return result;
     }
 }

@@ -1,10 +1,12 @@
 import * as GWU from 'gw-utils';
 
+export type TileId = string;
+
 export interface RoomConfig {
     // fn?: RoomFn;
     // door?: boolean | number;
     // doorChance?: number;
-    tile?: number;
+    tile?: TileId;
     [x: string]: any;
 }
 

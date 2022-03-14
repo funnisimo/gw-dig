@@ -14,7 +14,7 @@ export function checkConfig(
 
         if (key === 'tile') {
             if (have === undefined) {
-                config[key] = expect as number;
+                config[key] = expect as TYPES.TileId;
             }
             return;
         }
@@ -54,7 +54,7 @@ export abstract class RoomDigger {
         this.options = checkConfig(config, expected);
     }
 
-    create(site: SITE.DigSite): TYPES.Room {
+    create(site: SITE.Site): TYPES.Room {
         const result = this.carve(site);
         if (result) {
             if (
@@ -68,7 +68,7 @@ export abstract class RoomDigger {
         return result;
     }
 
-    abstract carve(site: SITE.DigSite): TYPES.Room;
+    abstract carve(site: SITE.Site): TYPES.Room;
 }
 
 export var rooms: Record<string, RoomDigger> = {};
@@ -97,7 +97,7 @@ export class ChoiceRoom extends RoomDigger {
         }
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         let id = this.randomRoom(site.rng);
         const room = rooms[id];
         if (!room) {
@@ -109,7 +109,7 @@ export class ChoiceRoom extends RoomDigger {
     }
 }
 
-export function choiceRoom(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function choiceRoom(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new ChoiceRoom(config);
     return digger.create(site);
@@ -123,10 +123,10 @@ export class Cavern extends RoomDigger {
         });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const width = this.options.width.value(site.rng);
         const height = this.options.height.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const blobGrid = GWU.grid.alloc(site.width, site.height, 0);
 
@@ -169,7 +169,7 @@ export class Cavern extends RoomDigger {
     }
 }
 
-export function cavern(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function cavern(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new Cavern(config);
     return digger.create(site);
@@ -184,10 +184,10 @@ export class BrogueEntrance extends RoomDigger {
         });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const width = this.options.width.value(site.rng);
         const height = this.options.height.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const roomWidth = Math.floor(0.4 * width); // 8
         const roomHeight = height;
@@ -218,7 +218,7 @@ export class BrogueEntrance extends RoomDigger {
     }
 }
 
-export function brogueEntrance(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function brogueEntrance(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new BrogueEntrance(config);
     return digger.create(site);
@@ -229,10 +229,10 @@ export class Cross extends RoomDigger {
         super(config, { width: 12, height: 20 });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const width = this.options.width.value(site.rng);
         const height = this.options.height.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const roomWidth = width;
         const roomWidth2 = Math.max(
@@ -269,7 +269,7 @@ export class Cross extends RoomDigger {
     }
 }
 
-export function cross(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function cross(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new Cross(config);
     return digger.create(site);
@@ -280,10 +280,10 @@ export class SymmetricalCross extends RoomDigger {
         super(config, { width: 7, height: 7 });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const width = this.options.width.value(site.rng);
         const height = this.options.height.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         let minorWidth = Math.max(
             3,
@@ -319,7 +319,7 @@ export class SymmetricalCross extends RoomDigger {
     }
 }
 
-export function symmetricalCross(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function symmetricalCross(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new SymmetricalCross(config);
     return digger.create(site);
@@ -333,10 +333,10 @@ export class Rectangular extends RoomDigger {
         });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const width = this.options.width.value(site.rng);
         const height = this.options.height.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const x = Math.floor((site.width - width) / 2);
         const y = Math.floor((site.height - height) / 2);
@@ -345,7 +345,7 @@ export class Rectangular extends RoomDigger {
     }
 }
 
-export function rectangular(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function rectangular(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new Rectangular(config);
     return digger.create(site);
@@ -358,9 +358,9 @@ export class Circular extends RoomDigger {
         });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const radius = this.options.radius.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const x = Math.floor(site.width / 2);
         const y = Math.floor(site.height / 2);
@@ -377,7 +377,7 @@ export class Circular extends RoomDigger {
     }
 }
 
-export function circular(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function circular(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new Circular(config);
     return digger.create(site);
@@ -393,11 +393,11 @@ export class BrogueDonut extends RoomDigger {
         });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         const radius = this.options.radius.value(site.rng);
         const ringMinWidth = this.options.ringMinWidth.value(site.rng);
         const holeMinSize = this.options.holeMinSize.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const x = Math.floor(site.width / 2);
         const y = Math.floor(site.height / 2);
@@ -411,7 +411,7 @@ export class BrogueDonut extends RoomDigger {
                 x,
                 y,
                 site.rng.range(holeMinSize, radius - holeMinSize),
-                (x, y) => site.setTile(x, y, 0)
+                (x, y) => site.clearTile(x, y)
             );
         }
 
@@ -424,7 +424,7 @@ export class BrogueDonut extends RoomDigger {
     }
 }
 
-export function brogueDonut(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function brogueDonut(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new BrogueDonut(config);
     return digger.create(site);
@@ -439,13 +439,13 @@ export class ChunkyRoom extends RoomDigger {
         });
     }
 
-    carve(site: SITE.DigSite) {
+    carve(site: SITE.Site) {
         let i, x, y;
         let chunkCount = this.options.count.value(site.rng);
 
         const width = this.options.width.value(site.rng);
         const height = this.options.height.value(site.rng);
-        const tile = this.options.tile || SITE.FLOOR;
+        const tile = this.options.tile || 'FLOOR';
 
         const minX = Math.floor(site.width / 2) - Math.floor(width / 2);
         const maxX = Math.floor(site.width / 2) + Math.floor(width / 2);
@@ -486,7 +486,7 @@ export class ChunkyRoom extends RoomDigger {
     }
 }
 
-export function chunkyRoom(config: TYPES.RoomConfig, site: SITE.DigSite) {
+export function chunkyRoom(config: TYPES.RoomConfig, site: SITE.Site) {
     // grid.fill(0);
     const digger = new ChunkyRoom(config);
     return digger.create(site);

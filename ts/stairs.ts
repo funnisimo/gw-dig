@@ -1,6 +1,7 @@
 import * as GWU from 'gw-utils';
-import * as GWM from 'gw-map';
+// import * as GWM from 'gw-map';
 
+import * as TYPES from './types';
 import * as SITE from './site';
 
 export interface StairOpts {
@@ -10,9 +11,9 @@ export interface StairOpts {
 
     start: boolean | string | GWU.xy.Loc;
 
-    upTile: GWM.tile.TileBase;
-    downTile: GWM.tile.TileBase;
-    wall: GWM.tile.TileBase;
+    upTile: TYPES.TileId;
+    downTile: TYPES.TileId;
+    wall: TYPES.TileId;
 }
 
 export class Stairs {
@@ -21,16 +22,16 @@ export class Stairs {
         down: true,
         minDistance: 10,
         start: false,
-        upTile: SITE.UP_STAIRS,
-        downTile: SITE.DOWN_STAIRS,
-        wall: SITE.IMPREGNABLE,
+        upTile: 'UP_STAIRS',
+        downTile: 'DOWN_STAIRS',
+        wall: 'IMPREGNABLE',
     };
 
     constructor(options: Partial<StairOpts> = {}) {
         GWU.object.assignObject(this.options, options);
     }
 
-    create(site: SITE.DigSite) {
+    create(site: SITE.Site) {
         let needUp = this.options.up !== false;
         let needDown = this.options.down !== false;
         const minDistance =
@@ -185,13 +186,13 @@ export class Stairs {
         return upLoc || downLoc ? locations : null;
     }
 
-    hasXY(site: SITE.DigSite, x: number, y: number) {
+    hasXY(site: SITE.Site, x: number, y: number) {
         if (x < 0 || y < 0) return false;
         if (x >= site.width || y >= site.height) return false;
         return true;
     }
 
-    isStairXY(site: SITE.DigSite, x: number, y: number) {
+    isStairXY(site: SITE.Site, x: number, y: number) {
         let count = 0;
         if (!this.hasXY(site, x, y) || !site.isDiggable(x, y)) return false;
 
@@ -213,11 +214,11 @@ export class Stairs {
     }
 
     setupStairs(
-        site: SITE.DigSite,
+        site: SITE.Site,
         x: number,
         y: number,
-        tile: GWM.tile.TileBase,
-        wallTile: GWM.tile.TileBase
+        tile: TYPES.TileId,
+        wallTile: TYPES.TileId
     ) {
         const indexes = site.rng.sequence(4);
 

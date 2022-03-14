@@ -2350,11 +2350,13 @@
 	    Object.keys(dest).forEach((key) => {
 	        assignField(dest, src, key);
 	    });
+	    return dest;
 	}
 	function assignObject(dest, src) {
 	    Object.keys(src).forEach((key) => {
 	        assignField(dest, src, key);
 	    });
+	    return dest;
 	}
 	function assignOmitting(omit, dest, src) {
 	    if (typeof omit === 'string') {
@@ -2365,6 +2367,7 @@
 	            return;
 	        assignField(dest, src, key);
 	    });
+	    return dest;
 	}
 	function setDefault(obj, field, val) {
 	    if (obj[field] === undefined) {
@@ -3059,7 +3062,7 @@
 	// Grid.fillBlob = fillBlob;
 	const alloc = NumGrid.alloc.bind(NumGrid);
 	const free = NumGrid.free.bind(NumGrid);
-	function make$d(w, h, v) {
+	function make$e(w, h, v) {
 	    if (v === undefined)
 	        return new NumGrid(w, h, 0);
 	    if (typeof v === 'number')
@@ -3101,7 +3104,7 @@
 		NumGrid: NumGrid,
 		alloc: alloc,
 		free: free,
-		make: make$d,
+		make: make$e,
 		offsetZip: offsetZip,
 		intersection: intersection,
 		unite: unite
@@ -3404,7 +3407,7 @@
 	}
 	const random = new Random();
 	const cosmetic = new Random();
-	function make$c(seed) {
+	function make$d(seed) {
 	    return new Random(seed);
 	}
 
@@ -3415,7 +3418,7 @@
 		Random: Random,
 		random: random,
 		cosmetic: cosmetic,
-		make: make$c
+		make: make$d
 	});
 
 	class Range {
@@ -3455,7 +3458,7 @@
 	        return `${this.lo}-${this.hi}`;
 	    }
 	}
-	function make$b(config) {
+	function make$c(config) {
 	    if (!config)
 	        return new Range(0, 0, 0);
 	    if (config instanceof Range)
@@ -3511,23 +3514,87 @@
 	    }
 	    throw new Error('Not a valid range - ' + config);
 	}
-	const from$4 = make$b;
+	const from$4 = make$c;
 	function asFn(config) {
-	    const range = make$b(config);
+	    const range = make$c(config);
 	    return () => range.value();
 	}
 	function value(base) {
-	    const r = make$b(base);
+	    const r = make$c(base);
 	    return r.value();
 	}
 
 	var range = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		Range: Range,
-		make: make$b,
+		make: make$c,
 		from: from$4,
 		asFn: asFn,
 		value: value
+	});
+
+	function make$b(base) {
+	    if (!base)
+	        return [];
+	    if (typeof base === 'string') {
+	        base = base.split(/[|,]/g);
+	    }
+	    return base.map((t) => t.trim()).filter((v) => v && v.length);
+	}
+	// TACO & !CHICKEN  << A -AND- NOT B
+	// FOOD
+	// TACO & STEAK << A -AND- B
+	// TACO | STEAK << A -OR- B
+	// TACO, STEAK  << SPLITS GROUPS - groups are -OR-
+	function makeMatch(rules) {
+	    if (!rules)
+	        return () => true;
+	    const fns = [];
+	    if (typeof rules === 'string') {
+	        const groups = rules.split(',').map((t) => t.trim());
+	        groups.forEach((info) => {
+	            const ors = info.split(/[|]/).map((t) => t.trim());
+	            ors.forEach((orPart) => {
+	                const ands = orPart.split(/[&]/).map((t) => t.trim());
+	                const andFns = ands.map((v) => {
+	                    if (v.startsWith('!')) {
+	                        const id = v.substring(1);
+	                        return (tags) => !tags.includes(id);
+	                    }
+	                    return (tags) => tags.includes(v);
+	                });
+	                fns.push((tags) => andFns.every((f) => f(tags)));
+	            });
+	        });
+	        return (tags) => fns.some((f) => f(tags));
+	    }
+	    else {
+	        if (typeof rules.tags === 'string') {
+	            rules.tags = rules.tags.split(/[:,|]/g).map((t) => t.trim());
+	        }
+	        if (typeof rules.forbidTags === 'string') {
+	            rules.forbidTags = rules.forbidTags
+	                .split(/[:,|]/g)
+	                .map((t) => t.trim());
+	        }
+	        const needTags = rules.tags;
+	        const forbidTags = rules.forbidTags || [];
+	        return (tags) => {
+	            return (needTags.every((t) => tags.includes(t)) &&
+	                !forbidTags.some((t) => tags.includes(t)));
+	        };
+	    }
+	}
+	function match(tags, matchRules) {
+	    const matchFn = makeMatch(matchRules);
+	    return matchFn(tags);
+	}
+
+	var tags = /*#__PURE__*/Object.freeze({
+		__proto__: null,
+		make: make$b,
+		makeMatch: makeMatch,
+		match: match
 	});
 
 	///////////////////////////////////
@@ -5957,7 +6024,7 @@
 	            flag |= FovFlags.REVEALED;
 	        if (visible)
 	            flag |= FovFlags.VISIBLE;
-	        this.flags = make$d(site.width, site.height, flag);
+	        this.flags = make$e(site.width, site.height, flag);
 	        // this.needsUpdate = true;
 	        if (opts.callback) {
 	            this.callback = opts.callback;
@@ -6689,6 +6756,21 @@
 	    } while (dir);
 	    return path.length ? path : null;
 	}
+	function getPathBetween(width, height, fromX, fromY, toX, toY, costFn, eightWays = true) {
+	    const costMap = alloc(width, height);
+	    const distanceMap = alloc(width, height);
+	    for (let x = 0; x < width; ++x) {
+	        for (let y = 0; y < height; ++y) {
+	            costMap[x][y] = costFn(x, y);
+	        }
+	    }
+	    calculateDistances(distanceMap, toX, toY, costMap, eightWays);
+	    const isBlocked = (x, y) => costFn(x, y) < 0;
+	    const path = getPath(distanceMap, fromX, fromY, isBlocked, eightWays);
+	    free(distanceMap);
+	    free(costMap);
+	    return path;
+	}
 
 	var path = /*#__PURE__*/Object.freeze({
 		__proto__: null,
@@ -6701,7 +6783,8 @@
 		rescan: rescan,
 		nextStep: nextStep,
 		getClosestValidLocation: getClosestValidLocation,
-		getPath: getPath
+		getPath: getPath,
+		getPathBetween: getPathBetween
 	});
 
 	/**
@@ -8680,7 +8763,7 @@ void main() {
 	        this.passThroughActors = false;
 	        this.id = null;
 	        this.color = from$2(color); /* color */
-	        this.radius = make$b(radius);
+	        this.radius = make$c(radius);
 	        this.fadeTo = fadeTo;
 	        this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
 	    }
@@ -8850,10 +8933,10 @@ void main() {
 	        this.changed = false;
 	        this.glowLightChanged = false;
 	        this.dynamicLightChanged = false;
-	        this.light = make$d(map.width, map.height, () => this.ambient.slice());
-	        this.glowLight = make$d(map.width, map.height, () => this.ambient.slice());
-	        this.oldLight = make$d(map.width, map.height, () => this.ambient.slice());
-	        this.flags = make$d(map.width, map.height);
+	        this.light = make$e(map.width, map.height, () => this.ambient.slice());
+	        this.glowLight = make$e(map.width, map.height, () => this.ambient.slice());
+	        this.oldLight = make$e(map.width, map.height, () => this.ambient.slice());
+	        this.flags = make$e(map.width, map.height);
 	        this.finishLightUpdate();
 	    }
 	    copy(other) {
@@ -14590,6 +14673,7 @@ void main() {
 	exports.sprite = index$4;
 	exports.sprites = sprites;
 	exports.sum = sum;
+	exports.tags = tags;
 	exports.text = index$7;
 	exports.tween = tween;
 	exports.types = types;
