@@ -21,7 +21,7 @@ declare class Room extends GWU.xy.Bounds {
     translate(dx: number, dy: number): void;
 }
 
-interface TileOptions$1 {
+interface TileConfig {
     blocksMove?: boolean;
     blocksVision?: boolean;
     blocksPathing?: boolean;
@@ -36,13 +36,17 @@ interface TileOptions$1 {
     ch?: string;
     extends?: string;
 }
+interface TileOptions$1 extends TileConfig {
+    id: string;
+}
 interface TileInfo extends TileOptions$1 {
     id: string;
     index: number;
     priority: number;
     tags: string[];
 }
-declare function installTile(id: string, opts?: TileOptions$1): TileInfo;
+declare function installTile(cfg: TileOptions$1): TileInfo;
+declare function installTile(id: string, opts?: TileConfig): TileInfo;
 declare function getTile(name: string | number): TileInfo;
 declare function tileId(name: string | number): number;
 declare function blocksMove(name: string | number): boolean;
@@ -296,14 +300,7 @@ interface SetTileOptions {
     volume?: number;
     machine?: number;
 }
-declare enum Flags$1 {
-    CHOKEPOINT,
-    GATE_SITE,
-    IN_LOOP,
-    IN_MACHINE,
-    IN_AREA_MACHINE,
-    IMPREGNABLE
-}
+declare const Flags$1: Record<string, number>;
 interface SiteOptions {
     rng?: GWU.rng.Random;
 }
@@ -350,11 +347,12 @@ declare class Site {
     isAnyLiquid(x: number, y: number): boolean;
     isSet(x: number, y: number): boolean;
     tileBlocksMove(tile: string): boolean;
-    setTile(x: number, y: number, tile: string, _opts?: SetTileOptions): boolean;
+    setTile(x: number, y: number, tile: string | number, _opts?: SetTileOptions): boolean;
     clearTile(x: number, y: number): void;
+    getTile(x: number, y: number): TileInfo;
     makeImpregnable(x: number, y: number): void;
     isImpregnable(x: number, y: number): boolean;
-    hasTile(x: number, y: number, tile: string): boolean;
+    hasTile(x: number, y: number, tile: string | number): boolean;
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
     setChokepoint(x: number, y: number): void;
@@ -697,6 +695,8 @@ declare namespace index_d$2 {
 }
 
 type index_d$1_TileId = TileId;
+type index_d$1_TileConfig = TileConfig;
+type index_d$1_TileInfo = TileInfo;
 declare const index_d$1_installTile: typeof installTile;
 declare const index_d$1_getTile: typeof getTile;
 declare const index_d$1_tileId: typeof tileId;
@@ -749,7 +749,9 @@ declare namespace index_d$1 {
   export {
     index_d$2 as log,
     index_d$1_TileId as TileId,
+    index_d$1_TileConfig as TileConfig,
     TileOptions$1 as TileOptions,
+    index_d$1_TileInfo as TileInfo,
     index_d$1_installTile as installTile,
     index_d$1_getTile as getTile,
     index_d$1_tileId as tileId,

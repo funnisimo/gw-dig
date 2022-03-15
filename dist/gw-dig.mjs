@@ -3,12 +3,20 @@ import * as GWU from 'gw-utils';
 const tiles = {};
 const all = [];
 function installTile(id, opts = {}) {
+    if (typeof id !== 'string') {
+        opts = id;
+        id = id.id;
+    }
     const base = { id, index: all.length, priority: 0, tags: [] };
+    opts.extends = opts.extends || id;
     if (opts.extends) {
         const root = getTile(opts.extends);
-        if (!root)
+        if (root) {
+            Object.assign(base, root);
+        }
+        else if (opts.extends !== id) {
             throw new Error('Cannot extend tile: ' + opts.extends);
-        Object.assign(base, root);
+        }
     }
     const info = GWU.object.assignOmitting('priority, extends', base, opts);
     info.id = id;
@@ -116,7 +124,13 @@ tiles['DEEP'] = installTile('LAKE', {
 }).index;
 installTile('SHALLOW', { priority: 30, ch: '`' });
 installTile('BRIDGE', { priority: 45, ch: '=' }); // layers help here
-installTile('IMPREGNABLE', { priority: 200, ch: '%', impregnable: true });
+installTile('IMPREGNABLE', {
+    priority: 200,
+    ch: '%',
+    impregnable: true,
+    blocksMove: true,
+    blocksVision: true,
+});
 
 const features = {};
 function install$3(name, fn) {
@@ -1604,15 +1618,14 @@ function cleanLoopiness(map) {
 ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////
 
-var Flags$1;
-(function (Flags) {
-    Flags[Flags["CHOKEPOINT"] = GWU.flag.fl(0)] = "CHOKEPOINT";
-    Flags[Flags["GATE_SITE"] = GWU.flag.fl(1)] = "GATE_SITE";
-    Flags[Flags["IN_LOOP"] = GWU.flag.fl(2)] = "IN_LOOP";
-    Flags[Flags["IN_MACHINE"] = GWU.flag.fl(3)] = "IN_MACHINE";
-    Flags[Flags["IN_AREA_MACHINE"] = GWU.flag.fl(4)] = "IN_AREA_MACHINE";
-    Flags[Flags["IMPREGNABLE"] = GWU.flag.fl(5)] = "IMPREGNABLE";
-})(Flags$1 || (Flags$1 = {}));
+const Flags$1 = GWU.flag.make([
+    'CHOKEPOINT',
+    'GATE_SITE',
+    'IN_LOOP',
+    'IN_MACHINE',
+    'IN_AREA_MACHINE',
+    'IMPREGNABLE',
+]);
 class Site {
     constructor(width, height, opts = {}) {
         this.rng = GWU.rng.random;
@@ -1724,10 +1737,10 @@ class Site {
         return this.hasTile(x, y, 'BRIDGE');
     }
     isWall(x, y) {
-        return this.hasTile(x, y, 'WALL') || this.hasTile(x, y, 'IMPREGNABLE');
+        return this.blocksMove(x, y) && this.blocksVision(x, y);
     }
     blocksMove(x, y) {
-        return this.isNothing(x, y) || this.isWall(x, y) || this.isDeep(x, y);
+        return getTile(this._tiles[x][y]).blocksMove || false;
     }
     blocksDiagonal(x, y) {
         return this.isNothing(x, y) || this.isWall(x, y);
@@ -1739,10 +1752,13 @@ class Site {
             this.isStairs(x, y));
     }
     blocksVision(x, y) {
-        return this.isNothing(x, y) || this.isWall(x, y);
+        return getTile(this._tiles[x][y]).blocksVision || false;
     }
     blocksItems(x, y) {
-        return this.blocksPathing(x, y) || this.blocksPathing(x, y);
+        return (this.blocksPathing(x, y) ||
+            this.isChokepoint(x, y) ||
+            this.isInLoop(x, y) ||
+            this.isInMachine(x, y));
         // site.hasCellFlag(
         //     x,
         //     y,
@@ -1776,18 +1792,23 @@ class Site {
         // if (tile instanceof GWM.tile.Tile) {
         //     tile = tile.index;
         // }
-        // if (typeof tile === 'string') {
-        const id = tileId(tile);
-        // }
         if (!this._tiles.hasXY(x, y))
             return false;
-        this._tiles[x][y] = id;
+        if (typeof tile === 'string') {
+            tile = tileId(tile);
+        }
+        // priority checks...
+        this._tiles[x][y] = tile;
         return true;
     }
     clearTile(x, y) {
         if (this.hasXY(x, y)) {
             this._tiles[x][y] = 0;
         }
+    }
+    getTile(x, y) {
+        const id = this._tiles[x][y];
+        return getTile(id);
     }
     makeImpregnable(x, y) {
         this._flags[x][y] |= Flags$1.IMPREGNABLE;
@@ -1797,13 +1818,10 @@ class Site {
         return !!(this._flags[x][y] & Flags$1.IMPREGNABLE);
     }
     hasTile(x, y, tile) {
-        // if (tile instanceof GWM.tile.Tile) {
-        //     tile = tile.index;
-        // }
-        // if (typeof tile === 'string') {
-        const id = tileId(tile);
-        // }
-        return this._tiles.hasXY(x, y) && this._tiles[x][y] == id;
+        if (typeof tile === 'string') {
+            tile = tileId(tile);
+        }
+        return this._tiles.hasXY(x, y) && this._tiles[x][y] == tile;
     }
     getChokeCount(x, y) {
         return this._chokeCounts[x][y];
@@ -2704,7 +2722,7 @@ var index$1 = /*#__PURE__*/Object.freeze({
     pickItem: pickItem,
     makeItem: makeItem,
     getItemInfo: getItemInfo,
-    get Flags () { return Flags$1; },
+    Flags: Flags$1,
     Site: Site,
     loadSite: loadSite,
     directionOfDoorSite: directionOfDoorSite,

@@ -3685,6 +3685,52 @@
 	}
 	function make$a(obj) {
 	    const out = {};
+	    if (Array.isArray(obj)) {
+	        const arr = obj;
+	        const flags = {};
+	        let nextIndex = 0;
+	        let used = [];
+	        arr.forEach((v) => {
+	            if (v.includes('=')) {
+	                const [name, value] = v.split('=').map((t) => t.trim());
+	                const values = value.split('|').map((t) => t.trim());
+	                // console.log(`flag: ${v} >> ${name} = ${value} >> ${values}`);
+	                let i = 0;
+	                for (let n = 0; n < values.length; ++n) {
+	                    const p = values[n];
+	                    if (flags[p]) {
+	                        i |= flags[p];
+	                    }
+	                    else {
+	                        const num = Number.parseInt(p);
+	                        if (num) {
+	                            i |= num;
+	                            for (let x = 0; x < 32; ++x) {
+	                                if (i & (1 << x)) {
+	                                    used[x] = 1;
+	                                }
+	                            }
+	                        }
+	                        else {
+	                            throw new Error(`Failed to parse flag = ${v}`);
+	                        }
+	                    }
+	                }
+	                flags[name] = i;
+	            }
+	            else {
+	                while (used[nextIndex]) {
+	                    ++nextIndex;
+	                }
+	                if (nextIndex > 31) {
+	                    throw new Error('Flag uses too many bits! [Max=32]');
+	                }
+	                flags[v] = fl(nextIndex);
+	                used[nextIndex] = 1;
+	            }
+	        });
+	        return flags;
+	    }
 	    Object.entries(obj).forEach(([key, value]) => {
 	        out[key] = from$3(out, value);
 	    });
@@ -5873,46 +5919,34 @@
 		make: make$8
 	});
 
-	var FovFlags;
-	(function (FovFlags) {
-	    FovFlags[FovFlags["VISIBLE"] = fl(0)] = "VISIBLE";
-	    FovFlags[FovFlags["WAS_VISIBLE"] = fl(1)] = "WAS_VISIBLE";
-	    FovFlags[FovFlags["CLAIRVOYANT_VISIBLE"] = fl(2)] = "CLAIRVOYANT_VISIBLE";
-	    FovFlags[FovFlags["WAS_CLAIRVOYANT_VISIBLE"] = fl(3)] = "WAS_CLAIRVOYANT_VISIBLE";
-	    FovFlags[FovFlags["TELEPATHIC_VISIBLE"] = fl(4)] = "TELEPATHIC_VISIBLE";
-	    FovFlags[FovFlags["WAS_TELEPATHIC_VISIBLE"] = fl(5)] = "WAS_TELEPATHIC_VISIBLE";
-	    FovFlags[FovFlags["ITEM_DETECTED"] = fl(6)] = "ITEM_DETECTED";
-	    FovFlags[FovFlags["WAS_ITEM_DETECTED"] = fl(7)] = "WAS_ITEM_DETECTED";
-	    FovFlags[FovFlags["ACTOR_DETECTED"] = fl(8)] = "ACTOR_DETECTED";
-	    FovFlags[FovFlags["WAS_ACTOR_DETECTED"] = fl(9)] = "WAS_ACTOR_DETECTED";
-	    FovFlags[FovFlags["REVEALED"] = fl(10)] = "REVEALED";
-	    FovFlags[FovFlags["MAGIC_MAPPED"] = fl(11)] = "MAGIC_MAPPED";
-	    FovFlags[FovFlags["IN_FOV"] = fl(12)] = "IN_FOV";
-	    FovFlags[FovFlags["WAS_IN_FOV"] = fl(13)] = "WAS_IN_FOV";
-	    FovFlags[FovFlags["ALWAYS_VISIBLE"] = fl(14)] = "ALWAYS_VISIBLE";
-	    FovFlags[FovFlags["IS_CURSOR"] = fl(15)] = "IS_CURSOR";
-	    FovFlags[FovFlags["IS_HIGHLIGHTED"] = fl(16)] = "IS_HIGHLIGHTED";
-	    FovFlags[FovFlags["ANY_KIND_OF_VISIBLE"] = FovFlags.VISIBLE | FovFlags.CLAIRVOYANT_VISIBLE | FovFlags.TELEPATHIC_VISIBLE] = "ANY_KIND_OF_VISIBLE";
-	    FovFlags[FovFlags["IS_WAS_ANY_KIND_OF_VISIBLE"] = FovFlags.VISIBLE |
-	        FovFlags.WAS_VISIBLE |
-	        FovFlags.CLAIRVOYANT_VISIBLE |
-	        FovFlags.WAS_CLAIRVOYANT_VISIBLE |
-	        FovFlags.TELEPATHIC_VISIBLE |
-	        FovFlags.WAS_TELEPATHIC_VISIBLE] = "IS_WAS_ANY_KIND_OF_VISIBLE";
-	    FovFlags[FovFlags["WAS_ANY_KIND_OF_VISIBLE"] = FovFlags.WAS_VISIBLE |
-	        FovFlags.WAS_CLAIRVOYANT_VISIBLE |
-	        FovFlags.WAS_TELEPATHIC_VISIBLE] = "WAS_ANY_KIND_OF_VISIBLE";
-	    FovFlags[FovFlags["WAS_DETECTED"] = FovFlags.WAS_ITEM_DETECTED | FovFlags.WAS_ACTOR_DETECTED] = "WAS_DETECTED";
-	    FovFlags[FovFlags["IS_DETECTED"] = FovFlags.ITEM_DETECTED | FovFlags.ACTOR_DETECTED] = "IS_DETECTED";
-	    FovFlags[FovFlags["PLAYER"] = FovFlags.IN_FOV] = "PLAYER";
-	    FovFlags[FovFlags["CLAIRVOYANT"] = FovFlags.CLAIRVOYANT_VISIBLE] = "CLAIRVOYANT";
-	    FovFlags[FovFlags["TELEPATHIC"] = FovFlags.TELEPATHIC_VISIBLE] = "TELEPATHIC";
-	    FovFlags[FovFlags["VIEWPORT_TYPES"] = FovFlags.PLAYER | FovFlags.VISIBLE |
-	        FovFlags.CLAIRVOYANT |
-	        FovFlags.TELEPATHIC |
-	        FovFlags.ITEM_DETECTED |
-	        FovFlags.ACTOR_DETECTED] = "VIEWPORT_TYPES";
-	})(FovFlags || (FovFlags = {}));
+	const FovFlags = make$a([
+	    'VISIBLE',
+	    'WAS_VISIBLE',
+	    'CLAIRVOYANT_VISIBLE',
+	    'WAS_CLAIRVOYANT_VISIBLE',
+	    'TELEPATHIC_VISIBLE',
+	    'WAS_TELEPATHIC_VISIBLE',
+	    'ITEM_DETECTED',
+	    'WAS_ITEM_DETECTED',
+	    'ACTOR_DETECTED',
+	    'WAS_ACTOR_DETECTED',
+	    'REVEALED',
+	    'MAGIC_MAPPED',
+	    'IN_FOV',
+	    'WAS_IN_FOV',
+	    'ALWAYS_VISIBLE',
+	    'IS_CURSOR',
+	    'IS_HIGHLIGHTED',
+	    'ANY_KIND_OF_VISIBLE = VISIBLE | CLAIRVOYANT_VISIBLE | TELEPATHIC_VISIBLE',
+	    'IS_WAS_ANY_KIND_OF_VISIBLE = VISIBLE | WAS_VISIBLE |CLAIRVOYANT_VISIBLE | WAS_CLAIRVOYANT_VISIBLE |TELEPATHIC_VISIBLE |WAS_TELEPATHIC_VISIBLE',
+	    'WAS_ANY_KIND_OF_VISIBLE = WAS_VISIBLE | WAS_CLAIRVOYANT_VISIBLE | WAS_TELEPATHIC_VISIBLE',
+	    'WAS_DETECTED = WAS_ITEM_DETECTED | WAS_ACTOR_DETECTED',
+	    'IS_DETECTED = ITEM_DETECTED | ACTOR_DETECTED',
+	    'PLAYER = IN_FOV',
+	    'CLAIRVOYANT = CLAIRVOYANT_VISIBLE',
+	    'TELEPATHIC = TELEPATHIC_VISIBLE',
+	    'VIEWPORT_TYPES = PLAYER | VISIBLE |CLAIRVOYANT |TELEPATHIC |ITEM_DETECTED |ACTOR_DETECTED',
+	]);
 
 	// CREDIT - This is adapted from: http://roguebasin.roguelikedevelopment.org/index.php?title=Improved_Shadowcasting_in_Java
 	class FOV {
@@ -6421,7 +6455,7 @@
 
 	var index$6 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		get FovFlags () { return FovFlags; },
+		FovFlags: FovFlags,
 		FOV: FOV,
 		FovSystem: FovSystem
 	});
@@ -8917,14 +8951,13 @@ void main() {
 	//     // );
 	// }
 
-	var LightFlags;
-	(function (LightFlags) {
-	    LightFlags[LightFlags["LIT"] = fl(0)] = "LIT";
-	    LightFlags[LightFlags["IN_SHADOW"] = fl(1)] = "IN_SHADOW";
-	    LightFlags[LightFlags["DARK"] = fl(2)] = "DARK";
-	    // MAGIC_DARK = Fl(3),
-	    LightFlags[LightFlags["CHANGED"] = fl(4)] = "CHANGED";
-	})(LightFlags || (LightFlags = {}));
+	const LightFlags = make$a([
+	    'LIT',
+	    'IN_SHADOW',
+	    'DARK',
+	    // 'MAGIC_DARK',
+	    'CHANGED',
+	]);
 	class LightSystem {
 	    constructor(map, opts = {}) {
 	        this.staticLights = null;

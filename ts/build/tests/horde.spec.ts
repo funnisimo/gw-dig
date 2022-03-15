@@ -76,6 +76,10 @@ describe('Mixed Item Library', () => {
 
         digger.create(map);
 
+        // map.dump();
+        map.analyze();
+        expect(map.getChokeCount(63, 8)).toBeLessThan(30);
+
         const room = GWD.blueprint.install('SIMPLE_HORDE', {
             size: '20-40',
             frequency: '8-40: 20',

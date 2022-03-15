@@ -15,14 +15,14 @@ export interface SetTileOptions {
     machine?: number;
 }
 
-export enum Flags {
-    CHOKEPOINT = GWU.flag.fl(0),
-    GATE_SITE = GWU.flag.fl(1),
-    IN_LOOP = GWU.flag.fl(2),
-    IN_MACHINE = GWU.flag.fl(3),
-    IN_AREA_MACHINE = GWU.flag.fl(4),
-    IMPREGNABLE = GWU.flag.fl(5),
-}
+export const Flags = GWU.flag.make([
+    'CHOKEPOINT',
+    'GATE_SITE',
+    'IN_LOOP',
+    'IN_MACHINE',
+    'IN_AREA_MACHINE',
+    'IMPREGNABLE',
+]);
 
 export interface SiteOptions {
     rng?: GWU.rng.Random;
@@ -172,12 +172,12 @@ export class Site {
         return this.hasTile(x, y, 'BRIDGE');
     }
 
-    isWall(x: number, y: number) {
-        return this.hasTile(x, y, 'WALL') || this.hasTile(x, y, 'IMPREGNABLE');
+    isWall(x: number, y: number): boolean {
+        return this.blocksMove(x, y) && this.blocksVision(x, y);
     }
 
-    blocksMove(x: number, y: number) {
-        return this.isNothing(x, y) || this.isWall(x, y) || this.isDeep(x, y);
+    blocksMove(x: number, y: number): boolean {
+        return TILE.getTile(this._tiles[x][y]).blocksMove || false;
     }
 
     blocksDiagonal(x: number, y: number) {
@@ -194,11 +194,16 @@ export class Site {
     }
 
     blocksVision(x: number, y: number) {
-        return this.isNothing(x, y) || this.isWall(x, y);
+        return TILE.getTile(this._tiles[x][y]).blocksVision || false;
     }
 
     blocksItems(x: number, y: number) {
-        return this.blocksPathing(x, y) || this.blocksPathing(x, y);
+        return (
+            this.blocksPathing(x, y) ||
+            this.isChokepoint(x, y) ||
+            this.isInLoop(x, y) ||
+            this.isInMachine(x, y)
+        );
         // site.hasCellFlag(
         //     x,
         //     y,
@@ -238,15 +243,24 @@ export class Site {
         return TILE.getTile(tile).blocksMove || false;
     }
 
-    setTile(x: number, y: number, tile: string, _opts: SetTileOptions = {}) {
+    setTile(
+        x: number,
+        y: number,
+        tile: string | number,
+        _opts: SetTileOptions = {}
+    ) {
         // if (tile instanceof GWM.tile.Tile) {
         //     tile = tile.index;
         // }
-        // if (typeof tile === 'string') {
-        const id = TILE.tileId(tile);
-        // }
         if (!this._tiles.hasXY(x, y)) return false;
-        this._tiles[x][y] = id;
+
+        if (typeof tile === 'string') {
+            tile = TILE.tileId(tile);
+        }
+
+        // priority checks...
+
+        this._tiles[x][y] = tile;
         return true;
     }
     clearTile(x: number, y: number) {
@@ -254,6 +268,11 @@ export class Site {
             this._tiles[x][y] = 0;
         }
     }
+    getTile(x: number, y: number): TILE.TileInfo {
+        const id = this._tiles[x][y];
+        return TILE.getTile(id);
+    }
+
     makeImpregnable(x: number, y: number): void {
         this._flags[x][y] |= Flags.IMPREGNABLE;
         // site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
@@ -263,14 +282,11 @@ export class Site {
         return !!(this._flags[x][y] & Flags.IMPREGNABLE);
     }
 
-    hasTile(x: number, y: number, tile: string): boolean {
-        // if (tile instanceof GWM.tile.Tile) {
-        //     tile = tile.index;
-        // }
-        // if (typeof tile === 'string') {
-        const id = TILE.tileId(tile);
-        // }
-        return this._tiles.hasXY(x, y) && this._tiles[x][y] == id;
+    hasTile(x: number, y: number, tile: string | number): boolean {
+        if (typeof tile === 'string') {
+            tile = TILE.tileId(tile);
+        }
+        return this._tiles.hasXY(x, y) && this._tiles[x][y] == tile;
     }
 
     getChokeCount(x: number, y: number): number {

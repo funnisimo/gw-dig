@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
 
-import { Site } from './site';
+import * as SITE from './site';
 
-export function analyze(map: Site, updateChokeCounts = true) {
+export function analyze(map: SITE.Site, updateChokeCounts = true) {
     updateLoopiness(map);
     updateChokepoints(map, updateChokeCounts);
 }
@@ -11,7 +11,7 @@ export function analyze(map: Site, updateChokeCounts = true) {
 /////////////////////////////////////////////////////
 // TODO - Move to Map?
 
-export function updateChokepoints(map: Site, updateCounts: boolean) {
+export function updateChokepoints(map: SITE.Site, updateCounts: boolean) {
     const passMap = GWU.grid.alloc(map.width, map.height);
     const grid = GWU.grid.alloc(map.width, map.height);
 
@@ -154,7 +154,7 @@ export function updateChokepoints(map: Site, updateCounts: boolean) {
 // Assumes it is called with respect to a passable (startX, startY), and that the same is not already included in results.
 // Returns 10000 if the area included an area machine.
 export function floodFillCount(
-    map: Site,
+    map: SITE.Site,
     results: GWU.grid.NumGrid,
     passMap: GWU.grid.NumGrid,
     startX: number,
@@ -207,13 +207,13 @@ export function floodFillCount(
 ////////////////////////////////////////////////////////
 // TODO = Move loopiness to Map
 
-export function updateLoopiness(map: Site) {
+export function updateLoopiness(map: SITE.Site) {
     resetLoopiness(map);
     checkLoopiness(map);
     cleanLoopiness(map);
 }
 
-export function resetLoopiness(map: Site) {
+export function resetLoopiness(map: SITE.Site) {
     GWU.xy.forRect(map.width, map.height, (x, y) => {
         if (
             (map.blocksPathing(x, y) || map.blocksMove(x, y)) &&
@@ -230,7 +230,7 @@ export function resetLoopiness(map: Site) {
     });
 }
 
-export function checkLoopiness(map: Site) {
+export function checkLoopiness(map: SITE.Site) {
     let inString;
     let newX, newY, dir, sdir;
     let numStrings, maxStringLength, currentStringLength;
@@ -321,7 +321,7 @@ export function checkLoopiness(map: Site) {
     }
 }
 
-export function fillInnerLoopGrid(map: Site, grid: GWU.grid.NumGrid) {
+export function fillInnerLoopGrid(map: SITE.Site, grid: GWU.grid.NumGrid) {
     for (let x = 0; x < map.width; ++x) {
         for (let y = 0; y < map.height; ++y) {
             // const cell = map.cell(x, y);
@@ -343,7 +343,7 @@ export function fillInnerLoopGrid(map: Site, grid: GWU.grid.NumGrid) {
     }
 }
 
-export function cleanLoopiness(map: Site) {
+export function cleanLoopiness(map: SITE.Site) {
     // remove extraneous loop markings
     const grid = GWU.grid.alloc(map.width, map.height);
     fillInnerLoopGrid(map, grid);

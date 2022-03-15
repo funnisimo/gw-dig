@@ -3,7 +3,7 @@ import * as GWU from 'gw-utils';
 export { TileId } from '../types';
 // export type ToTileId = (name: TileId) => number;
 
-export interface TileOptions {
+export interface TileConfig {
     blocksMove?: boolean;
     blocksVision?: boolean;
     blocksPathing?: boolean;
@@ -23,7 +23,11 @@ export interface TileOptions {
     extends?: string;
 }
 
-interface TileInfo extends TileOptions {
+export interface TileOptions extends TileConfig {
+    id: string;
+}
+
+export interface TileInfo extends TileOptions {
     id: string;
     index: number;
     priority: number;
@@ -33,13 +37,27 @@ interface TileInfo extends TileOptions {
 const tiles: Record<string, number> = {};
 const all: TileInfo[] = [];
 
-export function installTile(id: string, opts: TileOptions = {}): TileInfo {
+export function installTile(cfg: TileOptions): TileInfo;
+export function installTile(id: string, opts?: TileConfig): TileInfo;
+export function installTile(
+    id: string | TileOptions,
+    opts: TileConfig = {}
+): TileInfo {
+    if (typeof id !== 'string') {
+        opts = id;
+        id = id.id;
+    }
     const base = { id, index: all.length, priority: 0, tags: [] };
+
+    opts.extends = opts.extends || id;
 
     if (opts.extends) {
         const root = getTile(opts.extends);
-        if (!root) throw new Error('Cannot extend tile: ' + opts.extends);
-        Object.assign(base, root);
+        if (root) {
+            Object.assign(base, root);
+        } else if (opts.extends !== id) {
+            throw new Error('Cannot extend tile: ' + opts.extends);
+        }
     }
 
     const info: TileInfo = GWU.object.assignOmitting(
@@ -161,4 +179,10 @@ tiles['DEEP'] = installTile('LAKE', {
 }).index;
 installTile('SHALLOW', { priority: 30, ch: '`' });
 installTile('BRIDGE', { priority: 45, ch: '=' }); // layers help here
-installTile('IMPREGNABLE', { priority: 200, ch: '%', impregnable: true });
+installTile('IMPREGNABLE', {
+    priority: 200,
+    ch: '%',
+    impregnable: true,
+    blocksMove: true,
+    blocksVision: true,
+});
