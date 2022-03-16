@@ -432,7 +432,7 @@
 	//     if (v > max) return max;
 	//     return v;
 	// }
-	function lerp(from, to, pct) {
+	function lerp$1(from, to, pct) {
 	    if (pct > 1)
 	        pct = 1;
 	    if (pct < 0)
@@ -706,7 +706,7 @@
 	    }
 	    return { x: a.x + x(b), y: a.y + y(b) };
 	}
-	function equalsXY(dest, src) {
+	function equals(dest, src) {
 	    if (!dest && !src)
 	        return true;
 	    if (!dest || !src)
@@ -716,7 +716,7 @@
 	function isDiagonal(xy) {
 	    return x(xy) != 0 && y(xy) != 0;
 	}
-	function lerpXY(a, b, pct) {
+	function lerp(a, b, pct) {
 	    if (pct > 1) {
 	        pct = pct / 100;
 	    }
@@ -1039,9 +1039,9 @@
 		copy: copy,
 		addTo: addTo,
 		add: add,
-		equalsXY: equalsXY,
+		equals: equals,
 		isDiagonal: isDiagonal,
-		lerpXY: lerpXY,
+		lerp: lerp,
 		eachNeighbor: eachNeighbor,
 		eachNeighborAsync: eachNeighborAsync,
 		matchingNeighbor: matchingNeighbor,
@@ -11005,9 +11005,20 @@ void main() {
 	            }
 	            this.attr('action', opts.action);
 	        }
-	        ['create', 'input', 'update', 'draw', 'destroy'].forEach((n) => {
+	        [
+	            'create',
+	            'input',
+	            'update',
+	            'draw',
+	            'destroy',
+	            'keypress',
+	            'mouseenter',
+	            'mousemove',
+	            'mouseleave',
+	            'click',
+	        ].forEach((n) => {
 	            if (n in opts) {
-	                this.events.on(n, opts[n]);
+	                this.on(n, opts[n]);
 	            }
 	        });
 	        if (opts.on) {
@@ -11470,13 +11481,21 @@ void main() {
 	    }
 	    // EVENTS
 	    on(ev, cb) {
+	        if (ev === 'keypress') {
+	            this.prop('tabStop', true);
+	        }
 	        return this.events.on(ev, cb);
 	    }
 	    once(ev, cb) {
+	        if (ev === 'keypress') {
+	            this.prop('tabStop', true);
+	        }
 	        return this.events.once(ev, cb);
 	    }
 	    off(ev, cb) {
 	        this.events.off(ev, cb);
+	        // cannot turn off keypress automatically because
+	        // we could be waiting for dispatched events - e.g. 'Enter', or 'dir', ...
 	    }
 	    trigger(ev, ...args) {
 	        return this.events.trigger(ev, ...args);
@@ -14336,7 +14355,14 @@ void main() {
 	// // };
 
 	function make$1(opts) {
-	    return new Widget(opts);
+	    const w = new Widget(opts);
+	    if (opts.with) {
+	        Object.entries(opts.with).forEach(([name, fn]) => {
+	            // @ts-ignore
+	            w[name] = fn;
+	        });
+	    }
+	    return w;
 	}
 
 	var index$1 = /*#__PURE__*/Object.freeze({
@@ -14690,7 +14716,7 @@ void main() {
 	exports.fov = index$6;
 	exports.frequency = frequency;
 	exports.grid = grid;
-	exports.lerp = lerp;
+	exports.lerp = lerp$1;
 	exports.light = index$3;
 	exports.list = list;
 	exports.message = message;
