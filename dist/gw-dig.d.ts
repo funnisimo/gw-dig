@@ -45,6 +45,8 @@ interface TileInfo extends TileOptions$1 {
     priority: number;
     tags: string[];
 }
+declare const tileIds: Record<string, number>;
+declare const allTiles: TileInfo[];
 declare function installTile(cfg: TileOptions$1): TileInfo;
 declare function installTile(id: string, opts?: TileConfig): TileInfo;
 declare function getTile(name: string | number): TileInfo;
@@ -697,6 +699,8 @@ declare namespace index_d$2 {
 type index_d$1_TileId = TileId;
 type index_d$1_TileConfig = TileConfig;
 type index_d$1_TileInfo = TileInfo;
+declare const index_d$1_tileIds: typeof tileIds;
+declare const index_d$1_allTiles: typeof allTiles;
 declare const index_d$1_installTile: typeof installTile;
 declare const index_d$1_getTile: typeof getTile;
 declare const index_d$1_tileId: typeof tileId;
@@ -752,6 +756,8 @@ declare namespace index_d$1 {
     index_d$1_TileConfig as TileConfig,
     TileOptions$1 as TileOptions,
     index_d$1_TileInfo as TileInfo,
+    index_d$1_tileIds as tileIds,
+    index_d$1_allTiles as allTiles,
     index_d$1_installTile as installTile,
     index_d$1_getTile as getTile,
     index_d$1_tileId as tileId,

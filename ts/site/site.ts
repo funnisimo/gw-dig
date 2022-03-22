@@ -286,7 +286,7 @@ export class Site {
         if (typeof tile === 'string') {
             tile = TILE.tileId(tile);
         }
-        return this._tiles.hasXY(x, y) && this._tiles[x][y] == tile;
+        return this.hasXY(x, y) && this._tiles[x][y] == tile;
     }
 
     getChokeCount(x: number, y: number): number {

@@ -34,8 +34,8 @@ export interface TileInfo extends TileOptions {
     tags: string[];
 }
 
-const tiles: Record<string, number> = {};
-const all: TileInfo[] = [];
+export const tileIds: Record<string, number> = {};
+export const allTiles: TileInfo[] = [];
 
 export function installTile(cfg: TileOptions): TileInfo;
 export function installTile(id: string, opts?: TileConfig): TileInfo;
@@ -47,7 +47,7 @@ export function installTile(
         opts = id;
         id = id.id;
     }
-    const base = { id, index: all.length, priority: 0, tags: [] };
+    const base = { id, index: allTiles.length, priority: 0, tags: [] };
 
     opts.extends = opts.extends || id;
 
@@ -67,7 +67,7 @@ export function installTile(
     ) as TileInfo;
 
     info.id = id;
-    info.index = all.length;
+    info.index = allTiles.length;
 
     if (opts.tags) {
         info.tags = GWU.tags.make(opts.tags);
@@ -110,12 +110,12 @@ export function installTile(
         }
     }
 
-    if (tiles[id]) {
-        info.index = tiles[id];
-        all[info.index] = info;
+    if (tileIds[id]) {
+        info.index = tileIds[id];
+        allTiles[info.index] = info;
     } else {
-        all.push(info);
-        tiles[id] = info.index;
+        allTiles.push(info);
+        tileIds[id] = info.index;
     }
 
     return info;
@@ -123,14 +123,14 @@ export function installTile(
 
 export function getTile(name: string | number): TileInfo {
     if (typeof name === 'string') {
-        name = tiles[name];
+        name = tileIds[name];
     }
-    return all[name];
+    return allTiles[name];
 }
 
 export function tileId(name: string | number): number {
     if (typeof name === 'number') return name;
-    return tiles[name] ?? -1;
+    return tileIds[name] ?? -1;
 }
 
 export function blocksMove(name: string | number): boolean {
@@ -138,7 +138,7 @@ export function blocksMove(name: string | number): boolean {
     return info.blocksMove || false;
 }
 
-tiles['NOTHING'] = tiles['NULL'] = installTile('NONE', {
+tileIds['NOTHING'] = tileIds['NULL'] = installTile('NONE', {
     priority: 0,
     ch: '',
 }).index;
@@ -172,7 +172,7 @@ installTile('DOWN_STAIRS', {
     priority: 80,
     ch: '<',
 });
-tiles['DEEP'] = installTile('LAKE', {
+tileIds['DEEP'] = installTile('LAKE', {
     priority: 40,
     liquid: true,
     ch: '~',

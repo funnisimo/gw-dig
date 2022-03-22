@@ -24,14 +24,14 @@
 
     var GWU__namespace = /*#__PURE__*/_interopNamespace(GWU);
 
-    const tiles = {};
-    const all = [];
+    const tileIds = {};
+    const allTiles = [];
     function installTile(id, opts = {}) {
         if (typeof id !== 'string') {
             opts = id;
             id = id.id;
         }
-        const base = { id, index: all.length, priority: 0, tags: [] };
+        const base = { id, index: allTiles.length, priority: 0, tags: [] };
         opts.extends = opts.extends || id;
         if (opts.extends) {
             const root = getTile(opts.extends);
@@ -44,7 +44,7 @@
         }
         const info = GWU__namespace.object.assignOmitting('priority, extends', base, opts);
         info.id = id;
-        info.index = all.length;
+        info.index = allTiles.length;
         if (opts.tags) {
             info.tags = GWU__namespace.tags.make(opts.tags);
         }
@@ -82,33 +82,33 @@
                 info.blocksPathing = true;
             }
         }
-        if (tiles[id]) {
-            info.index = tiles[id];
-            all[info.index] = info;
+        if (tileIds[id]) {
+            info.index = tileIds[id];
+            allTiles[info.index] = info;
         }
         else {
-            all.push(info);
-            tiles[id] = info.index;
+            allTiles.push(info);
+            tileIds[id] = info.index;
         }
         return info;
     }
     function getTile(name) {
         if (typeof name === 'string') {
-            name = tiles[name];
+            name = tileIds[name];
         }
-        return all[name];
+        return allTiles[name];
     }
     function tileId(name) {
         var _a;
         if (typeof name === 'number')
             return name;
-        return (_a = tiles[name]) !== null && _a !== void 0 ? _a : -1;
+        return (_a = tileIds[name]) !== null && _a !== void 0 ? _a : -1;
     }
     function blocksMove(name) {
         const info = getTile(name);
         return info.blocksMove || false;
     }
-    tiles['NOTHING'] = tiles['NULL'] = installTile('NONE', {
+    tileIds['NOTHING'] = tileIds['NULL'] = installTile('NONE', {
         priority: 0,
         ch: '',
     }).index;
@@ -141,7 +141,7 @@
         priority: 80,
         ch: '<',
     });
-    tiles['DEEP'] = installTile('LAKE', {
+    tileIds['DEEP'] = installTile('LAKE', {
         priority: 40,
         liquid: true,
         ch: '~',
@@ -2733,6 +2733,8 @@
     var index$1 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         log: index$2,
+        tileIds: tileIds,
+        allTiles: allTiles,
         installTile: installTile,
         getTile: getTile,
         tileId: tileId,

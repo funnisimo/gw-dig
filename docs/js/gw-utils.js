@@ -733,7 +733,7 @@
 	        const dir = DIRS$2[i];
 	        const x1 = x + dir[0];
 	        const y1 = y + dir[1];
-	        fn(x1, y1);
+	        fn(x1, y1, dir);
 	    }
 	}
 	async function eachNeighborAsync(x, y, fn, only4dirs = false) {
@@ -742,7 +742,7 @@
 	        const dir = DIRS$2[i];
 	        const x1 = x + dir[0];
 	        const y1 = y + dir[1];
-	        await fn(x1, y1);
+	        await fn(x1, y1, dir);
 	    }
 	}
 	function matchingNeighbor(x, y, matchFn, only4dirs = false) {
@@ -751,7 +751,7 @@
 	        const dir = DIRS$2[d];
 	        const i = x + dir[0];
 	        const j = y + dir[1];
-	        if (matchFn(i, j))
+	        if (matchFn(i, j, dir))
 	            return [i, j];
 	    }
 	    return [-1, -1];
@@ -4364,7 +4364,7 @@
 	installSpread('silver', [75, 75, 75]);
 	installSpread('gold', [100, 85, 0]);
 
-	var index$8 = /*#__PURE__*/Object.freeze({
+	var index$9 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		colors: colors,
 		Color: Color,
@@ -5565,7 +5565,7 @@
 	    }
 	}
 
-	var index$7 = /*#__PURE__*/Object.freeze({
+	var index$8 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		configure: configure,
 		compile: compile$1,
@@ -6453,13 +6453,14 @@
 	    }
 	}
 
-	var index$6 = /*#__PURE__*/Object.freeze({
+	var index$7 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		FovFlags: FovFlags,
 		FOV: FOV,
 		FovSystem: FovSystem
 	});
 
+	// import { grid } from '.';
 	const FORBIDDEN = -1;
 	const OBSTRUCTION = -2;
 	const AVOIDED = 10;
@@ -6686,11 +6687,14 @@
 	    DIJKSTRA_MAP.width = width;
 	    DIJKSTRA_MAP.height = height;
 	    let i, j;
+	    const costFn = typeof costMap === 'function'
+	        ? costMap
+	        : (x, y) => costMap.get(x, y) || 0;
 	    for (i = 0; i < width; i++) {
 	        for (j = 0; j < height; j++) {
-	            getLink(DIJKSTRA_MAP, i, j).cost = isBoundaryXY(costMap, i, j)
+	            getLink(DIJKSTRA_MAP, i, j).cost = isBoundaryXY(distanceMap, i, j)
 	                ? OBSTRUCTION
-	                : costMap[i][j];
+	                : costFn(i, j);
 	        }
 	    }
 	    clear(DIJKSTRA_MAP, maxDistance, eightWays);
@@ -6711,20 +6715,22 @@
 	// Always rolls downhill on the distance map.
 	// If monst is provided, do not return a direction pointing to
 	// a cell that the monster avoids.
-	function nextStep(distanceMap, x, y, isBlocked, useDiagonals = false) {
+	function nextStep(distanceMap, fromX, fromY, isBlocked, useDiagonals = false) {
 	    let newX, newY, bestScore;
 	    let dir;
 	    // brogueAssert(coordinatesAreInMap(x, y));
 	    bestScore = 0;
 	    let bestDir = NO_DIRECTION;
-	    const dist = distanceMap[x][y];
+	    const dist = distanceMap[fromX][fromY];
 	    for (dir = 0; dir < (useDiagonals ? 8 : 4); ++dir) {
-	        newX = x + DIRS$2[dir][0];
-	        newY = y + DIRS$2[dir][1];
+	        newX = fromX + DIRS$2[dir][0];
+	        newY = fromY + DIRS$2[dir][1];
 	        const newDist = distanceMap[newX][newY];
 	        if (newDist < dist) {
 	            const diff = dist - newDist;
-	            if (diff > bestScore && !isBlocked(newX, newY, x, y, distanceMap)) {
+	            if (diff > bestScore &&
+	                (newDist === 0 ||
+	                    !isBlocked(newX, newY, fromX, fromY, distanceMap))) {
 	                bestDir = dir;
 	                bestScore = diff;
 	            }
@@ -6761,26 +6767,41 @@
 	        return [locX, locY];
 	    return null;
 	}
-	// Populates path[][] with a list of coordinates starting at origin and traversing down the map. Returns the number of steps in the path.
-	function getPath(distanceMap, originX, originY, isBlocked, eightWays = false) {
+	// Populates path[][] with a list of coordinates starting at origin and traversing down the map. Returns the path.
+	function getPath(distanceMap, fromX, fromY, isBlocked, eightWays = false) {
+	    const path = [];
+	    forPath(distanceMap, fromX, fromY, isBlocked, (x, y) => {
+	        path.push([x, y]);
+	    }, eightWays);
+	    return path.length ? path : null;
+	}
+	// Populates path[][] with a list of coordinates starting at origin and traversing down the map. Returns the path.
+	function forPath(distanceMap, fromX, fromY, isBlocked, pathFn, eightWays = false) {
 	    // actor = actor || GW.PLAYER;
-	    let x = originX;
-	    let y = originY;
-	    if (distanceMap[x][y] < 0 ||
-	        distanceMap[x][y] >= NO_PATH ||
-	        isBlocked(x, y, x, y, distanceMap)) {
+	    let x = fromX;
+	    let y = fromY;
+	    let dist = distanceMap[x][y];
+	    let count = 0;
+	    if (dist === 0) {
+	        pathFn(x, y);
+	        return count;
+	    }
+	    if (dist < 0 ||
+	        dist >= NO_PATH /* || isBlocked(x, y, x, y, distanceMap) */) {
 	        const loc = getClosestValidLocation(distanceMap, x, y, isBlocked);
 	        if (!loc)
-	            return null;
+	            return 0;
 	        x = loc[0];
 	        y = loc[1];
+	        pathFn(x, y);
+	        ++count;
 	    }
-	    const path = [];
 	    let dir;
 	    do {
 	        dir = nextStep(distanceMap, x, y, isBlocked, eightWays);
 	        if (dir) {
-	            path.push([x, y]);
+	            pathFn(x, y);
+	            ++count;
 	            x += dir[0];
 	            y += dir[1];
 	            // path[steps][0] = x;
@@ -6788,25 +6809,112 @@
 	            // brogueAssert(coordinatesAreInMap(x, y));
 	        }
 	    } while (dir);
-	    return path.length ? path : null;
+	    pathFn(x, y);
+	    return count;
 	}
-	function getPathBetween(width, height, fromX, fromY, toX, toY, costFn, eightWays = true) {
-	    const costMap = alloc(width, height);
-	    const distanceMap = alloc(width, height);
-	    for (let x = 0; x < width; ++x) {
-	        for (let y = 0; y < height; ++y) {
-	            costMap[x][y] = costFn(x, y);
-	        }
+	// export function getPathBetween(
+	//     width: number,
+	//     height: number,
+	//     fromX: number,
+	//     fromY: number,
+	//     toX: number,
+	//     toY: number,
+	//     costFn: (x: number, y: number) => number,
+	//     eightWays = true
+	// ): XY.Loc[] | null {
+	//     const costMap = Grid.alloc(width, height);
+	//     const distanceMap = Grid.alloc(width, height);
+	//     for (let x = 0; x < width; ++x) {
+	//         for (let y = 0; y < height; ++y) {
+	//             costMap[x][y] = costFn(x, y);
+	//         }
+	//     }
+	//     calculateDistances(distanceMap, toX, toY, costMap, eightWays);
+	//     const isBlocked = (x: number, y: number) => costFn(x, y) < 0;
+	//     const path = getPath(distanceMap, fromX, fromY, isBlocked, eightWays);
+	//     Grid.free(distanceMap);
+	//     Grid.free(costMap);
+	//     return path;
+	// }
+
+	function fromTo(from, to, costFn = ONE) {
+	    const search = new AStar(to, costFn);
+	    return search.from(from);
+	}
+	class AStar {
+	    constructor(goal, costFn = ONE) {
+	        this._todo = [];
+	        this._done = [];
+	        this.goal = goal;
+	        this.costFn = costFn;
 	    }
-	    calculateDistances(distanceMap, toX, toY, costMap, eightWays);
-	    const isBlocked = (x, y) => costFn(x, y) < 0;
-	    const path = getPath(distanceMap, fromX, fromY, isBlocked, eightWays);
-	    free(distanceMap);
-	    free(costMap);
-	    return path;
+	    _add(loc, cost = 1, prev = null) {
+	        const h = distanceFromTo(loc, this.goal);
+	        let newItem = {
+	            x: x(loc),
+	            y: y(loc),
+	            prev: prev,
+	            g: prev ? prev.g + cost : 0,
+	            h: h,
+	        };
+	        const f = newItem.g + newItem.h;
+	        const existing = this._todo.findIndex((i) => equals(i, newItem));
+	        if (existing > -1) {
+	            const oldItem = this._todo[existing];
+	            if (oldItem.g + oldItem.h <= f) {
+	                return;
+	            }
+	            this._todo.splice(existing, 1); // this one is better
+	        }
+	        /* insert by distance */
+	        for (let i = 0; i < this._todo.length; i++) {
+	            const item = this._todo[i];
+	            const itemF = item.g + item.h;
+	            if (f < itemF || (f == itemF && h < item.h)) {
+	                this._todo.splice(i, 0, newItem);
+	                return;
+	            }
+	        }
+	        this._todo.push(newItem);
+	    }
+	    from(from) {
+	        this._add(from);
+	        let item = null;
+	        while (this._todo.length) {
+	            item = this._todo.shift() || null;
+	            if (!item)
+	                break;
+	            if (this._done.findIndex((i) => equals(i, item)) > -1) {
+	                continue;
+	            }
+	            this._done.push(item);
+	            if (equals(item, this.goal)) {
+	                break;
+	            }
+	            eachNeighbor(item.x, item.y, (x, y, dir) => {
+	                if (this._done.findIndex((i) => i.x === x && i.y === y) > -1) {
+	                    return;
+	                }
+	                const mult = isDiagonal(dir) ? 1.4 : 1;
+	                const cost = this.costFn(x, y) * mult;
+	                if (cost < 0 || cost > 10000)
+	                    return;
+	                this._add([x, y], cost, item);
+	            }, false);
+	        }
+	        if (item && !equals(item, this.goal))
+	            return [];
+	        let result = [];
+	        while (item) {
+	            result.push([item.x, item.y]);
+	            item = item.prev;
+	        }
+	        result.reverse();
+	        return result;
+	    }
 	}
 
-	var path = /*#__PURE__*/Object.freeze({
+	var index$6 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		FORBIDDEN: FORBIDDEN,
 		OBSTRUCTION: OBSTRUCTION,
@@ -6818,7 +6926,8 @@
 		nextStep: nextStep,
 		getClosestValidLocation: getClosestValidLocation,
 		getPath: getPath,
-		getPathBetween: getPathBetween
+		forPath: forPath,
+		fromTo: fromTo
 	});
 
 	/**
@@ -14705,7 +14814,7 @@ void main() {
 	exports.buffer = buffer;
 	exports.canvas = index$5;
 	exports.clamp = clamp;
-	exports.color = index$8;
+	exports.color = index$9;
 	exports.colors = colors;
 	exports.config = config$1;
 	exports.cosmetic = cosmetic;
@@ -14713,7 +14822,7 @@ void main() {
 	exports.events = events;
 	exports.first = first;
 	exports.flag = flag;
-	exports.fov = index$6;
+	exports.fov = index$7;
 	exports.frequency = frequency;
 	exports.grid = grid;
 	exports.lerp = lerp$1;
@@ -14722,7 +14831,7 @@ void main() {
 	exports.message = message;
 	exports.nextIndex = nextIndex;
 	exports.object = object;
-	exports.path = path;
+	exports.path = index$6;
 	exports.prevIndex = prevIndex;
 	exports.queue = queue;
 	exports.random = random;
@@ -14730,10 +14839,9 @@ void main() {
 	exports.rng = rng;
 	exports.scheduler = scheduler;
 	exports.sprite = index$4;
-	exports.sprites = sprites;
 	exports.sum = sum;
 	exports.tags = tags;
-	exports.text = index$7;
+	exports.text = index$8;
 	exports.tween = tween;
 	exports.types = types;
 	exports.ui = index$2;
