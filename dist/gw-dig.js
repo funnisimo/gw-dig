@@ -1313,11 +1313,17 @@
         return disrupts;
     }
     function computeDistanceMap(site, distanceMap, originX, originY, maxDistance) {
-        const costGrid = GWU__namespace.grid.alloc(site.width, site.height);
-        fillCostGrid(site, costGrid);
-        GWU__namespace.path.calculateDistances(distanceMap, originX, originY, costGrid, false, maxDistance + 1 // max distance is the same as max size of this blueprint
-        );
-        GWU__namespace.grid.free(costGrid);
+        distanceMap.reset(site.width, site.height);
+        distanceMap.setGoal(originX, originY);
+        distanceMap.calculate((x, y) => {
+            if (!site.hasXY(x, y))
+                return GWU__namespace.path.OBSTRUCTION;
+            if (site.isPassable(x, y))
+                return GWU__namespace.path.OK;
+            if (site.blocksDiagonal(x, y))
+                return GWU__namespace.path.OBSTRUCTION;
+            return GWU__namespace.path.BLOCKED;
+        }, false, maxDistance);
     }
     function clearInteriorFlag(site, machine) {
         for (let i = 0; i < site.width; i++) {
@@ -1845,7 +1851,7 @@
             if (typeof tile === 'string') {
                 tile = tileId(tile);
             }
-            return this._tiles.hasXY(x, y) && this._tiles[x][y] == tile;
+            return this.hasXY(x, y) && this._tiles[x][y] == tile;
         }
         getChokeCount(x, y) {
             return this._chokeCounts[x][y];
@@ -2383,13 +2389,13 @@
                 if (!builder.distanceMap.hasXY(i, j))
                     return;
                 if (!site.blocksPathing(i, j) &&
-                    distance > builder.distanceMap[i][j] + 1) {
-                    distance = builder.distanceMap[i][j] + 1;
+                    distance > builder.distanceMap.getDistance(i, j) + 1) {
+                    distance = builder.distanceMap.getDistance(i, j) + 1;
                 }
             }, true);
         }
         else {
-            distance = builder.distanceMap[x][y];
+            distance = builder.distanceMap.getDistance(x, y);
         }
         if (distance > distanceBound[1])
             return CandidateType.TOO_FAR; // distance exceeds max
@@ -3593,13 +3599,12 @@
             let i, j, d, x, y;
             const maxLength = this.options.maxLength;
             const minDistance = this.options.minDistance;
-            const pathGrid = GWU__namespace.grid.alloc(site.width, site.height);
-            const costGrid = GWU__namespace.grid.alloc(site.width, site.height);
+            const pathGrid = new GWU__namespace.path.DijkstraMap();
+            // const costGrid = GWU.grid.alloc(site.width, site.height);
             const dirCoords = [
                 [1, 0],
                 [0, 1],
             ];
-            costGrid.update((_v, x, y) => site.isPassable(x, y) ? 1 : GWU__namespace.path.OBSTRUCTION);
             const seq = site.rng.sequence(site.width * site.height);
             for (i = 0; i < seq.length; i++) {
                 x = Math.floor(seq[i] / site.height);
@@ -3634,12 +3639,9 @@
                         // map.get(newX, newY) &&
                         site.isPassable(newX, newY) &&
                             j < maxLength) {
-                            GWU__namespace.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
-                            // pathGrid.fill(30000);
-                            // pathGrid[newX][newY] = 0;
-                            // dijkstraScan(pathGrid, costGrid, false);
-                            if (pathGrid[x][y] > minDistance &&
-                                pathGrid[x][y] < GWU__namespace.path.NO_PATH) {
+                            computeDistanceMap(site, pathGrid, newX, newY, 999);
+                            if (pathGrid.getDistance(x, y) > minDistance &&
+                                pathGrid.getDistance(x, y) < GWU__namespace.path.BLOCKED) {
                                 // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
                                 // dungeon.debug(
                                 //     'Adding Bridge',
@@ -3652,11 +3654,11 @@
                                 while (x !== newX || y !== newY) {
                                     if (this.isBridgeCandidate(site, x, y, bridgeDir)) {
                                         site.setTile(x, y, 'BRIDGE'); // map[x][y] = SITE.BRIDGE;
-                                        costGrid[x][y] = 1; // (Cost map also needs updating.)
+                                        // costGrid[x][y] = 1; // (Cost map also needs updating.)
                                     }
                                     else {
                                         site.setTile(x, y, 'FLOOR'); // map[x][y] = SITE.FLOOR;
-                                        costGrid[x][y] = 1;
+                                        // costGrid[x][y] = 1;
                                     }
                                     x += bridgeDir[0];
                                     y += bridgeDir[1];
@@ -3668,8 +3670,7 @@
                     }
                 }
             }
-            GWU__namespace.grid.free(pathGrid);
-            GWU__namespace.grid.free(costGrid);
+            // GWU.grid.free(costGrid);
             return count;
         }
         isBridgeCandidate(site, x, y, _bridgeDir) {
@@ -3874,13 +3875,13 @@
             let i, j, d, x, y;
             const minDistance = Math.min(this.options.minDistance, Math.floor(Math.max(site.width, site.height) / 2));
             const maxLength = this.options.maxLength;
-            const pathGrid = GWU__namespace.grid.alloc(site.width, site.height);
-            const costGrid = GWU__namespace.grid.alloc(site.width, site.height);
+            const pathGrid = new GWU__namespace.path.DijkstraMap();
+            // const costGrid = GWU.grid.alloc(site.width, site.height);
             const dirCoords = [
                 [1, 0],
                 [0, 1],
             ];
-            fillCostGrid(site, costGrid);
+            // SITE.fillCostGrid(site, costGrid);
             function isValidTunnelStart(x, y, dir) {
                 if (!site.hasXY(x, y))
                     return false;
@@ -3956,12 +3957,12 @@
                             }
                         }
                         if (j < maxLength) {
-                            GWU__namespace.path.calculateDistances(pathGrid, startX, startY, costGrid, false);
+                            computeDistanceMap(site, pathGrid, startX, startY, 888);
                             // pathGrid.fill(30000);
                             // pathGrid[startX][startY] = 0;
                             // dijkstraScan(pathGrid, costGrid, false);
-                            if (pathGrid[endX][endY] > minDistance &&
-                                pathGrid[endX][endY] < 30000) {
+                            if (pathGrid.getDistance(endX, endY) > minDistance &&
+                                pathGrid.getDistance(endX, endY) < GWU__namespace.path.BLOCKED) {
                                 // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
                                 // dungeon.debug(
                                 //     'Adding Loop',
@@ -3976,7 +3977,7 @@
                                 while (endX !== startX || endY !== startY) {
                                     if (site.isNothing(endX, endY)) {
                                         site.setTile(endX, endY, 'FLOOR');
-                                        costGrid[endX][endY] = 1; // (Cost map also needs updating.)
+                                        // costGrid[endX][endY] = 1; // (Cost map also needs updating.)
                                     }
                                     endX += dir[0];
                                     endY += dir[1];
@@ -3993,8 +3994,8 @@
                     }
                 }
             }
-            GWU__namespace.grid.free(pathGrid);
-            GWU__namespace.grid.free(costGrid);
+            // pathGrid.free();
+            // GWU.grid.free(costGrid);
             return count;
         }
     }
@@ -4714,7 +4715,7 @@
             this.interior = GWU__namespace.grid.alloc(site.width, site.height);
             this.occupied = GWU__namespace.grid.alloc(site.width, site.height);
             this.viewMap = GWU__namespace.grid.alloc(site.width, site.height);
-            this.distanceMap = GWU__namespace.grid.alloc(site.width, site.height);
+            this.distanceMap = new GWU__namespace.path.DijkstraMap(site.width, site.height);
             this.candidates = GWU__namespace.grid.alloc(site.width, site.height);
             this.machineNumber = machine;
         }
@@ -4722,7 +4723,6 @@
             GWU__namespace.grid.free(this.interior);
             GWU__namespace.grid.free(this.occupied);
             GWU__namespace.grid.free(this.viewMap);
-            GWU__namespace.grid.free(this.distanceMap);
             GWU__namespace.grid.free(this.candidates);
         }
         get rng() {
@@ -4732,7 +4732,7 @@
             this.interior.fill(0);
             this.occupied.fill(0);
             this.viewMap.fill(0);
-            this.distanceMap.fill(0);
+            this.distanceMap.reset(this.site.width, this.site.height);
             // this.candidates.fill(0);
             this.originX = originX;
             this.originY = originY;
@@ -4742,15 +4742,14 @@
             //     this.site.setSeed(this.seed);
             // }
         }
-        calcDistances(maxSize) {
-            this.distanceMap.fill(0);
-            computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxSize);
+        calcDistances(maxDistance) {
+            computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxDistance);
             let qualifyingTileCount = 0;
             const distances = new Array(100).fill(0);
             this.interior.forEach((v, x, y) => {
                 if (!v)
                     return;
-                const dist = this.distanceMap[x][y];
+                const dist = Math.round(this.distanceMap.getDistance(x, y));
                 if (dist < 100) {
                     distances[dist]++; // create a histogram of distances -- poor man's sort function
                     qualifyingTileCount++;
@@ -4975,7 +4974,7 @@
                     for (let n = 0; n < seq.length && qualifyingTileCount < goalSize; n++) {
                         const i = Math.floor(seq[n] / site.height);
                         const j = seq[n] % site.height;
-                        if (distanceMap[i][j] == k) {
+                        if (Math.round(distanceMap.getDistance(i, j)) == k) {
                             interior[i][j] = 1;
                             qualifyingTileCount++;
                             const machine = site.getMachine(i, j);
@@ -5130,7 +5129,7 @@
             for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
                 const x = Math.floor(cells[i] / site.height);
                 const y = cells[i] % site.height;
-                const dist = distMap[x][y];
+                const dist = Math.round(distMap.getDistance(x, y));
                 if (dist != k)
                     continue;
                 if (site.isOccupied(x, y)) {

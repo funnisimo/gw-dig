@@ -11,7 +11,7 @@ describe('tile effect', () => {
 
     beforeEach(() => {
         map = new Site(20, 20);
-        GWU.data.gameHasEnded = false;
+        // GWU.data.gameHasEnded = false;
         GWU.rng.random.seed(12345);
     });
 

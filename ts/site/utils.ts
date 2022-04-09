@@ -510,23 +510,23 @@ export function siteDisruptedSize(
 
 export function computeDistanceMap(
     site: DIG.Site,
-    distanceMap: GWU.grid.NumGrid,
+    distanceMap: GWU.path.DijkstraMap,
     originX: number,
     originY: number,
     maxDistance: number
 ) {
-    const costGrid = GWU.grid.alloc(site.width, site.height);
-    fillCostGrid(site, costGrid);
-
-    GWU.path.calculateDistances(
-        distanceMap,
-        originX,
-        originY,
-        costGrid,
+    distanceMap.reset(site.width, site.height);
+    distanceMap.setGoal(originX, originY);
+    distanceMap.calculate(
+        (x, y) => {
+            if (!site.hasXY(x, y)) return GWU.path.OBSTRUCTION;
+            if (site.isPassable(x, y)) return GWU.path.OK;
+            if (site.blocksDiagonal(x, y)) return GWU.path.OBSTRUCTION;
+            return GWU.path.BLOCKED;
+        },
         false,
-        maxDistance + 1 // max distance is the same as max size of this blueprint
+        maxDistance
     );
-    GWU.grid.free(costGrid);
 }
 
 export function clearInteriorFlag(site: DIG.Site, machine: number) {

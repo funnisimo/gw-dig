@@ -404,7 +404,7 @@ interface DisruptOptions {
 declare function siteDisruptedByXY(site: Site, x: number, y: number, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedBy(site: Site, blockingGrid: GWU.grid.NumGrid, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedSize(site: Site, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
-declare function computeDistanceMap(site: Site, distanceMap: GWU.grid.NumGrid, originX: number, originY: number, maxDistance: number): void;
+declare function computeDistanceMap(site: Site, distanceMap: GWU.path.DijkstraMap, originX: number, originY: number, maxDistance: number): void;
 declare function clearInteriorFlag(site: Site, machine: number): void;
 
 declare function analyze(map: Site, updateChokeCounts?: boolean): void;
@@ -599,7 +599,7 @@ declare class BuildData {
     occupied: GWU.grid.NumGrid;
     candidates: GWU.grid.NumGrid;
     viewMap: GWU.grid.NumGrid;
-    distanceMap: GWU.grid.NumGrid;
+    distanceMap: GWU.path.DijkstraMap;
     originX: number;
     originY: number;
     distance25: number;
@@ -609,7 +609,7 @@ declare class BuildData {
     free(): void;
     get rng(): GWU.rng.Random;
     reset(originX: number, originY: number): void;
-    calcDistances(maxSize: number): void;
+    calcDistances(maxDistance: number): void;
 }
 
 interface Logger {

@@ -24,17 +24,13 @@ export class Bridges {
         const maxLength = this.options.maxLength;
         const minDistance = this.options.minDistance;
 
-        const pathGrid = GWU.grid.alloc(site.width, site.height);
-        const costGrid = GWU.grid.alloc(site.width, site.height);
+        const pathGrid = new GWU.path.DijkstraMap();
+        // const costGrid = GWU.grid.alloc(site.width, site.height);
 
         const dirCoords: [number, number][] = [
             [1, 0],
             [0, 1],
         ];
-
-        costGrid.update((_v, x, y) =>
-            site.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION
-        );
 
         const seq = site.rng.sequence(site.width * site.height);
 
@@ -82,19 +78,17 @@ export class Bridges {
                         site.isPassable(newX, newY) &&
                         j < maxLength
                     ) {
-                        GWU.path.calculateDistances(
+                        SITE.computeDistanceMap(
+                            site,
                             pathGrid,
                             newX,
                             newY,
-                            costGrid,
-                            false
+                            999
                         );
-                        // pathGrid.fill(30000);
-                        // pathGrid[newX][newY] = 0;
-                        // dijkstraScan(pathGrid, costGrid, false);
+
                         if (
-                            pathGrid[x][y] > minDistance &&
-                            pathGrid[x][y] < GWU.path.NO_PATH
+                            pathGrid.getDistance(x, y) > minDistance &&
+                            pathGrid.getDistance(x, y) < GWU.path.BLOCKED
                         ) {
                             // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
 
@@ -117,10 +111,10 @@ export class Bridges {
                                     )
                                 ) {
                                     site.setTile(x, y, 'BRIDGE'); // map[x][y] = SITE.BRIDGE;
-                                    costGrid[x][y] = 1; // (Cost map also needs updating.)
+                                    // costGrid[x][y] = 1; // (Cost map also needs updating.)
                                 } else {
                                     site.setTile(x, y, 'FLOOR'); // map[x][y] = SITE.FLOOR;
-                                    costGrid[x][y] = 1;
+                                    // costGrid[x][y] = 1;
                                 }
                                 x += bridgeDir[0];
                                 y += bridgeDir[1];
@@ -132,8 +126,7 @@ export class Bridges {
                 }
             }
         }
-        GWU.grid.free(pathGrid);
-        GWU.grid.free(costGrid);
+        // GWU.grid.free(costGrid);
         return count;
     }
 

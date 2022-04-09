@@ -1289,11 +1289,17 @@ function siteDisruptedSize(site, blockingGrid, blockingToMapX = 0, blockingToMap
     return disrupts;
 }
 function computeDistanceMap(site, distanceMap, originX, originY, maxDistance) {
-    const costGrid = GWU.grid.alloc(site.width, site.height);
-    fillCostGrid(site, costGrid);
-    GWU.path.calculateDistances(distanceMap, originX, originY, costGrid, false, maxDistance + 1 // max distance is the same as max size of this blueprint
-    );
-    GWU.grid.free(costGrid);
+    distanceMap.reset(site.width, site.height);
+    distanceMap.setGoal(originX, originY);
+    distanceMap.calculate((x, y) => {
+        if (!site.hasXY(x, y))
+            return GWU.path.OBSTRUCTION;
+        if (site.isPassable(x, y))
+            return GWU.path.OK;
+        if (site.blocksDiagonal(x, y))
+            return GWU.path.OBSTRUCTION;
+        return GWU.path.BLOCKED;
+    }, false, maxDistance);
 }
 function clearInteriorFlag(site, machine) {
     for (let i = 0; i < site.width; i++) {
@@ -1821,7 +1827,7 @@ class Site {
         if (typeof tile === 'string') {
             tile = tileId(tile);
         }
-        return this._tiles.hasXY(x, y) && this._tiles[x][y] == tile;
+        return this.hasXY(x, y) && this._tiles[x][y] == tile;
     }
     getChokeCount(x, y) {
         return this._chokeCounts[x][y];
@@ -2359,13 +2365,13 @@ function cellIsCandidate(builder, blueprint, buildStep, x, y, distanceBound) {
             if (!builder.distanceMap.hasXY(i, j))
                 return;
             if (!site.blocksPathing(i, j) &&
-                distance > builder.distanceMap[i][j] + 1) {
-                distance = builder.distanceMap[i][j] + 1;
+                distance > builder.distanceMap.getDistance(i, j) + 1) {
+                distance = builder.distanceMap.getDistance(i, j) + 1;
             }
         }, true);
     }
     else {
-        distance = builder.distanceMap[x][y];
+        distance = builder.distanceMap.getDistance(x, y);
     }
     if (distance > distanceBound[1])
         return CandidateType.TOO_FAR; // distance exceeds max
@@ -3569,13 +3575,12 @@ class Bridges {
         let i, j, d, x, y;
         const maxLength = this.options.maxLength;
         const minDistance = this.options.minDistance;
-        const pathGrid = GWU.grid.alloc(site.width, site.height);
-        const costGrid = GWU.grid.alloc(site.width, site.height);
+        const pathGrid = new GWU.path.DijkstraMap();
+        // const costGrid = GWU.grid.alloc(site.width, site.height);
         const dirCoords = [
             [1, 0],
             [0, 1],
         ];
-        costGrid.update((_v, x, y) => site.isPassable(x, y) ? 1 : GWU.path.OBSTRUCTION);
         const seq = site.rng.sequence(site.width * site.height);
         for (i = 0; i < seq.length; i++) {
             x = Math.floor(seq[i] / site.height);
@@ -3610,12 +3615,9 @@ class Bridges {
                     // map.get(newX, newY) &&
                     site.isPassable(newX, newY) &&
                         j < maxLength) {
-                        GWU.path.calculateDistances(pathGrid, newX, newY, costGrid, false);
-                        // pathGrid.fill(30000);
-                        // pathGrid[newX][newY] = 0;
-                        // dijkstraScan(pathGrid, costGrid, false);
-                        if (pathGrid[x][y] > minDistance &&
-                            pathGrid[x][y] < GWU.path.NO_PATH) {
+                        computeDistanceMap(site, pathGrid, newX, newY, 999);
+                        if (pathGrid.getDistance(x, y) > minDistance &&
+                            pathGrid.getDistance(x, y) < GWU.path.BLOCKED) {
                             // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
                             // dungeon.debug(
                             //     'Adding Bridge',
@@ -3628,11 +3630,11 @@ class Bridges {
                             while (x !== newX || y !== newY) {
                                 if (this.isBridgeCandidate(site, x, y, bridgeDir)) {
                                     site.setTile(x, y, 'BRIDGE'); // map[x][y] = SITE.BRIDGE;
-                                    costGrid[x][y] = 1; // (Cost map also needs updating.)
+                                    // costGrid[x][y] = 1; // (Cost map also needs updating.)
                                 }
                                 else {
                                     site.setTile(x, y, 'FLOOR'); // map[x][y] = SITE.FLOOR;
-                                    costGrid[x][y] = 1;
+                                    // costGrid[x][y] = 1;
                                 }
                                 x += bridgeDir[0];
                                 y += bridgeDir[1];
@@ -3644,8 +3646,7 @@ class Bridges {
                 }
             }
         }
-        GWU.grid.free(pathGrid);
-        GWU.grid.free(costGrid);
+        // GWU.grid.free(costGrid);
         return count;
     }
     isBridgeCandidate(site, x, y, _bridgeDir) {
@@ -3850,13 +3851,13 @@ class LoopDigger {
         let i, j, d, x, y;
         const minDistance = Math.min(this.options.minDistance, Math.floor(Math.max(site.width, site.height) / 2));
         const maxLength = this.options.maxLength;
-        const pathGrid = GWU.grid.alloc(site.width, site.height);
-        const costGrid = GWU.grid.alloc(site.width, site.height);
+        const pathGrid = new GWU.path.DijkstraMap();
+        // const costGrid = GWU.grid.alloc(site.width, site.height);
         const dirCoords = [
             [1, 0],
             [0, 1],
         ];
-        fillCostGrid(site, costGrid);
+        // SITE.fillCostGrid(site, costGrid);
         function isValidTunnelStart(x, y, dir) {
             if (!site.hasXY(x, y))
                 return false;
@@ -3932,12 +3933,12 @@ class LoopDigger {
                         }
                     }
                     if (j < maxLength) {
-                        GWU.path.calculateDistances(pathGrid, startX, startY, costGrid, false);
+                        computeDistanceMap(site, pathGrid, startX, startY, 888);
                         // pathGrid.fill(30000);
                         // pathGrid[startX][startY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
-                        if (pathGrid[endX][endY] > minDistance &&
-                            pathGrid[endX][endY] < 30000) {
+                        if (pathGrid.getDistance(endX, endY) > minDistance &&
+                            pathGrid.getDistance(endX, endY) < GWU.path.BLOCKED) {
                             // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
                             // dungeon.debug(
                             //     'Adding Loop',
@@ -3952,7 +3953,7 @@ class LoopDigger {
                             while (endX !== startX || endY !== startY) {
                                 if (site.isNothing(endX, endY)) {
                                     site.setTile(endX, endY, 'FLOOR');
-                                    costGrid[endX][endY] = 1; // (Cost map also needs updating.)
+                                    // costGrid[endX][endY] = 1; // (Cost map also needs updating.)
                                 }
                                 endX += dir[0];
                                 endY += dir[1];
@@ -3969,8 +3970,8 @@ class LoopDigger {
                 }
             }
         }
-        GWU.grid.free(pathGrid);
-        GWU.grid.free(costGrid);
+        // pathGrid.free();
+        // GWU.grid.free(costGrid);
         return count;
     }
 }
@@ -4690,7 +4691,7 @@ class BuildData {
         this.interior = GWU.grid.alloc(site.width, site.height);
         this.occupied = GWU.grid.alloc(site.width, site.height);
         this.viewMap = GWU.grid.alloc(site.width, site.height);
-        this.distanceMap = GWU.grid.alloc(site.width, site.height);
+        this.distanceMap = new GWU.path.DijkstraMap(site.width, site.height);
         this.candidates = GWU.grid.alloc(site.width, site.height);
         this.machineNumber = machine;
     }
@@ -4698,7 +4699,6 @@ class BuildData {
         GWU.grid.free(this.interior);
         GWU.grid.free(this.occupied);
         GWU.grid.free(this.viewMap);
-        GWU.grid.free(this.distanceMap);
         GWU.grid.free(this.candidates);
     }
     get rng() {
@@ -4708,7 +4708,7 @@ class BuildData {
         this.interior.fill(0);
         this.occupied.fill(0);
         this.viewMap.fill(0);
-        this.distanceMap.fill(0);
+        this.distanceMap.reset(this.site.width, this.site.height);
         // this.candidates.fill(0);
         this.originX = originX;
         this.originY = originY;
@@ -4718,15 +4718,14 @@ class BuildData {
         //     this.site.setSeed(this.seed);
         // }
     }
-    calcDistances(maxSize) {
-        this.distanceMap.fill(0);
-        computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxSize);
+    calcDistances(maxDistance) {
+        computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxDistance);
         let qualifyingTileCount = 0;
         const distances = new Array(100).fill(0);
         this.interior.forEach((v, x, y) => {
             if (!v)
                 return;
-            const dist = this.distanceMap[x][y];
+            const dist = Math.round(this.distanceMap.getDistance(x, y));
             if (dist < 100) {
                 distances[dist]++; // create a histogram of distances -- poor man's sort function
                 qualifyingTileCount++;
@@ -4951,7 +4950,7 @@ class Blueprint {
                 for (let n = 0; n < seq.length && qualifyingTileCount < goalSize; n++) {
                     const i = Math.floor(seq[n] / site.height);
                     const j = seq[n] % site.height;
-                    if (distanceMap[i][j] == k) {
+                    if (Math.round(distanceMap.getDistance(i, j)) == k) {
                         interior[i][j] = 1;
                         qualifyingTileCount++;
                         const machine = site.getMachine(i, j);
@@ -5106,7 +5105,7 @@ function computeVestibuleInterior(builder, blueprint) {
         for (let i = 0; i < cells.length && qualifyingTileCount < wantSize; ++i) {
             const x = Math.floor(cells[i] / site.height);
             const y = cells[i] % site.height;
-            const dist = distMap[x][y];
+            const dist = Math.round(distMap.getDistance(x, y));
             if (dist != k)
                 continue;
             if (site.isOccupied(x, y)) {
@@ -5875,3 +5874,4 @@ var index = /*#__PURE__*/Object.freeze({
 });
 
 export { Digger, Dungeon, Hall, Room, index as blueprint, bridge, index$3 as feature, hall, lake, loop, makeHall, room, index$1 as site, stairs };
+//# sourceMappingURL=gw-dig.mjs.map

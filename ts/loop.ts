@@ -34,15 +34,15 @@ export class LoopDigger {
         );
         const maxLength = this.options.maxLength;
 
-        const pathGrid = GWU.grid.alloc(site.width, site.height);
-        const costGrid = GWU.grid.alloc(site.width, site.height);
+        const pathGrid = new GWU.path.DijkstraMap();
+        // const costGrid = GWU.grid.alloc(site.width, site.height);
 
         const dirCoords: [number, number][] = [
             [1, 0],
             [0, 1],
         ];
 
-        SITE.fillCostGrid(site, costGrid);
+        // SITE.fillCostGrid(site, costGrid);
 
         function isValidTunnelStart(
             x: number,
@@ -125,19 +125,20 @@ export class LoopDigger {
                     }
 
                     if (j < maxLength) {
-                        GWU.path.calculateDistances(
+                        SITE.computeDistanceMap(
+                            site,
                             pathGrid,
                             startX,
                             startY,
-                            costGrid,
-                            false
+                            888
                         );
+
                         // pathGrid.fill(30000);
                         // pathGrid[startX][startY] = 0;
                         // dijkstraScan(pathGrid, costGrid, false);
                         if (
-                            pathGrid[endX][endY] > minDistance &&
-                            pathGrid[endX][endY] < 30000
+                            pathGrid.getDistance(endX, endY) > minDistance &&
+                            pathGrid.getDistance(endX, endY) < GWU.path.BLOCKED
                         ) {
                             // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
 
@@ -155,7 +156,7 @@ export class LoopDigger {
                             while (endX !== startX || endY !== startY) {
                                 if (site.isNothing(endX, endY)) {
                                     site.setTile(endX, endY, 'FLOOR');
-                                    costGrid[endX][endY] = 1; // (Cost map also needs updating.)
+                                    // costGrid[endX][endY] = 1; // (Cost map also needs updating.)
                                 }
                                 endX += dir[0];
                                 endY += dir[1];
@@ -174,8 +175,8 @@ export class LoopDigger {
                 }
             }
         }
-        GWU.grid.free(pathGrid);
-        GWU.grid.free(costGrid);
+        // pathGrid.free();
+        // GWU.grid.free(costGrid);
 
         return count;
     }

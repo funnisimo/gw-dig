@@ -513,15 +513,15 @@ export function cellIsCandidate(
                 if (!builder.distanceMap.hasXY(i, j)) return;
                 if (
                     !site.blocksPathing(i, j) &&
-                    distance > builder.distanceMap[i][j] + 1
+                    distance > builder.distanceMap.getDistance(i, j) + 1
                 ) {
-                    distance = builder.distanceMap[i][j] + 1;
+                    distance = builder.distanceMap.getDistance(i, j) + 1;
                 }
             },
             true
         );
     } else {
-        distance = builder.distanceMap[x][y];
+        distance = builder.distanceMap.getDistance(x, y);
     }
 
     if (distance > distanceBound[1]) return CandidateType.TOO_FAR; // distance exceeds max

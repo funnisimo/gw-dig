@@ -17,7 +17,7 @@ describe('spread type', () => {
     beforeEach(() => {
         map = new Site(20, 20);
 
-        GWU.data.gameHasEnded = false;
+        // GWU.data.gameHasEnded = false;
 
         GWU.rng.random.seed(12345);
         grid = GWU.grid.alloc(20, 20);

@@ -114,7 +114,7 @@ describe('buildStep', () => {
     });
 
     test('tile near origin', () => {
-        SITE.installTile('A');
+        SITE.installTile('A', { ch: 'A' });
 
         const map = new Site(80, 34);
         const builder = new BUILDER.Builder();
@@ -151,7 +151,7 @@ describe('buildStep', () => {
     test('tile far from origin', () => {
         // GWU.rng.random.seed(12345);
 
-        SITE.installTile('A');
+        SITE.installTile('A', { ch: 'A' });
 
         const map = new Site(80, 34);
         const builder = new BUILDER.Builder();
@@ -233,8 +233,7 @@ describe('buildStep', () => {
                 id: 'TEST',
                 size: '30-50',
                 frequency: '1-12: 30',
-                flags:
-                    'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+                flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
 
                 steps: [
                     {
@@ -252,6 +251,7 @@ describe('buildStep', () => {
 
             const count = blue.fillInterior(data);
             expect(count).toBeWithin(30, 51);
+            data.calcDistances(count);
 
             const step = blue.steps[0];
 

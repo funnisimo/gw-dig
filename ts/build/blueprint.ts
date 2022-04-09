@@ -246,7 +246,7 @@ export class Blueprint {
                     const i = Math.floor(seq[n] / site.height);
                     const j = seq[n] % site.height;
 
-                    if (distanceMap[i][j] == k) {
+                    if (Math.round(distanceMap.getDistance(i, j)) == k) {
                         interior[i][j] = 1;
                         qualifyingTileCount++;
 
@@ -572,7 +572,7 @@ export function computeVestibuleInterior(
             const x = Math.floor(cells[i] / site.height);
             const y = cells[i] % site.height;
 
-            const dist = distMap[x][y];
+            const dist = Math.round(distMap.getDistance(x, y));
 
             if (dist != k) continue;
             if (site.isOccupied(x, y)) {

@@ -9,7 +9,7 @@ export class BuildData {
     occupied: GWU.grid.NumGrid;
     candidates: GWU.grid.NumGrid;
     viewMap: GWU.grid.NumGrid;
-    distanceMap: GWU.grid.NumGrid;
+    distanceMap: GWU.path.DijkstraMap;
     originX: number = -1;
     originY: number = -1;
     distance25: number = -1;
@@ -24,7 +24,7 @@ export class BuildData {
         this.interior = GWU.grid.alloc(site.width, site.height);
         this.occupied = GWU.grid.alloc(site.width, site.height);
         this.viewMap = GWU.grid.alloc(site.width, site.height);
-        this.distanceMap = GWU.grid.alloc(site.width, site.height);
+        this.distanceMap = new GWU.path.DijkstraMap(site.width, site.height);
         this.candidates = GWU.grid.alloc(site.width, site.height);
         this.machineNumber = machine;
     }
@@ -33,7 +33,6 @@ export class BuildData {
         GWU.grid.free(this.interior);
         GWU.grid.free(this.occupied);
         GWU.grid.free(this.viewMap);
-        GWU.grid.free(this.distanceMap);
         GWU.grid.free(this.candidates);
     }
 
@@ -45,7 +44,7 @@ export class BuildData {
         this.interior.fill(0);
         this.occupied.fill(0);
         this.viewMap.fill(0);
-        this.distanceMap.fill(0);
+        this.distanceMap.reset(this.site.width, this.site.height);
         // this.candidates.fill(0);
 
         this.originX = originX;
@@ -58,21 +57,21 @@ export class BuildData {
         // }
     }
 
-    calcDistances(maxSize: number) {
-        this.distanceMap.fill(0);
+    calcDistances(maxDistance: number) {
         SITE.computeDistanceMap(
             this.site,
             this.distanceMap,
             this.originX,
             this.originY,
-            maxSize
+            maxDistance
         );
+
         let qualifyingTileCount = 0;
         const distances = new Array(100).fill(0);
 
         this.interior.forEach((v, x, y) => {
             if (!v) return;
-            const dist = this.distanceMap[x][y];
+            const dist = Math.round(this.distanceMap.getDistance(x, y));
             if (dist < 100) {
                 distances[dist]++; // create a histogram of distances -- poor man's sort function
                 qualifyingTileCount++;

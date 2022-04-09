@@ -9,6 +9,7 @@ describe('buildStep - noBlockOrigin', () => {
         const trap = GWD.site.installTile('TRAP', {
             extends: 'FLOOR',
             priority: '+1',
+            ch: '!',
             blocksPathing: true,
         });
 
@@ -35,13 +36,11 @@ describe('buildStep - noBlockOrigin', () => {
             steps: [
                 {
                     tile: 'DOOR',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'TRAP',
-                    flags:
-                        'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
+                    flags: 'BS_REPEAT_UNTIL_NO_PROGRESS, BS_TREAT_AS_BLOCKING, BS_NO_BLOCK_ORIGIN',
                 },
             ],
         });
@@ -73,20 +72,10 @@ describe('buildStep - noBlockOrigin', () => {
             if (map.isFloor(x, y) || map.isDoor(x, y) || map.isBridge(x, y)) {
                 return map.hasActor(x, y) ? GWU.path.AVOIDED : 1;
             }
-            if (map.isDeep(x, y)) return GWU.path.FORBIDDEN; // ???
-            return 1;
+            return GWU.path.BLOCKED; // ???
         };
 
-        const path = GWU.path.getPathBetween(
-            map.width,
-            map.height,
-            4,
-            25,
-            9,
-            30,
-            costFn,
-            false
-        );
+        const path = GWU.path.fromTo([4, 25], [9, 30], costFn, false);
         // console.log(path);
         expect(path).toBeArray();
         expect(path!.length).toBeGreaterThan(9);

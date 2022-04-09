@@ -11,7 +11,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 export default [
     {
         input: 'js/index.js',
-        external: ['gw-utils', 'gw-map'],
+        external: ['gw-utils'],
         plugins: [nodeResolve()],
         output: [
             {
@@ -22,7 +22,6 @@ export default [
                 // extend: true,
                 sourcemap: true,
                 globals: {
-                    'gw-map': 'GWM',
                     'gw-utils': 'GWU',
                 },
                 plugins: [terser()],
@@ -35,7 +34,6 @@ export default [
                 // extend: true,
                 sourcemap: true,
                 globals: {
-                    'gw-map': 'GWM',
                     'gw-utils': 'GWU',
                 },
             },
@@ -43,8 +41,8 @@ export default [
                 file: 'dist/gw-dig.mjs',
                 format: 'es',
                 // freeze: false,
+                sourcemap: true,
                 globals: {
-                    'gw-map': 'GWM',
                     'gw-utils': 'GWU',
                 },
             },
