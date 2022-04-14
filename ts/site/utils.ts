@@ -513,20 +513,16 @@ export function computeDistanceMap(
     distanceMap: GWU.path.DijkstraMap,
     originX: number,
     originY: number,
-    maxDistance: number
+    _maxDistance: number
 ) {
     distanceMap.reset(site.width, site.height);
     distanceMap.setGoal(originX, originY);
-    distanceMap.calculate(
-        (x, y) => {
-            if (!site.hasXY(x, y)) return GWU.path.OBSTRUCTION;
-            if (site.isPassable(x, y)) return GWU.path.OK;
-            if (site.blocksDiagonal(x, y)) return GWU.path.OBSTRUCTION;
-            return GWU.path.BLOCKED;
-        },
-        false,
-        maxDistance
-    );
+    distanceMap.calculate((x, y) => {
+        if (!site.hasXY(x, y)) return GWU.path.OBSTRUCTION;
+        if (site.isPassable(x, y)) return GWU.path.OK;
+        if (site.blocksDiagonal(x, y)) return GWU.path.OBSTRUCTION;
+        return GWU.path.BLOCKED;
+    }, false);
 }
 
 export function clearInteriorFlag(site: DIG.Site, machine: number) {

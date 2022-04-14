@@ -3,16 +3,17 @@
     "exclude": ["ts/**/*.spec.ts"],
     "compilerOptions": {
         "strict": true,
-        "outDir": "js",
+        "outDir": "_temp",
         "target": "es2019",
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noEmitOnError": true,
-        "incremental": true,
+
         "declaration": true,
         "moduleResolution": "node",
-        "esModuleInterop": true
-        // "types": ["jest", "jest-extended"]
-        // "skipLibCheck": true,
+        "esModuleInterop": true,
+
+        // see: https://github.com/Swatinem/rollup-plugin-dts/issues/156
+        "useDefineForClassFields": false
     }
 }

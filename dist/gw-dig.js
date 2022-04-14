@@ -1312,7 +1312,7 @@
         GWU__namespace.grid.free(walkableGrid);
         return disrupts;
     }
-    function computeDistanceMap(site, distanceMap, originX, originY, maxDistance) {
+    function computeDistanceMap(site, distanceMap, originX, originY, _maxDistance) {
         distanceMap.reset(site.width, site.height);
         distanceMap.setGoal(originX, originY);
         distanceMap.calculate((x, y) => {
@@ -1323,7 +1323,7 @@
             if (site.blocksDiagonal(x, y))
                 return GWU__namespace.path.OBSTRUCTION;
             return GWU__namespace.path.BLOCKED;
-        }, false, maxDistance);
+        }, false);
     }
     function clearInteriorFlag(site, machine) {
         for (let i = 0; i < site.width; i++) {
@@ -3639,7 +3639,7 @@
                         // map.get(newX, newY) &&
                         site.isPassable(newX, newY) &&
                             j < maxLength) {
-                            computeDistanceMap(site, pathGrid, newX, newY, 999);
+                            computeDistanceMap(site, pathGrid, newX, newY);
                             if (pathGrid.getDistance(x, y) > minDistance &&
                                 pathGrid.getDistance(x, y) < GWU__namespace.path.BLOCKED) {
                                 // and if the pathing distance between the two flanking floor tiles exceeds minDistance,
@@ -3957,7 +3957,7 @@
                             }
                         }
                         if (j < maxLength) {
-                            computeDistanceMap(site, pathGrid, startX, startY, 888);
+                            computeDistanceMap(site, pathGrid, startX, startY);
                             // pathGrid.fill(30000);
                             // pathGrid[startX][startY] = 0;
                             // dijkstraScan(pathGrid, costGrid, false);
@@ -4743,7 +4743,7 @@
             // }
         }
         calcDistances(maxDistance) {
-            computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY, maxDistance);
+            computeDistanceMap(this.site, this.distanceMap, this.originX, this.originY);
             let qualifyingTileCount = 0;
             const distances = new Array(100).fill(0);
             this.interior.forEach((v, x, y) => {

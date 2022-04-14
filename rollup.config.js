@@ -3,6 +3,7 @@
 import { terser } from 'rollup-plugin-terser';
 import dts from 'rollup-plugin-dts';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import typescript from '@rollup/plugin-typescript';
 
 // import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 // import { nodeResolve } from '@rollup/plugin-node-resolve';
@@ -10,9 +11,9 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 
 export default [
     {
-        input: 'js/index.js',
+        input: 'ts/index.ts',
         external: ['gw-utils'],
-        plugins: [nodeResolve()],
+        plugins: [nodeResolve(), typescript()],
         output: [
             {
                 file: 'dist/gw-dig.min.js',
@@ -49,7 +50,7 @@ export default [
         ],
     },
     {
-        input: './js/index.d.ts',
+        input: 'ts/index.ts',
         output: [{ file: 'dist/gw-dig.d.ts', format: 'es' }],
         plugins: [dts()],
     },

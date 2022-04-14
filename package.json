@@ -7,10 +7,9 @@
     "module": "dist/gw-dig.mjs",
     "types": "dist/gw-dig.d.ts",
     "scripts": {
-        "compile": "tsc --build tsconfig.json",
         "bundle": "rollup -c",
         "copy": "cp dist/gw-dig.js* docs/js && cp node_modules/gw-utils/dist/gw-utils.js* docs/js && cp node_modules/gw-utils/docs/js/manual.js docs/js  && cp node_modules/gw-utils/docs/css/* docs/css",
-        "build": "npm run compile && npm run bundle && npm run copy && npm run version",
+        "build": "npm run bundle && npm run copy && npm run version",
         "serve": "cd docs && http-server -p 8080",
         "test": "jest --detectOpenHandles",
         "coverage": "jest --coverage",
@@ -37,9 +36,10 @@
         "@jest/console": "^27.1.0",
         "@jest/types": "^27.1.0",
         "@rollup/plugin-node-resolve": "^13.0.4",
+        "@rollup/plugin-typescript": "^8.3.1",
         "@types/jest": "^27.0.1",
         "gw-utils": "^0.6.0",
-        "http-server": "^0.12.3",
+        "http-server": "^14.1.0",
         "jest": "^27.1.0",
         "jest-environment-node": "^27.1.0",
         "jest-extended": "^0.11.5",
@@ -48,6 +48,7 @@
         "rollup-plugin-dts": "^3.0.2",
         "rollup-plugin-terser": "^7.0.2",
         "ts-jest": "^27.0.5",
+        "tslib": "^2.3.1",
         "typescript": "^4.5.2"
     },
     "peerDependencies": {

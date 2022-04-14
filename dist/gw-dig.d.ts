@@ -176,63 +176,63 @@ declare function clearCells(map: Site, spawnMap: GWU.grid.NumGrid, _flags?: numb
 declare function evacuateCreatures(map: Site, blockingMap: GWU.grid.NumGrid): boolean;
 declare function evacuateItems(map: Site, blockingMap: GWU.grid.NumGrid): boolean;
 
-type index_d$3_TileOptions = TileOptions;
-declare const index_d$3_tile: typeof tile;
-declare const index_d$3_tileAction: typeof tileAction;
-declare const index_d$3_chance: typeof chance;
-declare const index_d$3_chanceAction: typeof chanceAction;
-type index_d$3_FeatureObj = FeatureObj;
-type index_d$3_FeatureConfig = FeatureConfig;
-type index_d$3_FeatureFn = FeatureFn;
-type index_d$3_MakeFn = MakeFn;
-declare const index_d$3_features: typeof features;
-declare const index_d$3_types: typeof types;
-declare const index_d$3_installType: typeof installType;
-declare const index_d$3_feature: typeof feature;
-declare const index_d$3_featureFeature: typeof featureFeature;
-declare const index_d$3_makeArray: typeof makeArray;
-type index_d$3_SpreadInfo = SpreadInfo;
-type index_d$3_SpreadConfig = SpreadConfig;
-type index_d$3_SpreadFn = SpreadFn;
-type index_d$3_SpreadArgs = SpreadArgs;
-declare const index_d$3_spread: typeof spread;
-declare const index_d$3_spreadFeature: typeof spreadFeature;
-declare const index_d$3_mapDisruptedBy: typeof mapDisruptedBy;
-declare const index_d$3_computeSpawnMap: typeof computeSpawnMap;
-declare const index_d$3_clearCells: typeof clearCells;
-declare const index_d$3_evacuateCreatures: typeof evacuateCreatures;
-declare const index_d$3_evacuateItems: typeof evacuateItems;
-declare namespace index_d$3 {
+type index$3_TileOptions = TileOptions;
+declare const index$3_tile: typeof tile;
+declare const index$3_tileAction: typeof tileAction;
+declare const index$3_chance: typeof chance;
+declare const index$3_chanceAction: typeof chanceAction;
+type index$3_FeatureObj = FeatureObj;
+type index$3_FeatureConfig = FeatureConfig;
+type index$3_FeatureFn = FeatureFn;
+type index$3_MakeFn = MakeFn;
+declare const index$3_features: typeof features;
+declare const index$3_types: typeof types;
+declare const index$3_installType: typeof installType;
+declare const index$3_feature: typeof feature;
+declare const index$3_featureFeature: typeof featureFeature;
+declare const index$3_makeArray: typeof makeArray;
+type index$3_SpreadInfo = SpreadInfo;
+type index$3_SpreadConfig = SpreadConfig;
+type index$3_SpreadFn = SpreadFn;
+type index$3_SpreadArgs = SpreadArgs;
+declare const index$3_spread: typeof spread;
+declare const index$3_spreadFeature: typeof spreadFeature;
+declare const index$3_mapDisruptedBy: typeof mapDisruptedBy;
+declare const index$3_computeSpawnMap: typeof computeSpawnMap;
+declare const index$3_clearCells: typeof clearCells;
+declare const index$3_evacuateCreatures: typeof evacuateCreatures;
+declare const index$3_evacuateItems: typeof evacuateItems;
+declare namespace index$3 {
   export {
-    index_d$3_TileOptions as TileOptions,
-    index_d$3_tile as tile,
-    index_d$3_tileAction as tileAction,
-    index_d$3_chance as chance,
-    index_d$3_chanceAction as chanceAction,
-    index_d$3_FeatureObj as FeatureObj,
-    index_d$3_FeatureConfig as FeatureConfig,
-    index_d$3_FeatureFn as FeatureFn,
-    index_d$3_MakeFn as MakeFn,
-    index_d$3_features as features,
+    index$3_TileOptions as TileOptions,
+    index$3_tile as tile,
+    index$3_tileAction as tileAction,
+    index$3_chance as chance,
+    index$3_chanceAction as chanceAction,
+    index$3_FeatureObj as FeatureObj,
+    index$3_FeatureConfig as FeatureConfig,
+    index$3_FeatureFn as FeatureFn,
+    index$3_MakeFn as MakeFn,
+    index$3_features as features,
     install$3 as install,
-    index_d$3_types as types,
-    index_d$3_installType as installType,
-    index_d$3_feature as feature,
-    index_d$3_featureFeature as featureFeature,
+    index$3_types as types,
+    index$3_installType as installType,
+    index$3_feature as feature,
+    index$3_featureFeature as featureFeature,
     make$1 as make,
-    index_d$3_makeArray as makeArray,
+    index$3_makeArray as makeArray,
     Flags$2 as Flags,
-    index_d$3_SpreadInfo as SpreadInfo,
-    index_d$3_SpreadConfig as SpreadConfig,
-    index_d$3_SpreadFn as SpreadFn,
-    index_d$3_SpreadArgs as SpreadArgs,
-    index_d$3_spread as spread,
-    index_d$3_spreadFeature as spreadFeature,
-    index_d$3_mapDisruptedBy as mapDisruptedBy,
-    index_d$3_computeSpawnMap as computeSpawnMap,
-    index_d$3_clearCells as clearCells,
-    index_d$3_evacuateCreatures as evacuateCreatures,
-    index_d$3_evacuateItems as evacuateItems,
+    index$3_SpreadInfo as SpreadInfo,
+    index$3_SpreadConfig as SpreadConfig,
+    index$3_SpreadFn as SpreadFn,
+    index$3_SpreadArgs as SpreadArgs,
+    index$3_spread as spread,
+    index$3_spreadFeature as spreadFeature,
+    index$3_mapDisruptedBy as mapDisruptedBy,
+    index$3_computeSpawnMap as computeSpawnMap,
+    index$3_clearCells as clearCells,
+    index$3_evacuateCreatures as evacuateCreatures,
+    index$3_evacuateItems as evacuateItems,
   };
 }
 
@@ -404,7 +404,7 @@ interface DisruptOptions {
 declare function siteDisruptedByXY(site: Site, x: number, y: number, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedBy(site: Site, blockingGrid: GWU.grid.NumGrid, options?: Partial<DisruptOptions>): boolean;
 declare function siteDisruptedSize(site: Site, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
-declare function computeDistanceMap(site: Site, distanceMap: GWU.path.DijkstraMap, originX: number, originY: number, maxDistance: number): void;
+declare function computeDistanceMap(site: Site, distanceMap: GWU.path.DijkstraMap, originX: number, originY: number, _maxDistance: number): void;
 declare function clearInteriorFlag(site: Site, machine: number): void;
 
 declare function analyze(map: Site, updateChokeCounts?: boolean): void;
@@ -683,129 +683,129 @@ declare class ConsoleLogger implements Logger {
     onStepFail(data: BuildData, step: BuildStep, error: string): void;
 }
 
-type index_d$2_Logger = Logger;
-type index_d$2_NullLogger = NullLogger;
-declare const index_d$2_NullLogger: typeof NullLogger;
-type index_d$2_ConsoleLogger = ConsoleLogger;
-declare const index_d$2_ConsoleLogger: typeof ConsoleLogger;
-declare namespace index_d$2 {
+type index$2_Logger = Logger;
+type index$2_NullLogger = NullLogger;
+declare const index$2_NullLogger: typeof NullLogger;
+type index$2_ConsoleLogger = ConsoleLogger;
+declare const index$2_ConsoleLogger: typeof ConsoleLogger;
+declare namespace index$2 {
   export {
-    index_d$2_Logger as Logger,
-    index_d$2_NullLogger as NullLogger,
-    index_d$2_ConsoleLogger as ConsoleLogger,
+    index$2_Logger as Logger,
+    index$2_NullLogger as NullLogger,
+    index$2_ConsoleLogger as ConsoleLogger,
   };
 }
 
-type index_d$1_TileId = TileId;
-type index_d$1_TileConfig = TileConfig;
-type index_d$1_TileInfo = TileInfo;
-declare const index_d$1_tileIds: typeof tileIds;
-declare const index_d$1_allTiles: typeof allTiles;
-declare const index_d$1_installTile: typeof installTile;
-declare const index_d$1_getTile: typeof getTile;
-declare const index_d$1_tileId: typeof tileId;
-declare const index_d$1_blocksMove: typeof blocksMove;
-type index_d$1_HordeId = HordeId;
-type index_d$1_ActorInstance = ActorInstance;
-type index_d$1_MemberConfig = MemberConfig;
-type index_d$1_HordeConfig = HordeConfig;
-type index_d$1_MemberInfo = MemberInfo;
-type index_d$1_HordeInfo = HordeInfo;
-declare const index_d$1_hordes: typeof hordes;
-declare const index_d$1_installHorde: typeof installHorde;
-declare const index_d$1_pickHorde: typeof pickHorde;
-type index_d$1_HordeFlagsType = HordeFlagsType;
-type index_d$1_SpawnOptions = SpawnOptions;
-declare const index_d$1_spawnHorde: typeof spawnHorde;
-type index_d$1_ItemId = ItemId;
-type index_d$1_ItemInstance = ItemInstance;
-type index_d$1_ItemConfig = ItemConfig;
-type index_d$1_ItemMatchOptions = ItemMatchOptions;
-type index_d$1_ItemInfo = ItemInfo;
-declare const index_d$1_items: typeof items;
-declare const index_d$1_installItem: typeof installItem;
-declare const index_d$1_pickItem: typeof pickItem;
-declare const index_d$1_makeItem: typeof makeItem;
-declare const index_d$1_getItemInfo: typeof getItemInfo;
-type index_d$1_SetTileOptions = SetTileOptions;
-type index_d$1_SiteOptions = SiteOptions;
-type index_d$1_Site = Site;
-declare const index_d$1_Site: typeof Site;
-declare const index_d$1_loadSite: typeof loadSite;
-declare const index_d$1_directionOfDoorSite: typeof directionOfDoorSite;
-declare const index_d$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
-declare const index_d$1_fillCostGrid: typeof fillCostGrid;
-type index_d$1_DisruptOptions = DisruptOptions;
-declare const index_d$1_siteDisruptedByXY: typeof siteDisruptedByXY;
-declare const index_d$1_siteDisruptedBy: typeof siteDisruptedBy;
-declare const index_d$1_siteDisruptedSize: typeof siteDisruptedSize;
-declare const index_d$1_computeDistanceMap: typeof computeDistanceMap;
-declare const index_d$1_clearInteriorFlag: typeof clearInteriorFlag;
-declare const index_d$1_analyze: typeof analyze;
-declare const index_d$1_updateChokepoints: typeof updateChokepoints;
-declare const index_d$1_floodFillCount: typeof floodFillCount;
-declare const index_d$1_updateLoopiness: typeof updateLoopiness;
-declare const index_d$1_resetLoopiness: typeof resetLoopiness;
-declare const index_d$1_checkLoopiness: typeof checkLoopiness;
-declare const index_d$1_fillInnerLoopGrid: typeof fillInnerLoopGrid;
-declare const index_d$1_cleanLoopiness: typeof cleanLoopiness;
-declare namespace index_d$1 {
+type index$1_TileId = TileId;
+type index$1_TileConfig = TileConfig;
+type index$1_TileInfo = TileInfo;
+declare const index$1_tileIds: typeof tileIds;
+declare const index$1_allTiles: typeof allTiles;
+declare const index$1_installTile: typeof installTile;
+declare const index$1_getTile: typeof getTile;
+declare const index$1_tileId: typeof tileId;
+declare const index$1_blocksMove: typeof blocksMove;
+type index$1_HordeId = HordeId;
+type index$1_ActorInstance = ActorInstance;
+type index$1_MemberConfig = MemberConfig;
+type index$1_HordeConfig = HordeConfig;
+type index$1_MemberInfo = MemberInfo;
+type index$1_HordeInfo = HordeInfo;
+declare const index$1_hordes: typeof hordes;
+declare const index$1_installHorde: typeof installHorde;
+declare const index$1_pickHorde: typeof pickHorde;
+type index$1_HordeFlagsType = HordeFlagsType;
+type index$1_SpawnOptions = SpawnOptions;
+declare const index$1_spawnHorde: typeof spawnHorde;
+type index$1_ItemId = ItemId;
+type index$1_ItemInstance = ItemInstance;
+type index$1_ItemConfig = ItemConfig;
+type index$1_ItemMatchOptions = ItemMatchOptions;
+type index$1_ItemInfo = ItemInfo;
+declare const index$1_items: typeof items;
+declare const index$1_installItem: typeof installItem;
+declare const index$1_pickItem: typeof pickItem;
+declare const index$1_makeItem: typeof makeItem;
+declare const index$1_getItemInfo: typeof getItemInfo;
+type index$1_SetTileOptions = SetTileOptions;
+type index$1_SiteOptions = SiteOptions;
+type index$1_Site = Site;
+declare const index$1_Site: typeof Site;
+declare const index$1_loadSite: typeof loadSite;
+declare const index$1_directionOfDoorSite: typeof directionOfDoorSite;
+declare const index$1_chooseRandomDoorSites: typeof chooseRandomDoorSites;
+declare const index$1_fillCostGrid: typeof fillCostGrid;
+type index$1_DisruptOptions = DisruptOptions;
+declare const index$1_siteDisruptedByXY: typeof siteDisruptedByXY;
+declare const index$1_siteDisruptedBy: typeof siteDisruptedBy;
+declare const index$1_siteDisruptedSize: typeof siteDisruptedSize;
+declare const index$1_computeDistanceMap: typeof computeDistanceMap;
+declare const index$1_clearInteriorFlag: typeof clearInteriorFlag;
+declare const index$1_analyze: typeof analyze;
+declare const index$1_updateChokepoints: typeof updateChokepoints;
+declare const index$1_floodFillCount: typeof floodFillCount;
+declare const index$1_updateLoopiness: typeof updateLoopiness;
+declare const index$1_resetLoopiness: typeof resetLoopiness;
+declare const index$1_checkLoopiness: typeof checkLoopiness;
+declare const index$1_fillInnerLoopGrid: typeof fillInnerLoopGrid;
+declare const index$1_cleanLoopiness: typeof cleanLoopiness;
+declare namespace index$1 {
   export {
-    index_d$2 as log,
-    index_d$1_TileId as TileId,
-    index_d$1_TileConfig as TileConfig,
+    index$2 as log,
+    index$1_TileId as TileId,
+    index$1_TileConfig as TileConfig,
     TileOptions$1 as TileOptions,
-    index_d$1_TileInfo as TileInfo,
-    index_d$1_tileIds as tileIds,
-    index_d$1_allTiles as allTiles,
-    index_d$1_installTile as installTile,
-    index_d$1_getTile as getTile,
-    index_d$1_tileId as tileId,
-    index_d$1_blocksMove as blocksMove,
-    index_d$1_HordeId as HordeId,
-    index_d$1_ActorInstance as ActorInstance,
-    index_d$1_MemberConfig as MemberConfig,
-    index_d$1_HordeConfig as HordeConfig,
-    index_d$1_MemberInfo as MemberInfo,
-    index_d$1_HordeInfo as HordeInfo,
-    index_d$1_hordes as hordes,
-    index_d$1_installHorde as installHorde,
-    index_d$1_pickHorde as pickHorde,
-    index_d$1_HordeFlagsType as HordeFlagsType,
-    index_d$1_SpawnOptions as SpawnOptions,
-    index_d$1_spawnHorde as spawnHorde,
-    index_d$1_ItemId as ItemId,
-    index_d$1_ItemInstance as ItemInstance,
-    index_d$1_ItemConfig as ItemConfig,
-    index_d$1_ItemMatchOptions as ItemMatchOptions,
-    index_d$1_ItemInfo as ItemInfo,
-    index_d$1_items as items,
-    index_d$1_installItem as installItem,
-    index_d$1_pickItem as pickItem,
-    index_d$1_makeItem as makeItem,
-    index_d$1_getItemInfo as getItemInfo,
-    index_d$1_SetTileOptions as SetTileOptions,
+    index$1_TileInfo as TileInfo,
+    index$1_tileIds as tileIds,
+    index$1_allTiles as allTiles,
+    index$1_installTile as installTile,
+    index$1_getTile as getTile,
+    index$1_tileId as tileId,
+    index$1_blocksMove as blocksMove,
+    index$1_HordeId as HordeId,
+    index$1_ActorInstance as ActorInstance,
+    index$1_MemberConfig as MemberConfig,
+    index$1_HordeConfig as HordeConfig,
+    index$1_MemberInfo as MemberInfo,
+    index$1_HordeInfo as HordeInfo,
+    index$1_hordes as hordes,
+    index$1_installHorde as installHorde,
+    index$1_pickHorde as pickHorde,
+    index$1_HordeFlagsType as HordeFlagsType,
+    index$1_SpawnOptions as SpawnOptions,
+    index$1_spawnHorde as spawnHorde,
+    index$1_ItemId as ItemId,
+    index$1_ItemInstance as ItemInstance,
+    index$1_ItemConfig as ItemConfig,
+    index$1_ItemMatchOptions as ItemMatchOptions,
+    index$1_ItemInfo as ItemInfo,
+    index$1_items as items,
+    index$1_installItem as installItem,
+    index$1_pickItem as pickItem,
+    index$1_makeItem as makeItem,
+    index$1_getItemInfo as getItemInfo,
+    index$1_SetTileOptions as SetTileOptions,
     Flags$1 as Flags,
-    index_d$1_SiteOptions as SiteOptions,
-    index_d$1_Site as Site,
-    index_d$1_loadSite as loadSite,
-    index_d$1_directionOfDoorSite as directionOfDoorSite,
-    index_d$1_chooseRandomDoorSites as chooseRandomDoorSites,
-    index_d$1_fillCostGrid as fillCostGrid,
-    index_d$1_DisruptOptions as DisruptOptions,
-    index_d$1_siteDisruptedByXY as siteDisruptedByXY,
-    index_d$1_siteDisruptedBy as siteDisruptedBy,
-    index_d$1_siteDisruptedSize as siteDisruptedSize,
-    index_d$1_computeDistanceMap as computeDistanceMap,
-    index_d$1_clearInteriorFlag as clearInteriorFlag,
-    index_d$1_analyze as analyze,
-    index_d$1_updateChokepoints as updateChokepoints,
-    index_d$1_floodFillCount as floodFillCount,
-    index_d$1_updateLoopiness as updateLoopiness,
-    index_d$1_resetLoopiness as resetLoopiness,
-    index_d$1_checkLoopiness as checkLoopiness,
-    index_d$1_fillInnerLoopGrid as fillInnerLoopGrid,
-    index_d$1_cleanLoopiness as cleanLoopiness,
+    index$1_SiteOptions as SiteOptions,
+    index$1_Site as Site,
+    index$1_loadSite as loadSite,
+    index$1_directionOfDoorSite as directionOfDoorSite,
+    index$1_chooseRandomDoorSites as chooseRandomDoorSites,
+    index$1_fillCostGrid as fillCostGrid,
+    index$1_DisruptOptions as DisruptOptions,
+    index$1_siteDisruptedByXY as siteDisruptedByXY,
+    index$1_siteDisruptedBy as siteDisruptedBy,
+    index$1_siteDisruptedSize as siteDisruptedSize,
+    index$1_computeDistanceMap as computeDistanceMap,
+    index$1_clearInteriorFlag as clearInteriorFlag,
+    index$1_analyze as analyze,
+    index$1_updateChokepoints as updateChokepoints,
+    index$1_floodFillCount as floodFillCount,
+    index$1_updateLoopiness as updateLoopiness,
+    index$1_resetLoopiness as resetLoopiness,
+    index$1_checkLoopiness as checkLoopiness,
+    index$1_fillInnerLoopGrid as fillInnerLoopGrid,
+    index$1_cleanLoopiness as cleanLoopiness,
   };
 }
 
@@ -868,60 +868,60 @@ declare class ChunkyRoom extends RoomDigger {
 declare function chunkyRoom(config: RoomConfig, site: Site): Room;
 declare function install$1(id: string, room: RoomDigger): RoomDigger;
 
-declare const room_d_checkConfig: typeof checkConfig;
-type room_d_RoomDigger = RoomDigger;
-declare const room_d_RoomDigger: typeof RoomDigger;
-declare const room_d_rooms: typeof rooms;
-type room_d_ChoiceRoom = ChoiceRoom;
-declare const room_d_ChoiceRoom: typeof ChoiceRoom;
-declare const room_d_choiceRoom: typeof choiceRoom;
-type room_d_Cavern = Cavern;
-declare const room_d_Cavern: typeof Cavern;
-declare const room_d_cavern: typeof cavern;
-type room_d_BrogueEntrance = BrogueEntrance;
-declare const room_d_BrogueEntrance: typeof BrogueEntrance;
-declare const room_d_brogueEntrance: typeof brogueEntrance;
-type room_d_Cross = Cross;
-declare const room_d_Cross: typeof Cross;
-declare const room_d_cross: typeof cross;
-type room_d_SymmetricalCross = SymmetricalCross;
-declare const room_d_SymmetricalCross: typeof SymmetricalCross;
-declare const room_d_symmetricalCross: typeof symmetricalCross;
-type room_d_Rectangular = Rectangular;
-declare const room_d_Rectangular: typeof Rectangular;
-declare const room_d_rectangular: typeof rectangular;
-type room_d_Circular = Circular;
-declare const room_d_Circular: typeof Circular;
-declare const room_d_circular: typeof circular;
-type room_d_BrogueDonut = BrogueDonut;
-declare const room_d_BrogueDonut: typeof BrogueDonut;
-declare const room_d_brogueDonut: typeof brogueDonut;
-type room_d_ChunkyRoom = ChunkyRoom;
-declare const room_d_ChunkyRoom: typeof ChunkyRoom;
-declare const room_d_chunkyRoom: typeof chunkyRoom;
-declare namespace room_d {
+declare const room_checkConfig: typeof checkConfig;
+type room_RoomDigger = RoomDigger;
+declare const room_RoomDigger: typeof RoomDigger;
+declare const room_rooms: typeof rooms;
+type room_ChoiceRoom = ChoiceRoom;
+declare const room_ChoiceRoom: typeof ChoiceRoom;
+declare const room_choiceRoom: typeof choiceRoom;
+type room_Cavern = Cavern;
+declare const room_Cavern: typeof Cavern;
+declare const room_cavern: typeof cavern;
+type room_BrogueEntrance = BrogueEntrance;
+declare const room_BrogueEntrance: typeof BrogueEntrance;
+declare const room_brogueEntrance: typeof brogueEntrance;
+type room_Cross = Cross;
+declare const room_Cross: typeof Cross;
+declare const room_cross: typeof cross;
+type room_SymmetricalCross = SymmetricalCross;
+declare const room_SymmetricalCross: typeof SymmetricalCross;
+declare const room_symmetricalCross: typeof symmetricalCross;
+type room_Rectangular = Rectangular;
+declare const room_Rectangular: typeof Rectangular;
+declare const room_rectangular: typeof rectangular;
+type room_Circular = Circular;
+declare const room_Circular: typeof Circular;
+declare const room_circular: typeof circular;
+type room_BrogueDonut = BrogueDonut;
+declare const room_BrogueDonut: typeof BrogueDonut;
+declare const room_brogueDonut: typeof brogueDonut;
+type room_ChunkyRoom = ChunkyRoom;
+declare const room_ChunkyRoom: typeof ChunkyRoom;
+declare const room_chunkyRoom: typeof chunkyRoom;
+declare namespace room {
   export {
-    room_d_checkConfig as checkConfig,
-    room_d_RoomDigger as RoomDigger,
-    room_d_rooms as rooms,
-    room_d_ChoiceRoom as ChoiceRoom,
-    room_d_choiceRoom as choiceRoom,
-    room_d_Cavern as Cavern,
-    room_d_cavern as cavern,
-    room_d_BrogueEntrance as BrogueEntrance,
-    room_d_brogueEntrance as brogueEntrance,
-    room_d_Cross as Cross,
-    room_d_cross as cross,
-    room_d_SymmetricalCross as SymmetricalCross,
-    room_d_symmetricalCross as symmetricalCross,
-    room_d_Rectangular as Rectangular,
-    room_d_rectangular as rectangular,
-    room_d_Circular as Circular,
-    room_d_circular as circular,
-    room_d_BrogueDonut as BrogueDonut,
-    room_d_brogueDonut as brogueDonut,
-    room_d_ChunkyRoom as ChunkyRoom,
-    room_d_chunkyRoom as chunkyRoom,
+    room_checkConfig as checkConfig,
+    room_RoomDigger as RoomDigger,
+    room_rooms as rooms,
+    room_ChoiceRoom as ChoiceRoom,
+    room_choiceRoom as choiceRoom,
+    room_Cavern as Cavern,
+    room_cavern as cavern,
+    room_BrogueEntrance as BrogueEntrance,
+    room_brogueEntrance as brogueEntrance,
+    room_Cross as Cross,
+    room_cross as cross,
+    room_SymmetricalCross as SymmetricalCross,
+    room_symmetricalCross as symmetricalCross,
+    room_Rectangular as Rectangular,
+    room_rectangular as rectangular,
+    room_Circular as Circular,
+    room_circular as circular,
+    room_BrogueDonut as BrogueDonut,
+    room_brogueDonut as brogueDonut,
+    room_ChunkyRoom as ChunkyRoom,
+    room_chunkyRoom as chunkyRoom,
     install$1 as install,
   };
 }
@@ -961,33 +961,33 @@ declare function dig(config: Partial<HallOptions>, site: Site, doors: GWU.xy.Loc
 declare var halls: Record<string, HallDigger>;
 declare function install(id: string, hall: HallDigger): HallDigger;
 
-declare const hall_d_isDoorLoc: typeof isDoorLoc;
-type hall_d_WidthBase = WidthBase;
-declare const hall_d_pickWidth: typeof pickWidth;
-declare const hall_d_pickLength: typeof pickLength;
-declare const hall_d_pickHallDirection: typeof pickHallDirection;
-declare const hall_d_pickHallExits: typeof pickHallExits;
-type hall_d_HallOptions = HallOptions;
-type hall_d_HallConfig = HallConfig;
-type hall_d_HallDigger = HallDigger;
-declare const hall_d_HallDigger: typeof HallDigger;
-declare const hall_d_dig: typeof dig;
-declare const hall_d_halls: typeof halls;
-declare const hall_d_install: typeof install;
-declare namespace hall_d {
+declare const hall_isDoorLoc: typeof isDoorLoc;
+type hall_WidthBase = WidthBase;
+declare const hall_pickWidth: typeof pickWidth;
+declare const hall_pickLength: typeof pickLength;
+declare const hall_pickHallDirection: typeof pickHallDirection;
+declare const hall_pickHallExits: typeof pickHallExits;
+type hall_HallOptions = HallOptions;
+type hall_HallConfig = HallConfig;
+type hall_HallDigger = HallDigger;
+declare const hall_HallDigger: typeof HallDigger;
+declare const hall_dig: typeof dig;
+declare const hall_halls: typeof halls;
+declare const hall_install: typeof install;
+declare namespace hall {
   export {
-    hall_d_isDoorLoc as isDoorLoc,
-    hall_d_WidthBase as WidthBase,
-    hall_d_pickWidth as pickWidth,
-    hall_d_pickLength as pickLength,
-    hall_d_pickHallDirection as pickHallDirection,
-    hall_d_pickHallExits as pickHallExits,
-    hall_d_HallOptions as HallOptions,
-    hall_d_HallConfig as HallConfig,
-    hall_d_HallDigger as HallDigger,
-    hall_d_dig as dig,
-    hall_d_halls as halls,
-    hall_d_install as install,
+    hall_isDoorLoc as isDoorLoc,
+    hall_WidthBase as WidthBase,
+    hall_pickWidth as pickWidth,
+    hall_pickLength as pickLength,
+    hall_pickHallDirection as pickHallDirection,
+    hall_pickHallExits as pickHallExits,
+    hall_HallOptions as HallOptions,
+    hall_HallConfig as HallConfig,
+    hall_HallDigger as HallDigger,
+    hall_dig as dig,
+    hall_halls as halls,
+    hall_install as install,
   };
 }
 
@@ -1010,13 +1010,13 @@ declare class Lakes {
     isDisruptedBy(site: Site, lakeGrid: GWU.grid.NumGrid, lakeToMapX?: number, lakeToMapY?: number): boolean;
 }
 
-type lake_d_LakeOpts = LakeOpts;
-type lake_d_Lakes = Lakes;
-declare const lake_d_Lakes: typeof Lakes;
-declare namespace lake_d {
+type lake_LakeOpts = LakeOpts;
+type lake_Lakes = Lakes;
+declare const lake_Lakes: typeof Lakes;
+declare namespace lake {
   export {
-    lake_d_LakeOpts as LakeOpts,
-    lake_d_Lakes as Lakes,
+    lake_LakeOpts as LakeOpts,
+    lake_Lakes as Lakes,
   };
 }
 
@@ -1031,13 +1031,13 @@ declare class Bridges {
     isBridgeCandidate(site: Site, x: number, y: number, _bridgeDir: [number, number]): boolean;
 }
 
-type bridge_d_BridgeOpts = BridgeOpts;
-type bridge_d_Bridges = Bridges;
-declare const bridge_d_Bridges: typeof Bridges;
-declare namespace bridge_d {
+type bridge_BridgeOpts = BridgeOpts;
+type bridge_Bridges = Bridges;
+declare const bridge_Bridges: typeof Bridges;
+declare namespace bridge {
   export {
-    bridge_d_BridgeOpts as BridgeOpts,
-    bridge_d_Bridges as Bridges,
+    bridge_BridgeOpts as BridgeOpts,
+    bridge_Bridges as Bridges,
   };
 }
 
@@ -1059,13 +1059,13 @@ declare class Stairs {
     setupStairs(site: Site, x: number, y: number, tile: TileId, wallTile: TileId): boolean;
 }
 
-type stairs_d_StairOpts = StairOpts;
-type stairs_d_Stairs = Stairs;
-declare const stairs_d_Stairs: typeof Stairs;
-declare namespace stairs_d {
+type stairs_StairOpts = StairOpts;
+type stairs_Stairs = Stairs;
+declare const stairs_Stairs: typeof Stairs;
+declare namespace stairs {
   export {
-    stairs_d_StairOpts as StairOpts,
-    stairs_d_Stairs as Stairs,
+    stairs_StairOpts as StairOpts,
+    stairs_Stairs as Stairs,
   };
 }
 
@@ -1086,17 +1086,17 @@ declare class LoopDigger {
 }
 declare function digLoops(site: Site, opts?: Partial<LoopOptions>): number;
 
-type loop_d_LoopOptions = LoopOptions;
-type loop_d_LoopConfig = LoopConfig;
-type loop_d_LoopDigger = LoopDigger;
-declare const loop_d_LoopDigger: typeof LoopDigger;
-declare const loop_d_digLoops: typeof digLoops;
-declare namespace loop_d {
+type loop_LoopOptions = LoopOptions;
+type loop_LoopConfig = LoopConfig;
+type loop_LoopDigger = LoopDigger;
+declare const loop_LoopDigger: typeof LoopDigger;
+declare const loop_digLoops: typeof digLoops;
+declare namespace loop {
   export {
-    loop_d_LoopOptions as LoopOptions,
-    loop_d_LoopConfig as LoopConfig,
-    loop_d_LoopDigger as LoopDigger,
-    loop_d_digLoops as digLoops,
+    loop_LoopOptions as LoopOptions,
+    loop_LoopConfig as LoopConfig,
+    loop_LoopDigger as LoopDigger,
+    loop_digLoops as digLoops,
   };
 }
 
@@ -1222,77 +1222,77 @@ declare class Builder {
 }
 declare function build(blueprint: BlueType, site: Site, x: number, y: number, opts?: Partial<BuilderOptions>): BuildResult;
 
-type index_d_BuildData = BuildData;
-declare const index_d_BuildData: typeof BuildData;
-type index_d_HordeStepOptions = HordeStepOptions;
-type index_d_ItemStepOptions = ItemStepOptions;
-type index_d_StepOptions = StepOptions;
-type index_d_HordeStepInfo = HordeStepInfo;
-type index_d_ItemStepInfo = ItemStepInfo;
-type index_d_StepFlags = StepFlags;
-declare const index_d_StepFlags: typeof StepFlags;
-type index_d_BuildStep = BuildStep;
-declare const index_d_BuildStep: typeof BuildStep;
-declare const index_d_updateViewMap: typeof updateViewMap;
-declare const index_d_calcDistanceBound: typeof calcDistanceBound;
-type index_d_CandidateType = CandidateType;
-declare const index_d_CandidateType: typeof CandidateType;
-declare const index_d_cellIsCandidate: typeof cellIsCandidate;
-type index_d_BlueType = BlueType;
-type index_d_BuilderOptions = BuilderOptions;
-type index_d_BuildInfo = BuildInfo;
-type index_d_BuildResult = BuildResult;
-type index_d_Builder = Builder;
-declare const index_d_Builder: typeof Builder;
-declare const index_d_build: typeof build;
-type index_d_Flags = Flags;
-declare const index_d_Flags: typeof Flags;
-type index_d_BlueprintOptions = BlueprintOptions;
-type index_d_Blueprint = Blueprint;
-declare const index_d_Blueprint: typeof Blueprint;
-declare const index_d_markCandidates: typeof markCandidates;
-declare const index_d_pickCandidateLoc: typeof pickCandidateLoc;
-declare const index_d_computeVestibuleInterior: typeof computeVestibuleInterior;
-declare const index_d_maximizeInterior: typeof maximizeInterior;
-declare const index_d_prepareInterior: typeof prepareInterior;
-declare const index_d_blueprints: typeof blueprints;
-declare const index_d_random: typeof random;
-declare const index_d_get: typeof get;
-declare const index_d_make: typeof make;
-declare namespace index_d {
+type index_BuildData = BuildData;
+declare const index_BuildData: typeof BuildData;
+type index_HordeStepOptions = HordeStepOptions;
+type index_ItemStepOptions = ItemStepOptions;
+type index_StepOptions = StepOptions;
+type index_HordeStepInfo = HordeStepInfo;
+type index_ItemStepInfo = ItemStepInfo;
+type index_StepFlags = StepFlags;
+declare const index_StepFlags: typeof StepFlags;
+type index_BuildStep = BuildStep;
+declare const index_BuildStep: typeof BuildStep;
+declare const index_updateViewMap: typeof updateViewMap;
+declare const index_calcDistanceBound: typeof calcDistanceBound;
+type index_CandidateType = CandidateType;
+declare const index_CandidateType: typeof CandidateType;
+declare const index_cellIsCandidate: typeof cellIsCandidate;
+type index_BlueType = BlueType;
+type index_BuilderOptions = BuilderOptions;
+type index_BuildInfo = BuildInfo;
+type index_BuildResult = BuildResult;
+type index_Builder = Builder;
+declare const index_Builder: typeof Builder;
+declare const index_build: typeof build;
+type index_Flags = Flags;
+declare const index_Flags: typeof Flags;
+type index_BlueprintOptions = BlueprintOptions;
+type index_Blueprint = Blueprint;
+declare const index_Blueprint: typeof Blueprint;
+declare const index_markCandidates: typeof markCandidates;
+declare const index_pickCandidateLoc: typeof pickCandidateLoc;
+declare const index_computeVestibuleInterior: typeof computeVestibuleInterior;
+declare const index_maximizeInterior: typeof maximizeInterior;
+declare const index_prepareInterior: typeof prepareInterior;
+declare const index_blueprints: typeof blueprints;
+declare const index_random: typeof random;
+declare const index_get: typeof get;
+declare const index_make: typeof make;
+declare namespace index {
   export {
-    index_d_BuildData as BuildData,
-    index_d_HordeStepOptions as HordeStepOptions,
-    index_d_ItemStepOptions as ItemStepOptions,
-    index_d_StepOptions as StepOptions,
-    index_d_HordeStepInfo as HordeStepInfo,
-    index_d_ItemStepInfo as ItemStepInfo,
-    index_d_StepFlags as StepFlags,
-    index_d_BuildStep as BuildStep,
-    index_d_updateViewMap as updateViewMap,
-    index_d_calcDistanceBound as calcDistanceBound,
-    index_d_CandidateType as CandidateType,
-    index_d_cellIsCandidate as cellIsCandidate,
-    index_d_BlueType as BlueType,
-    index_d_BuilderOptions as BuilderOptions,
-    index_d_BuildInfo as BuildInfo,
-    index_d_BuildResult as BuildResult,
-    index_d_Builder as Builder,
-    index_d_build as build,
-    index_d_Flags as Flags,
-    index_d_BlueprintOptions as BlueprintOptions,
-    index_d_Blueprint as Blueprint,
-    index_d_markCandidates as markCandidates,
-    index_d_pickCandidateLoc as pickCandidateLoc,
-    index_d_computeVestibuleInterior as computeVestibuleInterior,
-    index_d_maximizeInterior as maximizeInterior,
-    index_d_prepareInterior as prepareInterior,
-    index_d_blueprints as blueprints,
+    index_BuildData as BuildData,
+    index_HordeStepOptions as HordeStepOptions,
+    index_ItemStepOptions as ItemStepOptions,
+    index_StepOptions as StepOptions,
+    index_HordeStepInfo as HordeStepInfo,
+    index_ItemStepInfo as ItemStepInfo,
+    index_StepFlags as StepFlags,
+    index_BuildStep as BuildStep,
+    index_updateViewMap as updateViewMap,
+    index_calcDistanceBound as calcDistanceBound,
+    index_CandidateType as CandidateType,
+    index_cellIsCandidate as cellIsCandidate,
+    index_BlueType as BlueType,
+    index_BuilderOptions as BuilderOptions,
+    index_BuildInfo as BuildInfo,
+    index_BuildResult as BuildResult,
+    index_Builder as Builder,
+    index_build as build,
+    index_Flags as Flags,
+    index_BlueprintOptions as BlueprintOptions,
+    index_Blueprint as Blueprint,
+    index_markCandidates as markCandidates,
+    index_pickCandidateLoc as pickCandidateLoc,
+    index_computeVestibuleInterior as computeVestibuleInterior,
+    index_maximizeInterior as maximizeInterior,
+    index_prepareInterior as prepareInterior,
+    index_blueprints as blueprints,
     install$2 as install,
-    index_d_random as random,
-    index_d_get as get,
-    index_d_make as make,
+    index_random as random,
+    index_get as get,
+    index_make as make,
   };
 }
 
-export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, TileId, index_d as blueprint, bridge_d as bridge, index_d$3 as feature, hall_d as hall, lake_d as lake, loop_d as loop, makeHall, room_d as room, index_d$1 as site, stairs_d as stairs };
+export { DigFn, Digger, DiggerOptions, DoorOpts, Dungeon, DungeonOptions, Hall, LocPair, Room, RoomConfig, RoomOptions, TileId, index as blueprint, bridge, index$3 as feature, hall, lake, loop, makeHall, room, index$1 as site, stairs };
