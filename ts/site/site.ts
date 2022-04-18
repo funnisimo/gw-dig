@@ -28,7 +28,7 @@ export interface SiteOptions {
     rng?: GWU.rng.Random;
 }
 
-export class Site {
+export class Site implements ANALYZE.AnalysisSite {
     _tiles: GWU.grid.NumGrid;
     _doors: GWU.grid.NumGrid;
     _flags: GWU.grid.NumGrid;
@@ -294,6 +294,10 @@ export class Site {
     }
     setChokeCount(x: number, y: number, count: number): void {
         this._chokeCounts[x][y] = count;
+    }
+
+    getFlags(x: number, y: number): number {
+        return this._flags[x][y];
     }
 
     setChokepoint(x: number, y: number): void {

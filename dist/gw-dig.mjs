@@ -1465,7 +1465,6 @@ function floodFillCount(map, results, passMap, startX, startY) {
 }
 ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////
-// TODO = Move loopiness to Map
 function updateLoopiness(map) {
     resetLoopiness(map);
     checkLoopiness(map);
@@ -1834,6 +1833,9 @@ class Site {
     }
     setChokeCount(x, y, count) {
         this._chokeCounts[x][y] = count;
+    }
+    getFlags(x, y) {
+        return this._flags[x][y];
     }
     setChokepoint(x, y) {
         this._flags[x][y] |= Flags$1.CHOKEPOINT;

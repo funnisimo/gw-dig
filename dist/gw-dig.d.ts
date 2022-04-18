@@ -294,6 +294,41 @@ interface SpawnOptions {
 }
 declare function spawnHorde(info: HordeInfo, map: Site, x?: number, y?: number, opts?: Partial<SpawnOptions>): ActorInstance | null;
 
+interface AnalysisBase {
+    readonly height: number;
+    readonly width: number;
+    hasXY: GWU.xy.XYMatchFunc;
+    blocksPathing: GWU.xy.XYMatchFunc;
+    blocksMove: GWU.xy.XYMatchFunc;
+    isSecretDoor: GWU.xy.XYMatchFunc;
+}
+interface LoopSite extends AnalysisBase {
+    setInLoop: GWU.xy.XYFunc;
+    clearInLoop: GWU.xy.XYFunc;
+    isInLoop: GWU.xy.XYMatchFunc;
+}
+interface ChokeSite extends AnalysisBase {
+    clearChokepoint: GWU.xy.XYFunc;
+    setChokepoint: GWU.xy.XYFunc;
+    isChokepoint: GWU.xy.XYMatchFunc;
+    setChokeCount(x: number, y: number, count: number): void;
+    getChokeCount(x: number, y: number): number;
+    setGateSite: GWU.xy.XYFunc;
+    clearGateSite: GWU.xy.XYFunc;
+    isGateSite: GWU.xy.XYMatchFunc;
+    isAreaMachine: GWU.xy.XYMatchFunc;
+    isInLoop: GWU.xy.XYMatchFunc;
+}
+declare type AnalysisSite = LoopSite & ChokeSite;
+declare function analyze(map: AnalysisSite, updateChokeCounts?: boolean): void;
+declare function updateChokepoints(map: ChokeSite, updateCounts: boolean): void;
+declare function floodFillCount(map: ChokeSite, results: GWU.grid.NumGrid, passMap: GWU.grid.NumGrid, startX: number, startY: number): number;
+declare function updateLoopiness(map: LoopSite): void;
+declare function resetLoopiness(map: LoopSite): void;
+declare function checkLoopiness(map: LoopSite): void;
+declare function fillInnerLoopGrid(map: LoopSite, grid: GWU.grid.NumGrid): void;
+declare function cleanLoopiness(map: LoopSite): void;
+
 interface SetTileOptions {
     superpriority?: boolean;
     blockedByOtherLayers?: boolean;
@@ -306,7 +341,7 @@ declare const Flags$1: Record<string, number>;
 interface SiteOptions {
     rng?: GWU.rng.Random;
 }
-declare class Site {
+declare class Site implements AnalysisSite {
     _tiles: GWU.grid.NumGrid;
     _doors: GWU.grid.NumGrid;
     _flags: GWU.grid.NumGrid;
@@ -357,6 +392,7 @@ declare class Site {
     hasTile(x: number, y: number, tile: string | number): boolean;
     getChokeCount(x: number, y: number): number;
     setChokeCount(x: number, y: number, count: number): void;
+    getFlags(x: number, y: number): number;
     setChokepoint(x: number, y: number): void;
     isChokepoint(x: number, y: number): boolean;
     clearChokepoint(x: number, y: number): void;
@@ -406,15 +442,6 @@ declare function siteDisruptedBy(site: Site, blockingGrid: GWU.grid.NumGrid, opt
 declare function siteDisruptedSize(site: Site, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): number;
 declare function computeDistanceMap(site: Site, distanceMap: GWU.path.DijkstraMap, originX: number, originY: number, _maxDistance: number): void;
 declare function clearInteriorFlag(site: Site, machine: number): void;
-
-declare function analyze(map: Site, updateChokeCounts?: boolean): void;
-declare function updateChokepoints(map: Site, updateCounts: boolean): void;
-declare function floodFillCount(map: Site, results: GWU.grid.NumGrid, passMap: GWU.grid.NumGrid, startX: number, startY: number): number;
-declare function updateLoopiness(map: Site): void;
-declare function resetLoopiness(map: Site): void;
-declare function checkLoopiness(map: Site): void;
-declare function fillInnerLoopGrid(map: Site, grid: GWU.grid.NumGrid): void;
-declare function cleanLoopiness(map: Site): void;
 
 interface HordeStepOptions {
     id?: string;
@@ -741,6 +768,10 @@ declare const index$1_siteDisruptedBy: typeof siteDisruptedBy;
 declare const index$1_siteDisruptedSize: typeof siteDisruptedSize;
 declare const index$1_computeDistanceMap: typeof computeDistanceMap;
 declare const index$1_clearInteriorFlag: typeof clearInteriorFlag;
+type index$1_AnalysisBase = AnalysisBase;
+type index$1_LoopSite = LoopSite;
+type index$1_ChokeSite = ChokeSite;
+type index$1_AnalysisSite = AnalysisSite;
 declare const index$1_analyze: typeof analyze;
 declare const index$1_updateChokepoints: typeof updateChokepoints;
 declare const index$1_floodFillCount: typeof floodFillCount;
@@ -798,6 +829,10 @@ declare namespace index$1 {
     index$1_siteDisruptedSize as siteDisruptedSize,
     index$1_computeDistanceMap as computeDistanceMap,
     index$1_clearInteriorFlag as clearInteriorFlag,
+    index$1_AnalysisBase as AnalysisBase,
+    index$1_LoopSite as LoopSite,
+    index$1_ChokeSite as ChokeSite,
+    index$1_AnalysisSite as AnalysisSite,
     index$1_analyze as analyze,
     index$1_updateChokepoints as updateChokepoints,
     index$1_floodFillCount as floodFillCount,

@@ -980,9 +980,9 @@
 	    const bottom = top + height;
 	    const right = left + width;
 	    let output = [];
-	    for (j = top; j <= bottom; j++) {
+	    for (j = top; j < bottom; j++) {
 	        let line = ('' + j + ']').padStart(3, ' ');
-	        for (i = left; i <= right; i++) {
+	        for (i = left; i < right; i++) {
 	            if (i % 10 == 0) {
 	                line += ' ';
 	            }
@@ -993,7 +993,7 @@
 	    log(output.join('\n'));
 	}
 	function dumpAround(x, y, radius, fmtFn, log = console.log) {
-	    dumpRect(x - radius, y - radius, 2 * radius, 2 * radius, fmtFn, log);
+	    dumpRect(x - radius, y - radius, 2 * radius + 1, 2 * radius + 1, fmtFn, log);
 	}
 	function forBorder(...args) {
 	    let left = 0;
@@ -2835,7 +2835,7 @@
 	        return dumpRect(left, top, width, height, format, log);
 	    }
 	    dumpAround(x, y, radius, fmtFn, log = console.log) {
-	        this.dumpRect(x - radius, y - radius, 2 * radius, 2 * radius, fmtFn, log);
+	        this.dumpRect(x - radius, y - radius, 2 * radius + 1, 2 * radius + 1, fmtFn, log);
 	    }
 	    // TODO - Use for(radius) loop to speed this up (do not look at each cell)
 	    closestMatchingLoc(x, y, v) {
@@ -6583,6 +6583,9 @@
 	            this._add(x(args[0]), y(args[0]), args[1] || 0, 0);
 	        }
 	    }
+	    setDistance(x, y, distance) {
+	        this._add(x, y, 0, distance);
+	    }
 	    _add(x, y, distance, cost) {
 	        if (!this.hasXY(x, y))
 	            return false;
@@ -6626,6 +6629,7 @@
 	            let next = current.next;
 	            current.prev = current.next = null;
 	            this._todo.next = next;
+	            next && (next.prev = this._todo);
 	            // console.log('current', current.x, current.y, current.distance);
 	            eachNeighbor(current.x, current.y, (x, y, dir) => {
 	                let mult = 1;
@@ -6657,36 +6661,37 @@
 	            return NOT_DONE;
 	        return this._get(x, y).distance;
 	    }
-	    setDistance(x, y, distance) {
-	        if (!this.hasXY(x, y))
-	            return;
-	        this._get(x, y).distance = distance;
-	    }
-	    addObstacle(x, y, costFn, radius, penalty = radius) {
-	        const done = [[x, y]];
-	        const todo = [[x, y]];
-	        while (todo.length) {
-	            const item = todo.shift();
-	            const dist = distanceBetween(x, y, item[0], item[1]);
-	            if (dist > radius) {
-	                continue;
-	            }
-	            const stepPenalty = penalty * ((radius - dist) / radius);
-	            const data = this._get(item);
-	            data.distance += stepPenalty;
-	            eachNeighbor(item[0], item[1], (i, j) => {
-	                const stepCost = costFn(i, j);
-	                if (done.findIndex((e) => e[0] === i && e[1] === j) >= 0) {
-	                    return;
-	                }
-	                if (stepCost >= BLOCKED) {
-	                    return;
-	                }
-	                done.push([i, j]);
-	                todo.push([i, j]);
-	            });
-	        }
-	    }
+	    // addObstacle(
+	    //     x: number,
+	    //     y: number,
+	    //     costFn: SimpleCostFn,
+	    //     radius: number,
+	    //     penalty = radius
+	    // ) {
+	    //     const done: XY.Loc[] = [[x, y]];
+	    //     const todo: XY.Loc[] = [[x, y]];
+	    //     while (todo.length) {
+	    //         const item = todo.shift()!;
+	    //         const dist = XY.distanceBetween(x, y, item[0], item[1]);
+	    //         if (dist > radius) {
+	    //             continue;
+	    //         }
+	    //         const stepPenalty = penalty * ((radius - dist) / radius);
+	    //         const data = this._get(item);
+	    //         data.distance += stepPenalty;
+	    //         XY.eachNeighbor(item[0], item[1], (i, j) => {
+	    //             const stepCost = costFn(i, j);
+	    //             if (done.findIndex((e) => e[0] === i && e[1] === j) >= 0) {
+	    //                 return;
+	    //             }
+	    //             if (stepCost >= BLOCKED) {
+	    //                 return;
+	    //             }
+	    //             done.push([i, j]);
+	    //             todo.push([i, j]);
+	    //         });
+	    //     }
+	    // }
 	    nextDir(fromX, fromY, isBlocked, only4dirs = false) {
 	        let newX, newY, bestScore;
 	        let index;
@@ -9582,7 +9587,13 @@ void main() {
 	            return false;
 	        return events.some((e) => e && e.fn);
 	    }
-	    on(ev, fn) {
+	    on(...args) {
+	        if (args.length === 1) {
+	            const cancel = Object.entries(args[0]).map(([ev, cb]) => this.on(ev, cb));
+	            return () => cancel.forEach((c) => c());
+	        }
+	        const ev = args[0];
+	        const fn = args[1];
 	        if (Array.isArray(ev)) {
 	            const cleanup = ev.map((e) => this.on(e, fn));
 	            return () => {
@@ -9657,11 +9668,6 @@ void main() {
 	            return false;
 	        this.onUnhandled(ev, ...args);
 	        return true;
-	    }
-	    // TODO - Move this to overload of 'on'
-	    load(cfg) {
-	        const cancel = Object.entries(cfg).map(([ev, cb]) => this.on(ev, cb));
-	        return () => cancel.forEach((c) => c());
 	    }
 	    clear() {
 	        this._events = {};
@@ -10861,18 +10867,17 @@ void main() {
 	        this.setFocusWidget(null, true);
 	        return false;
 	    }
-	    // EVENTS
-	    on(ev, cb) {
-	        return this.events.on(ev, cb);
+	    on(...args) {
+	        if (args.length === 1) {
+	            return this.events.on(args[0]);
+	        }
+	        return this.events.on(args[0], args[1]);
 	    }
 	    once(ev, cb) {
 	        return this.events.once(ev, cb);
 	    }
 	    trigger(ev, ...args) {
 	        return this.events.trigger(ev, ...args);
-	    }
-	    load(cfg) {
-	        return this.events.load(cfg);
 	    }
 	    wait(delay, fn, ctx) {
 	        if (typeof fn === 'string') {
