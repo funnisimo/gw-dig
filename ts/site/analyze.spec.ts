@@ -65,7 +65,7 @@ describe('analyze', () => {
 
             expect(
                 map._tiles.count((_c, x, y) => map.isGateSite(x, y))
-            ).toEqual(0);
+            ).toEqual(4);
             expect(
                 map._tiles.count((_c, x, y) => map.isChokepoint(x, y))
             ).toEqual(0);
@@ -104,11 +104,14 @@ describe('analyze', () => {
             SITE.updateChokepoints(map, true);
 
             // map.dump((c, x, y) =>
-            //     map.isGateSite(x, y) ? '*' : SITE.getTile(c).ch || ' '
+            //     map.isGateSite(x, y) ? 'G' : SITE.getTile(c).ch || ' '
+            // );
+            // map.dump((c, x, y) =>
+            //     map.isChokepoint(x, y) ? 'C' : SITE.getTile(c).ch || ' '
             // );
             expect(
                 map._tiles.count((_c, x, y) => map.isGateSite(x, y))
-            ).toEqual(5);
+            ).toEqual(10);
             expect(
                 map._tiles.count((_c, x, y) => map.isChokepoint(x, y))
             ).toEqual(5);

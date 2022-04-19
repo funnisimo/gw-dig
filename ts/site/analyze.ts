@@ -8,6 +8,7 @@ export interface AnalysisBase {
 
     blocksPathing: GWU.xy.XYMatchFunc;
     blocksMove: GWU.xy.XYMatchFunc;
+    blocksDiagonal: GWU.xy.XYMatchFunc;
     isSecretDoor: GWU.xy.XYMatchFunc;
 }
 
@@ -44,20 +45,22 @@ export function analyze(map: AnalysisSite, updateChokeCounts = true) {
 // TODO - Move to Map?
 
 export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
-    const passMap = GWU.grid.alloc(map.width, map.height);
+    const blockMap = GWU.grid.alloc(map.width, map.height);
     const grid = GWU.grid.alloc(map.width, map.height);
 
     for (let i = 0; i < map.width; i++) {
         for (let j = 0; j < map.height; j++) {
-            if (
+            if (map.blocksDiagonal(i, j)) {
+                blockMap[i][j] = 2;
+            } else if (
                 (map.blocksPathing(i, j) || map.blocksMove(i, j)) &&
                 !map.isSecretDoor(i, j)
             ) {
                 // cell.flags &= ~Flags.Cell.IS_IN_LOOP;
-                passMap[i][j] = 0;
+                blockMap[i][j] = 1;
             } else {
                 // cell.flags |= Flags.Cell.IS_IN_LOOP;
-                passMap[i][j] = 1;
+                blockMap[i][j] = 0;
             }
         }
     }
@@ -65,30 +68,61 @@ export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
     let passableArcCount;
 
     // done finding loops; now flag chokepoints
-    for (let i = 1; i < passMap.width - 1; i++) {
-        for (let j = 1; j < passMap.height - 1; j++) {
+    for (let i = 1; i < blockMap.width - 1; i++) {
+        for (let j = 1; j < blockMap.height - 1; j++) {
             map.clearChokepoint(i, j);
-            if (passMap[i][j] && !map.isInLoop(i, j)) {
-                passableArcCount = 0;
-                for (let dir = 0; dir < 8; dir++) {
-                    const oldX = i + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][0];
-                    const oldY = j + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][1];
-                    const newX = i + GWU.xy.CLOCK_DIRS[dir][0];
-                    const newY = j + GWU.xy.CLOCK_DIRS[dir][1];
-                    if (
-                        (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                            passMap[newX][newY]) !=
-                        (map.hasXY(oldX, oldY) && // RUT.Map.makeValidXy(map, oldXy) &&
-                            passMap[oldX][oldY])
-                    ) {
-                        if (++passableArcCount > 2) {
-                            if (
-                                (!passMap[i - 1][j] && !passMap[i + 1][j]) ||
-                                (!passMap[i][j - 1] && !passMap[i][j + 1])
-                            ) {
-                                map.setChokepoint(i, j);
+            if (!blockMap[i][j]) {
+                if (!map.isInLoop(i, j)) {
+                    passableArcCount = 0;
+                    for (let dir = 0; dir < 8; dir++) {
+                        const oldX = i + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][0];
+                        const oldY = j + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][1];
+                        const newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                        const newY = j + GWU.xy.CLOCK_DIRS[dir][1];
+                        if (
+                            (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
+                                blockMap[newX][newY] > 0) !=
+                            (map.hasXY(oldX, oldY) && // RUT.Map.makeValidXy(map, oldXy) &&
+                                blockMap[oldX][oldY] > 0)
+                        ) {
+                            if (++passableArcCount > 2) {
+                                if (
+                                    (blockMap[i - 1][j] &&
+                                        blockMap[i + 1][j]) ||
+                                    (blockMap[i][j - 1] && blockMap[i][j + 1])
+                                ) {
+                                    map.setChokepoint(i, j);
+                                }
+                                break;
                             }
-                            break;
+                        }
+                    }
+                }
+                const left = i - 1;
+                const right = i + 1;
+                const up = j - 1;
+                const down = j + 1;
+
+                if (blockMap[i][up] && blockMap[i][down]) {
+                    if (!blockMap[left][j] && !blockMap[right][j]) {
+                        if (
+                            !blockMap[left][up] ||
+                            !blockMap[left][down] ||
+                            !blockMap[right][up] ||
+                            !blockMap[right][down]
+                        ) {
+                            map.setGateSite(i, j);
+                        }
+                    }
+                } else if (blockMap[left][j] && blockMap[right][j]) {
+                    if (!blockMap[i][up] && !blockMap[i][down]) {
+                        if (
+                            !blockMap[left][up] ||
+                            !blockMap[left][down] ||
+                            !blockMap[right][up] ||
+                            !blockMap[right][down]
+                        ) {
+                            map.setGateSite(i, j);
                         }
                     }
                 }
@@ -121,28 +155,28 @@ export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
 
         for (let i = 0; i < map.width; i++) {
             for (let j = 0; j < map.height; j++) {
-                if (passMap[i][j] && map.isChokepoint(i, j)) {
+                if (!blockMap[i][j] && map.isChokepoint(i, j)) {
                     for (let dir = 0; dir < 4; dir++) {
                         const newX = i + GWU.xy.DIRS[dir][0];
                         const newY = j + GWU.xy.DIRS[dir][1];
                         if (
                             map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                            passMap[newX][newY] &&
+                            !blockMap[newX][newY] &&
                             !map.isChokepoint(newX, newY)
                         ) {
                             // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
                             // Pretend (i, j) is blocked by changing passMap, and run a flood-fill cell count starting on (newX, newY).
                             // Keep track of the flooded region in grid[][].
                             grid.fill(0);
-                            passMap[i][j] = 0;
+                            blockMap[i][j] = 1;
                             let cellCount = floodFillCount(
                                 map,
                                 grid,
-                                passMap,
+                                blockMap,
                                 newX,
                                 newY
                             );
-                            passMap[i][j] = 1;
+                            blockMap[i][j] = 0;
 
                             // CellCount is the size of the region that would be obstructed if the chokepoint were blocked.
                             // CellCounts less than 4 are not useful, so we skip those cases.
@@ -161,7 +195,7 @@ export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
                                                 j2,
                                                 cellCount
                                             );
-                                            map.clearGateSite(i2, j2);
+                                            // map.clearGateSite(i2, j2);
                                         }
                                     }
                                 }
@@ -169,7 +203,7 @@ export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
                                 // The chokepoint itself should also take the lesser of its current value or the flood count.
                                 if (cellCount < map.getChokeCount(i, j)) {
                                     map.setChokeCount(i, j, cellCount);
-                                    map.setGateSite(i, j);
+                                    // map.setGateSite(i, j);
                                 }
                             }
                         }
@@ -179,7 +213,7 @@ export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
         }
     }
 
-    GWU.grid.free(passMap);
+    GWU.grid.free(blockMap);
     GWU.grid.free(grid);
 }
 
@@ -188,14 +222,15 @@ export function updateChokepoints(map: ChokeSite, updateCounts: boolean) {
 export function floodFillCount(
     map: ChokeSite,
     results: GWU.grid.NumGrid,
-    passMap: GWU.grid.NumGrid,
+    blockMap: GWU.grid.NumGrid,
     startX: number,
     startY: number
 ) {
     function getCount(x: number, y: number): number {
-        let count = passMap[x][y] == 2 ? 5000 : 1;
+        let count = 1;
 
         if (map.isAreaMachine(x, y)) {
+            // huh?
             count = 10000;
         }
         return count;
@@ -221,7 +256,7 @@ export function floodFillCount(
 
             if (
                 map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                passMap[newX][newY] &&
+                !blockMap[newX][newY] &&
                 !results[newX][newY]
             ) {
                 const item = free.pop() || [-1, -1];

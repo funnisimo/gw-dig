@@ -6661,37 +6661,31 @@
 	            return NOT_DONE;
 	        return this._get(x, y).distance;
 	    }
-	    // addObstacle(
-	    //     x: number,
-	    //     y: number,
-	    //     costFn: SimpleCostFn,
-	    //     radius: number,
-	    //     penalty = radius
-	    // ) {
-	    //     const done: XY.Loc[] = [[x, y]];
-	    //     const todo: XY.Loc[] = [[x, y]];
-	    //     while (todo.length) {
-	    //         const item = todo.shift()!;
-	    //         const dist = XY.distanceBetween(x, y, item[0], item[1]);
-	    //         if (dist > radius) {
-	    //             continue;
-	    //         }
-	    //         const stepPenalty = penalty * ((radius - dist) / radius);
-	    //         const data = this._get(item);
-	    //         data.distance += stepPenalty;
-	    //         XY.eachNeighbor(item[0], item[1], (i, j) => {
-	    //             const stepCost = costFn(i, j);
-	    //             if (done.findIndex((e) => e[0] === i && e[1] === j) >= 0) {
-	    //                 return;
-	    //             }
-	    //             if (stepCost >= BLOCKED) {
-	    //                 return;
-	    //             }
-	    //             done.push([i, j]);
-	    //             todo.push([i, j]);
-	    //         });
-	    //     }
-	    // }
+	    addObstacle(x, y, costFn, radius, penalty = radius) {
+	        const done = [[x, y]];
+	        const todo = [[x, y]];
+	        while (todo.length) {
+	            const item = todo.shift();
+	            const dist = distanceBetween(x, y, item[0], item[1]);
+	            if (dist > radius) {
+	                continue;
+	            }
+	            const stepPenalty = penalty * ((radius - dist) / radius);
+	            const data = this._get(item);
+	            data.distance += stepPenalty;
+	            eachNeighbor(item[0], item[1], (i, j) => {
+	                const stepCost = costFn(i, j);
+	                if (done.findIndex((e) => e[0] === i && e[1] === j) >= 0) {
+	                    return;
+	                }
+	                if (stepCost >= BLOCKED) {
+	                    return;
+	                }
+	                done.push([i, j]);
+	                todo.push([i, j]);
+	            });
+	        }
+	    }
 	    nextDir(fromX, fromY, isBlocked, only4dirs = false) {
 	        let newX, newY, bestScore;
 	        let index;

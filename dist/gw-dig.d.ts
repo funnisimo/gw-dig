@@ -300,6 +300,7 @@ interface AnalysisBase {
     hasXY: GWU.xy.XYMatchFunc;
     blocksPathing: GWU.xy.XYMatchFunc;
     blocksMove: GWU.xy.XYMatchFunc;
+    blocksDiagonal: GWU.xy.XYMatchFunc;
     isSecretDoor: GWU.xy.XYMatchFunc;
 }
 interface LoopSite extends AnalysisBase {
@@ -322,7 +323,7 @@ interface ChokeSite extends AnalysisBase {
 declare type AnalysisSite = LoopSite & ChokeSite;
 declare function analyze(map: AnalysisSite, updateChokeCounts?: boolean): void;
 declare function updateChokepoints(map: ChokeSite, updateCounts: boolean): void;
-declare function floodFillCount(map: ChokeSite, results: GWU.grid.NumGrid, passMap: GWU.grid.NumGrid, startX: number, startY: number): number;
+declare function floodFillCount(map: ChokeSite, results: GWU.grid.NumGrid, blockMap: GWU.grid.NumGrid, startX: number, startY: number): number;
 declare function updateLoopiness(map: LoopSite): void;
 declare function resetLoopiness(map: LoopSite): void;
 declare function checkLoopiness(map: LoopSite): void;
