@@ -10543,9 +10543,9 @@ void main() {
 	    }
 	    _start(opts = {}) {
 	        this.stopped = false;
-	        this.timers.restart();
-	        this.events.restart();
-	        this.tweens.clear();
+	        // this.timers.restart();
+	        // this.events.restart();
+	        // this.tweens.clear();
 	        this.buffer.nullify();
 	        this.needsDraw = true;
 	        this.events.trigger('start', opts); // this will start this one in the app.scenes obj
@@ -11120,7 +11120,7 @@ void main() {
 
 	class Scenes {
 	    constructor(gw) {
-	        this._scenes = {};
+	        // _scenes: Record<string, Scene> = {};
 	        this._active = [];
 	        this._busy = false;
 	        this._pending = [];
@@ -11130,7 +11130,13 @@ void main() {
 	    get isBusy() {
 	        return this._busy;
 	    }
-	    add(id, opts) {
+	    config(...args) {
+	        if (args.length === 1) {
+	            const scenes = args[0];
+	            Object.entries(scenes).forEach(([id, fns]) => this.config(id, fns));
+	            return;
+	        }
+	        let [id, opts] = args;
 	        const current = this._config[id] || {};
 	        if (typeof opts === 'function') {
 	            opts = { make: opts };
@@ -11138,14 +11144,11 @@ void main() {
 	        Object.assign(current, opts);
 	        this._config[id] = current;
 	    }
-	    load(scenes) {
-	        Object.entries(scenes).forEach(([id, fns]) => this.add(id, fns));
-	    }
 	    get(id) {
 	        if (id === undefined) {
 	            return this._active[this._active.length - 1];
 	        }
-	        return this._scenes[id] || null;
+	        return this._active.find((s) => s.id === id) || null;
 	    }
 	    trigger(ev, ...args) {
 	        this._active.forEach((a) => a.trigger(ev, ...args));
@@ -11163,18 +11166,18 @@ void main() {
 	        scene.on('start', () => this._start(scene));
 	        scene.on('stop', () => this._stop(scene));
 	        scene.create(used);
-	        this._scenes[scene.id] = scene;
+	        // this._scenes[scene.id] = scene;
 	        return scene;
 	    }
-	    create(id, data = {}) {
-	        if (id in this._scenes) {
-	            console.log('Scene already created - ' + id);
-	            return this._scenes[id];
-	        }
-	        return this._create(id, data);
-	    }
+	    // create(id: string, data: CreateOpts = {}): Scene {
+	    //     if (id in this._scenes) {
+	    //         console.log('Scene already created - ' + id);
+	    //         return this._scenes[id];
+	    //     }
+	    //     return this._create(id, data);
+	    // }
 	    start(id, data) {
-	        let scene = this._scenes[id] || this._create(id, data);
+	        let scene = this.get(id) || this._create(id, data);
 	        this._app.io.clear();
 	        if (this.isBusy) {
 	            this._pending.push({ action: 'start', scene, data });
@@ -11185,7 +11188,7 @@ void main() {
 	        return scene;
 	    }
 	    run(id, data) {
-	        let scene = this._scenes[id] || this._create(id, data);
+	        let scene = this.get(id) || this._create(id, data);
 	        this._app.io.clear();
 	        if (this.isBusy) {
 	            this._pending.push({ action: 'run', scene, data });
@@ -11200,7 +11203,7 @@ void main() {
 	    }
 	    stop(id, data) {
 	        if (typeof id === 'string') {
-	            const scene = this._scenes[id];
+	            const scene = this.get(id);
 	            if (!scene)
 	                throw new Error('Unknown scene:' + id);
 	            id = scene;
@@ -11221,18 +11224,18 @@ void main() {
 	        this._active = this._active.filter((s) => s.isActive());
 	    }
 	    destroy(id, data) {
-	        const scene = this._scenes[id];
+	        const scene = this.get(id);
 	        if (!scene)
 	            return;
 	        if (scene.isActive()) {
 	            scene.stop(data);
 	        }
 	        scene.destroy(data);
-	        delete this._scenes[id];
+	        // delete this._scenes[id];
 	    }
 	    pause(id, opts) {
 	        if (typeof id === 'string') {
-	            const scene = this._scenes[id];
+	            const scene = this.get(id);
 	            if (!scene)
 	                throw new Error('Unknown scene:' + id);
 	            scene.pause(opts);
@@ -11243,7 +11246,7 @@ void main() {
 	    }
 	    resume(id, opts) {
 	        if (typeof id === 'string') {
-	            const scene = this._scenes[id];
+	            const scene = this.get(id);
 	            if (!scene)
 	                throw new Error('Unknown scene:' + id);
 	            scene.resume(opts);
@@ -14800,7 +14803,7 @@ void main() {
 	        this.canvas.onkeydown = this.io.enqueue.bind(this.io);
 	        this.buffer = new Buffer$1(this.canvas.width, this.canvas.height);
 	        if (opts.scenes) {
-	            this.scenes.load(opts.scenes);
+	            this.scenes.config(opts.scenes);
 	            if (typeof opts.start === 'string') {
 	                this.scenes.start(opts.start);
 	            }
@@ -14811,7 +14814,7 @@ void main() {
 	        else if (opts.scene) {
 	            if (opts.scene === true)
 	                opts.scene = {};
-	            this.scenes.add('default', opts.scene);
+	            this.scenes.config('default', opts.scene);
 	            this.scenes.start('default');
 	            // } else {
 	            //     this.scenes.install('default', { bg: COLOR.colors.NONE }); // NONE just in case you draw directly on app.buffer
