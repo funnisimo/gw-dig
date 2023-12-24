@@ -7634,7 +7634,7 @@ void main() {
 	        // Used in UI
 	        this.defaultPrevented = false;
 	        this.propagationStopped = false;
-	        this.immediatePropagationStopped = false;
+	        // immediatePropagationStopped = false;
 	        // Key Event
 	        this.key = '';
 	        this.code = '';
@@ -7653,19 +7653,26 @@ void main() {
 	        this.dt = 0;
 	        this.reset(type, opts);
 	    }
+	    doDefault() {
+	        this.defaultPrevented = false;
+	    }
 	    preventDefault() {
 	        this.defaultPrevented = true;
+	    }
+	    propagate() {
+	        this.propagationStopped = false;
 	    }
 	    stopPropagation() {
 	        this.propagationStopped = true;
 	    }
-	    stopImmediatePropagation() {
-	        this.immediatePropagationStopped = true;
-	    }
+	    // stopImmediatePropagation() {
+	    //     this.immediatePropagationStopped = true;
+	    // }
 	    reset(type, opts) {
 	        this.type = type;
 	        this.target = null;
 	        this.defaultPrevented = false;
+	        this.propagationStopped = false;
 	        this.shiftKey = false;
 	        this.ctrlKey = false;
 	        this.altKey = false;
@@ -7687,19 +7694,20 @@ void main() {
 	    }
 	    dispatch(handler) {
 	        if (this.type === KEYPRESS) {
+	            // this.propagationStopped = true;
 	            if (this.dir) {
 	                handler.trigger('dir', this);
-	                if (this.propagationStopped)
-	                    return;
 	            }
-	            handler.trigger(this.key, this);
-	            if (this.propagationStopped)
-	                return;
+	            if (!this.propagationStopped) {
+	                handler.trigger(this.key, this);
+	            }
 	            if (this.code !== this.key) {
-	                handler.trigger(this.code, this);
-	                if (this.propagationStopped)
-	                    return;
+	                if (!this.propagationStopped) {
+	                    handler.trigger(this.code, this);
+	                }
 	            }
+	            if (this.defaultPrevented || this.propagationStopped)
+	                return;
 	        }
 	        handler.trigger(this.type, this);
 	    }
@@ -9659,6 +9667,7 @@ void main() {
 	        }
 	        // newer events first (especially for input)
 	        events.forEach((info) => {
+	            // TODO - stopImmediatePropagation - how to check?
 	            info && info.fn.call(this._ctx, ...args);
 	        });
 	        this._events[ev] = events.filter((i) => i && !i.once);
@@ -10696,6 +10705,14 @@ void main() {
 	            this.all.forEach((c) => c.update(dt));
 	        }
 	    }
+	    fixed_update(dt) {
+	        if (this.stopped)
+	            return;
+	        if (!this.paused.update) {
+	            this.events.trigger('fixed_update', dt);
+	            this.all.forEach((c) => c.fixed_update(dt));
+	        }
+	    }
 	    draw(buffer) {
 	        if (this.stopped)
 	            return;
@@ -11323,6 +11340,9 @@ void main() {
 	    }
 	    update(dt) {
 	        this._active.forEach((s) => s.update(dt));
+	    }
+	    fixed_update(dt) {
+	        this._active.forEach((s) => s.fixed_update(dt));
 	    }
 	    draw(buffer) {
 	        this._active.forEach((s) => {
@@ -12013,6 +12033,9 @@ void main() {
 	    }
 	    update(dt) {
 	        this.trigger('update', dt);
+	    }
+	    fixed_update(dt) {
+	        this.trigger('fixed_update', dt);
 	    }
 	    destroy() {
 	        if (this.parent) {
@@ -14826,7 +14849,7 @@ void main() {
 
 	class App {
 	    constructor(opts = {}) {
-	        this.dt = 0;
+	        this.dt = 16; // 16 ms per frame
 	        this.time = 0;
 	        this.realTime = 0;
 	        this.skipTime = false;
@@ -14851,6 +14874,9 @@ void main() {
 	        this.events = new Events(this);
 	        this.timers = new Timers(this);
 	        this.scenes = new Scenes(this);
+	        if (opts.dt !== undefined) {
+	            this.dt = opts.dt || 16; // Can't have 0
+	        }
 	        this.data = new Data(opts.data);
 	        this.canvas.onclick = this.io.enqueue.bind(this.io);
 	        this.canvas.onmousemove = this.io.enqueue.bind(this.io);
@@ -14955,20 +14981,20 @@ void main() {
 	        }
 	        if (this.realTime == 0) {
 	            this.realTime = t;
-	            return;
+	            this.time = t;
 	        }
 	        const realTime = t;
 	        const realDt = realTime - this.realTime;
 	        this.realTime = realTime;
 	        if (!this.skipTime) {
-	            this.dt = realDt;
-	            this.time += this.dt;
-	            this.fpsBuf.push(1000 / this.dt);
-	            this.fpsTimer += this.dt;
-	            if (this.fpsTimer >= 1) {
-	                this.fpsTimer = 0;
-	                this.fps = Math.round(this.fpsBuf.reduce((a, b) => a + b) / this.fpsBuf.length);
-	                this.fpsBuf = [];
+	            if (!this.skipTime) {
+	                this.fpsBuf.push(1000 / realDt);
+	                this.fpsTimer += realDt;
+	                if (this.fpsTimer >= 1) {
+	                    this.fpsTimer = 0;
+	                    this.fps = Math.round(this.fpsBuf.reduce((a, b) => a + b) / this.fpsBuf.length);
+	                    this.fpsBuf = [];
+	                }
 	            }
 	        }
 	        this.skipTime = false;
@@ -14980,7 +15006,13 @@ void main() {
 	            this._input(ev);
 	        }
 	        if (!this.paused && this.debug !== true) {
-	            this._update(this.dt);
+	            // call fixed_update
+	            while (this.time + this.dt <= realTime) {
+	                this.time += this.dt;
+	                this._fixed_update(this.dt);
+	            }
+	            // call update
+	            this._update(realDt);
 	        }
 	        this._draw();
 	        if (this.debug !== false) {
@@ -15000,6 +15032,11 @@ void main() {
 	        this.scenes.update(dt);
 	        this.timers.update(dt);
 	        this.events.trigger('update', dt);
+	    }
+	    _fixed_update(dt = 0) {
+	        dt = dt || this.dt;
+	        this.scenes.fixed_update(dt);
+	        this.events.trigger('fixed_update', dt);
 	    }
 	    _frameStart() {
 	        // this.buffer.nullify();
