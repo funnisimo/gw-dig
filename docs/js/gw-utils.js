@@ -540,6 +540,15 @@
 	    }
 	    return index;
 	}
+	function valueType(a) {
+	    const ta = typeof a;
+	    if (ta == 'object') {
+	        if (Array.isArray(a)) {
+	            return 'array';
+	        }
+	    }
+	    return ta;
+	}
 
 	// DIRS are organized clockwise
 	// - first 4 are arrow directions
@@ -3640,7 +3649,7 @@
 	///////////////////////////////////
 	// FLAG
 	function fl(N) {
-	    return 1 << N;
+	    return 2 ** N;
 	}
 	function toString(flagObj, value) {
 	    const inverse = Object.entries(flagObj).reduce((out, entry) => {
@@ -3664,7 +3673,7 @@
 	    }
 	    return out.join(' | ');
 	}
-	function from$3(obj, ...args) {
+	function from_base(obj, throws, ...args) {
 	    let result = 0;
 	    for (let index = 0; index < args.length; ++index) {
 	        let value = args[index];
@@ -3691,7 +3700,7 @@
 	                    v = v.trim();
 	                    const parts = v.split(/[,|]/);
 	                    if (parts.length > 1) {
-	                        result = from$3(obj, result, parts);
+	                        result = from_base(obj, throws, result, parts);
 	                    }
 	                    else if (v.startsWith('!')) {
 	                        // @ts-ignore
@@ -3709,6 +3718,11 @@
 	                        if (f) {
 	                            result |= f;
 	                        }
+	                        else {
+	                            if (throws) {
+	                                throw new Error(`Unknown flag - ${v}`);
+	                            }
+	                        }
 	                    }
 	                }
 	                else if (v === 0) {
@@ -3723,8 +3737,32 @@
 	    }
 	    return result;
 	}
+	/**
+	 * Converts from a flag base to a flag.
+	 *
+	 * @param {Object} flagObj - The flag we are getting values from
+	 * @param {...FlagSource | FlagSource[]} args - The args to concatenate from flagObj
+	 * @returns {number}
+	 * @throws {Error} - If it encounters an unknown flag in args
+	 */
+	function from$3(obj, ...args) {
+	    return from_base(obj, true, ...args);
+	}
+	/**
+	 * Converts from a flag base to a flag.  Will not throw if an unknown flag is encountered.
+	 *
+	 * @param {Object} flagObj - The flag we are getting values from
+	 * @param {...FlagSource | FlagSource[]} args - The args to concatenate from flagObj
+	 * @returns {number}
+	 */
+	function from_safe(flagObj, ...args) {
+	    return from_base(flagObj, false, ...args);
+	}
 	function make$a(obj) {
 	    const out = {};
+	    if (typeof obj === 'string') {
+	        obj = obj.split(/[|,]/).map((v) => v.trim());
+	    }
 	    if (Array.isArray(obj)) {
 	        const arr = obj;
 	        const flags = {};
@@ -3782,6 +3820,7 @@
 		fl: fl,
 		toString: toString,
 		from: from$3,
+		from_safe: from_safe,
 		make: make$a
 	});
 
@@ -4645,7 +4684,13 @@
 	    }
 	    return len;
 	}
-	// let inColor = false;
+	/**
+	 * Advances the number of chars given by passing any color information in the text
+	 * @param {string} text - The text to scan
+	 * @param {number} start - The index to start from
+	 * @param {number} count - The number of characters to skip
+	 * @returns - The new index in the string
+	 */
 	function advanceChars(text, start, count) {
 	    let len = 0;
 	    let inside = false;
@@ -4841,6 +4886,12 @@
 	    }
 	    return text.substring(0, index) + (colorCount ? '#{}' : '');
 	}
+	/**
+	 * Capitalizes the first letter in the given text.
+	 *
+	 * @param {string} text - The text to capitalize
+	 * @returns {string} - The text with the first word capitalized
+	 */
 	function capitalize(text) {
 	    // TODO - better test for first letter
 	    const i = findChar(text, (ch) => ch !== ' ');
@@ -4848,6 +4899,23 @@
 	        return text;
 	    const ch = text.charAt(i);
 	    return text.substring(0, i) + ch.toUpperCase() + text.substring(i + 1);
+	}
+	/**
+	 * Capitalizes the first letter all words of the given text.
+	 *
+	 * @param {string} text - The text to capitalize
+	 * @returns {string} - The text with the words capitalized
+	 */
+	function title_case(text) {
+	    // TODO - better test for first letter
+	    let i = findChar(text, (ch) => ch !== ' ');
+	    while (i >= 0) {
+	        const ch = text.charAt(i);
+	        text = text.substring(0, i) + ch.toUpperCase() + text.substring(i + 1);
+	        let next_space = findChar(text, (ch) => ch === ' ', i + 1);
+	        i = findChar(text, (ch) => ch !== ' ', next_space);
+	    }
+	    return text;
 	}
 	function removeColors(text) {
 	    let out = '';
@@ -5625,6 +5693,7 @@
 		center: center,
 		truncate: truncate,
 		capitalize: capitalize,
+		title_case: title_case,
 		removeColors: removeColors,
 		spliceRaw: spliceRaw,
 		hash: hash,
@@ -6009,12 +6078,12 @@
 	        // uses the diagonals
 	        for (let i = 4; i < 8; ++i) {
 	            const d = DIRS$2[i];
-	            this.castLight(1, 1.0, 0.0, 0, d[0], d[1], 0);
-	            this.castLight(1, 1.0, 0.0, d[0], 0, 0, d[1]);
+	            this._castLight(1, 1.0, 0.0, 0, d[0], d[1], 0);
+	            this._castLight(1, 1.0, 0.0, d[0], 0, 0, d[1]);
 	        }
 	    }
 	    // NOTE: slope starts a 1 and ends at 0.
-	    castLight(row, startSlope, endSlope, xx, xy, yx, yy) {
+	    _castLight(row, startSlope, endSlope, xx, xy, yx, yy) {
 	        if (row >= this._maxRadius) {
 	            this._debug('CAST: row=%d, start=%d, end=%d, row >= maxRadius => cancel', row, startSlope.toFixed(2), endSlope.toFixed(2));
 	            return;
@@ -6073,13 +6142,13 @@
 	                    //hit a wall within sight line
 	                    this._debug('       - blocked ... start:%d, end:%d, nextStart: %d', nextStart.toFixed(2), outerSlope.toFixed(2), innerSlope.toFixed(2));
 	                    blocked = true;
-	                    this.castLight(row + 1, nextStart, outerSlope, xx, xy, yx, yy);
+	                    this._castLight(row + 1, nextStart, outerSlope, xx, xy, yx, yy);
 	                    nextStart = innerSlope;
 	                }
 	            }
 	        }
 	        if (!blocked) {
-	            this.castLight(row + 1, nextStart, endSlope, xx, xy, yx, yy);
+	            this._castLight(row + 1, nextStart, endSlope, xx, xy, yx, yy);
 	        }
 	    }
 	}
@@ -6959,171 +7028,6 @@
 		fromTo: fromTo
 	});
 
-	/**
-	 * Data for an event listener.
-	 */
-	class EventListener {
-	    /**
-	     * Creates a Listener.
-	     * @param {EventFn} fn The listener function.
-	     * @param {any} [context=null] The context to invoke the listener with.
-	     * @param {boolean} [once=false] Specify if the listener is a one-time listener.
-	     */
-	    constructor(fn, context, once = false) {
-	        this.fn = fn;
-	        this.context = context || null;
-	        this.once = once || false;
-	        this.next = null;
-	    }
-	    /**
-	     * Compares this Listener to the parameters.
-	     * @param {EventFn} fn - The function
-	     * @param {any} [context] - The context Object.
-	     * @param {boolean} [once] - Whether or not it is a one time handler.
-	     * @returns Whether or not this Listener matches the parameters.
-	     */
-	    matches(fn, context, once) {
-	        return (this.fn === fn &&
-	            (once === undefined || once == this.once) &&
-	            (!context || this.context === context));
-	    }
-	}
-	class EventEmitter {
-	    constructor() {
-	        this._events = {};
-	    }
-	    /**
-	     * Add a listener for a given event.
-	     *
-	     * @param {String} event The event name.
-	     * @param {EventFn} fn The listener function.
-	     * @param {*} context The context to invoke the listener with.
-	     * @param {boolean} once Specify if the listener is a one-time listener.
-	     * @returns {Listener}
-	     */
-	    addListener(event, fn, context, once = false) {
-	        if (typeof fn !== 'function') {
-	            throw new TypeError('The listener must be a function');
-	        }
-	        const listener = new EventListener(fn, context || null, once);
-	        push(this._events, event, listener);
-	        return this;
-	    }
-	    /**
-	     * Add a listener for a given event.
-	     *
-	     * @param {String} event The event name.
-	     * @param {EventFn} fn The listener function.
-	     * @param {*} context The context to invoke the listener with.
-	     * @param {boolean} once Specify if the listener is a one-time listener.
-	     * @returns {Listener}
-	     */
-	    on(event, fn, context, once = false) {
-	        return this.addListener(event, fn, context, once);
-	    }
-	    /**
-	     * Add a one-time listener for a given event.
-	     *
-	     * @param {(String|Symbol)} event The event name.
-	     * @param {EventFn} fn The listener function.
-	     * @param {*} [context=this] The context to invoke the listener with.
-	     * @returns {EventEmitter} `this`.
-	     * @public
-	     */
-	    once(event, fn, context) {
-	        return this.addListener(event, fn, context, true);
-	    }
-	    /**
-	     * Remove the listeners of a given event.
-	     *
-	     * @param {String} event The event name.
-	     * @param {EventFn} fn Only remove the listeners that match this function.
-	     * @param {*} context Only remove the listeners that have this context.
-	     * @param {boolean} once Only remove one-time listeners.
-	     * @returns {EventEmitter} `this`.
-	     * @public
-	     */
-	    removeListener(event, fn, context, once = false) {
-	        if (!this._events[event])
-	            return this;
-	        if (!fn)
-	            return this;
-	        forEach(this._events[event], (obj) => {
-	            if (obj.matches(fn, context, once)) {
-	                remove(this._events, event, obj);
-	            }
-	        });
-	        return this;
-	    }
-	    /**
-	     * Remove the listeners of a given event.
-	     *
-	     * @param {String} event The event name.
-	     * @param {EventFn} fn Only remove the listeners that match this function.
-	     * @param {*} context Only remove the listeners that have this context.
-	     * @param {boolean} once Only remove one-time listeners.
-	     * @returns {EventEmitter} `this`.
-	     * @public
-	     */
-	    off(event, fn, context, once = false) {
-	        return this.removeListener(event, fn, context, once);
-	    }
-	    /**
-	     * Clear event by name.
-	     *
-	     * @param {String} evt The Event name.
-	     */
-	    clearEvent(event) {
-	        if (this._events[event]) {
-	            this._events[event] = null;
-	        }
-	        return this;
-	    }
-	    /**
-	     * Remove all listeners, or those of the specified event.
-	     *
-	     * @param {(String|Symbol)} [event] The event name.
-	     * @returns {EventEmitter} `this`.
-	     * @public
-	     */
-	    removeAllListeners(event) {
-	        if (event) {
-	            this.clearEvent(event);
-	        }
-	        else {
-	            this._events = {};
-	        }
-	        return this;
-	    }
-	    /**
-	     * Calls each of the listeners registered for a given event.
-	     *
-	     * @param {String} event The event name.
-	     * @param {...*} args The additional arguments to the event handlers.
-	     * @returns {boolean} `true` if the event had listeners, else `false`.
-	     * @public
-	     */
-	    emit(event, ...args) {
-	        if (!this._events[event])
-	            return false; // no events to send
-	        let listener = this._events[event];
-	        while (listener) {
-	            let next = listener.next;
-	            if (listener.once)
-	                remove(this._events, event, listener);
-	            listener.fn.apply(listener.context, args);
-	            listener = next;
-	        }
-	        return true;
-	    }
-	}
-
-	var events = /*#__PURE__*/Object.freeze({
-		__proto__: null,
-		EventListener: EventListener,
-		EventEmitter: EventEmitter
-	});
-
 	function make$7(v) {
 	    if (v === undefined)
 	        return () => 100;
@@ -7338,7 +7242,7 @@
 	        this._ctx.fillRect(0, 0, this.pxWidth, this.pxHeight);
 	        const size = opts.fontSize ||
 	            opts.size ||
-	            Math.max(this.tileWidth, this.tileHeight);
+	            Math.min(this.tileWidth, this.tileHeight);
 	        this._ctx.font = '' + size + 'px ' + opts.font;
 	        this._ctx.textAlign = 'center';
 	        this._ctx.textBaseline = 'middle';
@@ -7696,20 +7600,20 @@ void main() {
 	        if (this.type === KEYPRESS) {
 	            // this.propagationStopped = true;
 	            if (this.dir) {
-	                handler.trigger('dir', this);
+	                handler.emit('dir', this);
 	            }
 	            if (!this.propagationStopped) {
-	                handler.trigger(this.key, this);
+	                handler.emit(this.key, this);
 	            }
 	            if (this.code !== this.key) {
 	                if (!this.propagationStopped) {
-	                    handler.trigger(this.code, this);
+	                    handler.emit(this.code, this);
 	                }
 	            }
 	            if (this.defaultPrevented || this.propagationStopped)
 	                return;
 	        }
-	        handler.trigger(this.type, this);
+	        handler.emit(this.type, this);
 	    }
 	}
 	// let IOMAP: IOMap = {};
@@ -9653,11 +9557,11 @@ void main() {
 	            events[current] = null;
 	        }
 	    }
-	    trigger(ev, ...args) {
+	    emit(ev, ...args) {
 	        if (Array.isArray(ev)) {
 	            let success = false;
 	            for (let name of ev) {
-	                success = this.trigger(name, ...args) || success;
+	                success = this.emit(name, ...args) || success;
 	            }
 	            return success;
 	        }
@@ -9682,6 +9586,11 @@ void main() {
 	    clear() {
 	        this._events = {};
 	        this.onUnhandled = null;
+	    }
+	    clear_event(name) {
+	        if (name in this._events) {
+	            this._events[name] = this._events[name].map(() => null);
+	        }
 	    }
 	    restart() {
 	        Object.keys(this._events).forEach((ev) => {
@@ -9709,8 +9618,8 @@ void main() {
 	        this.events.off(ev, fn);
 	        return this;
 	    }
-	    trigger(ev, ...args) {
-	        return this.events.trigger(ev, ...args);
+	    emit(ev, ...args) {
+	        return this.events.emit(ev, ...args);
 	    }
 	    addChild(t) {
 	        this.children.push(t);
@@ -9722,7 +9631,7 @@ void main() {
 	    }
 	    update(dt) {
 	        this.children.forEach((c) => c.update(dt));
-	        this.trigger('update', dt);
+	        this.emit('update', dt);
 	    }
 	}
 	class Tween extends BaseObj {
@@ -9889,7 +9798,7 @@ void main() {
 	        const pct = this._easing(this._time / this._duration);
 	        let madeChange = this._updateProperties(this._obj, this._start, this._goal, pct);
 	        if (madeChange) {
-	            this.trigger('update', this._obj, pct);
+	            this.emit('update', this._obj, pct);
 	        }
 	        if (this._time >= this._duration) {
 	            if (this._repeat > this._count || this._repeat < 0) {
@@ -9904,7 +9813,7 @@ void main() {
 	                }
 	            }
 	            else if (!this.isRunning()) {
-	                this.trigger('stop', this._obj, this._success);
+	                this.emit('stop', this._obj, this._success);
 	            }
 	        }
 	    }
@@ -9917,11 +9826,11 @@ void main() {
 	        // });
 	        this._updateProperties(this._obj, this._start, this._goal, 0);
 	        if (this._count == 1) {
-	            this.trigger('start', this._obj, 0);
+	            this.emit('start', this._obj, 0);
 	        }
 	        else {
-	            this.trigger('repeat', this._obj, this._count) ||
-	                this.trigger('update', this._obj, 0);
+	            this.emit('repeat', this._obj, this._count) ||
+	                this.emit('update', this._obj, 0);
 	        }
 	    }
 	    // gameTick(_dt: number): boolean {
@@ -10591,10 +10500,10 @@ void main() {
 	                return;
 	            this.on(ev, fn);
 	        });
-	        this.trigger('create', opts);
+	        this.emit('create', opts);
 	    }
 	    destroy(data) {
-	        this.trigger('destroy', data);
+	        this.emit('destroy', data);
 	        this.all.forEach((c) => c.destroy());
 	        this.children = [];
 	        this.all = [];
@@ -10612,7 +10521,7 @@ void main() {
 	        // this.tweens.clear();
 	        this.buffer.nullify();
 	        this.needsDraw = true;
-	        this.events.trigger('start', opts); // this will start this one in the app.scenes obj
+	        this.events.emit('start', opts); // this will start this one in the app.scenes obj
 	    }
 	    run(data = {}) {
 	        this.app.scenes.pause();
@@ -10621,7 +10530,7 @@ void main() {
 	    }
 	    stop(data) {
 	        this.stopped = true;
-	        this.events.trigger('stop', data);
+	        this.events.emit('stop', data);
 	    }
 	    pause(opts) {
 	        opts = opts || {
@@ -10632,7 +10541,7 @@ void main() {
 	            draw: true,
 	        };
 	        Object.assign(this.paused, opts);
-	        this.events.trigger('pause');
+	        this.events.emit('pause');
 	    }
 	    resume(opts) {
 	        opts = opts || {
@@ -10648,16 +10557,16 @@ void main() {
 	            }
 	        });
 	        this.needsDraw = true;
-	        this.events.trigger('resume');
+	        this.events.emit('resume');
 	    }
 	    // FRAME STEPS
 	    frameStart() {
-	        this.events.trigger('frameStart');
+	        this.events.emit('frameStart');
 	    }
 	    input(e) {
 	        if (this.paused.input || this.stopped)
 	            return;
-	        this.trigger('input', e);
+	        this.emit('input', e);
 	        if (e.defaultPrevented || e.propagationStopped)
 	            return;
 	        if (e.type === KEYPRESS) {
@@ -10701,7 +10610,7 @@ void main() {
 	        if (!this.paused.tweens)
 	            this.tweens.update(dt);
 	        if (!this.paused.update) {
-	            this.events.trigger('update', dt);
+	            this.events.emit('update', dt);
 	            this.all.forEach((c) => c.update(dt));
 	        }
 	    }
@@ -10709,7 +10618,7 @@ void main() {
 	        if (this.stopped)
 	            return;
 	        if (!this.paused.update) {
-	            this.events.trigger('fixed_update', dt);
+	            this.events.emit('fixed_update', dt);
 	            this.all.forEach((c) => c.fixed_update(dt));
 	        }
 	    }
@@ -10718,7 +10627,7 @@ void main() {
 	            return;
 	        if (!this.paused.draw && this.needsDraw) {
 	            this._draw(this.buffer);
-	            this.trigger('draw', this.buffer);
+	            this.emit('draw', this.buffer);
 	            this.children.forEach((c) => c.draw(this.buffer));
 	            this.needsDraw = false;
 	        }
@@ -10731,10 +10640,10 @@ void main() {
 	        buffer.fill(this.bg);
 	    }
 	    frameDebug(buffer) {
-	        this.events.trigger('frameDebug', buffer);
+	        this.events.emit('frameDebug', buffer);
 	    }
 	    frameEnd(buffer) {
-	        this.events.trigger('frameEnd', buffer);
+	        this.events.emit('frameEnd', buffer);
 	    }
 	    // ANIMATION
 	    fadeIn(widget, ms) {
@@ -10942,14 +10851,14 @@ void main() {
 	    once(ev, cb) {
 	        return this.events.once(ev, cb);
 	    }
-	    trigger(ev, ...args) {
-	        return this.events.trigger(ev, ...args);
+	    emit(ev, ...args) {
+	        return this.events.emit(ev, ...args);
 	    }
 	    wait(delay, fn, ctx) {
 	        if (typeof fn === 'string') {
 	            const ev = fn;
 	            ctx = ctx || {};
-	            fn = () => this.trigger(ev, ctx);
+	            fn = () => this.emit(ev, ctx);
 	        }
 	        return this.timers.setTimeout(fn, delay);
 	    }
@@ -10957,7 +10866,7 @@ void main() {
 	        if (typeof fn === 'string') {
 	            const ev = fn;
 	            ctx = ctx || {};
-	            fn = () => this.trigger(ev, ctx);
+	            fn = () => this.emit(ev, ctx);
 	        }
 	        return this.timers.setInterval(fn, delay);
 	    }
@@ -11012,8 +10921,8 @@ void main() {
 	//     on(ev: string, fn: EVENTS.CallbackFn): EVENTS.CancelFn {
 	//         return this.events.on(ev, fn);
 	//     }
-	//     trigger(ev: string, ...args: any[]) {
-	//         return this.events.trigger(ev, ...args);
+	//     emit(ev: string, ...args: any[]) {
+	//         return this.events.emit(ev, ...args);
 	//     }
 	//     wait(delay: number, fn: TIMERS.TimerFn): EVENTS.CancelFn;
 	//     wait(delay: number, fn: string, ctx?: Record<string, any>): EVENTS.CancelFn;
@@ -11025,7 +10934,7 @@ void main() {
 	//         if (typeof fn === 'string') {
 	//             const ev = fn;
 	//             ctx = ctx || {};
-	//             fn = () => this.trigger(ev, ctx!);
+	//             fn = () => this.emit(ev, ctx!);
 	//         }
 	//         return this.timers.setTimeout(fn, delay);
 	//     }
@@ -11043,12 +10952,12 @@ void main() {
 	//         if (typeof fn === 'string') {
 	//             const ev = fn;
 	//             ctx = ctx || {};
-	//             fn = () => this.trigger(ev, ctx!);
+	//             fn = () => this.emit(ev, ctx!);
 	//         }
 	//         return this.timers.setInterval(fn, delay);
 	//     }
 	//     // run() {
-	//     //     this.trigger('run', this);
+	//     //     this.emit('run', this);
 	//     //     let running = false;
 	//     //     this.loopID = (setInterval(() => {
 	//     //         if (!running) {
@@ -11062,16 +10971,16 @@ void main() {
 	//     create(app: App) {
 	//         this.app = app;
 	//         this.buffer = app.buffer.clone();
-	//         this.trigger('create');
+	//         this.emit('create');
 	//     }
 	//     destroy() {
-	//         this.trigger('destroy');
+	//         this.emit('destroy');
 	//     }
 	//     start(data?: Record<string, any>) {
 	//         this.stopped = false;
 	//         this.timers.clear();
 	//         this.tweens.clear();
-	//         this.events.trigger('start', data || {});
+	//         this.events.emit('start', data || {});
 	//     }
 	//     run(data?: Record<string, any>): Promise<any> {
 	//         return new Promise((resolve) => {
@@ -11086,7 +10995,7 @@ void main() {
 	//     }
 	//     stop(data?: Record<string, any>) {
 	//         this.stopped = true;
-	//         this.events.trigger('stop', data || {});
+	//         this.events.emit('stop', data || {});
 	//     }
 	//     pause(opts?: PauseOpts): void {
 	//         opts = opts || {
@@ -11097,7 +11006,7 @@ void main() {
 	//             draw: true,
 	//         };
 	//         Object.assign(this.paused, opts);
-	//         this.events.trigger('pause');
+	//         this.events.emit('pause');
 	//     }
 	//     resume(opts?: ResumeOpts) {
 	//         opts = opts || {
@@ -11112,20 +11021,20 @@ void main() {
 	//                 this.paused[key as keyof ResumeOpts] = false;
 	//             }
 	//         });
-	//         this.events.trigger('resume');
+	//         this.events.emit('resume');
 	//     }
 	//     // CHILDREN
 	//     add(obj: SceneObj) {
 	//         this.children.push(obj);
-	//         obj.trigger('add', this);
+	//         obj.emit('add', this);
 	//     }
 	//     remove(obj: SceneObj) {
 	//         UTILS.arrayDelete(this.children, obj);
-	//         obj.trigger('remove', this);
+	//         obj.emit('remove', this);
 	//     }
 	//     // FRAME STEPS
 	//     frameStart() {
-	//         this.events.trigger('frameStart');
+	//         this.events.emit('frameStart');
 	//     }
 	//     input(ev: IO.Event) {
 	//         if (this.stopped || this.paused.input) return;
@@ -11137,13 +11046,13 @@ void main() {
 	//         if (!this.paused.tweens) this.tweens.update(dt);
 	//         if (!this.paused.update) {
 	//             this.children.forEach((c) => c.update(dt));
-	//             this.events.trigger('update', dt);
+	//             this.events.emit('update', dt);
 	//         }
 	//     }
 	//     draw(buffer: CANVAS.Buffer) {
 	//         if (this.stopped) return;
 	//         if (!this.paused.draw) {
-	//             this.events.trigger('draw', this.buffer);
+	//             this.events.emit('draw', this.buffer);
 	//             this.children.forEach((c) => c.draw(this.buffer));
 	//         }
 	//         if (this.buffer.changed) {
@@ -11152,10 +11061,10 @@ void main() {
 	//         }
 	//     }
 	//     frameDebug(buffer: CANVAS.Buffer) {
-	//         this.events.trigger('frameDebug', buffer);
+	//         this.events.emit('frameDebug', buffer);
 	//     }
 	//     frameEnd(buffer: CANVAS.Buffer) {
-	//         this.events.trigger('frameEnd', buffer);
+	//         this.events.emit('frameEnd', buffer);
 	//         // if (this.buffer.changed) {
 	//         //     buffer.apply(this.buffer);
 	//         //     this.buffer.changed = false;
@@ -11222,8 +11131,8 @@ void main() {
 	        }
 	        return this._active.find((s) => s.id === id) || null;
 	    }
-	    trigger(ev, ...args) {
-	        this._active.forEach((a) => a.trigger(ev, ...args));
+	    emit(ev, ...args) {
+	        this._active.forEach((a) => a.emit(ev, ...args));
 	    }
 	    _create(id, opts = {}) {
 	        let cfg = this._config[id] || {};
@@ -11780,7 +11689,7 @@ void main() {
 	        else if (!v && this.scene && this.scene.focused === null) {
 	            this.scene.setFocusWidget(this);
 	        }
-	        this.trigger(v ? 'hide' : 'show');
+	        this.emit(v ? 'hide' : 'show');
 	    }
 	    get needsStyle() {
 	        return this._propBool('needsStyle');
@@ -11798,13 +11707,13 @@ void main() {
 	        if (this.prop('focus'))
 	            return;
 	        this.prop('focus', true);
-	        this.trigger('focus', { reverse });
+	        this.emit('focus', { reverse });
 	    }
 	    blur(reverse = false) {
 	        if (!this.prop('focus'))
 	            return;
 	        this.prop('focus', false);
-	        this.trigger('blur', { reverse });
+	        this.emit('blur', { reverse });
 	    }
 	    // CHILDREN
 	    setParent(parent, opts) {
@@ -11917,21 +11826,25 @@ void main() {
 	        // cannot turn off keypress automatically because
 	        // we could be waiting for dispatched events - e.g. 'Enter', or 'dir', ...
 	    }
-	    trigger(ev, ...args) {
-	        return this.events.trigger(ev, ...args);
+	    emit(ev, ...args) {
+	        return this.events.emit(ev, ...args);
 	    }
 	    action(ev) {
 	        if (ev && ev.defaultPrevented)
 	            return;
-	        this.trigger('action');
+	        if (this.emit('action')) {
+	            ev === null || ev === void 0 ? void 0 : ev.stopPropagation();
+	        }
 	        const action = this._attrStr('action');
 	        if (!action || !action.length)
 	            return;
-	        this.scene && this.scene.trigger(action, this);
+	        if (this.scene && this.scene.emit(action, this)) {
+	            ev === null || ev === void 0 ? void 0 : ev.stopPropagation();
+	        }
 	    }
 	    // FRAME
 	    input(e) {
-	        this.trigger('input', e);
+	        this.emit('input', e);
 	        if (e.defaultPrevented || e.propagationStopped)
 	            return;
 	        if (e.type === KEYPRESS) {
@@ -11950,7 +11863,7 @@ void main() {
 	        if (this.hovered)
 	            return;
 	        this.hovered = true;
-	        this.trigger('mouseenter', e);
+	        this.emit('mouseenter', e);
 	        // if (this._parent) {
 	        //     this._parent._mouseenter(e);
 	        // }
@@ -11970,7 +11883,7 @@ void main() {
 	        }
 	    }
 	    _mousemove(e) {
-	        this.trigger('mousemove', e);
+	        this.emit('mousemove', e);
 	    }
 	    _mouseleave(e) {
 	        if (!this.hovered)
@@ -11978,7 +11891,7 @@ void main() {
 	        if (this.bounds.contains(e))
 	            return;
 	        this.hovered = false;
-	        this.trigger('mouseleave', e);
+	        this.emit('mouseleave', e);
 	        // if (this._parent) {
 	        //     this._parent.mouseleave(e);
 	        // }
@@ -11997,11 +11910,11 @@ void main() {
 	            return;
 	        this._click(e);
 	        if (!e.defaultPrevented) {
-	            this.action();
+	            this.action(e);
 	        }
 	    }
 	    _click(e) {
-	        this.events.trigger('click', e);
+	        this.events.emit('click', e);
 	    }
 	    // keypress bubbles
 	    keypress(e) {
@@ -12021,7 +11934,7 @@ void main() {
 	        if (this.hidden)
 	            return;
 	        this._draw(buffer);
-	        this.trigger('draw', buffer);
+	        this.emit('draw', buffer);
 	        this.children.forEach((c) => c.draw(buffer));
 	    }
 	    _draw(buffer) {
@@ -12032,10 +11945,10 @@ void main() {
 	        buffer.fillRect(b.x, b.y, b.width, b.height, ' ', this._used.bg, this._used.bg);
 	    }
 	    update(dt) {
-	        this.trigger('update', dt);
+	        this.emit('update', dt);
 	    }
 	    fixed_update(dt) {
-	        this.trigger('fixed_update', dt);
+	        this.emit('fixed_update', dt);
 	    }
 	    destroy() {
 	        if (this.parent) {
@@ -12461,10 +12374,10 @@ void main() {
 	    create() {
 	        this.on('keypress', (e) => {
 	            if (e.key === 'Escape') {
-	                this.trigger('CANCEL');
+	                this.emit('CANCEL');
 	            }
 	            else if (e.key === 'Enter') {
-	                this.trigger('OK');
+	                this.emit('OK');
 	            }
 	        });
 	        this.on('OK', () => {
@@ -12604,7 +12517,7 @@ void main() {
 	            this.prop('disabled', true);
 	        }
 	        this.prop('valid', this.isValid()); // redo b/c rules are now set
-	        this.on('blur', this.action.bind(this));
+	        this.on('blur', () => this.action());
 	        // this.on('click', this.action.bind(this));
 	        this.reset();
 	    }
@@ -12642,7 +12555,7 @@ void main() {
 	        if (ev.key == 'Delete' || ev.key == 'Backspace') {
 	            if (this._text.length) {
 	                this.text(spliceRaw(this._text, this._text.length - 1, 1));
-	                this.trigger('change');
+	                this.emit('change');
 	                this._used && this._draw(this.scene.buffer); // save some work?
 	            }
 	            ev.stopPropagation();
@@ -12657,7 +12570,7 @@ void main() {
 	            // allow only permitted input
 	            if (!this.maxLength || this._text.length < this.maxLength) {
 	                this.text(this._text + ev.key);
-	                this.trigger('change');
+	                this.emit('change');
 	                this._used && this._draw(this.scene.buffer); // save some work?
 	            }
 	        }
@@ -12832,7 +12745,7 @@ void main() {
 	            throw new Error('Must supply a menu to show!');
 	        this.addChild(data.menu);
 	        this.events.onUnhandled = (ev, ...args) => {
-	            data.origin.trigger(ev, ...args);
+	            data.origin.emit(ev, ...args);
 	        };
 	    },
 	    stop() {
@@ -13241,7 +13154,7 @@ void main() {
 	                c.prop('selected', active);
 	            });
 	        }
-	        this.trigger('change', {
+	        this.emit('change', {
 	            row,
 	            col,
 	            data: this.selectedData,
@@ -13261,7 +13174,7 @@ void main() {
 	        return this.select(this.selectedColumn - 1, this.selectedRow);
 	    }
 	    blur(reverse) {
-	        this.trigger('change', {
+	        this.emit('change', {
 	            col: this.selectedColumn,
 	            row: this.selectedRow,
 	            data: this.selectedData,
@@ -13316,7 +13229,7 @@ void main() {
 	    _draw(buffer) {
 	        this._drawFill(buffer);
 	        this.children.forEach((w) => {
-	            if (w.prop('row') >= this.size)
+	            if (w._propInt('row') >= this.size)
 	                return;
 	            if (this.attr('border') !== 'none') {
 	                drawBorder(buffer, w.bounds.x - 1, w.bounds.y - 1, w.bounds.width + 2, w.bounds.height + 2, this._used, this.attr('border') == 'ascii');
@@ -13365,7 +13278,7 @@ void main() {
 	    //                     if (select) c.prop('selected', active);
 	    //                 });
 	    //             }
-	    //             this.trigger('change', {
+	    //             this.emit('change', {
 	    //                 row,
 	    //                 col,
 	    //                 data: this.selectedData,
@@ -13376,7 +13289,7 @@ void main() {
 	    // click(e: IO.Event): boolean {
 	    //     if (!this.contains(e) || this.disabled || this.hidden) return false;
 	    //     this.action();
-	    //     // this.trigger('change', {
+	    //     // this.emit('change', {
 	    //     //     row: this.selectedRow,
 	    //     //     col: this.selectedColumn,
 	    //     //     data: this.selectedData,
@@ -13391,8 +13304,8 @@ void main() {
 	            return this.dir(e);
 	        }
 	        if (e.key === 'Enter') {
-	            this.action();
-	            // this.trigger('change', {
+	            this.action(e);
+	            // this.emit('change', {
 	            //     row: this.selectedRow,
 	            //     col: this.selectedColumn,
 	            //     data: this.selectedData,
@@ -13577,7 +13490,7 @@ void main() {
 	            }
 	            const menuItem = new MenuButton(opts);
 	            menuItem.on('mouseenter', () => {
-	                this.trigger('change');
+	                this.emit('change');
 	            });
 	            menuItem.on('click', () => {
 	                this.hide();
@@ -13593,11 +13506,11 @@ void main() {
 	        this.hidden = false;
 	        this._selectedIndex = 0;
 	        this.scene.setFocusWidget(this);
-	        this.trigger('show');
+	        this.emit('show');
 	    }
 	    hide() {
 	        this.hidden = true;
-	        this.trigger('hide');
+	        this.emit('hide');
 	    }
 	    nextItem() {
 	        ++this._selectedIndex;
@@ -13648,7 +13561,7 @@ void main() {
 	            this.menu = this._initMenu(opts);
 	            this.on('mouseenter', () => {
 	                this.menu.hidden = false;
-	                this.menu.trigger('change');
+	                this.menu.emit('change');
 	            });
 	            this.on('mouseleave', (_n, _w, e) => {
 	                var _a;
@@ -13858,8 +13771,8 @@ void main() {
 	            button.on(['click', 'Enter', ' '], () => {
 	                if (typeof value === 'string') {
 	                    // simulate action
-	                    this.trigger(value);
-	                    this.scene.trigger(value);
+	                    this.emit(value);
+	                    this.scene.emit(value);
 	                }
 	                else {
 	                    this.scene.app.scenes.run('menu', {
@@ -13908,7 +13821,7 @@ void main() {
 
 	            this.on('mouseenter', () => {
 	                menu.hidden = false;
-	                menu.trigger('change');
+	                menu.emit('change');
 	                return true;
 	            });
 	            this.on('mouseleave', (e) => {
@@ -14277,7 +14190,7 @@ void main() {
 	        this._text.text(prompt.prompt(arg));
 	        this._list.data(prompt.choices());
 	        this._info.text(prompt.info(arg));
-	        this.trigger('prompt', this._prompt);
+	        this.emit('prompt', this._prompt);
 	        return new Promise((resolve) => (this._done = resolve));
 	    }
 	    _addList() {
@@ -14300,7 +14213,7 @@ void main() {
 	            const row = this._list.selectedRow;
 	            p.choose(row);
 	            this._info.text(p.info());
-	            this.trigger('change', p);
+	            this.emit('change', p);
 	            // e.stopPropagation(); // I want to eat this event
 	        });
 	        this._list.on('action', () => {
@@ -14508,7 +14421,7 @@ void main() {
 	            handled = handler(name, source || this.widget, args) || handled;
 	        }
 	        if (!handled) {
-	            handled = this.widget.trigger(name, args);
+	            handled = this.widget.emit(name, args);
 	        }
 	        return handled;
 	    }
@@ -14564,11 +14477,11 @@ void main() {
 	            return;
 	        if (ev.key === 'Enter' || ev.key === ' ') {
 	            this.toggleProp('checked');
-	            this.trigger('change');
+	            this.emit('change');
 	        }
 	        else if (ev.key === 'Backspace' || ev.key === 'Delete') {
 	            this.prop('checked', false);
-	            this.trigger('change');
+	            this.emit('change');
 	        }
 	    }
 	    _draw(buffer) {
@@ -14868,6 +14781,7 @@ void main() {
 	        else {
 	            this.loop = new Loop();
 	        }
+	        this.name = opts.name || 'Goblinwerks';
 	        this.styles = defaultStyle;
 	        this.canvas = opts.canvas || make$6(opts);
 	        this.io = new Queue();
@@ -14927,9 +14841,9 @@ void main() {
 	        // return this.scene.on(ev, fn);
 	        return this.events.on(ev, fn);
 	    }
-	    trigger(ev, ...args) {
-	        this.scenes.trigger(ev, ...args);
-	        this.events.trigger(ev, ...args);
+	    emit(ev, ...args) {
+	        this.scenes.emit(ev, ...args);
+	        this.events.emit(ev, ...args);
 	    }
 	    wait(...args) {
 	        // @ts-ignore
@@ -14937,7 +14851,7 @@ void main() {
 	        if (typeof args[1] === 'string') {
 	            const ev = args[1];
 	            args[2] = args[2] || {};
-	            args[1] = () => this.trigger(ev, args[2]);
+	            args[1] = () => this.emit(ev, args[2]);
 	        }
 	        return this.timers.setTimeout(args[1], args[0]);
 	    }
@@ -14947,12 +14861,12 @@ void main() {
 	        if (typeof fn === 'string') {
 	            const ev = args[1];
 	            args[2] = args[2] || {};
-	            args[1] = () => this.trigger(ev, args[2]);
+	            args[1] = () => this.emit(ev, args[2]);
 	        }
 	        return this.timers.setInterval(args[1], args[0]);
 	    }
 	    // run() {
-	    //     this.trigger('run', this);
+	    //     this.emit('run', this);
 	    //     let running = false;
 	    //     this.loopID = (setInterval(() => {
 	    //         if (!running) {
@@ -14969,7 +14883,7 @@ void main() {
 	        this.loop.start(this._frame.bind(this));
 	    }
 	    stop() {
-	        this.trigger('stop', this);
+	        this.emit('stop', this);
 	        this.loop.stop();
 	        this.stopped = true;
 	    }
@@ -14987,14 +14901,12 @@ void main() {
 	        const realDt = realTime - this.realTime;
 	        this.realTime = realTime;
 	        if (!this.skipTime) {
-	            if (!this.skipTime) {
-	                this.fpsBuf.push(1000 / realDt);
-	                this.fpsTimer += realDt;
-	                if (this.fpsTimer >= 1) {
-	                    this.fpsTimer = 0;
-	                    this.fps = Math.round(this.fpsBuf.reduce((a, b) => a + b) / this.fpsBuf.length);
-	                    this.fpsBuf = [];
-	                }
+	            this.fpsBuf.push(1000 / realDt);
+	            this.fpsTimer += realDt;
+	            if (this.fpsTimer >= 1) {
+	                this.fpsTimer = 0;
+	                this.fps = Math.round(this.fpsBuf.reduce((a, b) => a + b) / this.fpsBuf.length);
+	                this.fpsBuf = [];
 	            }
 	        }
 	        this.skipTime = false;
@@ -15031,29 +14943,29 @@ void main() {
 	        dt = dt || this.dt;
 	        this.scenes.update(dt);
 	        this.timers.update(dt);
-	        this.events.trigger('update', dt);
+	        this.events.emit('update', dt);
 	    }
 	    _fixed_update(dt = 0) {
 	        dt = dt || this.dt;
 	        this.scenes.fixed_update(dt);
-	        this.events.trigger('fixed_update', dt);
+	        this.events.emit('fixed_update', dt);
 	    }
 	    _frameStart() {
 	        // this.buffer.nullify();
 	        this.scenes.frameStart();
-	        this.events.trigger('frameStart');
+	        this.events.emit('frameStart');
 	    }
 	    _draw() {
 	        this.scenes.draw(this.buffer);
-	        this.events.trigger('draw', this.buffer);
+	        this.events.emit('draw', this.buffer);
 	    }
 	    _frameDebug() {
 	        this.scenes.frameDebug(this.buffer);
-	        this.events.trigger('frameDebug', this.buffer);
+	        this.events.emit('frameDebug', this.buffer);
 	    }
 	    _frameEnd() {
 	        this.scenes.frameEnd(this.buffer);
-	        this.events.trigger('frameEnd', this.buffer);
+	        this.events.emit('frameEnd', this.buffer);
 	        this.canvas.render(this.buffer);
 	    }
 	    alert(text, opts = {}) {
@@ -15065,6 +14977,7 @@ void main() {
 	        return this.scenes.run('confirm', opts);
 	    }
 	    prompt(text, opts = {}) {
+	        // TODO - Do we really have to do this?  Can't we reset the scene instead?
 	        // NEED TO CREATE A NEW SCENE EVERY TIME SO WE DON"T HAVE HOLDOVER EVENTS, etc...
 	        opts.prompt = text;
 	        const prompt = this.scenes._create('prompt', PromptScene);
@@ -15147,7 +15060,6 @@ void main() {
 	exports.colors = colors;
 	exports.cosmetic = cosmetic;
 	exports.data = data;
-	exports.events = events;
 	exports.first = first;
 	exports.flag = flag;
 	exports.fov = index$7;
@@ -15173,6 +15085,7 @@ void main() {
 	exports.tween = tween;
 	exports.types = types;
 	exports.ui = index$2;
+	exports.valueType = valueType;
 	exports.widget = index$1;
 	exports.xave = xave;
 	exports.xy = xy;
