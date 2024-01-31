@@ -6,6 +6,10 @@
 
 	var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
+	function getDefaultExportFromCjs (x) {
+		return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+	}
+
 	/**
 	 * The base implementation of `_.clamp` which doesn't coerce arguments.
 	 *
@@ -97,12 +101,12 @@
 	 * // => false
 	 */
 
-	function isObject$4(value) {
+	function isObject$5(value) {
 	  var type = typeof value;
 	  return value != null && (type == 'object' || type == 'function');
 	}
 
-	var isObject_1 = isObject$4;
+	var isObject_1 = isObject$5;
 
 	/** Detect free variable `global` from Node.js. */
 
@@ -123,11 +127,11 @@
 	var root$2 = _root;
 
 	/** Built-in value references. */
-	var Symbol$3 = root$2.Symbol;
+	var Symbol$4 = root$2.Symbol;
 
-	var _Symbol = Symbol$3;
+	var _Symbol = Symbol$4;
 
-	var Symbol$2 = _Symbol;
+	var Symbol$3 = _Symbol;
 
 	/** Used for built-in method references. */
 	var objectProto$5 = Object.prototype;
@@ -143,7 +147,7 @@
 	var nativeObjectToString$1 = objectProto$5.toString;
 
 	/** Built-in value references. */
-	var symToStringTag$1 = Symbol$2 ? Symbol$2.toStringTag : undefined;
+	var symToStringTag$1 = Symbol$3 ? Symbol$3.toStringTag : undefined;
 
 	/**
 	 * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.
@@ -198,7 +202,7 @@
 
 	var _objectToString = objectToString$1;
 
-	var Symbol$1 = _Symbol,
+	var Symbol$2 = _Symbol,
 	    getRawTag = _getRawTag,
 	    objectToString = _objectToString;
 
@@ -207,7 +211,7 @@
 	    undefinedTag = '[object Undefined]';
 
 	/** Built-in value references. */
-	var symToStringTag = Symbol$1 ? Symbol$1.toStringTag : undefined;
+	var symToStringTag = Symbol$2 ? Symbol$2.toStringTag : undefined;
 
 	/**
 	 * The base implementation of `getTag` without fallbacks for buggy environments.
@@ -289,7 +293,7 @@
 	var isSymbol_1 = isSymbol$4;
 
 	var baseTrim = _baseTrim,
-	    isObject$3 = isObject_1,
+	    isObject$4 = isObject_1,
 	    isSymbol$3 = isSymbol_1;
 
 	/** Used as references for various `Number` constants. */
@@ -337,9 +341,9 @@
 	  if (isSymbol$3(value)) {
 	    return NAN;
 	  }
-	  if (isObject$3(value)) {
+	  if (isObject$4(value)) {
 	    var other = typeof value.valueOf == 'function' ? value.valueOf() : value;
-	    value = isObject$3(other) ? (other + '') : other;
+	    value = isObject$4(other) ? (other + '') : other;
 	  }
 	  if (typeof value != 'string') {
 	    return value === 0 ? value : +value;
@@ -393,877 +397,7 @@
 
 	var clamp_1 = clamp$1;
 
-	/**
-	 * GW.utils
-	 * @module utils
-	 */
-	function NOOP() { }
-	function TRUE() {
-	    return true;
-	}
-	function FALSE() {
-	    return false;
-	}
-	function ONE() {
-	    return 1;
-	}
-	function ZERO() {
-	    return 0;
-	}
-	function IDENTITY(x) {
-	    return x;
-	}
-	function IS_ZERO(x) {
-	    return x == 0;
-	}
-	function IS_NONZERO(x) {
-	    return x != 0;
-	}
-	/**
-	 * clamps a value between min and max (inclusive)
-	 * @param v {Number} the value to clamp
-	 * @param min {Number} the minimum value
-	 * @param max {Number} the maximum value
-	 * @returns {Number} the clamped value
-	 */
-	const clamp = clamp_1;
-	// export function clamp(v: number, min: number, max: number) {
-	//     if (v < min) return min;
-	//     if (v > max) return max;
-	//     return v;
-	// }
-	function lerp$1(from, to, pct) {
-	    if (pct > 1)
-	        pct = 1;
-	    if (pct < 0)
-	        pct = 0;
-	    return Math.floor(from + (to - from) * pct);
-	}
-	function xave(rate, value, newValue) {
-	    return value * rate + newValue * (1 - rate);
-	}
-	function ERROR(message) {
-	    throw new Error(message);
-	}
-	function WARN(...args) {
-	    console.warn(...args);
-	}
-	function first(...args) {
-	    return args.find((v) => v !== undefined);
-	}
-	function arraysIntersect(a, b) {
-	    return a.some((av) => b.includes(av));
-	}
-	function arrayIncludesAll(a, b) {
-	    return b.every((av) => a.includes(av));
-	}
-	function arrayRevEach(a, fn) {
-	    for (let i = a.length - 1; i > -1; --i) {
-	        fn(a[i], i, a);
-	    }
-	}
-	function arrayDelete(a, b) {
-	    const index = a.indexOf(b);
-	    if (index < 0)
-	        return false;
-	    a.splice(index, 1);
-	    return true;
-	}
-	function arrayNullify(a, b) {
-	    const index = a.indexOf(b);
-	    if (index < 0)
-	        return false;
-	    a[index] = null;
-	    return true;
-	}
-	function arrayInsert(a, b, beforeFn) {
-	    if (!beforeFn) {
-	        a.push(b);
-	        return;
-	    }
-	    const index = a.findIndex(beforeFn);
-	    if (index < 0) {
-	        a.push(b);
-	    }
-	    else {
-	        a.splice(index, 0, b);
-	    }
-	}
-	function arrayFindRight(a, fn) {
-	    for (let i = a.length - 1; i >= 0; --i) {
-	        const e = a[i];
-	        if (fn(e))
-	            return e;
-	    }
-	    return undefined;
-	}
-	function sum(arr) {
-	    return arr.reduce((a, b) => a + b);
-	}
-	function arrayNext(a, current, fn, wrap = true, forward = true) {
-	    const len = a.length;
-	    if (len <= 1)
-	        return undefined;
-	    const startIndex = a.indexOf(current);
-	    if (startIndex < 0)
-	        return undefined;
-	    const dx = forward ? 1 : -1;
-	    let startI = wrap ? (len + startIndex + dx) % len : startIndex + dx;
-	    let endI = wrap ? startIndex : forward ? len : -1;
-	    for (let index = startI; index !== endI; index = wrap ? (len + index + dx) % len : index + dx) {
-	        const e = a[index];
-	        if (fn(e))
-	            return e;
-	    }
-	    return undefined;
-	}
-	function arrayPrev(a, current, fn, wrap = true) {
-	    return arrayNext(a, current, fn, wrap, false);
-	}
-	function nextIndex(index, length, wrap = true) {
-	    ++index;
-	    if (index >= length) {
-	        if (wrap)
-	            return index % length;
-	        return -1;
-	    }
-	    return index;
-	}
-	function prevIndex(index, length, wrap = true) {
-	    if (index < 0)
-	        return length - 1; // start in back
-	    --index;
-	    if (index < 0) {
-	        if (wrap)
-	            return length - 1;
-	        return -1;
-	    }
-	    return index;
-	}
-	function valueType(a) {
-	    const ta = typeof a;
-	    if (ta == 'object') {
-	        if (Array.isArray(a)) {
-	            return 'array';
-	        }
-	    }
-	    return ta;
-	}
-
-	// DIRS are organized clockwise
-	// - first 4 are arrow directions
-	//   >> rotate 90 degrees clockwise ==>> newIndex = (oldIndex + 1) % 4
-	//   >> opposite direction ==>> oppIndex = (index + 2) % 4
-	// - last 4 are diagonals
-	//   >> rotate 90 degrees clockwise ==>> newIndex = 4 + (oldIndex + 1) % 4;
-	//   >> opposite diagonal ==>> newIndex = 4 + (index + 2) % 4;
-	const DIRS$2 = [
-	    [0, -1],
-	    [1, 0],
-	    [0, 1],
-	    [-1, 0],
-	    [1, -1],
-	    [1, 1],
-	    [-1, 1],
-	    [-1, -1],
-	];
-	const NO_DIRECTION = -1;
-	const UP = 0;
-	const RIGHT = 1;
-	const DOWN = 2;
-	const LEFT = 3;
-	const RIGHT_UP = 4;
-	const RIGHT_DOWN = 5;
-	const LEFT_DOWN = 6;
-	const LEFT_UP = 7;
-	// CLOCK DIRS are organized clockwise, starting at UP
-	// >> opposite = (index + 4) % 8
-	// >> 90 degrees rotate right = (index + 2) % 8
-	// >> 90 degrees rotate left = (8 + index - 2) % 8
-	const CLOCK_DIRS = [
-	    [0, 1],
-	    [1, 1],
-	    [1, 0],
-	    [1, -1],
-	    [0, -1],
-	    [-1, -1],
-	    [-1, 0],
-	    [-1, 1],
-	];
-	function isLoc(a) {
-	    return (Array.isArray(a) &&
-	        a.length == 2 &&
-	        typeof a[0] === 'number' &&
-	        typeof a[1] === 'number');
-	}
-	function isXY(a) {
-	    return a && typeof a.x === 'number' && typeof a.y === 'number';
-	}
-	function asLoc(v) {
-	    if (Array.isArray(v))
-	        return v;
-	    return [x(v), y(v)];
-	}
-	function asXY(v) {
-	    if (!Array.isArray(v))
-	        return v;
-	    return { x: x(v), y: y(v) };
-	}
-	function x(src) {
-	    // @ts-ignore
-	    return src.x || src[0] || 0;
-	}
-	function y(src) {
-	    // @ts-ignore
-	    return src.y || src[1] || 0;
-	}
-	function contains(size, x, y) {
-	    return x >= 0 && y >= 0 && x < size.width && y < size.height;
-	}
-	class Bounds {
-	    constructor(x = 0, y = 0, w = 0, h = 0) {
-	        if (typeof x !== 'number') {
-	            const opts = x;
-	            h = opts.height || 0;
-	            w = opts.width || 0;
-	            y = opts.y || 0;
-	            x = opts.x || 0;
-	        }
-	        this.x = x;
-	        this.y = y;
-	        this.width = w;
-	        this.height = h;
-	    }
-	    get left() {
-	        return this.x;
-	    }
-	    set left(v) {
-	        this.x = v;
-	    }
-	    get right() {
-	        return this.x + this.width;
-	    }
-	    set right(v) {
-	        this.x = v - this.width;
-	    }
-	    get top() {
-	        return this.y;
-	    }
-	    set top(v) {
-	        this.y = v;
-	    }
-	    get bottom() {
-	        return this.y + this.height;
-	    }
-	    set bottom(v) {
-	        this.y = v - this.height;
-	    }
-	    get center() {
-	        return this.x + Math.floor(this.width / 2);
-	    }
-	    set center(v) {
-	        this.x += v - this.center;
-	    }
-	    get middle() {
-	        return this.y + Math.floor(this.height / 2);
-	    }
-	    set middle(v) {
-	        this.y += v - this.middle;
-	    }
-	    clone() {
-	        return new Bounds(this.x, this.y, this.width, this.height);
-	    }
-	    copy(other) {
-	        this.x = other.x;
-	        this.y = other.y;
-	        this.width = other.width;
-	        this.height = other.height;
-	    }
-	    contains(...args) {
-	        let i = args[0];
-	        let j = args[1];
-	        if (typeof i !== 'number') {
-	            j = y(i);
-	            i = x(i);
-	        }
-	        return (this.x <= i &&
-	            this.y <= j &&
-	            this.x + this.width > i &&
-	            this.y + this.height > j);
-	    }
-	    include(xy) {
-	        const left = Math.min(x(xy), this.x);
-	        const top = Math.min(y(xy), this.y);
-	        const right = Math.max(xy instanceof Bounds ? xy.right : left, this.right);
-	        const bottom = Math.max(xy instanceof Bounds ? xy.bottom : top, this.bottom);
-	        this.left = left;
-	        this.top = top;
-	        this.width = right - left;
-	        this.height = bottom - top;
-	    }
-	    pad(n = 1) {
-	        this.x -= n;
-	        this.y -= n;
-	        this.width += n * 2;
-	        this.height += n * 2;
-	    }
-	    forEach(cb) {
-	        forRect(this.x, this.y, this.width, this.height, cb);
-	    }
-	    toString() {
-	        return `[${this.x},${this.y} -> ${this.right},${this.bottom}]`;
-	    }
-	}
-	function copy(dest, src) {
-	    dest.x = x(src);
-	    dest.y = y(src);
-	}
-	function addTo(dest, src) {
-	    dest.x += x(src);
-	    dest.y += y(src);
-	}
-	function add(a, b) {
-	    if (Array.isArray(a)) {
-	        return [a[0] + x(b), a[1] + y(b)];
-	    }
-	    return { x: a.x + x(b), y: a.y + y(b) };
-	}
-	function equals(dest, src) {
-	    if (!dest && !src)
-	        return true;
-	    if (!dest || !src)
-	        return false;
-	    return x(dest) == x(src) && y(dest) == y(src);
-	}
-	function isDiagonal(xy) {
-	    return x(xy) != 0 && y(xy) != 0;
-	}
-	function lerp(a, b, pct) {
-	    if (pct > 1) {
-	        pct = pct / 100;
-	    }
-	    pct = clamp(pct, 0, 1);
-	    const dx = x(b) - x(a);
-	    const dy = y(b) - y(a);
-	    const x2 = x(a) + Math.floor(dx * pct);
-	    const y2 = y(a) + Math.floor(dy * pct);
-	    return [x2, y2];
-	}
-	function eachNeighbor(x, y, fn, only4dirs = false) {
-	    const max = only4dirs ? 4 : 8;
-	    for (let i = 0; i < max; ++i) {
-	        const dir = DIRS$2[i];
-	        const x1 = x + dir[0];
-	        const y1 = y + dir[1];
-	        fn(x1, y1, dir);
-	    }
-	}
-	async function eachNeighborAsync(x, y, fn, only4dirs = false) {
-	    const max = only4dirs ? 4 : 8;
-	    for (let i = 0; i < max; ++i) {
-	        const dir = DIRS$2[i];
-	        const x1 = x + dir[0];
-	        const y1 = y + dir[1];
-	        await fn(x1, y1, dir);
-	    }
-	}
-	function matchingNeighbor(x, y, matchFn, only4dirs = false) {
-	    const maxIndex = only4dirs ? 4 : 8;
-	    for (let d = 0; d < maxIndex; ++d) {
-	        const dir = DIRS$2[d];
-	        const i = x + dir[0];
-	        const j = y + dir[1];
-	        if (matchFn(i, j, dir))
-	            return [i, j];
-	    }
-	    return [-1, -1];
-	}
-	function straightDistanceBetween(x1, y1, x2, y2) {
-	    const x = Math.abs(x1 - x2);
-	    const y = Math.abs(y1 - y2);
-	    return x + y;
-	}
-	function maxAxisFromTo(a, b) {
-	    const xa = Math.abs(x(a) - x(b));
-	    const ya = Math.abs(y(a) - y(b));
-	    return Math.max(xa, ya);
-	}
-	function maxAxisBetween(x1, y1, x2, y2) {
-	    const xa = Math.abs(x1 - x2);
-	    const ya = Math.abs(y1 - y2);
-	    return Math.max(xa, ya);
-	}
-	function distanceBetween(x1, y1, x2, y2) {
-	    const x = Math.abs(x1 - x2);
-	    const y = Math.abs(y1 - y2);
-	    const min = Math.min(x, y);
-	    return x + y - 0.6 * min;
-	}
-	function distanceFromTo(a, b) {
-	    return distanceBetween(x(a), y(a), x(b), y(b));
-	}
-	function calcRadius(x, y) {
-	    return distanceBetween(0, 0, x, y);
-	}
-	function dirBetween(x, y, toX, toY) {
-	    let diffX = toX - x;
-	    let diffY = toY - y;
-	    if (diffX && diffY) {
-	        const absX = Math.abs(diffX);
-	        const absY = Math.abs(diffY);
-	        if (absX >= 2 * absY) {
-	            diffY = 0;
-	        }
-	        else if (absY >= 2 * absX) {
-	            diffX = 0;
-	        }
-	    }
-	    return [Math.sign(diffX), Math.sign(diffY)];
-	}
-	function dirFromTo(a, b) {
-	    return dirBetween(x(a), y(a), x(b), y(b));
-	}
-	function dirIndex(dir) {
-	    const x0 = x(dir);
-	    const y0 = y(dir);
-	    return DIRS$2.findIndex((a) => a[0] == x0 && a[1] == y0);
-	}
-	function isOppositeDir(a, b) {
-	    if (Math.sign(a[0]) + Math.sign(b[0]) != 0)
-	        return false;
-	    if (Math.sign(a[1]) + Math.sign(b[1]) != 0)
-	        return false;
-	    return true;
-	}
-	function isSameDir(a, b) {
-	    return (Math.sign(a[0]) == Math.sign(b[0]) && Math.sign(a[1]) == Math.sign(b[1]));
-	}
-	function dirSpread(dir) {
-	    const result = [dir];
-	    if (dir[0] == 0) {
-	        result.push([1, dir[1]]);
-	        result.push([-1, dir[1]]);
-	    }
-	    else if (dir[1] == 0) {
-	        result.push([dir[0], 1]);
-	        result.push([dir[0], -1]);
-	    }
-	    else {
-	        result.push([dir[0], 0]);
-	        result.push([0, dir[1]]);
-	    }
-	    return result;
-	}
-	function stepFromTo(a, b, fn) {
-	    const x0 = x(a);
-	    const y0 = y(a);
-	    const diff = [x(b) - x0, y(b) - y0];
-	    const steps = Math.abs(diff[0]) + Math.abs(diff[1]);
-	    const c = [0, 0];
-	    const last = [99999, 99999];
-	    for (let step = 0; step <= steps; ++step) {
-	        c[0] = x0 + Math.floor((diff[0] * step) / steps);
-	        c[1] = y0 + Math.floor((diff[1] * step) / steps);
-	        if (c[0] != last[0] || c[1] != last[1]) {
-	            fn(c[0], c[1]);
-	        }
-	        last[0] = c[0];
-	        last[1] = c[1];
-	    }
-	}
-	// LINES
-	function forLine(x, y, dir, length, fn) {
-	    for (let l = 0; l < length; ++l) {
-	        fn(x + l * dir[0], y + l * dir[1]);
-	    }
-	}
-	const FP_BASE = 16;
-	const FP_FACTOR = 1 << 16;
-	function forLineBetween(fromX, fromY, toX, toY, stepFn) {
-	    let targetVector = [], error = [], currentVector = [], previousVector = [], quadrantTransform = [];
-	    let largerTargetComponent, i;
-	    let currentLoc = [-1, -1], previousLoc = [-1, -1];
-	    if (fromX == toX && fromY == toY) {
-	        return true;
-	    }
-	    const originLoc = [fromX, fromY];
-	    const targetLoc = [toX, toY];
-	    // Neither vector is negative. We keep track of negatives with quadrantTransform.
-	    for (i = 0; i <= 1; i++) {
-	        targetVector[i] = (targetLoc[i] - originLoc[i]) << FP_BASE; // FIXME: should use parens?
-	        if (targetVector[i] < 0) {
-	            targetVector[i] *= -1;
-	            quadrantTransform[i] = -1;
-	        }
-	        else {
-	            quadrantTransform[i] = 1;
-	        }
-	        currentVector[i] = previousVector[i] = error[i] = 0;
-	        currentLoc[i] = originLoc[i];
-	    }
-	    // normalize target vector such that one dimension equals 1 and the other is in [0, 1].
-	    largerTargetComponent = Math.max(targetVector[0], targetVector[1]);
-	    // targetVector[0] = Math.floor( (targetVector[0] << FP_BASE) / largerTargetComponent);
-	    // targetVector[1] = Math.floor( (targetVector[1] << FP_BASE) / largerTargetComponent);
-	    targetVector[0] = Math.floor((targetVector[0] * FP_FACTOR) / largerTargetComponent);
-	    targetVector[1] = Math.floor((targetVector[1] * FP_FACTOR) / largerTargetComponent);
-	    do {
-	        for (i = 0; i <= 1; i++) {
-	            previousLoc[i] = currentLoc[i];
-	            currentVector[i] += targetVector[i] >> FP_BASE;
-	            error[i] += targetVector[i] == FP_FACTOR ? 0 : targetVector[i];
-	            if (error[i] >= Math.floor(FP_FACTOR / 2)) {
-	                currentVector[i]++;
-	                error[i] -= FP_FACTOR;
-	            }
-	            currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
-	        }
-	        const r = stepFn(...currentLoc);
-	        if (r === false) {
-	            return false;
-	        }
-	        else if (r !== true &&
-	            currentLoc[0] === toX &&
-	            currentLoc[1] === toY) {
-	            return true;
-	        }
-	    } while (true);
-	}
-	function forLineFromTo(a, b, stepFn) {
-	    return forLineBetween(x(a), y(a), x(b), y(b), stepFn);
-	}
-	// ADAPTED FROM BROGUE 1.7.5
-	// Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
-	// that extends all the way to the edge of the map based on an originLoc (which is not included
-	// in the list of coordinates) and a targetLoc.
-	// Returns the number of entries in the list, and includes (-1, -1) as an additional
-	// terminus indicator after the end of the list.
-	function getLine(fromX, fromY, toX, toY) {
-	    const line = [];
-	    forLineBetween(fromX, fromY, toX, toY, (x, y) => {
-	        line.push([x, y]);
-	    });
-	    return line;
-	}
-	// ADAPTED FROM BROGUE 1.7.5
-	// Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
-	// that extends all the way to the edge of the map based on an originLoc (which is not included
-	// in the list of coordinates) and a targetLoc.
-	function getLineThru(fromX, fromY, toX, toY, width, height) {
-	    const line = [];
-	    forLineBetween(fromX, fromY, toX, toY, (x, y) => {
-	        if (x < 0 || y < 0 || x >= width || y >= height)
-	            return false;
-	        line.push([x, y]);
-	        return true;
-	    });
-	    return line;
-	}
-	// CIRCLE
-	function forCircle(x, y, radius, fn) {
-	    let i, j;
-	    for (i = x - radius - 1; i < x + radius + 1; i++) {
-	        for (j = y - radius - 1; j < y + radius + 1; j++) {
-	            if ((i - x) * (i - x) + (j - y) * (j - y) <
-	                radius * radius + radius) {
-	                // + radius softens the circle
-	                fn(i, j);
-	            }
-	        }
-	    }
-	}
-	function forRect(...args) {
-	    let left = 0;
-	    let top = 0;
-	    if (arguments.length > 3) {
-	        left = args.shift();
-	        top = args.shift();
-	    }
-	    const right = left + args[0];
-	    const bottom = top + args[1];
-	    const fn = args[2];
-	    for (let i = left; i < right; ++i) {
-	        for (let j = top; j < bottom; ++j) {
-	            fn(i, j);
-	        }
-	    }
-	}
-	function dumpRect(left, top, width, height, fmtFn, log = console.log) {
-	    let i, j;
-	    const bottom = top + height;
-	    const right = left + width;
-	    let output = [];
-	    for (j = top; j < bottom; j++) {
-	        let line = ('' + j + ']').padStart(3, ' ');
-	        for (i = left; i < right; i++) {
-	            if (i % 10 == 0) {
-	                line += ' ';
-	            }
-	            line += fmtFn(i, j);
-	        }
-	        output.push(line);
-	    }
-	    log(output.join('\n'));
-	}
-	function dumpAround(x, y, radius, fmtFn, log = console.log) {
-	    dumpRect(x - radius, y - radius, 2 * radius + 1, 2 * radius + 1, fmtFn, log);
-	}
-	function forBorder(...args) {
-	    let left = 0;
-	    let top = 0;
-	    if (arguments.length > 3) {
-	        left = args.shift();
-	        top = args.shift();
-	    }
-	    const right = left + args[0] - 1;
-	    const bottom = top + args[1] - 1;
-	    const fn = args[2];
-	    for (let x = left; x <= right; ++x) {
-	        fn(x, top);
-	        fn(x, bottom);
-	    }
-	    for (let y = top; y <= bottom; ++y) {
-	        fn(left, y);
-	        fn(right, y);
-	    }
-	}
-	// ARC COUNT
-	// Rotates around the cell, counting up the number of distinct strings of neighbors with the same test result in a single revolution.
-	//		Zero means there are no impassable tiles adjacent.
-	//		One means it is adjacent to a wall.
-	//		Two means it is in a hallway or something similar.
-	//		Three means it is the center of a T-intersection or something similar.
-	//		Four means it is in the intersection of two hallways.
-	//		Five or more means there is a bug.
-	function arcCount(x, y, testFn) {
-	    let oldX, oldY, newX, newY;
-	    // brogueAssert(grid.hasXY(x, y));
-	    let arcCount = 0;
-	    let matchCount = 0;
-	    for (let dir = 0; dir < CLOCK_DIRS.length; dir++) {
-	        oldX = x + CLOCK_DIRS[(dir + 7) % 8][0];
-	        oldY = y + CLOCK_DIRS[(dir + 7) % 8][1];
-	        newX = x + CLOCK_DIRS[dir][0];
-	        newY = y + CLOCK_DIRS[dir][1];
-	        // Counts every transition from passable to impassable or vice-versa on the way around the cell:
-	        const newOk = testFn(newX, newY);
-	        const oldOk = testFn(oldX, oldY);
-	        if (newOk)
-	            ++matchCount;
-	        if (newOk != oldOk) {
-	            arcCount++;
-	        }
-	    }
-	    if (arcCount == 0 && matchCount)
-	        return 1;
-	    return Math.floor(arcCount / 2); // Since we added one when we entered a wall and another when we left.
-	}
-	function closestMatchingLocs(x, y, matchFn) {
-	    const locs = [];
-	    let i, j, k;
-	    // count up the number of candidate locations
-	    for (k = 0; k < 100 && !locs.length; k++) {
-	        for (i = x - k; i <= x + k; i++) {
-	            for (j = y - k; j <= y + k; j++) {
-	                if (Math.ceil(distanceBetween(x, y, i, j)) == k &&
-	                    matchFn(i, j)) {
-	                    locs.push([i, j]);
-	                }
-	            }
-	        }
-	    }
-	    return locs.length ? locs : null;
-	}
-
-	var xy = /*#__PURE__*/Object.freeze({
-		__proto__: null,
-		DIRS: DIRS$2,
-		NO_DIRECTION: NO_DIRECTION,
-		UP: UP,
-		RIGHT: RIGHT,
-		DOWN: DOWN,
-		LEFT: LEFT,
-		RIGHT_UP: RIGHT_UP,
-		RIGHT_DOWN: RIGHT_DOWN,
-		LEFT_DOWN: LEFT_DOWN,
-		LEFT_UP: LEFT_UP,
-		CLOCK_DIRS: CLOCK_DIRS,
-		isLoc: isLoc,
-		isXY: isXY,
-		asLoc: asLoc,
-		asXY: asXY,
-		x: x,
-		y: y,
-		contains: contains,
-		Bounds: Bounds,
-		copy: copy,
-		addTo: addTo,
-		add: add,
-		equals: equals,
-		isDiagonal: isDiagonal,
-		lerp: lerp,
-		eachNeighbor: eachNeighbor,
-		eachNeighborAsync: eachNeighborAsync,
-		matchingNeighbor: matchingNeighbor,
-		straightDistanceBetween: straightDistanceBetween,
-		maxAxisFromTo: maxAxisFromTo,
-		maxAxisBetween: maxAxisBetween,
-		distanceBetween: distanceBetween,
-		distanceFromTo: distanceFromTo,
-		calcRadius: calcRadius,
-		dirBetween: dirBetween,
-		dirFromTo: dirFromTo,
-		dirIndex: dirIndex,
-		isOppositeDir: isOppositeDir,
-		isSameDir: isSameDir,
-		dirSpread: dirSpread,
-		stepFromTo: stepFromTo,
-		forLine: forLine,
-		forLineBetween: forLineBetween,
-		forLineFromTo: forLineFromTo,
-		getLine: getLine,
-		getLineThru: getLineThru,
-		forCircle: forCircle,
-		forRect: forRect,
-		dumpRect: dumpRect,
-		dumpAround: dumpAround,
-		forBorder: forBorder,
-		arcCount: arcCount,
-		closestMatchingLocs: closestMatchingLocs
-	});
-
-	// CHAIN
-	function length$1(root) {
-	    let count = 0;
-	    while (root) {
-	        count += 1;
-	        root = root.next;
-	    }
-	    return count;
-	}
-	function at(root, index) {
-	    while (root && index) {
-	        root = root.next;
-	        --index;
-	    }
-	    return root;
-	}
-	function includes(root, entry) {
-	    while (root && root !== entry) {
-	        root = root.next;
-	    }
-	    return root === entry;
-	}
-	function forEach(root, fn) {
-	    let index = 0;
-	    while (root) {
-	        const next = root.next;
-	        fn(root, index++);
-	        root = next;
-	    }
-	    return index; // really count
-	}
-	function push(obj, name, entry) {
-	    entry.next = obj[name] || null;
-	    obj[name] = entry;
-	    return true;
-	}
-	function remove(obj, name, entry) {
-	    const root = obj[name];
-	    if (root === entry) {
-	        obj[name] = entry.next || null;
-	        entry.next = null;
-	        return true;
-	    }
-	    else if (!root) {
-	        return false;
-	    }
-	    else {
-	        let prev = root;
-	        let current = prev.next;
-	        while (current && current !== entry) {
-	            prev = current;
-	            current = prev.next;
-	        }
-	        if (current === entry) {
-	            prev.next = current.next;
-	            entry.next = null;
-	            return true;
-	        }
-	    }
-	    return false;
-	}
-	function find(root, cb) {
-	    while (root && !cb(root)) {
-	        root = root.next;
-	    }
-	    return root;
-	}
-	function insert(obj, name, entry, sort) {
-	    let root = obj[name];
-	    sort = sort || (() => -1); // always insert first
-	    if (!root || sort(root, entry) < 0) {
-	        entry.next = root;
-	        obj[name] = entry;
-	        return true;
-	    }
-	    let prev = root;
-	    let current = root.next;
-	    while (current && sort(current, entry) > 0) {
-	        prev = current;
-	        current = current.next;
-	    }
-	    entry.next = current;
-	    prev.next = entry;
-	    return true;
-	}
-	function reduce(root, cb, out) {
-	    let current = root;
-	    if (out === undefined) {
-	        if (!current)
-	            throw new TypeError('Empty list reduce without initial value not allowed.');
-	        out = current;
-	        current = current.next;
-	    }
-	    while (current) {
-	        out = cb(out, current);
-	        current = current.next;
-	    }
-	    return out;
-	}
-	function some(root, cb) {
-	    let current = root;
-	    while (current) {
-	        if (cb(current))
-	            return true;
-	        current = current.next;
-	    }
-	    return false;
-	}
-	function every(root, cb) {
-	    let current = root;
-	    while (current) {
-	        if (!cb(current))
-	            return false;
-	        current = current.next;
-	    }
-	    return true;
-	}
-
-	var list = /*#__PURE__*/Object.freeze({
-		__proto__: null,
-		length: length$1,
-		at: at,
-		includes: includes,
-		forEach: forEach,
-		push: push,
-		remove: remove,
-		find: find,
-		insert: insert,
-		reduce: reduce,
-		some: some,
-		every: every
-	});
+	var _clamp = /*@__PURE__*/getDefaultExportFromCjs(clamp_1);
 
 	/**
 	 * Checks if `value` is classified as an `Array` object.
@@ -1324,7 +458,7 @@
 	var _isKey = isKey$1;
 
 	var baseGetTag = _baseGetTag,
-	    isObject$2 = isObject_1;
+	    isObject$3 = isObject_1;
 
 	/** `Object#toString` result references. */
 	var asyncTag = '[object AsyncFunction]',
@@ -1350,7 +484,7 @@
 	 * // => false
 	 */
 	function isFunction$1(value) {
-	  if (!isObject$2(value)) {
+	  if (!isObject$3(value)) {
 	    return false;
 	  }
 	  // The use of `Object#toString` avoids issues with the `typeof` operator
@@ -1419,7 +553,7 @@
 
 	var isFunction = isFunction_1,
 	    isMasked = _isMasked,
-	    isObject$1 = isObject_1,
+	    isObject$2 = isObject_1,
 	    toSource = _toSource;
 
 	/**
@@ -1456,7 +590,7 @@
 	 *  else `false`.
 	 */
 	function baseIsNative$1(value) {
-	  if (!isObject$1(value) || isMasked(value)) {
+	  if (!isObject$2(value) || isMasked(value)) {
 	    return false;
 	  }
 	  var pattern = isFunction(value) ? reIsNative : reIsHostCtor;
@@ -2188,7 +1322,7 @@
 
 	var _arrayMap = arrayMap$1;
 
-	var Symbol = _Symbol,
+	var Symbol$1 = _Symbol,
 	    arrayMap = _arrayMap,
 	    isArray$1 = isArray_1,
 	    isSymbol$1 = isSymbol_1;
@@ -2197,7 +1331,7 @@
 	var INFINITY$1 = 1 / 0;
 
 	/** Used to convert symbols to primitives and strings. */
-	var symbolProto = Symbol ? Symbol.prototype : undefined,
+	var symbolProto = Symbol$1 ? Symbol$1.prototype : undefined,
 	    symbolToString = symbolProto ? symbolProto.toString : undefined;
 
 	/**
@@ -2358,7 +1492,1138 @@
 
 	var get_1 = get;
 
-	const getValue = get_1;
+	var get$1 = /*@__PURE__*/getDefaultExportFromCjs(get_1);
+
+	var getNative = _getNative;
+
+	var defineProperty$1 = (function() {
+	  try {
+	    var func = getNative(Object, 'defineProperty');
+	    func({}, '', {});
+	    return func;
+	  } catch (e) {}
+	}());
+
+	var _defineProperty = defineProperty$1;
+
+	var defineProperty = _defineProperty;
+
+	/**
+	 * The base implementation of `assignValue` and `assignMergeValue` without
+	 * value checks.
+	 *
+	 * @private
+	 * @param {Object} object The object to modify.
+	 * @param {string} key The key of the property to assign.
+	 * @param {*} value The value to assign.
+	 */
+	function baseAssignValue$1(object, key, value) {
+	  if (key == '__proto__' && defineProperty) {
+	    defineProperty(object, key, {
+	      'configurable': true,
+	      'enumerable': true,
+	      'value': value,
+	      'writable': true
+	    });
+	  } else {
+	    object[key] = value;
+	  }
+	}
+
+	var _baseAssignValue = baseAssignValue$1;
+
+	var baseAssignValue = _baseAssignValue,
+	    eq = eq_1;
+
+	/** Used for built-in method references. */
+	var objectProto = Object.prototype;
+
+	/** Used to check objects for own properties. */
+	var hasOwnProperty = objectProto.hasOwnProperty;
+
+	/**
+	 * Assigns `value` to `key` of `object` if the existing value is not equivalent
+	 * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	 * for equality comparisons.
+	 *
+	 * @private
+	 * @param {Object} object The object to modify.
+	 * @param {string} key The key of the property to assign.
+	 * @param {*} value The value to assign.
+	 */
+	function assignValue$1(object, key, value) {
+	  var objValue = object[key];
+	  if (!(hasOwnProperty.call(object, key) && eq(objValue, value)) ||
+	      (value === undefined && !(key in object))) {
+	    baseAssignValue(object, key, value);
+	  }
+	}
+
+	var _assignValue = assignValue$1;
+
+	/** Used as references for various `Number` constants. */
+
+	var MAX_SAFE_INTEGER = 9007199254740991;
+
+	/** Used to detect unsigned integer values. */
+	var reIsUint = /^(?:0|[1-9]\d*)$/;
+
+	/**
+	 * Checks if `value` is a valid array-like index.
+	 *
+	 * @private
+	 * @param {*} value The value to check.
+	 * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
+	 * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
+	 */
+	function isIndex$1(value, length) {
+	  var type = typeof value;
+	  length = length == null ? MAX_SAFE_INTEGER : length;
+
+	  return !!length &&
+	    (type == 'number' ||
+	      (type != 'symbol' && reIsUint.test(value))) &&
+	        (value > -1 && value % 1 == 0 && value < length);
+	}
+
+	var _isIndex = isIndex$1;
+
+	var assignValue = _assignValue,
+	    castPath = _castPath,
+	    isIndex = _isIndex,
+	    isObject$1 = isObject_1,
+	    toKey = _toKey;
+
+	/**
+	 * The base implementation of `_.set`.
+	 *
+	 * @private
+	 * @param {Object} object The object to modify.
+	 * @param {Array|string} path The path of the property to set.
+	 * @param {*} value The value to set.
+	 * @param {Function} [customizer] The function to customize path creation.
+	 * @returns {Object} Returns `object`.
+	 */
+	function baseSet$1(object, path, value, customizer) {
+	  if (!isObject$1(object)) {
+	    return object;
+	  }
+	  path = castPath(path, object);
+
+	  var index = -1,
+	      length = path.length,
+	      lastIndex = length - 1,
+	      nested = object;
+
+	  while (nested != null && ++index < length) {
+	    var key = toKey(path[index]),
+	        newValue = value;
+
+	    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+	      return object;
+	    }
+
+	    if (index != lastIndex) {
+	      var objValue = nested[key];
+	      newValue = customizer ? customizer(objValue, key, nested) : undefined;
+	      if (newValue === undefined) {
+	        newValue = isObject$1(objValue)
+	          ? objValue
+	          : (isIndex(path[index + 1]) ? [] : {});
+	      }
+	    }
+	    assignValue(nested, key, newValue);
+	    nested = nested[key];
+	  }
+	  return object;
+	}
+
+	var _baseSet = baseSet$1;
+
+	var baseSet = _baseSet;
+
+	/**
+	 * Sets the value at `path` of `object`. If a portion of `path` doesn't exist,
+	 * it's created. Arrays are created for missing index properties while objects
+	 * are created for all other missing properties. Use `_.setWith` to customize
+	 * `path` creation.
+	 *
+	 * **Note:** This method mutates `object`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 3.7.0
+	 * @category Object
+	 * @param {Object} object The object to modify.
+	 * @param {Array|string} path The path of the property to set.
+	 * @param {*} value The value to set.
+	 * @returns {Object} Returns `object`.
+	 * @example
+	 *
+	 * var object = { 'a': [{ 'b': { 'c': 3 } }] };
+	 *
+	 * _.set(object, 'a[0].b.c', 4);
+	 * console.log(object.a[0].b.c);
+	 * // => 4
+	 *
+	 * _.set(object, ['x', '0', 'y', 'z'], 5);
+	 * console.log(object.x[0].y.z);
+	 * // => 5
+	 */
+	function set(object, path, value) {
+	  return object == null ? object : baseSet(object, path, value);
+	}
+
+	var set_1 = set;
+
+	var _setPath = /*@__PURE__*/getDefaultExportFromCjs(set_1);
+
+	/**
+	 * GW.utils
+	 * @module utils
+	 */
+	function NOOP() { }
+	function TRUE() {
+	    return true;
+	}
+	function FALSE() {
+	    return false;
+	}
+	function ONE() {
+	    return 1;
+	}
+	function ZERO() {
+	    return 0;
+	}
+	function IDENTITY(x) {
+	    return x;
+	}
+	function IS_ZERO(x) {
+	    return x == 0;
+	}
+	function IS_NONZERO(x) {
+	    return x != 0;
+	}
+	function ERROR(message, options) {
+	    throw new Error(message, options);
+	}
+	function WARN(...args) {
+	    console.warn(...args);
+	}
+	/**
+	 * clamps a value between min and max (inclusive)
+	 * @param v {Number} the value to clamp
+	 * @param min {Number} the minimum value
+	 * @param max {Number} the maximum value
+	 * @returns {Number} the clamped value
+	 */
+	const clamp = _clamp;
+	const getPath = get$1;
+	const setPath = _setPath;
+	// export function clamp(v: number, min: number, max: number) {
+	//     if (v < min) return min;
+	//     if (v > max) return max;
+	//     return v;
+	// }
+	function lerp$1(from, to, pct) {
+	    if (pct > 1)
+	        pct = 1;
+	    if (pct < 0)
+	        pct = 0;
+	    return Math.floor(from + (to - from) * pct);
+	}
+	function xave(rate, value, newValue) {
+	    return value * rate + newValue * (1 - rate);
+	}
+	function firstDefined(...args) {
+	    return args.find((v) => v !== undefined);
+	}
+	function arraysIntersect(a, b) {
+	    return a.some((av) => b.includes(av));
+	}
+	function arrayIncludesAll(a, b) {
+	    return b.every((av) => a.includes(av));
+	}
+	function arrayRevEach(a, fn) {
+	    for (let i = a.length - 1; i > -1; --i) {
+	        fn(a[i], i, a);
+	    }
+	}
+	function arrayDelete(a, b) {
+	    const index = a.indexOf(b);
+	    if (index < 0)
+	        return false;
+	    a.splice(index, 1);
+	    return true;
+	}
+	function arrayNullify(a, b) {
+	    const index = a.indexOf(b);
+	    if (index < 0)
+	        return false;
+	    a[index] = null;
+	    return true;
+	}
+	function arrayInsert(a, b, beforeFn) {
+	    if (!beforeFn) {
+	        a.push(b);
+	        return;
+	    }
+	    const index = a.findIndex(beforeFn);
+	    if (index < 0) {
+	        a.push(b);
+	    }
+	    else {
+	        a.splice(index, 0, b);
+	    }
+	}
+	function arrayFindRight(a, fn) {
+	    for (let i = a.length - 1; i >= 0; --i) {
+	        const e = a[i];
+	        if (fn(e))
+	            return e;
+	    }
+	    return undefined;
+	}
+	function sum(arr) {
+	    return arr.reduce((a, b) => a + b);
+	}
+	function arrayNext(a, current, fn, wrap = true, forward = true) {
+	    const len = a.length;
+	    if (len <= 1)
+	        return undefined;
+	    const startIndex = a.indexOf(current);
+	    if (startIndex < 0)
+	        return undefined;
+	    const dx = forward ? 1 : -1;
+	    let startI = wrap ? (len + startIndex + dx) % len : startIndex + dx;
+	    let endI = wrap ? startIndex : forward ? len : -1;
+	    for (let index = startI; index !== endI; index = wrap ? (len + index + dx) % len : index + dx) {
+	        const e = a[index];
+	        if (fn(e))
+	            return e;
+	    }
+	    return undefined;
+	}
+	function arrayPrev(a, current, fn, wrap = true) {
+	    return arrayNext(a, current, fn, wrap, false);
+	}
+	function nextIndex(index, length, wrap = true) {
+	    ++index;
+	    if (index >= length) {
+	        if (wrap)
+	            return index % length;
+	        return -1;
+	    }
+	    return index;
+	}
+	function prevIndex(index, length, wrap = true) {
+	    if (index < 0)
+	        return length - 1; // start in back
+	    --index;
+	    if (index < 0) {
+	        if (wrap)
+	            return length - 1;
+	        return -1;
+	    }
+	    return index;
+	}
+	function valueType(a) {
+	    const ta = typeof a;
+	    if (a === undefined)
+	        return 'undefined';
+	    if (ta == 'object') {
+	        if (Array.isArray(a)) {
+	            return 'array';
+	        }
+	    }
+	    return ta;
+	}
+	/// https://www.30secondsofcode.org/js/s/is-plain-object/
+	function isPlainObject(val) {
+	    return !!val && typeof val === 'object' && val.constructor === Object;
+	}
+	/// https://stackoverflow.com/questions/27936772/how-to-deep-merge-instead-of-shallow-merge
+	///
+	function isObject(item) {
+	    return !!item && typeof item === 'object' && !Array.isArray(item);
+	}
+	// Modified to use: isPlainObject
+	// Modified to mergeDeep recursively if key is not in target
+	function mergeDeep(target, source) {
+	    let output = Object.assign({}, target);
+	    if (isPlainObject(target) && isPlainObject(source)) {
+	        Object.keys(source).forEach((key) => {
+	            if (isPlainObject(source[key])) {
+	                if (!(key in target))
+	                    Object.assign(output, {
+	                        [key]: mergeDeep({}, source[key]),
+	                    });
+	                else
+	                    output[key] = mergeDeep(target[key], source[key]);
+	            }
+	            else {
+	                Object.assign(output, { [key]: source[key] });
+	            }
+	        });
+	    }
+	    else {
+	        throw new Error('mergeDeep only works on plain objects, not classes.');
+	    }
+	    return output;
+	}
+	///
+
+	var utils = /*#__PURE__*/Object.freeze({
+		__proto__: null,
+		ERROR: ERROR,
+		FALSE: FALSE,
+		IDENTITY: IDENTITY,
+		IS_NONZERO: IS_NONZERO,
+		IS_ZERO: IS_ZERO,
+		NOOP: NOOP,
+		ONE: ONE,
+		TRUE: TRUE,
+		WARN: WARN,
+		ZERO: ZERO,
+		arrayDelete: arrayDelete,
+		arrayFindRight: arrayFindRight,
+		arrayIncludesAll: arrayIncludesAll,
+		arrayInsert: arrayInsert,
+		arrayNext: arrayNext,
+		arrayNullify: arrayNullify,
+		arrayPrev: arrayPrev,
+		arrayRevEach: arrayRevEach,
+		arraysIntersect: arraysIntersect,
+		clamp: clamp,
+		firstDefined: firstDefined,
+		getPath: getPath,
+		isObject: isObject,
+		isPlainObject: isPlainObject,
+		lerp: lerp$1,
+		mergeDeep: mergeDeep,
+		nextIndex: nextIndex,
+		prevIndex: prevIndex,
+		setPath: setPath,
+		sum: sum,
+		valueType: valueType,
+		xave: xave
+	});
+
+	// DIRS are organized clockwise
+	// - first 4 are arrow directions
+	//   >> rotate 90 degrees clockwise ==>> newIndex = (oldIndex + 1) % 4
+	//   >> opposite direction ==>> oppIndex = (index + 2) % 4
+	// - last 4 are diagonals
+	//   >> rotate 90 degrees clockwise ==>> newIndex = 4 + (oldIndex + 1) % 4;
+	//   >> opposite diagonal ==>> newIndex = 4 + (index + 2) % 4;
+	const DIRS$2 = [
+	    [0, -1],
+	    [1, 0],
+	    [0, 1],
+	    [-1, 0],
+	    [1, -1],
+	    [1, 1],
+	    [-1, 1],
+	    [-1, -1],
+	];
+	const NO_DIRECTION = -1;
+	const UP = 0;
+	const RIGHT = 1;
+	const DOWN = 2;
+	const LEFT = 3;
+	const RIGHT_UP = 4;
+	const RIGHT_DOWN = 5;
+	const LEFT_DOWN = 6;
+	const LEFT_UP = 7;
+	// CLOCK DIRS are organized clockwise, starting at UP
+	// >> opposite = (index + 4) % 8
+	// >> 90 degrees rotate right = (index + 2) % 8
+	// >> 90 degrees rotate left = (8 + index - 2) % 8
+	const CLOCK_DIRS = [
+	    [0, 1],
+	    [1, 1],
+	    [1, 0],
+	    [1, -1],
+	    [0, -1],
+	    [-1, -1],
+	    [-1, 0],
+	    [-1, 1],
+	];
+	function isLoc(a) {
+	    return (Array.isArray(a) &&
+	        a.length == 2 &&
+	        typeof a[0] === 'number' &&
+	        typeof a[1] === 'number');
+	}
+	function isXY(a) {
+	    return a && typeof a.x === 'number' && typeof a.y === 'number';
+	}
+	function asLoc(v) {
+	    if (Array.isArray(v))
+	        return v;
+	    return [x(v), y(v)];
+	}
+	function asXY(v) {
+	    if (!Array.isArray(v))
+	        return v;
+	    return { x: x(v), y: y(v) };
+	}
+	function x(src) {
+	    // @ts-ignore
+	    return src.x || src[0] || 0;
+	}
+	function y(src) {
+	    // @ts-ignore
+	    return src.y || src[1] || 0;
+	}
+	function contains(size, x, y) {
+	    return x >= 0 && y >= 0 && x < size.width && y < size.height;
+	}
+	class Bounds {
+	    constructor(x = 0, y = 0, w = 0, h = 0) {
+	        if (typeof x !== 'number') {
+	            const opts = x;
+	            h = opts.height || 0;
+	            w = opts.width || 0;
+	            y = opts.y || 0;
+	            x = opts.x || 0;
+	        }
+	        this.x = x;
+	        this.y = y;
+	        this.width = w;
+	        this.height = h;
+	    }
+	    get left() {
+	        return this.x;
+	    }
+	    set left(v) {
+	        this.x = v;
+	    }
+	    get right() {
+	        return this.x + this.width;
+	    }
+	    set right(v) {
+	        this.x = v - this.width;
+	    }
+	    get top() {
+	        return this.y;
+	    }
+	    set top(v) {
+	        this.y = v;
+	    }
+	    get bottom() {
+	        return this.y + this.height;
+	    }
+	    set bottom(v) {
+	        this.y = v - this.height;
+	    }
+	    get center() {
+	        return this.x + Math.floor(this.width / 2);
+	    }
+	    set center(v) {
+	        this.x += v - this.center;
+	    }
+	    get middle() {
+	        return this.y + Math.floor(this.height / 2);
+	    }
+	    set middle(v) {
+	        this.y += v - this.middle;
+	    }
+	    clone() {
+	        return new Bounds(this.x, this.y, this.width, this.height);
+	    }
+	    copy(other) {
+	        this.x = other.x;
+	        this.y = other.y;
+	        this.width = other.width;
+	        this.height = other.height;
+	    }
+	    contains(...args) {
+	        let i = args[0];
+	        let j = args[1];
+	        if (typeof i !== 'number') {
+	            j = y(i);
+	            i = x(i);
+	        }
+	        return (this.x <= i &&
+	            this.y <= j &&
+	            this.x + this.width > i &&
+	            this.y + this.height > j);
+	    }
+	    include(xy) {
+	        const left = Math.min(x(xy), this.x);
+	        const top = Math.min(y(xy), this.y);
+	        const right = Math.max(xy instanceof Bounds ? xy.right : left, this.right);
+	        const bottom = Math.max(xy instanceof Bounds ? xy.bottom : top, this.bottom);
+	        this.left = left;
+	        this.top = top;
+	        this.width = right - left;
+	        this.height = bottom - top;
+	    }
+	    pad(n = 1) {
+	        this.x -= n;
+	        this.y -= n;
+	        this.width += n * 2;
+	        this.height += n * 2;
+	    }
+	    forEach(cb) {
+	        forRect(this.x, this.y, this.width, this.height, cb);
+	    }
+	    toString() {
+	        return `[${this.x},${this.y} -> ${this.right},${this.bottom}]`;
+	    }
+	}
+	function copy(dest, src) {
+	    dest.x = x(src);
+	    dest.y = y(src);
+	}
+	function addTo(dest, src) {
+	    dest.x += x(src);
+	    dest.y += y(src);
+	}
+	function add(a, b) {
+	    if (Array.isArray(a)) {
+	        return [a[0] + x(b), a[1] + y(b)];
+	    }
+	    return { x: a.x + x(b), y: a.y + y(b) };
+	}
+	function equals(dest, src) {
+	    if (!dest && !src)
+	        return true;
+	    if (!dest || !src)
+	        return false;
+	    return x(dest) == x(src) && y(dest) == y(src);
+	}
+	function isDiagonal(xy) {
+	    return x(xy) != 0 && y(xy) != 0;
+	}
+	function lerp(a, b, pct) {
+	    if (pct > 1) {
+	        pct = pct / 100;
+	    }
+	    pct = clamp(pct, 0, 1);
+	    const dx = x(b) - x(a);
+	    const dy = y(b) - y(a);
+	    const x2 = x(a) + Math.floor(dx * pct);
+	    const y2 = y(a) + Math.floor(dy * pct);
+	    return [x2, y2];
+	}
+	function eachNeighbor(x, y, fn, only4dirs = false) {
+	    const max = only4dirs ? 4 : 8;
+	    for (let i = 0; i < max; ++i) {
+	        const dir = DIRS$2[i];
+	        const x1 = x + dir[0];
+	        const y1 = y + dir[1];
+	        fn(x1, y1, dir);
+	    }
+	}
+	async function eachNeighborAsync(x, y, fn, only4dirs = false) {
+	    const max = only4dirs ? 4 : 8;
+	    for (let i = 0; i < max; ++i) {
+	        const dir = DIRS$2[i];
+	        const x1 = x + dir[0];
+	        const y1 = y + dir[1];
+	        await fn(x1, y1, dir);
+	    }
+	}
+	function matchingNeighbor(x, y, matchFn, only4dirs = false) {
+	    const maxIndex = only4dirs ? 4 : 8;
+	    for (let d = 0; d < maxIndex; ++d) {
+	        const dir = DIRS$2[d];
+	        const i = x + dir[0];
+	        const j = y + dir[1];
+	        if (matchFn(i, j, dir))
+	            return [i, j];
+	    }
+	    return [-1, -1];
+	}
+	function straightDistanceBetween(x1, y1, x2, y2) {
+	    const x = Math.abs(x1 - x2);
+	    const y = Math.abs(y1 - y2);
+	    return x + y;
+	}
+	function maxAxisFromTo(a, b) {
+	    const xa = Math.abs(x(a) - x(b));
+	    const ya = Math.abs(y(a) - y(b));
+	    return Math.max(xa, ya);
+	}
+	function maxAxisBetween(x1, y1, x2, y2) {
+	    const xa = Math.abs(x1 - x2);
+	    const ya = Math.abs(y1 - y2);
+	    return Math.max(xa, ya);
+	}
+	function distanceBetween(x1, y1, x2, y2) {
+	    const x = Math.abs(x1 - x2);
+	    const y = Math.abs(y1 - y2);
+	    const min = Math.min(x, y);
+	    return x + y - 0.6 * min;
+	}
+	function distanceFromTo(a, b) {
+	    return distanceBetween(x(a), y(a), x(b), y(b));
+	}
+	function calcRadius(x, y) {
+	    return distanceBetween(0, 0, x, y);
+	}
+	function dirBetween(x, y, toX, toY) {
+	    let diffX = toX - x;
+	    let diffY = toY - y;
+	    if (diffX && diffY) {
+	        const absX = Math.abs(diffX);
+	        const absY = Math.abs(diffY);
+	        if (absX >= 2 * absY) {
+	            diffY = 0;
+	        }
+	        else if (absY >= 2 * absX) {
+	            diffX = 0;
+	        }
+	    }
+	    return [Math.sign(diffX), Math.sign(diffY)];
+	}
+	function dirFromTo(a, b) {
+	    return dirBetween(x(a), y(a), x(b), y(b));
+	}
+	function dirIndex(dir) {
+	    const x0 = x(dir);
+	    const y0 = y(dir);
+	    return DIRS$2.findIndex((a) => a[0] == x0 && a[1] == y0);
+	}
+	function isOppositeDir(a, b) {
+	    if (Math.sign(a[0]) + Math.sign(b[0]) != 0)
+	        return false;
+	    if (Math.sign(a[1]) + Math.sign(b[1]) != 0)
+	        return false;
+	    return true;
+	}
+	function isSameDir(a, b) {
+	    return (Math.sign(a[0]) == Math.sign(b[0]) && Math.sign(a[1]) == Math.sign(b[1]));
+	}
+	function dirSpread(dir) {
+	    const result = [dir];
+	    if (dir[0] == 0) {
+	        result.push([1, dir[1]]);
+	        result.push([-1, dir[1]]);
+	    }
+	    else if (dir[1] == 0) {
+	        result.push([dir[0], 1]);
+	        result.push([dir[0], -1]);
+	    }
+	    else {
+	        result.push([dir[0], 0]);
+	        result.push([0, dir[1]]);
+	    }
+	    return result;
+	}
+	function stepFromTo(a, b, fn) {
+	    const x0 = x(a);
+	    const y0 = y(a);
+	    const diff = [x(b) - x0, y(b) - y0];
+	    const steps = Math.abs(diff[0]) + Math.abs(diff[1]);
+	    const c = [0, 0];
+	    const last = [99999, 99999];
+	    for (let step = 0; step <= steps; ++step) {
+	        c[0] = x0 + Math.floor((diff[0] * step) / steps);
+	        c[1] = y0 + Math.floor((diff[1] * step) / steps);
+	        if (c[0] != last[0] || c[1] != last[1]) {
+	            fn(c[0], c[1]);
+	        }
+	        last[0] = c[0];
+	        last[1] = c[1];
+	    }
+	}
+	// LINES
+	function forLine(x, y, dir, length, fn) {
+	    for (let l = 0; l < length; ++l) {
+	        fn(x + l * dir[0], y + l * dir[1]);
+	    }
+	}
+	const FP_BASE = 16;
+	const FP_FACTOR = 1 << 16;
+	function forLineBetween(fromX, fromY, toX, toY, stepFn) {
+	    let targetVector = [], error = [], currentVector = [], quadrantTransform = [];
+	    let largerTargetComponent, i;
+	    let currentLoc = [-1, -1];
+	    if (fromX == toX && fromY == toY) {
+	        return true;
+	    }
+	    const originLoc = [fromX, fromY];
+	    const targetLoc = [toX, toY];
+	    // Neither vector is negative. We keep track of negatives with quadrantTransform.
+	    for (i = 0; i <= 1; i++) {
+	        targetVector[i] = (targetLoc[i] - originLoc[i]) << FP_BASE; // FIXME: should use parens?
+	        if (targetVector[i] < 0) {
+	            targetVector[i] *= -1;
+	            quadrantTransform[i] = -1;
+	        }
+	        else {
+	            quadrantTransform[i] = 1;
+	        }
+	        currentVector[i] = error[i] = 0;
+	        currentLoc[i] = originLoc[i];
+	    }
+	    // normalize target vector such that one dimension equals 1 and the other is in [0, 1].
+	    largerTargetComponent = Math.max(targetVector[0], targetVector[1]);
+	    // targetVector[0] = Math.floor( (targetVector[0] << FP_BASE) / largerTargetComponent);
+	    // targetVector[1] = Math.floor( (targetVector[1] << FP_BASE) / largerTargetComponent);
+	    targetVector[0] = Math.floor((targetVector[0] * FP_FACTOR) / largerTargetComponent);
+	    targetVector[1] = Math.floor((targetVector[1] * FP_FACTOR) / largerTargetComponent);
+	    do {
+	        for (i = 0; i <= 1; i++) {
+	            currentVector[i] += targetVector[i] >> FP_BASE;
+	            error[i] += targetVector[i] == FP_FACTOR ? 0 : targetVector[i];
+	            if (error[i] >= Math.floor(FP_FACTOR / 2)) {
+	                currentVector[i]++;
+	                error[i] -= FP_FACTOR;
+	            }
+	            currentLoc[i] = Math.floor(quadrantTransform[i] * currentVector[i] + originLoc[i]);
+	        }
+	        const r = stepFn(...currentLoc);
+	        if (r === false) {
+	            return false;
+	        }
+	        else if (r !== true &&
+	            currentLoc[0] === toX &&
+	            currentLoc[1] === toY) {
+	            return true;
+	        }
+	    } while (true);
+	}
+	function forLineFromTo(a, b, stepFn) {
+	    return forLineBetween(x(a), y(a), x(b), y(b), stepFn);
+	}
+	// ADAPTED FROM BROGUE 1.7.5
+	// Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
+	// that extends all the way to the edge of the map based on an originLoc (which is not included
+	// in the list of coordinates) and a targetLoc.
+	// Returns the number of entries in the list, and includes (-1, -1) as an additional
+	// terminus indicator after the end of the list.
+	function getLine(fromX, fromY, toX, toY) {
+	    const line = [];
+	    forLineBetween(fromX, fromY, toX, toY, (x, y) => {
+	        line.push([x, y]);
+	    });
+	    return line;
+	}
+	// ADAPTED FROM BROGUE 1.7.5
+	// Simple line algorithm (maybe this is Bresenham?) that returns a list of coordinates
+	// that extends all the way to the edge of the map based on an originLoc (which is not included
+	// in the list of coordinates) and a targetLoc.
+	function getLineThru(fromX, fromY, toX, toY, width, height) {
+	    const line = [];
+	    forLineBetween(fromX, fromY, toX, toY, (x, y) => {
+	        if (x < 0 || y < 0 || x >= width || y >= height)
+	            return false;
+	        line.push([x, y]);
+	        return true;
+	    });
+	    return line;
+	}
+	// CIRCLE
+	function forCircle(x, y, radius, fn) {
+	    let i, j;
+	    for (i = x - radius - 1; i < x + radius + 1; i++) {
+	        for (j = y - radius - 1; j < y + radius + 1; j++) {
+	            if ((i - x) * (i - x) + (j - y) * (j - y) <
+	                radius * radius + radius) {
+	                // + radius softens the circle
+	                fn(i, j);
+	            }
+	        }
+	    }
+	}
+	function forRect(...args) {
+	    let left = 0;
+	    let top = 0;
+	    if (arguments.length > 3) {
+	        left = args.shift();
+	        top = args.shift();
+	    }
+	    const right = left + args[0];
+	    const bottom = top + args[1];
+	    const fn = args[2];
+	    for (let i = left; i < right; ++i) {
+	        for (let j = top; j < bottom; ++j) {
+	            fn(i, j);
+	        }
+	    }
+	}
+	function dumpRect(left, top, width, height, fmtFn, log = console.log) {
+	    let i, j;
+	    const bottom = top + height;
+	    const right = left + width;
+	    let output = [];
+	    for (j = top; j < bottom; j++) {
+	        let line = ('' + j + ']').padStart(3, ' ');
+	        for (i = left; i < right; i++) {
+	            if (i % 10 == 0) {
+	                line += ' ';
+	            }
+	            line += fmtFn(i, j);
+	        }
+	        output.push(line);
+	    }
+	    log(output.join('\n'));
+	}
+	function dumpAround(x, y, radius, fmtFn, log = console.log) {
+	    dumpRect(x - radius, y - radius, 2 * radius + 1, 2 * radius + 1, fmtFn, log);
+	}
+	function forBorder(...args) {
+	    let left = 0;
+	    let top = 0;
+	    if (arguments.length > 3) {
+	        left = args.shift();
+	        top = args.shift();
+	    }
+	    const right = left + args[0] - 1;
+	    const bottom = top + args[1] - 1;
+	    const fn = args[2];
+	    for (let x = left; x <= right; ++x) {
+	        fn(x, top);
+	        fn(x, bottom);
+	    }
+	    for (let y = top; y <= bottom; ++y) {
+	        fn(left, y);
+	        fn(right, y);
+	    }
+	}
+	// ARC COUNT
+	// Rotates around the cell, counting up the number of distinct strings of neighbors with the same test result in a single revolution.
+	//		Zero means there are no impassable tiles adjacent.
+	//		One means it is adjacent to a wall.
+	//		Two means it is in a hallway or something similar.
+	//		Three means it is the center of a T-intersection or something similar.
+	//		Four means it is in the intersection of two hallways.
+	//		Five or more means there is a bug.
+	function arcCount(x, y, testFn) {
+	    let oldX, oldY, newX, newY;
+	    // brogueAssert(grid.hasXY(x, y));
+	    let arcCount = 0;
+	    let matchCount = 0;
+	    for (let dir = 0; dir < CLOCK_DIRS.length; dir++) {
+	        oldX = x + CLOCK_DIRS[(dir + 7) % 8][0];
+	        oldY = y + CLOCK_DIRS[(dir + 7) % 8][1];
+	        newX = x + CLOCK_DIRS[dir][0];
+	        newY = y + CLOCK_DIRS[dir][1];
+	        // Counts every transition from passable to impassable or vice-versa on the way around the cell:
+	        const newOk = testFn(newX, newY);
+	        const oldOk = testFn(oldX, oldY);
+	        if (newOk)
+	            ++matchCount;
+	        if (newOk != oldOk) {
+	            arcCount++;
+	        }
+	    }
+	    if (arcCount == 0 && matchCount)
+	        return 1;
+	    return Math.floor(arcCount / 2); // Since we added one when we entered a wall and another when we left.
+	}
+	function closestMatchingLocs(x, y, matchFn) {
+	    const locs = [];
+	    let i, j, k;
+	    // count up the number of candidate locations
+	    for (k = 0; k < 100 && !locs.length; k++) {
+	        for (i = x - k; i <= x + k; i++) {
+	            for (j = y - k; j <= y + k; j++) {
+	                if (Math.ceil(distanceBetween(x, y, i, j)) == k &&
+	                    matchFn(i, j)) {
+	                    locs.push([i, j]);
+	                }
+	            }
+	        }
+	    }
+	    return locs.length ? locs : null;
+	}
+
+	var xy = /*#__PURE__*/Object.freeze({
+		__proto__: null,
+		Bounds: Bounds,
+		CLOCK_DIRS: CLOCK_DIRS,
+		DIRS: DIRS$2,
+		DOWN: DOWN,
+		LEFT: LEFT,
+		LEFT_DOWN: LEFT_DOWN,
+		LEFT_UP: LEFT_UP,
+		NO_DIRECTION: NO_DIRECTION,
+		RIGHT: RIGHT,
+		RIGHT_DOWN: RIGHT_DOWN,
+		RIGHT_UP: RIGHT_UP,
+		UP: UP,
+		add: add,
+		addTo: addTo,
+		arcCount: arcCount,
+		asLoc: asLoc,
+		asXY: asXY,
+		calcRadius: calcRadius,
+		closestMatchingLocs: closestMatchingLocs,
+		contains: contains,
+		copy: copy,
+		dirBetween: dirBetween,
+		dirFromTo: dirFromTo,
+		dirIndex: dirIndex,
+		dirSpread: dirSpread,
+		distanceBetween: distanceBetween,
+		distanceFromTo: distanceFromTo,
+		dumpAround: dumpAround,
+		dumpRect: dumpRect,
+		eachNeighbor: eachNeighbor,
+		eachNeighborAsync: eachNeighborAsync,
+		equals: equals,
+		forBorder: forBorder,
+		forCircle: forCircle,
+		forLine: forLine,
+		forLineBetween: forLineBetween,
+		forLineFromTo: forLineFromTo,
+		forRect: forRect,
+		getLine: getLine,
+		getLineThru: getLineThru,
+		isDiagonal: isDiagonal,
+		isLoc: isLoc,
+		isOppositeDir: isOppositeDir,
+		isSameDir: isSameDir,
+		isXY: isXY,
+		lerp: lerp,
+		matchingNeighbor: matchingNeighbor,
+		maxAxisBetween: maxAxisBetween,
+		maxAxisFromTo: maxAxisFromTo,
+		stepFromTo: stepFromTo,
+		straightDistanceBetween: straightDistanceBetween,
+		x: x,
+		y: y
+	});
+
+	// CHAIN
+	function length$1(root) {
+	    let count = 0;
+	    while (root) {
+	        count += 1;
+	        root = root.next;
+	    }
+	    return count;
+	}
+	function at(root, index) {
+	    while (root && index) {
+	        root = root.next;
+	        --index;
+	    }
+	    return root;
+	}
+	function includes(root, entry) {
+	    while (root && root !== entry) {
+	        root = root.next;
+	    }
+	    return root === entry;
+	}
+	function forEach(root, fn) {
+	    let index = 0;
+	    while (root) {
+	        const next = root.next;
+	        fn(root, index++);
+	        root = next;
+	    }
+	    return index; // really count
+	}
+	function push(obj, name, entry) {
+	    entry.next = obj[name] || null;
+	    obj[name] = entry;
+	    return true;
+	}
+	function remove(obj, name, entry) {
+	    const root = obj[name];
+	    if (root === entry) {
+	        obj[name] = entry.next || null;
+	        entry.next = null;
+	        return true;
+	    }
+	    else if (!root) {
+	        return false;
+	    }
+	    else {
+	        let prev = root;
+	        let current = prev.next;
+	        while (current && current !== entry) {
+	            prev = current;
+	            current = prev.next;
+	        }
+	        if (current === entry) {
+	            prev.next = current.next;
+	            entry.next = null;
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+	function find(root, cb) {
+	    while (root && !cb(root)) {
+	        root = root.next;
+	    }
+	    return root;
+	}
+	function insert(obj, name, entry, sort) {
+	    let root = obj[name];
+	    sort = sort || (() => -1); // always insert first
+	    if (!root || sort(root, entry) < 0) {
+	        entry.next = root;
+	        obj[name] = entry;
+	        return true;
+	    }
+	    let prev = root;
+	    let current = root.next;
+	    while (current && sort(current, entry) > 0) {
+	        prev = current;
+	        current = current.next;
+	    }
+	    entry.next = current;
+	    prev.next = entry;
+	    return true;
+	}
+	function reduce(root, cb, out) {
+	    let current = root;
+	    if (out === undefined) {
+	        if (!current)
+	            throw new TypeError('Empty list reduce without initial value not allowed.');
+	        out = current;
+	        current = current.next;
+	    }
+	    while (current) {
+	        out = cb(out, current);
+	        current = current.next;
+	    }
+	    return out;
+	}
+	function some(root, cb) {
+	    let current = root;
+	    while (current) {
+	        if (cb(current))
+	            return true;
+	        current = current.next;
+	    }
+	    return false;
+	}
+	function every(root, cb) {
+	    let current = root;
+	    while (current) {
+	        if (!cb(current))
+	            return false;
+	        current = current.next;
+	    }
+	    return true;
+	}
+
+	var list = /*#__PURE__*/Object.freeze({
+		__proto__: null,
+		at: at,
+		every: every,
+		find: find,
+		forEach: forEach,
+		includes: includes,
+		insert: insert,
+		length: length$1,
+		push: push,
+		reduce: reduce,
+		remove: remove,
+		some: some
+	});
+
+	const getValue = get$1;
 	// export function extend(obj, name, fn) {
 	//   const base = obj[name] || NOOP;
 	//   const newFn = fn.bind(obj, base.bind(obj));
@@ -2555,18 +2820,18 @@
 
 	var object = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		getValue: getValue,
-		copyObject: copyObject,
 		assignObject: assignObject,
 		assignOmitting: assignOmitting,
-		setDefault: setDefault,
-		setDefaults: setDefaults,
-		setOptions: setOptions,
+		clearObject: clearObject,
+		copyObject: copyObject,
+		firstOpt: firstOpt,
+		getOpt: getOpt,
+		getValue: getValue,
 		kindDefaults: kindDefaults,
 		pick: pick,
-		clearObject: clearObject,
-		getOpt: getOpt,
-		firstOpt: firstOpt
+		setDefault: setDefault,
+		setDefaults: setDefaults,
+		setOptions: setOptions
 	});
 
 	const DIRS$1 = DIRS$2;
@@ -2919,9 +3184,6 @@
 	    free: 0,
 	};
 	class NumGrid extends Grid {
-	    constructor(w, h, v = 0) {
-	        super(w, h, v);
-	    }
 	    static alloc(...args) {
 	        let w = args[0] || 0;
 	        let h = args[1] || 0;
@@ -2952,6 +3214,9 @@
 	            ++stats.free;
 	            --stats.active;
 	        }
+	    }
+	    constructor(w, h, v = 0) {
+	        super(w, h, v);
 	    }
 	    _resize(width, height, v) {
 	        const fn = typeof v === 'function' ? v : () => v;
@@ -3147,15 +3412,15 @@
 
 	var grid = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		makeArray: makeArray,
 		Grid: Grid,
-		stats: stats,
 		NumGrid: NumGrid,
 		alloc: alloc$1,
 		free: free$1,
-		make: make$e,
-		offsetZip: offsetZip,
 		intersection: intersection,
+		make: make$e,
+		makeArray: makeArray,
+		offsetZip: offsetZip,
+		stats: stats,
 		unite: unite
 	});
 
@@ -3463,11 +3728,11 @@
 	var rng = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		Alea: Alea,
-		configure: configure$1,
 		Random: Random,
-		random: random,
+		configure: configure$1,
 		cosmetic: cosmetic,
-		make: make$d
+		make: make$d,
+		random: random
 	});
 
 	class Range {
@@ -3576,9 +3841,9 @@
 	var range = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		Range: Range,
-		make: make$c,
-		from: from$4,
 		asFn: asFn,
+		from: from$4,
+		make: make$c,
 		value: value
 	});
 
@@ -3634,7 +3899,7 @@
 	        };
 	    }
 	}
-	function match(tags, matchRules) {
+	function match$1(tags, matchRules) {
 	    const matchFn = makeMatch(matchRules);
 	    return matchFn(tags);
 	}
@@ -3643,7 +3908,7 @@
 		__proto__: null,
 		make: make$b,
 		makeMatch: makeMatch,
-		match: match
+		match: match$1
 	});
 
 	///////////////////////////////////
@@ -3818,10 +4083,10 @@
 	var flag = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		fl: fl,
-		toString: toString,
 		from: from$3,
 		from_safe: from_safe,
-		make: make$a
+		make: make$a,
+		toString: toString
 	});
 
 	class AsyncQueue {
@@ -4445,28 +4710,28 @@
 
 	var index$9 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		colors: colors,
+		BLACK: BLACK,
 		Color: Color,
+		NONE: NONE,
+		WHITE: WHITE,
+		colors: colors,
+		distance: distance,
+		from: from$2,
 		fromArray: fromArray,
 		fromCss: fromCss,
 		fromName: fromName,
 		fromNumber: fromNumber,
-		make: make$9,
-		from: from$2,
-		separate: separate,
-		relativeLuminance: relativeLuminance,
-		distance: distance,
-		smoothScalar: smoothScalar,
 		install: install$2,
 		installSpread: installSpread,
-		NONE: NONE,
-		BLACK: BLACK,
-		WHITE: WHITE
+		make: make$9,
+		relativeLuminance: relativeLuminance,
+		separate: separate,
+		smoothScalar: smoothScalar
 	});
 
 	class Mixer {
 	    constructor(base = {}) {
-	        this.ch = first(base.ch, null);
+	        this.ch = firstDefined(base.ch, null);
 	        this.fg = make$9(base.fg);
 	        this.bg = make$9(base.bg);
 	    }
@@ -4611,9 +4876,9 @@
 	}
 
 	var options = {
-	    colorStart: '#{',
-	    colorEnd: '}',
-	    field: '{{',
+	    colorStart: '#{', // alt-z
+	    colorEnd: '}', // alt-j
+	    field: '{{', // alt-6
 	    fieldEnd: '}}',
 	    defaultFg: null,
 	    defaultBg: null,
@@ -5421,6 +5686,7 @@
 	}
 
 	// import { Color } from '../color';
+	// import * as Utils from './utils';
 	function wordWrap(text, lineWidth, opts = {}) {
 	    // let inside = false;
 	    // let inline = false;
@@ -5675,34 +5941,34 @@
 
 	var index$8 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		configure: configure,
-		compile: compile$1,
-		apply: apply,
-		eachChar: eachChar,
-		wordWrap: wordWrap,
-		splitIntoLines: splitIntoLines,
 		addHelper: addHelper,
-		options: options,
-		length: length,
 		advanceChars: advanceChars,
+		apply: apply,
+		capitalize: capitalize,
+		center: center,
+		compile: compile$1,
+		configure: configure,
+		eachChar: eachChar,
 		findChar: findChar,
 		firstChar: firstChar,
-		startsWith: startsWith,
-		padStart: padStart,
+		hash: hash,
+		length: length,
+		options: options,
 		padEnd: padEnd,
-		center: center,
-		truncate: truncate,
-		capitalize: capitalize,
-		title_case: title_case,
+		padStart: padStart,
 		removeColors: removeColors,
 		spliceRaw: spliceRaw,
-		hash: hash,
 		splitArgs: splitArgs,
-		toSingularVerb: toSingularVerb,
-		toPluralVerb: toPluralVerb,
-		toSingularNoun: toSingularNoun,
+		splitIntoLines: splitIntoLines,
+		startsWith: startsWith,
+		title_case: title_case,
 		toPluralNoun: toPluralNoun,
-		toQuantity: toQuantity
+		toPluralVerb: toPluralVerb,
+		toQuantity: toQuantity,
+		toSingularNoun: toSingularNoun,
+		toSingularVerb: toSingularVerb,
+		truncate: truncate,
+		wordWrap: wordWrap
 	});
 
 	class BufferBase {
@@ -5883,7 +6149,7 @@
 	        return this;
 	    }
 	}
-	class Buffer$1 extends BufferBase {
+	let Buffer$1 = class Buffer extends BufferBase {
 	    constructor(...args) {
 	        super(args[0], args[1]);
 	        this.changed = false;
@@ -6016,32 +6282,32 @@
 	        }
 	        console.log(data.join('\n'));
 	    }
-	}
+	};
 	function make$8(...args) {
 	    return new Buffer$1(args[0], args[1]);
 	}
 
 	var buffer = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		BufferBase: BufferBase,
 		Buffer: Buffer$1,
+		BufferBase: BufferBase,
 		make: make$8
 	});
 
 	const FovFlags = make$a([
-	    'VISIBLE',
+	    'VISIBLE', // cell has sufficient light and is in field of view, ready to draw.
 	    'WAS_VISIBLE',
 	    'CLAIRVOYANT_VISIBLE',
 	    'WAS_CLAIRVOYANT_VISIBLE',
-	    'TELEPATHIC_VISIBLE',
-	    'WAS_TELEPATHIC_VISIBLE',
+	    'TELEPATHIC_VISIBLE', // potions of telepathy let you see through other creatures' eyes
+	    'WAS_TELEPATHIC_VISIBLE', // potions of telepathy let you see through other creatures' eyes
 	    'ITEM_DETECTED',
 	    'WAS_ITEM_DETECTED',
 	    'ACTOR_DETECTED',
 	    'WAS_ACTOR_DETECTED',
 	    'REVEALED',
-	    'MAGIC_MAPPED',
-	    'IN_FOV',
+	    'MAGIC_MAPPED', // TODO - REMOVE !?!?
+	    'IN_FOV', // player has unobstructed line of sight whether or not there is enough light
 	    'WAS_IN_FOV',
 	    'ALWAYS_VISIBLE',
 	    'IS_CURSOR',
@@ -6164,6 +6430,9 @@
 	}
 
 	// import * as GWU from 'gw-utils';
+	// import * as Flags from './mapFlags';
+	// import * as Cell from './cell';
+	// import * as Map from './map';
 	class FovSystem {
 	    constructor(site, opts = {}) {
 	        // needsUpdate: boolean;
@@ -6574,10 +6843,10 @@
 
 	var index$7 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		FovFlags: FovFlags,
 		FOV: FOV,
-		calculate: calculate,
-		FovSystem: FovSystem
+		FovFlags: FovFlags,
+		FovSystem: FovSystem,
+		calculate: calculate
 	});
 
 	const DIRS = DIRS$2;
@@ -7016,14 +7285,14 @@
 
 	var index$6 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		OK: OK,
 		AVOIDED: AVOIDED,
 		BLOCKED: BLOCKED,
-		OBSTRUCTION: OBSTRUCTION,
-		NOT_DONE: NOT_DONE,
 		DijkstraMap: DijkstraMap,
-		computeDistances: computeDistances,
+		NOT_DONE: NOT_DONE,
+		OBSTRUCTION: OBSTRUCTION,
+		OK: OK,
 		alloc: alloc,
+		computeDistances: computeDistances,
 		free: free,
 		fromTo: fromTo
 	});
@@ -7170,17 +7439,6 @@
 	});
 
 	class Glyphs {
-	    constructor(opts = {}) {
-	        this._tileWidth = 12;
-	        this._tileHeight = 16;
-	        this.needsUpdate = true;
-	        this._toGlyph = {};
-	        this._toChar = [];
-	        opts.font = opts.font || 'monospace';
-	        this._node = document.createElement('canvas');
-	        this._ctx = this.node.getContext('2d');
-	        this._configure(opts);
-	    }
 	    static fromImage(src) {
 	        if (typeof src === 'string') {
 	            if (src.startsWith('data:'))
@@ -7206,6 +7464,17 @@
 	        const initFn = src.init || initGlyphs;
 	        initFn(glyphs, basicOnly);
 	        return glyphs;
+	    }
+	    constructor(opts = {}) {
+	        this._tileWidth = 12;
+	        this._tileHeight = 16;
+	        this.needsUpdate = true;
+	        this._toGlyph = {};
+	        this._toChar = [];
+	        opts.font = opts.font || 'monospace';
+	        this._node = document.createElement('canvas');
+	        this._ctx = this.node.getContext('2d');
+	        this._configure(opts);
 	    }
 	    get node() {
 	        return this._node;
@@ -7280,37 +7549,37 @@
 	        glyphs.draw(i, String.fromCharCode(i));
 	    }
 	    [
-	        ' ',
-	        '\u263a',
-	        '\u263b',
-	        '\u2665',
-	        '\u2666',
-	        '\u2663',
-	        '\u2660',
-	        '\u263c',
-	        '\u2600',
-	        '\u2606',
-	        '\u2605',
-	        '\u2023',
-	        '\u2219',
-	        '\u2043',
-	        '\u2022',
-	        '\u2630',
-	        '\u2637',
-	        '\u2610',
-	        '\u2611',
-	        '\u2612',
-	        '\u26ac',
-	        '\u29bf',
-	        '\u2191',
-	        '\u2192',
-	        '\u2193',
-	        '\u2190',
-	        '\u2194',
-	        '\u2195',
-	        '\u25b2',
-	        '\u25b6',
-	        '\u25bc',
+	        ' ', // empty
+	        '\u263a', // smiley hollow
+	        '\u263b', // smiley filled
+	        '\u2665', // hearts
+	        '\u2666', // diamonds
+	        '\u2663', // clubs
+	        '\u2660', // spades
+	        '\u263c', // sun hollow
+	        '\u2600', // sun filled
+	        '\u2606', // star hollow
+	        '\u2605', // star filled
+	        '\u2023', // bullet triangle
+	        '\u2219', // bullet square
+	        '\u2043', // bullet hyphen
+	        '\u2022', // bullet circle
+	        '\u2630', // trigram - hamburger menu
+	        '\u2637', // trigram split
+	        '\u2610', // unchecked
+	        '\u2611', // checked
+	        '\u2612', // checked - with X
+	        '\u26ac', // radio - off
+	        '\u29bf', // radio - on
+	        '\u2191', // up arrow
+	        '\u2192', // right arrow
+	        '\u2193', // down arrow
+	        '\u2190', // left arrow
+	        '\u2194', // left+right arrow
+	        '\u2195', // up+down arrow
+	        '\u25b2', // big up arrow
+	        '\u25b6', // big right arrow
+	        '\u25bc', // big down arrow
 	        '\u25c0', // big left arrow
 	    ].forEach((ch, i) => {
 	        glyphs.draw(i, ch);
@@ -7450,7 +7719,7 @@
 	            '\u221E',
 	            '\u03C6',
 	            '\u03B5',
-	            '\u2229',
+	            '\u2229', // n
 	            '\u2261',
 	            '\u00B1',
 	            '\u2265',
@@ -8454,18 +8723,18 @@ void main() {
 
 	var index$5 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		Glyphs: Glyphs,
-		initGlyphs: initGlyphs,
-		Layer: Layer,
 		Buffer: Buffer,
-		VERTICES_PER_TILE: VERTICES_PER_TILE,
-		NotSupportedError: NotSupportedError,
 		Canvas: Canvas,
-		withImage: withImage,
-		withFont: withFont,
-		createProgram: createProgram,
+		Glyphs: Glyphs,
+		Layer: Layer,
+		NotSupportedError: NotSupportedError,
 		QUAD: QUAD,
-		make: make$6
+		VERTICES_PER_TILE: VERTICES_PER_TILE,
+		createProgram: createProgram,
+		initGlyphs: initGlyphs,
+		make: make$6,
+		withFont: withFont,
+		withImage: withImage
 	});
 
 	class Sprite {
@@ -8570,13 +8839,13 @@ void main() {
 
 	var index$4 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
+		Mixer: Mixer,
 		Sprite: Sprite,
-		sprites: sprites,
-		make: make$5,
 		from: from$1,
 		install: install$1,
-		Mixer: Mixer,
-		makeMixer: makeMixer
+		make: make$5,
+		makeMixer: makeMixer,
+		sprites: sprites
 	});
 
 	var types = /*#__PURE__*/Object.freeze({
@@ -8694,205 +8963,6 @@ void main() {
 	var message = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		Cache: Cache
-	});
-
-	var getNative = _getNative;
-
-	var defineProperty$1 = (function() {
-	  try {
-	    var func = getNative(Object, 'defineProperty');
-	    func({}, '', {});
-	    return func;
-	  } catch (e) {}
-	}());
-
-	var _defineProperty = defineProperty$1;
-
-	var defineProperty = _defineProperty;
-
-	/**
-	 * The base implementation of `assignValue` and `assignMergeValue` without
-	 * value checks.
-	 *
-	 * @private
-	 * @param {Object} object The object to modify.
-	 * @param {string} key The key of the property to assign.
-	 * @param {*} value The value to assign.
-	 */
-	function baseAssignValue$1(object, key, value) {
-	  if (key == '__proto__' && defineProperty) {
-	    defineProperty(object, key, {
-	      'configurable': true,
-	      'enumerable': true,
-	      'value': value,
-	      'writable': true
-	    });
-	  } else {
-	    object[key] = value;
-	  }
-	}
-
-	var _baseAssignValue = baseAssignValue$1;
-
-	var baseAssignValue = _baseAssignValue,
-	    eq = eq_1;
-
-	/** Used for built-in method references. */
-	var objectProto = Object.prototype;
-
-	/** Used to check objects for own properties. */
-	var hasOwnProperty = objectProto.hasOwnProperty;
-
-	/**
-	 * Assigns `value` to `key` of `object` if the existing value is not equivalent
-	 * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
-	 * for equality comparisons.
-	 *
-	 * @private
-	 * @param {Object} object The object to modify.
-	 * @param {string} key The key of the property to assign.
-	 * @param {*} value The value to assign.
-	 */
-	function assignValue$1(object, key, value) {
-	  var objValue = object[key];
-	  if (!(hasOwnProperty.call(object, key) && eq(objValue, value)) ||
-	      (value === undefined && !(key in object))) {
-	    baseAssignValue(object, key, value);
-	  }
-	}
-
-	var _assignValue = assignValue$1;
-
-	/** Used as references for various `Number` constants. */
-
-	var MAX_SAFE_INTEGER = 9007199254740991;
-
-	/** Used to detect unsigned integer values. */
-	var reIsUint = /^(?:0|[1-9]\d*)$/;
-
-	/**
-	 * Checks if `value` is a valid array-like index.
-	 *
-	 * @private
-	 * @param {*} value The value to check.
-	 * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
-	 * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
-	 */
-	function isIndex$1(value, length) {
-	  var type = typeof value;
-	  length = length == null ? MAX_SAFE_INTEGER : length;
-
-	  return !!length &&
-	    (type == 'number' ||
-	      (type != 'symbol' && reIsUint.test(value))) &&
-	        (value > -1 && value % 1 == 0 && value < length);
-	}
-
-	var _isIndex = isIndex$1;
-
-	var assignValue = _assignValue,
-	    castPath = _castPath,
-	    isIndex = _isIndex,
-	    isObject = isObject_1,
-	    toKey = _toKey;
-
-	/**
-	 * The base implementation of `_.set`.
-	 *
-	 * @private
-	 * @param {Object} object The object to modify.
-	 * @param {Array|string} path The path of the property to set.
-	 * @param {*} value The value to set.
-	 * @param {Function} [customizer] The function to customize path creation.
-	 * @returns {Object} Returns `object`.
-	 */
-	function baseSet$1(object, path, value, customizer) {
-	  if (!isObject(object)) {
-	    return object;
-	  }
-	  path = castPath(path, object);
-
-	  var index = -1,
-	      length = path.length,
-	      lastIndex = length - 1,
-	      nested = object;
-
-	  while (nested != null && ++index < length) {
-	    var key = toKey(path[index]),
-	        newValue = value;
-
-	    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-	      return object;
-	    }
-
-	    if (index != lastIndex) {
-	      var objValue = nested[key];
-	      newValue = customizer ? customizer(objValue, key, nested) : undefined;
-	      if (newValue === undefined) {
-	        newValue = isObject(objValue)
-	          ? objValue
-	          : (isIndex(path[index + 1]) ? [] : {});
-	      }
-	    }
-	    assignValue(nested, key, newValue);
-	    nested = nested[key];
-	  }
-	  return object;
-	}
-
-	var _baseSet = baseSet$1;
-
-	var baseSet = _baseSet;
-
-	/**
-	 * Sets the value at `path` of `object`. If a portion of `path` doesn't exist,
-	 * it's created. Arrays are created for missing index properties while objects
-	 * are created for all other missing properties. Use `_.setWith` to customize
-	 * `path` creation.
-	 *
-	 * **Note:** This method mutates `object`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 3.7.0
-	 * @category Object
-	 * @param {Object} object The object to modify.
-	 * @param {Array|string} path The path of the property to set.
-	 * @param {*} value The value to set.
-	 * @returns {Object} Returns `object`.
-	 * @example
-	 *
-	 * var object = { 'a': [{ 'b': { 'c': 3 } }] };
-	 *
-	 * _.set(object, 'a[0].b.c', 4);
-	 * console.log(object.a[0].b.c);
-	 * // => 4
-	 *
-	 * _.set(object, ['x', '0', 'y', 'z'], 5);
-	 * console.log(object.x[0].y.z);
-	 * // => 5
-	 */
-	function set(object, path, value) {
-	  return object == null ? object : baseSet(object, path, value);
-	}
-
-	var set_1 = set;
-
-	class Data {
-	    constructor(config = {}) {
-	        Object.assign(this, config);
-	    }
-	    get(path) {
-	        return get_1(this, path);
-	    }
-	    set(path, value) {
-	        return set_1(this, path, value);
-	    }
-	}
-
-	var data = /*#__PURE__*/Object.freeze({
-		__proto__: null,
-		Data: Data
 	});
 
 	class Blob {
@@ -9473,15 +9543,15 @@ void main() {
 	var index$3 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
 		Light: Light,
-		intensity: intensity,
-		isDarkLight: isDarkLight,
-		isShadowLight: isShadowLight,
-		make: make$3,
-		lights: lights,
+		LightSystem: LightSystem,
 		from: from,
 		install: install,
 		installAll: installAll,
-		LightSystem: LightSystem
+		intensity: intensity,
+		isDarkLight: isDarkLight,
+		isShadowLight: isShadowLight,
+		lights: lights,
+		make: make$3
 	});
 
 	// import * as IO from './io';
@@ -9587,11 +9657,16 @@ void main() {
 	        this._events = {};
 	        this.onUnhandled = null;
 	    }
+	    // TODO - why is this here since we have: events.off(name)??
+	    /** @deprecated */
 	    clear_event(name) {
 	        if (name in this._events) {
+	            // Why the new array instead of making each null?  This will not change a currently running emit
 	            this._events[name] = this._events[name].map(() => null);
 	        }
 	    }
+	    // TODO - What is this for?
+	    /** @deprecated */
 	    restart() {
 	        Object.keys(this._events).forEach((ev) => {
 	            this._events[ev] = this._events[ev].filter((i) => i && !i.once);
@@ -9882,10 +9957,10 @@ void main() {
 		__proto__: null,
 		BaseObj: BaseObj,
 		Tween: Tween,
-		make: make$2,
-		move: move,
+		interpolate: interpolate,
 		linear: linear,
-		interpolate: interpolate
+		make: make$2,
+		move: move
 	});
 
 	class Timers {
@@ -10267,7 +10342,7 @@ void main() {
 	                }
 	            });
 	        }
-	        this.dirty || (this.dirty = setDirty);
+	        this.dirty ||= setDirty;
 	        return this;
 	    }
 	    unset(key) {
@@ -10332,8 +10407,7 @@ void main() {
 	        this._dirty = false; // As far as I know I reflect all of the current source values.
 	    }
 	    get opacity() {
-	        var _a;
-	        return (_a = this._opacity) !== null && _a !== void 0 ? _a : 100;
+	        return this._opacity ?? 100;
 	    }
 	    set opacity(v) {
 	        v = clamp(v, 0, 100);
@@ -10488,8 +10562,16 @@ void main() {
 	        return this.isSleeping;
 	    }
 	    // GENERAL
-	    create(opts = {}) {
+	    _create(opts = {}) {
 	        opts.bg && (this.bg = from$2(opts.bg));
+	        if (opts.data) {
+	            if (isPlainObject(opts.data)) {
+	                this.data = mergeDeep(this.data, opts.data);
+	            }
+	            else {
+	                throw new Error("SceneCreateOpts 'data' field must be plain object.");
+	            }
+	        }
 	        if (opts.on) {
 	            Object.entries(opts.on).forEach(([ev, fn]) => {
 	                this.on(ev, fn);
@@ -10502,6 +10584,7 @@ void main() {
 	        });
 	        this.emit('create', opts);
 	    }
+	    // TODO - Who calls destroy
 	    destroy(data) {
 	        this.emit('destroy', data);
 	        this.all.forEach((c) => c.destroy());
@@ -10512,7 +10595,8 @@ void main() {
 	    }
 	    start(opts = {}) {
 	        this.app.scenes.stop(); // stop all running scenes
-	        this._start(opts);
+	        this.app.scenes._start(this, opts); // start me
+	        return this;
 	    }
 	    _start(opts = {}) {
 	        this.stopped = false;
@@ -10527,6 +10611,7 @@ void main() {
 	        this.app.scenes.pause();
 	        this._start(data);
 	        this.once('stop', () => this.app.scenes.resume());
+	        return this;
 	    }
 	    stop(data) {
 	        this.stopped = true;
@@ -10871,233 +10956,6 @@ void main() {
 	        return this.timers.setInterval(fn, delay);
 	    }
 	}
-	// export class Scene {
-	//     id: string;
-	//     app!: App;
-	//     events: EVENTS.Events;
-	//     timers: TIMERS.Timers;
-	//     buffer!: CANVAS.Buffer;
-	//     tweens: Tweens;
-	//     dt = 0;
-	//     time = 0;
-	//     realTime = 0;
-	//     skipTime = false;
-	//     stopped = true;
-	//     paused: PauseOpts = {};
-	//     debug = false;
-	//     children: SceneObj[] = [];
-	//     data: Record<string, any> = {};
-	//     constructor(id: string, opts: SceneOpts = {}) {
-	//         this.id = id;
-	//         this.events = new EVENTS.Events(this);
-	//         this.timers = new TIMERS.Timers(this);
-	//         this.tweens = new Tweens();
-	//         if (opts.on) {
-	//             Object.entries(opts.on).forEach(([ev, fn]) => {
-	//                 this.on(ev, fn);
-	//             });
-	//         }
-	//         Object.entries(opts).forEach(([ev, fn]) => {
-	//             if (typeof fn !== 'function') return;
-	//             this.on(ev, fn);
-	//         });
-	//     }
-	//     get width() {
-	//         return this.buffer.width;
-	//     }
-	//     get height() {
-	//         return this.buffer.height;
-	//     }
-	//     isActive() {
-	//         return !this.stopped;
-	//     }
-	//     isPaused() {
-	//         return this.isPaused;
-	//     }
-	//     isSleeping() {
-	//         return this.isSleeping;
-	//     }
-	//     on(ev: string, fn: EVENTS.CallbackFn): EVENTS.CancelFn;
-	//     on(ev: string, fn: EVENTS.CallbackFn): EVENTS.CancelFn {
-	//         return this.events.on(ev, fn);
-	//     }
-	//     emit(ev: string, ...args: any[]) {
-	//         return this.events.emit(ev, ...args);
-	//     }
-	//     wait(delay: number, fn: TIMERS.TimerFn): EVENTS.CancelFn;
-	//     wait(delay: number, fn: string, ctx?: Record<string, any>): EVENTS.CancelFn;
-	//     wait(
-	//         delay: number,
-	//         fn: TIMERS.TimerFn | string,
-	//         ctx?: Record<string, any>
-	//     ): EVENTS.CancelFn {
-	//         if (typeof fn === 'string') {
-	//             const ev = fn;
-	//             ctx = ctx || {};
-	//             fn = () => this.emit(ev, ctx!);
-	//         }
-	//         return this.timers.setTimeout(fn, delay);
-	//     }
-	//     repeat(delay: number, fn: TIMERS.TimerFn): EVENTS.CancelFn;
-	//     repeat(
-	//         delay: number,
-	//         fn: string,
-	//         ctx?: Record<string, any>
-	//     ): EVENTS.CancelFn;
-	//     repeat(
-	//         delay: number,
-	//         fn: TIMERS.TimerFn | string,
-	//         ctx?: Record<string, any>
-	//     ): EVENTS.CancelFn {
-	//         if (typeof fn === 'string') {
-	//             const ev = fn;
-	//             ctx = ctx || {};
-	//             fn = () => this.emit(ev, ctx!);
-	//         }
-	//         return this.timers.setInterval(fn, delay);
-	//     }
-	//     // run() {
-	//     //     this.emit('run', this);
-	//     //     let running = false;
-	//     //     this.loopID = (setInterval(() => {
-	//     //         if (!running) {
-	//     //             running = true;
-	//     //             this._frame();
-	//     //             running = false;
-	//     //         }
-	//     //     }, 16) as unknown) as number;
-	//     //     this.stopped = false;
-	//     // }
-	//     create(app: App) {
-	//         this.app = app;
-	//         this.buffer = app.buffer.clone();
-	//         this.emit('create');
-	//     }
-	//     destroy() {
-	//         this.emit('destroy');
-	//     }
-	//     start(data?: Record<string, any>) {
-	//         this.stopped = false;
-	//         this.timers.clear();
-	//         this.tweens.clear();
-	//         this.events.emit('start', data || {});
-	//     }
-	//     run(data?: Record<string, any>): Promise<any> {
-	//         return new Promise((resolve) => {
-	//             this.app.scenes.pause();
-	//             const cleanup = this.once('stop', (d) => {
-	//                 cleanup();
-	//                 this.app.scenes.resume();
-	//                 resolve(d);
-	//             });
-	//             this.start(data);
-	//         });
-	//     }
-	//     stop(data?: Record<string, any>) {
-	//         this.stopped = true;
-	//         this.events.emit('stop', data || {});
-	//     }
-	//     pause(opts?: PauseOpts): void {
-	//         opts = opts || {
-	//             timers: true,
-	//             tweens: true,
-	//             update: true,
-	//             input: true,
-	//             draw: true,
-	//         };
-	//         Object.assign(this.paused, opts);
-	//         this.events.emit('pause');
-	//     }
-	//     resume(opts?: ResumeOpts) {
-	//         opts = opts || {
-	//             timers: true,
-	//             tweens: true,
-	//             update: true,
-	//             input: true,
-	//             draw: true,
-	//         };
-	//         Object.entries(opts).forEach(([key, value]) => {
-	//             if (value === true) {
-	//                 this.paused[key as keyof ResumeOpts] = false;
-	//             }
-	//         });
-	//         this.events.emit('resume');
-	//     }
-	//     // CHILDREN
-	//     add(obj: SceneObj) {
-	//         this.children.push(obj);
-	//         obj.emit('add', this);
-	//     }
-	//     remove(obj: SceneObj) {
-	//         UTILS.arrayDelete(this.children, obj);
-	//         obj.emit('remove', this);
-	//     }
-	//     // FRAME STEPS
-	//     frameStart() {
-	//         this.events.emit('frameStart');
-	//     }
-	//     input(ev: IO.Event) {
-	//         if (this.stopped || this.paused.input) return;
-	//         this.events.dispatch(ev);
-	//     }
-	//     update(dt: number) {
-	//         if (this.stopped) return;
-	//         if (!this.paused.timers) this.timers.update(dt);
-	//         if (!this.paused.tweens) this.tweens.update(dt);
-	//         if (!this.paused.update) {
-	//             this.children.forEach((c) => c.update(dt));
-	//             this.events.emit('update', dt);
-	//         }
-	//     }
-	//     draw(buffer: CANVAS.Buffer) {
-	//         if (this.stopped) return;
-	//         if (!this.paused.draw) {
-	//             this.events.emit('draw', this.buffer);
-	//             this.children.forEach((c) => c.draw(this.buffer));
-	//         }
-	//         if (this.buffer.changed) {
-	//             buffer.apply(this.buffer);
-	//             this.buffer.changed = false;
-	//         }
-	//     }
-	//     frameDebug(buffer: CANVAS.Buffer) {
-	//         this.events.emit('frameDebug', buffer);
-	//     }
-	//     frameEnd(buffer: CANVAS.Buffer) {
-	//         this.events.emit('frameEnd', buffer);
-	//         // if (this.buffer.changed) {
-	//         //     buffer.apply(this.buffer);
-	//         //     this.buffer.changed = false;
-	//         // }
-	//     }
-	//     // UI
-	//     alert(text: string): Promise<boolean> {
-	//         return this.app.scenes.run('alert', { text });
-	//     }
-	//     async fadeTo(
-	//         color: COLOR.ColorBase = 'black',
-	//         duration = 1000
-	//     ): Promise<void> {
-	//         return new Promise<void>((resolve) => {
-	//             color = COLOR.from(color);
-	//             this.pause();
-	//             const buffer = this.buffer.clone();
-	//             let pct = 0;
-	//             let elapsed = 0;
-	//             this.app.repeat(32, () => {
-	//                 elapsed += 32;
-	//                 pct = Math.floor((100 * elapsed) / duration);
-	//                 this.buffer.copy(buffer);
-	//                 this.buffer.mix(color, pct);
-	//                 if (elapsed >= duration) {
-	//                     this.resume();
-	//                     resolve();
-	//                     return false; // end timer
-	//                 }
-	//             });
-	//         });
-	//     }
-	// }
 
 	class Scenes {
 	    constructor(gw) {
@@ -11134,9 +10992,9 @@ void main() {
 	    emit(ev, ...args) {
 	        this._active.forEach((a) => a.emit(ev, ...args));
 	    }
-	    _create(id, opts = {}) {
+	    create(id, opts = {}) {
 	        let cfg = this._config[id] || {};
-	        const used = Object.assign({}, cfg, opts);
+	        const used = mergeDeep(cfg, opts);
 	        let scene;
 	        if (used.make) {
 	            scene = used.make(id, this._app);
@@ -11144,9 +11002,9 @@ void main() {
 	        else {
 	            scene = new Scene(id, this._app);
 	        }
-	        scene.on('start', () => this._start(scene));
-	        scene.on('stop', () => this._stop(scene));
-	        scene.create(used);
+	        scene.on('start', () => this._started(scene));
+	        scene.on('stop', () => this._stopped(scene));
+	        scene._create(used);
 	        // this._scenes[scene.id] = scene;
 	        return scene;
 	    }
@@ -11157,19 +11015,22 @@ void main() {
 	    //     }
 	    //     return this._create(id, data);
 	    // }
-	    start(id, data) {
-	        let scene = this.get(id) || this._create(id, data);
-	        this._app.io.clear();
-	        if (this.isBusy) {
-	            this._pending.push({ action: 'start', scene, data });
-	        }
-	        else {
-	            scene.start(data);
-	        }
+	    start(id, opts) {
+	        let scene = this.get(id) || this.create(id, {});
+	        scene.start(opts);
 	        return scene;
 	    }
+	    _start(scene, opts = {}) {
+	        this._app.io.clear();
+	        if (this.isBusy) {
+	            this._pending.push({ action: '_start', scene, data: opts });
+	        }
+	        else {
+	            scene._start(opts);
+	        }
+	    }
 	    run(id, data) {
-	        let scene = this.get(id) || this._create(id, data);
+	        let scene = this.get(id) || this.create(id, data);
 	        this._app.io.clear();
 	        if (this.isBusy) {
 	            this._pending.push({ action: 'run', scene, data });
@@ -11179,7 +11040,7 @@ void main() {
 	        }
 	        return scene;
 	    }
-	    _start(scene) {
+	    _started(scene) {
 	        this._active.push(scene);
 	    }
 	    stop(id, data) {
@@ -11201,7 +11062,7 @@ void main() {
 	            this._active.forEach((s) => this.stop(s.id, id));
 	        }
 	    }
-	    _stop(_scene) {
+	    _stopped(_scene) {
 	        this._active = this._active.filter((s) => s.isActive());
 	    }
 	    destroy(id, data) {
@@ -11833,13 +11694,13 @@ void main() {
 	        if (ev && ev.defaultPrevented)
 	            return;
 	        if (this.emit('action')) {
-	            ev === null || ev === void 0 ? void 0 : ev.stopPropagation();
+	            ev?.stopPropagation();
 	        }
 	        const action = this._attrStr('action');
 	        if (!action || !action.length)
 	            return;
 	        if (this.scene && this.scene.emit(action, this)) {
-	            ev === null || ev === void 0 ? void 0 : ev.stopPropagation();
+	            ev?.stopPropagation();
 	        }
 	    }
 	    // FRAME
@@ -12170,6 +12031,14 @@ void main() {
 	    fg: 'light_gray',
 	});
 	class Dialog extends Widget {
+	    static { this.default = {
+	        tag: 'dialog',
+	        border: 'none',
+	        pad: false,
+	        legendTag: 'legend',
+	        legendClass: '',
+	        legendAlign: 'left',
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || Dialog.default.tag;
@@ -12266,14 +12135,6 @@ void main() {
 	        return true;
 	    }
 	}
-	Dialog.default = {
-	    tag: 'dialog',
-	    border: 'none',
-	    pad: false,
-	    legendTag: 'legend',
-	    legendClass: '',
-	    legendAlign: 'left',
-	};
 	function dialog(opts) {
 	    const widget = new Dialog(opts);
 	    return widget;
@@ -12420,7 +12281,7 @@ void main() {
 	        Object.assign(opts, {
 	            scene: this,
 	            width: textWidget.bounds.width + 2,
-	            height: textWidget.bounds.height + 2,
+	            height: textWidget.bounds.height + 2, // for buttons
 	            x: textWidget.bounds.x,
 	            y: textWidget.bounds.y,
 	            tag: 'confirm',
@@ -12481,6 +12342,11 @@ void main() {
 	    bg: 'lighter_gray',
 	});
 	class Input extends Text {
+	    static { this.default = {
+	        tag: 'input',
+	        width: 10,
+	        placeholder: '',
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.text = opts.text || '';
@@ -12621,11 +12487,6 @@ void main() {
 	        return true;
 	    }
 	}
-	Input.default = {
-	    tag: 'input',
-	    width: 10,
-	    placeholder: '',
-	};
 	/*
 	// extend WidgetLayer
 
@@ -12683,7 +12544,7 @@ void main() {
 	        });
 	        Object.assign(opts, {
 	            width: textWidget.bounds.width + 2,
-	            height: textWidget.bounds.height + 1,
+	            height: textWidget.bounds.height + 1, // for input
 	            x: textWidget.bounds.x - 1,
 	            y: textWidget.bounds.y - 1,
 	            tag: 'inputbox',
@@ -12758,12 +12619,25 @@ void main() {
 		__proto__: null,
 		AlertScene: AlertScene,
 		ConfirmScene: ConfirmScene,
-		PromptScene: PromptScene,
-		MenuScene: MenuScene
+		MenuScene: MenuScene,
+		PromptScene: PromptScene
 	});
 
 	// import * as GWU from 'gw-utils';
 	class Fieldset extends Dialog {
+	    static { this.default = {
+	        tag: 'fieldset',
+	        border: 'none',
+	        separator: ' : ',
+	        pad: false,
+	        legendTag: 'legend',
+	        legendClass: 'legend',
+	        legendAlign: 'left',
+	        labelTag: 'label',
+	        labelClass: '',
+	        dataTag: 'field',
+	        dataClass: '',
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || Fieldset.default.tag;
@@ -12840,19 +12714,6 @@ void main() {
 	        this.fields.forEach((f) => f.format(v));
 	    }
 	}
-	Fieldset.default = {
-	    tag: 'fieldset',
-	    border: 'none',
-	    separator: ' : ',
-	    pad: false,
-	    legendTag: 'legend',
-	    legendClass: 'legend',
-	    legendAlign: 'left',
-	    labelTag: 'label',
-	    labelClass: '',
-	    dataTag: 'field',
-	    dataClass: '',
-	};
 	class Field extends Text {
 	    constructor(opts) {
 	        super((() => {
@@ -12876,6 +12737,9 @@ void main() {
 	}
 
 	class OrderedList extends Widget {
+	    static { this.default = {
+	        pad: 1,
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || 'ol';
@@ -12919,10 +12783,11 @@ void main() {
 	        buffer.drawText(x, y, bullet, widget._used.fg, widget._used.bg, size);
 	    }
 	}
-	OrderedList.default = {
-	    pad: 1,
-	};
 	class UnorderedList extends OrderedList {
+	    static { this.default = {
+	        bullet: '\u2022', // bullet
+	        pad: 1,
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || 'ul';
@@ -12935,10 +12800,6 @@ void main() {
 	        return this._attrStr('bullet');
 	    }
 	}
-	UnorderedList.default = {
-	    bullet: '\u2022',
-	    pad: 1,
-	};
 	/*
 	// extend WidgetLayer
 
@@ -13056,6 +12917,19 @@ void main() {
 	    }
 	}
 	class DataTable extends Widget {
+	    static { this.default = {
+	        columnWidth: 10,
+	        header: true,
+	        empty: '',
+	        tag: 'datatable',
+	        headerTag: 'th',
+	        dataTag: 'td',
+	        select: 'cell',
+	        hover: 'select',
+	        prefix: 'none',
+	        border: 'ascii',
+	        wrap: true,
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || DataTable.default.tag;
@@ -13332,19 +13206,6 @@ void main() {
 	        return true;
 	    }
 	}
-	DataTable.default = {
-	    columnWidth: 10,
-	    header: true,
-	    empty: '',
-	    tag: 'datatable',
-	    headerTag: 'th',
-	    dataTag: 'td',
-	    select: 'cell',
-	    hover: 'select',
-	    prefix: 'none',
-	    border: 'ascii',
-	    wrap: true,
-	};
 	/*
 	// extend WidgetLayer
 
@@ -13406,6 +13267,14 @@ void main() {
 	*/
 
 	class Menu extends Widget {
+	    static { this.default = {
+	        tag: 'menu',
+	        class: '',
+	        buttonClass: '',
+	        buttonTag: 'mi',
+	        marker: ' \u25b6',
+	        minWidth: 4,
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || Menu.default.tag;
@@ -13540,14 +13409,6 @@ void main() {
 	        });
 	    }
 	}
-	Menu.default = {
-	    tag: 'menu',
-	    class: '',
-	    buttonClass: '',
-	    buttonTag: 'mi',
-	    marker: ' \u25b6',
-	    minWidth: 4,
-	};
 	class MenuButton extends Text {
 	    constructor(opts) {
 	        super((() => {
@@ -13564,8 +13425,7 @@ void main() {
 	                this.menu.emit('change');
 	            });
 	            this.on('mouseleave', (_n, _w, e) => {
-	                var _a;
-	                if ((_a = this.parent) === null || _a === void 0 ? void 0 : _a.bounds.contains(e)) {
+	                if (this.parent?.bounds.contains(e)) {
 	                    this.menu.hidden = true;
 	                }
 	            });
@@ -13635,6 +13495,14 @@ void main() {
 	*/
 
 	class Menubar extends Widget {
+	    static { this.default = {
+	        buttonClass: '',
+	        buttonTag: 'mi',
+	        menuClass: '',
+	        menuTag: 'mi',
+	        prefix: ' ',
+	        separator: ' | ',
+	    }; }
 	    // _config!: DropdownConfig;
 	    // _buttons: MenubarButton[] = [];
 	    // _selectedIndex: number;
@@ -13784,14 +13652,6 @@ void main() {
 	        });
 	    }
 	}
-	Menubar.default = {
-	    buttonClass: '',
-	    buttonTag: 'mi',
-	    menuClass: '',
-	    menuTag: 'mi',
-	    prefix: ' ',
-	    separator: ' | ',
-	};
 	/*
 	export interface MenubarButtonOptions extends Widget.WidgetOpts {
 	    text: string;
@@ -14159,6 +14019,16 @@ void main() {
 	    }
 	}
 	class Choice extends Widget {
+	    static { this.default = {
+	        tag: 'choice',
+	        border: 'ascii',
+	        promptTag: 'prompt',
+	        promptClass: '',
+	        choiceTag: 'ci',
+	        choiceClass: '',
+	        infoTag: 'info',
+	        infoClass: '',
+	    }; }
 	    constructor(opts) {
 	        super((() => {
 	            opts.tag = opts.tag || Choice.default.tag;
@@ -14265,16 +14135,6 @@ void main() {
 	        return true;
 	    }
 	}
-	Choice.default = {
-	    tag: 'choice',
-	    border: 'ascii',
-	    promptTag: 'prompt',
-	    promptClass: '',
-	    choiceTag: 'ci',
-	    choiceClass: '',
-	    infoTag: 'info',
-	    infoClass: '',
-	};
 	/*
 	// extend WidgetLayer
 
@@ -14428,8 +14288,13 @@ void main() {
 	}
 
 	class Checkbox extends Text {
+	    static { this.default = {
+	        uncheck: '\u2610', // unchecked
+	        check: '\u2612', // checked - with X
+	        pad: 1,
+	        value: 'on',
+	    }; }
 	    constructor(opts) {
-	        var _a;
 	        super((() => {
 	            // opts.action = opts.action || opts.id || 'input';
 	            opts.tag = opts.tag || 'checkbox';
@@ -14438,7 +14303,7 @@ void main() {
 	        })());
 	        this.attr('uncheck', opts.uncheck || Checkbox.default.uncheck);
 	        this.attr('check', opts.check || Checkbox.default.check);
-	        this.attr('pad', (_a = opts.pad) !== null && _a !== void 0 ? _a : Checkbox.default.pad);
+	        this.attr('pad', opts.pad ?? Checkbox.default.pad);
 	        this.attr('offValue', '');
 	        if (Array.isArray(opts.value)) {
 	            this.attr('offValue', opts.value[0] || '');
@@ -14506,12 +14371,6 @@ void main() {
 	        return true;
 	    }
 	}
-	Checkbox.default = {
-	    uncheck: '\u2610',
-	    check: '\u2612',
-	    pad: 1,
-	    value: 'on',
-	};
 
 	// export interface WidgetLayerOptions extends LayerOptions {}
 	class Builder {
@@ -14703,34 +14562,34 @@ void main() {
 
 	var index$1 = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		Widget: Widget,
-		alignChildren: alignChildren,
-		spaceChildren: spaceChildren,
-		wrapChildren: wrapChildren,
-		Text: Text,
 		Border: Border,
-		drawBorder: drawBorder,
+		Builder: Builder,
 		Button: Button,
-		toPadArray: toPadArray,
-		Dialog: Dialog,
-		dialog: dialog,
-		Fieldset: Fieldset,
-		Field: Field,
-		OrderedList: OrderedList,
-		UnorderedList: UnorderedList,
-		Input: Input,
+		Choice: Choice,
 		Column: Column,
-		DataTable: DataTable,
 		DataList: DataList,
+		DataTable: DataTable,
+		Dialog: Dialog,
+		Field: Field,
+		Fieldset: Fieldset,
+		Input: Input,
+		Inquiry: Inquiry,
 		Menu: Menu,
 		MenuButton: MenuButton,
 		Menubar: Menubar,
-		Select: Select,
+		OrderedList: OrderedList,
 		Prompt: Prompt,
-		Choice: Choice,
-		Inquiry: Inquiry,
-		Builder: Builder,
-		make: make$1
+		Select: Select,
+		Text: Text,
+		UnorderedList: UnorderedList,
+		Widget: Widget,
+		alignChildren: alignChildren,
+		dialog: dialog,
+		drawBorder: drawBorder,
+		make: make$1,
+		spaceChildren: spaceChildren,
+		toPadArray: toPadArray,
+		wrapChildren: wrapChildren
 	});
 
 	class Loop {
@@ -14770,10 +14629,13 @@ void main() {
 	        this.fpsBuf = [];
 	        this.fpsTimer = 0;
 	        this.numFrames = 0;
-	        this.loopID = 0;
+	        this.loopId = 0;
 	        this.stopped = true;
 	        this.paused = false;
 	        this.debug = false;
+	        if (typeof opts.seed === 'number' && opts.seed > 0) {
+	            random.seed(opts.seed);
+	        }
 	        if ('loop' in opts) {
 	            this.loop = opts.loop;
 	            delete opts.loop;
@@ -14791,7 +14653,7 @@ void main() {
 	        if (opts.dt !== undefined) {
 	            this.dt = opts.dt || 16; // Can't have 0
 	        }
-	        this.data = new Data(opts.data);
+	        this.data = mergeDeep({}, opts.data || {});
 	        this.canvas.onclick = this.io.enqueue.bind(this.io);
 	        this.canvas.onmousemove = this.io.enqueue.bind(this.io);
 	        this.canvas.onclick = this.io.enqueue.bind(this.io);
@@ -14799,25 +14661,27 @@ void main() {
 	        this.buffer = new Buffer$1(this.canvas.width, this.canvas.height);
 	        if (opts.scenes) {
 	            this.scenes.config(opts.scenes);
-	            if (typeof opts.start === 'string') {
-	                this.scenes.start(opts.start);
+	            if (typeof opts.scene === 'string') {
+	                this.scenes.start(opts.scene, opts.sceneStartOpts);
 	            }
 	            else {
-	                this.scenes.start(Object.keys(opts.scenes)[0]);
+	                this.scenes.start(Object.keys(opts.scenes)[0], opts.sceneStartOpts);
 	            }
 	        }
 	        else if (opts.scene) {
+	            if (typeof opts.scene === 'string') {
+	                throw new Error("Cannot use string 'scene' option without including 'scenes'.");
+	            }
 	            if (opts.scene === true)
 	                opts.scene = {};
 	            this.scenes.config('default', opts.scene);
-	            this.scenes.start('default');
-	            // } else {
-	            //     this.scenes.install('default', { bg: COLOR.colors.NONE }); // NONE just in case you draw directly on app.buffer
-	            //     this.scenes.start('default');
+	            this.scenes.start('default', opts.sceneStartOpts);
 	        }
 	        if (opts.start !== false) {
 	            this.start();
 	        }
+	        globalThis.APP = this;
+	        active = this;
 	    }
 	    // get buffer() {
 	    //     return this.scene.buffer;
@@ -14918,7 +14782,7 @@ void main() {
 	            this._input(ev);
 	        }
 	        if (!this.paused && this.debug !== true) {
-	            // call fixed_update
+	            // TODO - Should update be called first to run timers, etc...?
 	            while (this.time + this.dt <= realTime) {
 	                this.time += this.dt;
 	                this._fixed_update(this.dt);
@@ -14980,7 +14844,7 @@ void main() {
 	        // TODO - Do we really have to do this?  Can't we reset the scene instead?
 	        // NEED TO CREATE A NEW SCENE EVERY TIME SO WE DON"T HAVE HOLDOVER EVENTS, etc...
 	        opts.prompt = text;
-	        const prompt = this.scenes._create('prompt', PromptScene);
+	        const prompt = this.scenes.create('prompt', PromptScene);
 	        prompt.run(opts);
 	        return prompt;
 	    }
@@ -14989,108 +14853,1285 @@ void main() {
 	    const app = new App(opts);
 	    return app;
 	}
+	var active;
 
 	var index = /*#__PURE__*/Object.freeze({
 		__proto__: null,
-		Event: Event,
-		KEYPRESS: KEYPRESS,
-		MOUSEMOVE: MOUSEMOVE,
+		App: App,
 		CLICK: CLICK,
-		TICK: TICK,
-		MOUSEUP: MOUSEUP,
-		STOP: STOP,
-		isControlCode: isControlCode,
-		recycleEvent: recycleEvent,
-		makeStopEvent: makeStopEvent,
-		makeCustomEvent: makeCustomEvent,
-		makeTickEvent: makeTickEvent,
-		makeKeyEvent: makeKeyEvent,
-		keyCodeDirection: keyCodeDirection,
-		ignoreKeyEvent: ignoreKeyEvent,
-		makeMouseEvent: makeMouseEvent,
-		Queue: Queue,
-		Events: Events,
-		Loop: Loop,
-		Timers: Timers,
-		Tweens: Tweens,
-		Selector: Selector,
-		compile: compile,
-		Style: Style,
-		makeStyle: makeStyle,
 		ComputedStyle: ComputedStyle,
-		Sheet: Sheet,
-		defaultStyle: defaultStyle,
-		Widget: Widget,
-		alignChildren: alignChildren,
-		spaceChildren: spaceChildren,
-		wrapChildren: wrapChildren,
+		Event: Event,
+		Events: Events,
+		KEYPRESS: KEYPRESS,
+		Loop: Loop,
+		MOUSEMOVE: MOUSEMOVE,
+		MOUSEUP: MOUSEUP,
+		Queue: Queue,
+		STOP: STOP,
 		Scene: Scene,
 		Scenes: Scenes,
-		scenes: scenes,
+		Selector: Selector,
+		Sheet: Sheet,
+		Style: Style,
+		TICK: TICK,
+		Timers: Timers,
+		Tweens: Tweens,
+		Widget: Widget,
+		get active () { return active; },
+		alignChildren: alignChildren,
+		compile: compile,
+		defaultStyle: defaultStyle,
+		ignoreKeyEvent: ignoreKeyEvent,
 		installScene: installScene,
-		App: App,
-		make: make
+		isControlCode: isControlCode,
+		keyCodeDirection: keyCodeDirection,
+		make: make,
+		makeCustomEvent: makeCustomEvent,
+		makeKeyEvent: makeKeyEvent,
+		makeMouseEvent: makeMouseEvent,
+		makeStopEvent: makeStopEvent,
+		makeStyle: makeStyle,
+		makeTickEvent: makeTickEvent,
+		recycleEvent: recycleEvent,
+		scenes: scenes,
+		spaceChildren: spaceChildren,
+		wrapChildren: wrapChildren
 	});
 
+	// src/errors.ts
+	var UndefinedBehaviorError = class extends Error {
+	  constructor(message, options) {
+	    super(message, options);
+	  }
+	};
+
+	// src/option.ts
+	var Option = class _Option {
+	  constructor(status, value) {
+	    this.status = status;
+	    this.value = value;
+	  }
+	  /**
+	   * Returns the contained `Some` value, consuming the self value.
+	   * @example
+	   * const x = Some("value");
+	   * x.expect("fruits are healthy") === "value"; // true
+	   * 
+	   * const y: Option<string> = None();
+	   * y.expect("fruits are healthy"); // throws with `fruits are healthy`
+	   * @param {string} message
+	   * @return {*}  {Value}
+	   */
+	  expect(reason) {
+	    assertArgument("expect", reason, "string");
+	    if (this.status === 0 /* None */) {
+	      throw new Error(reason, { cause: "Option have 'None' status" });
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Returns the contained `Some` value, consuming the self value.
+	   * 
+	   * Because this function may throws, its use is generally discouraged. Instead, prefer to use pattern matching and handle the None case explicitly, or call `unwrapOr`, `unwrapOrElse`, or `unwrapOrDefault`.
+	   *
+	   * Throws an error when value is `None`
+	   * 
+	   * @example
+	   * const x = Some("air");
+	   * x.unwrap() === "air";
+	   * 
+	   * const x: Option<string> = None();
+	   * x.unwrap() // fails
+	   * @return {*}  {Value}
+	  */
+	  unwrap() {
+	    if (this.status === 0 /* None */) {
+	      throw new Error("Unwrap error. Option have 'None' status", { cause: { status: this.status, value: this.value } });
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Returns the contained `Some` value or a provided default.
+	   * @example
+	   * const x = Some("air");
+	   * x.unwrapOr("another") === "air";
+	   * 
+	   * const x: Option<string> = None();
+	   * x.unwrapOr("another") === 'another'
+	   * @param {T} another
+	   * @return {*}  {Value}
+	   */
+	  unwrapOr(fallback) {
+	    if (this.status === 0 /* None */) {
+	      return fallback;
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Returns the contained `Some` value or computes it from a closure.
+	   * @example
+	   * const k = 10;
+	   * Some(4).unwrapOrElse(() => 2 * k) === 4
+	   * None().unwrap_or_else(() => 2 * k) === 20
+	   * @param {() => T} predicate
+	   * @return {*}  {Value}
+	   */
+	  unwrapOrElse(fn) {
+	    if (this.status === 0 /* None */) {
+	      assertArgument("unwrapOrElse", fn, "function");
+	      return fn();
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Maps an `Option<T>` to `Option<U>` by applying a function to a contained value (if `Some`) or returns `None` (if `None`).
+	   *
+	   * @example
+	   * const maybeSomeString = Some("Hello, World!");
+	   * const maybeSomeLen = maybeSomeString.map(s => s.length);
+	   * maybeSomeLen === Some(13));
+	   * 
+	   * const x: Option<string> = None();
+	   * x.map(s => s.length) === None();
+	   * @template U
+	   * @param {(value: T) => U} fn
+	   * @return {*}  {Option<U>}
+	   */
+	  map(fn) {
+	    if (this.status === 1 /* Some */) {
+	      assertArgument("map", fn, "function");
+	      return Some(fn(this.value));
+	    }
+	    return None();
+	  }
+	  /**
+	   * Returns the provided default result (if none), or applies a function to the contained value (if any).
+	   *
+	   * Arguments passed to `mapOr` are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `mapOrElse`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const x = Some("foo");
+	   * x.mapOr(42, v => v.length) === 3;
+	   * 
+	   * const x: Option<string> = None();
+	   * x.mapOr(42, v => v.len() === 42;
+	   * @template U
+	   * @param {U} value
+	   * @param {(value: T) => U} predicate
+	   * @return {*}  {U}
+	   */
+	  mapOr(value, predicate) {
+	    if (this.status === 0 /* None */) {
+	      return value;
+	    }
+	    assertArgument("mapOr", predicate, "function");
+	    return predicate(this.value);
+	  }
+	  /**
+	   * Computes a default function result (if none), or applies a different function to the contained value (if any).
+	   *
+	   * @example
+	   * const k = 21;
+	   * 
+	   * const x = Some("foo");
+	   * x.mapOrElse(() => 2 * k, v => v.length) === 3;
+	   * 
+	   * const x: Option<string> = None();
+	   * x.mapOrElse(() => 2 * k, v => v.length) === 42;
+	   * @template U
+	   * @return {*}  {U}
+	   */
+	  mapOrElse(noneFn, someFn) {
+	    assertArgument("mapOrElse", noneFn, "function");
+	    assertArgument("mapOrElse", someFn, "function");
+	    if (this.status === 0 /* None */) {
+	      return noneFn();
+	    }
+	    return someFn(this.value);
+	  }
+	  /**
+	   * Transforms the `Option<T>` into a `Result<T, E>`, mapping `Some(v)` to `Ok(v)` and None to `Err(err)`.
+	   * 
+	   * Arguments passed to `okOr` are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `okOrElse`, which is lazily evaluated.
+	   * 
+	   * @example
+	   * const x = Some("foo");
+	   * String(x.okOr(0)) === String(Ok("foo"));
+	   * 
+	   * const y: Option<string> = None();
+	   * y.okOr(0) === Err(0);
+	   */
+	  okOr(err) {
+	    if (this.status === 0 /* None */) {
+	      return Err(err);
+	    }
+	    return Ok(this.value);
+	  }
+	  /**
+	   * Transforms the `Option<T>` into a `Result<T, E>`, mapping `Some(v)` to `Ok(v)` and None to `Err(err())`.
+	   *
+	   * @example
+	   * const x = Some("foo");
+	   * console.assert(x.okOrElse(() => 0) === Ok("foo"));
+	   * 
+	   * let y: Option<string> = None();
+	   * console.assert(y.okOrElse(() => 0) === Err(0));
+	   * @return {*}  {Value}
+	   */
+	  okOrElse(err) {
+	    if (this.status === 0 /* None */) {
+	      assertArgument("okOrElse", err, "function");
+	      return Err(err());
+	    }
+	    return Ok(this.value);
+	  }
+	  /**
+	   * Returns `None` if the option is `None`, otherwise returns `optb`.
+	   * 
+	   * Arguments passed to and are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `andThen`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const x = Some(2);
+	   * const y: Option<string> = None();
+	   * console.assert(x.and(y) === None());
+	   * // another example
+	   * let x: Option<number> = None();
+	   * let y = Some("foo");
+	   * console.assert(x.and(y) === None());
+	   * // another example
+	   * let x = Some(2);
+	   * let y = Some("foo");
+	   * console.assert(x.and(y) === Some("foo"));
+	   * // another example
+	   * let x: Option<number> = None();
+	   * let y: Option<string> = None();
+	   * console.assert(x.and(y) === None());
+	   */
+	  and(optb) {
+	    if (this.status === 0 /* None */) {
+	      return None();
+	    }
+	    if (!(optb instanceof _Option)) {
+	      throw new UndefinedBehaviorError(`Method "and" should accepts instance of Option`, { cause: { value: optb } });
+	    }
+	    return optb;
+	  }
+	  /**
+	   * Returns `None` if the option is `None`, otherwise calls `f` with the wrapped value and returns the result.
+	   * 
+	   * Some languages call this operation flatmap.
+	   *
+	   * @example
+	   * function toString(x: number): Option<string> {
+	   *  return Some(String(x));
+	   * }
+	   * console.assert(Some(2).andThen(toString) === Some(2.toString()));
+	   * console.assert(None().andThen(toString) === None());
+	   * @template U
+	   * @return {*}  {Option<U>}
+	   */
+	  andThen(f) {
+	    if (this.status === 0 /* None */) {
+	      return None();
+	    }
+	    assertArgument("andThen", f, "function");
+	    const res = f(this.value);
+	    if (!(res instanceof _Option)) {
+	      throw new UndefinedBehaviorError('callback for Method "andThen" expects to returns instance of Option. Use "None" or "Some" funtions', { cause: { value: res } });
+	    }
+	    return res;
+	  }
+	  /**
+	   * Returns `None` if the option is `None`, otherwise calls predicate with the wrapped value and returns:
+	   *
+	   * - `Some(t)` if predicate returns `true` (where t is the wrapped value), an
+	   * - `None` if predicate returns `false`
+	   *
+	   * @example
+	   * function isEven(n: number): boolean {
+	   *  return n % 2 == 0
+	   * }
+	   * console.assert(None().filter(isEven) === None());
+	   * console.assert(Some(3).filter(isEven) === None());
+	   * console.assert(Some(4).filter(isEven) === Some(4));
+	   * 
+	   * @param {(value: T) => boolean} predicate
+	   * @return {*}  {Option<Value>}
+	   */
+	  filter(predicate) {
+	    if (this.status === 0 /* None */) {
+	      return None();
+	    }
+	    assertArgument("filter", predicate, "function");
+	    const success = predicate(this.value);
+	    assertArgument("filter", success, "boolean");
+	    if (success) {
+	      return Some(this.value);
+	    }
+	    return None();
+	  }
+	  /**
+	   * Returns `Some` if exactly one of self, optb is `Some`, otherwise returns `None`.
+	   *
+	   * @param {Option<T>} optb
+	   * @return {*}  {Option<Value>}
+	   */
+	  xor(optb) {
+	    if (this.status === 1 /* Some */) {
+	      return this;
+	    }
+	    if (!(optb instanceof _Option)) {
+	      throw new UndefinedBehaviorError(`Method "xor" should accepts instance of Option`, { cause: { value: optb } });
+	    }
+	    return optb;
+	  }
+	  /**
+	   * Inserts value into the option, then returns a mutable reference to it.
+	   * 
+	   * If the option already contains a value, the old value is dropped.
+	   * 
+	   * See also `getOrInsert`, which doesn’t update the value if the option already contains `Some`.
+	   *
+	   * @example
+	   * const opt = None();
+	   * const val = opt.insert(1);
+	   * console.assert(val === 1);
+	   * console.assert(opt.unwrap() === 1);
+	   * // another example
+	   * const val = opt.insert(2);
+	   * console.assert(val === 2);
+	   * 
+	   * @param {T} value
+	   * @return {*}  {Option<Value>}
+	   */
+	  insert(value) {
+	    if (value === void 0) {
+	      this.status = 0 /* None */;
+	      this.value = void 0;
+	    } else {
+	      this.status = 1 /* Some */;
+	      this.value = value;
+	    }
+	    return this;
+	  }
+	  /**
+	   * Replaces the actual value in the option by the value given in parameter, returning the old value if present, leaving a `Some` in its place without deinitializing either one.
+	   *
+	   * @example
+	   * const x = Some(2);
+	   * const old = x.replace(5);
+	   * console.assert(x === Some(5));
+	   * console.assert(old === Some(2));
+	   * // another example
+	   * const x = None();
+	   * const old = x.replace(3);
+	   * console.assert(x === Some(3));
+	   * console.assert(old === None());
+	   * @param {T} value
+	   * @return {*}  {Option<Value>}
+	   */
+	  replace(value) {
+	    const newValue = Some(value);
+	    const oldValue = Some(this.value);
+	    this.value = newValue.value;
+	    this.status = newValue.status;
+	    return oldValue;
+	  }
+	  /**
+	   * Zips self with another Option.
+	   * 
+	   * If self is `Some(s)` and other is `Some(o)`, this method returns `Some((s, o))`. Otherwise, `None` is returned.
+	   *
+	   * @example
+	   * const x = Some(1);
+	   * const y = Some("hi");
+	   * const z = None<number>();
+	   * 
+	   * x.zip(y) === Some((1, "hi"));
+	   * x.zip(z) === None();
+	   * @template U
+	   * @param {Option<U>} other
+	   * @return {*}  {Option<[Value, U]>}
+	   */
+	  zip(other) {
+	    if (!(other instanceof _Option)) {
+	      throw new UndefinedBehaviorError(`Method "zip" should accepts instance of Option`, { cause: { value: other } });
+	    }
+	    if (this.status === 1 /* Some */ && other.status === 1 /* Some */) {
+	      return new _Option(1 /* Some */, [this.value, other.value]);
+	    }
+	    return None();
+	  }
+	  /**
+	   * Zips self and another Option with function `f`.
+	   * 
+	   * If self is `Some(s)` and other is `Some(o)`, this method returns `Some(f(s, o))`. Otherwise, `None` is returned.
+	   *
+	   * @example
+	   * class Point {
+	   *   constructor (readonly x: number, readonly y: number){}
+	   *   static create(x:number, y: number){
+	   *     return new Point(x,y);
+	   *   }
+	   * }
+	   * const x = Some(17.5);
+	   * const y = Some(42.7);
+	   * 
+	   * x.zipWith(y, Point.create) === Some({ x: 17.5, y: 42.7 })
+	   * 
+	   * @template U
+	   * @template R
+	   * @param {Option<U>} other
+	   * @param {(value: T, other: U) => R} fn
+	   * @return {*}  {Option<R>}
+	   */
+	  zipWith(other, fn) {
+	    if (!(other instanceof _Option)) {
+	      throw new UndefinedBehaviorError(`Method "zipWith" should accepts instance of Option`, { cause: { value: other } });
+	    }
+	    assertArgument("zipWith", fn, "function");
+	    if (this.status === 1 /* Some */ && other.status === 1 /* Some */) {
+	      return Some(fn(this.value, other.value));
+	    }
+	    return None();
+	  }
+	  /**
+	   * Unzips an option containing a tuple of two options.
+	   * 
+	   * If self is `Some((a, b))` this method returns `(Some(a), Some(b))`. Otherwise, `(None, None)` is returned.
+	   *
+	   * @example
+	   * const x = Some([1, "hi"]);
+	   * const y = None<[number, number]>();
+	   * console.assert(x.unzip() === [Some(1), Some("hi")]);
+	   * console.assert(y.unzip() === [None(), None()]);
+	   */
+	  unzip() {
+	    if (Array.isArray(this.value) && this.value.length === 2) {
+	      return [Some(this.value.at(0)), Some(this.value.at(1))];
+	    }
+	    return [None(), None()];
+	  }
+	  /**
+	   * Converts from `Option<Option<T>>` to `Option<T>`.
+	   * @example
+	   * const x: Option<Option<number>> = Some(Some(6));
+	   * Some(6) === x.flatten();
+	   * 
+	   * const x: Option<Option<number>> = Some(None());
+	   * None() === x.flatten();
+	   * 
+	   * const x: Option<Option<number>> = None();
+	   * None() === x.flatten()
+	   * @return {*}  {Value extends Option<infer Sub> ? Option<Sub> : Option<Value>}
+	   */
+	  flatten() {
+	    if (this.value instanceof _Option) {
+	      return Some(this.value.value);
+	    }
+	    return Some(this.value);
+	  }
+	  /**
+	   * Some value of type `T`.
+	   */
+	  static Some(value) {
+	    if (value === void 0) {
+	      return new _Option(0 /* None */, void 0);
+	    }
+	    return new _Option(1 /* Some */, value);
+	  }
+	  /**
+	   * No value.
+	   *
+	   * @static
+	   * @template T
+	   * @return {*}  {Option<Value>}
+	   * @memberof Option
+	   */
+	  static None() {
+	    return new _Option(0 /* None */, void 0);
+	  }
+	  equal(other) {
+	    if (other instanceof _Option) {
+	      return Object.is(other.value, this.value);
+	    }
+	    return false;
+	  }
+	  /**
+	   * Returns `true` if the option is a `Some` value.
+	   * 
+	   * @example
+	   * const x: Option<number> = Some(2);
+	   * x.isSome() === true // true
+	   * 
+	   * const x: Option<number> = None();
+	   * x.isSome() === false // true
+	   * @return {*}  {boolean}
+	   */
+	  isSome() {
+	    return this.status === 1 /* Some */;
+	  }
+	  /**
+	   * Returns true if the option is a `None` value.
+	   *
+	   * @return {*}  {boolean}
+	  */
+	  isNone() {
+	    return this.status === 0 /* None */;
+	  }
+	  /**
+	   * Returns `true` if the option is a `Some` and the value inside of it matches a predicate.
+	   * @example
+	   * const x: Option<number> = Some(2);
+	   * x.isSomeAnd(x => x > 1) === true // true
+	   * 
+	   * const x: Option<number> = Some(0);
+	   * x.isSomeAnd(x => x > 1 ) === false // true
+	   * 
+	   * const x: Option<number> = None();
+	   * x.isSomeAnd(x => x > 1 ) === false // true
+	  */
+	  isSomeAnd(predicate) {
+	    assertArgument("isSomeAnd", predicate, "function");
+	    if (this.status === 1 /* Some */) {
+	      const res = predicate(this.value);
+	      assertArgument("isSomeAnd", res, "boolean");
+	      return res;
+	    }
+	    return false;
+	  }
+	  /**
+	   * Inserts value into the option if it is `None`, then returns a mutable reference to the contained value. 
+	   * 
+	   * See also `insert`, which updates the value even if the option already contains `Some`.
+	   * @example
+	   * const x = None<number>();
+	   * const y = x.getOrInsert(7);
+	   * 
+	   * y === 7 // true
+	   * @param {T} value
+	   * @return {*}  {Value}
+	   */
+	  getOrInsert(value) {
+	    if (this.status === 0 /* None */) {
+	      if (value === void 0) {
+	        throw new UndefinedBehaviorError(`Method "getOrInsert" should provide non "undefined" value.`);
+	      }
+	      return this.insert(value).unwrap();
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Inserts a value computed from f into the option if it is `None`, then returns the contained value.
+	   * @example
+	   * const x = None<number>();
+	   * const y = x.getOrInsertWith(() => 5);
+	   * 
+	   * y === 5 // true
+	   * 
+	   * @param {() => T} predicate
+	   * @return {*}  {Value}
+	   */
+	  getOrInsertWith(callback) {
+	    if (this.status === 0 /* None */) {
+	      assertArgument("getOrInsertWith", callback, "function");
+	      const res = callback();
+	      if (res === void 0) {
+	        throw new UndefinedBehaviorError("Callback for method 'getOrInsertWith' should returns non 'undefined' value.");
+	      }
+	      return this.insert(res).unwrap();
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Returns the `Option` if it contains a value, otherwise returns `optb`.
+	   * Arguments passed to or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `orElse`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const x = Some(2);
+	   * const y = None();
+	   * console.assert(x.or(y) === Some(2));
+	   * // another example
+	   * const x = None();
+	   * const y = Some(100);
+	   * console.assert(x.or(y) === Some(100));
+	   * // another example
+	   * let x = Some(2)
+	   * let y = Some(100)
+	   * console.assert(x.or(y) === Some(2));
+	   * // another example
+	   * const x: Option<number> = None();
+	   * const y = None();
+	   * console.assert(x.or(y) === None());
+	   * 
+	   * @param {Option<T>} optb
+	   * @return {*}  {Option<Value>}
+	   */
+	  or(optb) {
+	    if (this.status === 1 /* Some */) {
+	      return this;
+	    }
+	    if (!(optb instanceof _Option)) {
+	      throw new UndefinedBehaviorError(`Method "or" should accepts isntance of Option`, { cause: { value: optb } });
+	    }
+	    return optb;
+	  }
+	  /**
+	   * Returns the `Option` if it contains a value, otherwise calls `f` and returns the result.
+	   *
+	   * @example
+	   * function nobody(): Option<string> { return None() }
+	   * function vikings(): Option<string> { return Some("vikings") }
+	   * 
+	   * Some("barbarians").orElse(vikings) === Some("barbarians"); // true
+	   * None().orElse(vikings) === Some("vikings"); // true
+	   * None().orElse(nobody) === None(); // true
+	   * 
+	   * @param {() => Option<T>} predicate
+	   * @return {*}  {Option<Value>}
+	   */
+	  orElse(callback) {
+	    if (this.status === 1 /* Some */) {
+	      return this;
+	    }
+	    assertArgument("orElse", callback, "function");
+	    const result = callback();
+	    if (!(result instanceof _Option)) {
+	      throw new UndefinedBehaviorError(`Callback result for method "orElse" should returns instance of Option. Use Some or None.`, { cause: { value: result } });
+	    }
+	    return result;
+	  }
+	  toString() {
+	    const printFn = this.status === 0 /* None */ ? `None` : `Some`;
+	    return `${printFn}(${this.status === 0 /* None */ ? "" : this.value})`;
+	  }
+	  toJSON() {
+	    return {
+	      status: this.status,
+	      value: this.value
+	    };
+	  }
+	  /**
+	   * @protected
+	   */
+	  [Symbol.toPrimitive]() {
+	    return this.value;
+	  }
+	  /**
+	   * @protected
+	   */
+	  get [Symbol.toStringTag]() {
+	    return "Option";
+	  }
+	};
+	function Some(value) {
+	  return Option.Some(value);
+	}
+	function None() {
+	  return Option.None();
+	}
+	var assertArgument = (method, value, expectedType) => {
+	  if (typeof value !== expectedType) {
+	    throw new UndefinedBehaviorError(`Method "${String(method)}" should accepts ${expectedType}`, { cause: { value, type: typeof value } });
+	  }
+	};
+
+	// src/result.ts
+	var Result2 = class _Result {
+	  constructor(status, value, error) {
+	    this.status = status;
+	    this.value = value;
+	    this.error = error;
+	    if (error) {
+	      this.status = -1 /* Err */;
+	    }
+	  }
+	  /**
+	   * Returns the contained `Ok` value, consuming the self value.
+	   * 
+	   * Because this function may throws, its use is generally discouraged. Call `unwrapOr`, `unwrapOrElse`.
+	   *
+	   * Panics if the value is an `Err`, with a message including the passed message, and the content of the `Err`.
+	   * 
+	   * @example
+	   * const x: Result<number, string> = Err("emergency failure");
+	   * x.expect("Testing expect"); // `Testing expect`, cause: emergency failure
+	   * @param {string} reason
+	   * @return {*}  {T}
+	   */
+	  expect(reason) {
+	    if (this.status === -1 /* Err */) {
+	      throw new Error(reason, { cause: this.error });
+	    }
+	    return this.value;
+	  }
+	  /**
+	   * Returns the contained `Ok` value, consuming the self value.
+	   * 
+	   * Because this function may throws, its use is generally discouraged. Instead, call `unwrapOr`, `unwrapOrElse`.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(2);
+	   * x.unwrap() === 2;
+	   * @return {*}  {T}
+	   */
+	  unwrap() {
+	    if (this.status === 1 /* Ok */)
+	      return this.value;
+	    throw this.error;
+	  }
+	  /**
+	   * Returns the contained `Ok` value or a provided default.
+	   * 
+	   * Arguments passed to `unwrapOr` are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `unwrapOrElse`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const fallback = 2;
+	   * const x = Ok(9);
+	   * x.unwrapOr(fallback) === 9; // true
+	   *
+	   * cosnt x: Result<number, string> = Err("error");
+	   * x.unwrapOr(fallback) === fallback; // true
+	   * @param {T} fallback
+	   * @return {*}  {T}
+	   */
+	  unwrapOr(fallback) {
+	    if (this.status === 1 /* Ok */) {
+	      return this.value;
+	    }
+	    return fallback;
+	  }
+	  /**
+	   * Returns `true` if the result is `Ok`.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(-3);
+	   * x.isOk() // true
+	   * // another example
+	   * let x: Result<number, string> = Err("Some error message");
+	   * x.isOk() // false
+	   * @return {*}  {boolean}
+	   */
+	  isOk() {
+	    return this.status === 1 /* Ok */;
+	  }
+	  /**
+	   * Returns `true` if the result is `Ok` and the value inside of it matches a predicate.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(2);
+	   * console.assert(x.isOkAnd(x => x > 1) === true);
+	   * // another example
+	   * const x: Result<number, string> = Ok(0);
+	   * console.assert(x.isOkAnd(x => x > 1) === false);
+	   * // another example
+	   * const x: Result<number, string> = Err("hey");
+	   * console.assert(x.isOkAnd(x => x > 1) === false);
+	   * @return {*}  {boolean}
+	   */
+	  isOkAnd(predicate) {
+	    if (this.status === -1 /* Err */) {
+	      return false;
+	    }
+	    assertArgument2("isOkAnd", predicate, "function");
+	    const res = predicate(this.value);
+	    assertArgument2("isOkAnd", res, "boolean");
+	    return res;
+	  }
+	  /**
+	   * Returns `true` if the result is `Err`.
+	   * 
+	   * @example
+	   * const x: Result<number, string> = Ok(-3);
+	   * console.assert(x.isErr() === false);
+	   * // another example
+	   * const x: Result<number, string> = Err("Some error message");
+	   * console.assert(x.isErr() === true);
+	   *
+	   * @return {*}  {boolean}
+	   */
+	  isErr() {
+	    return this.status === -1 /* Err */;
+	  }
+	  /**
+	   * Returns `true` if the result is `Err` and the value inside of it matches a predicate.
+	   * @example
+	   * const x: Result<number, Error> = Err(new Error("not found"));
+	   * x.isErrAnd(e => e.message === 'not found') // true;
+	   * // another example
+	   * const x: Result<number, Error> = Err(new Error('permission denied'));
+	   * x.isErrAnd(x => x.name === 'TypeError') // false
+	   * // another example
+	   * const x: Result<number, Error> = Ok(123);
+	   * x.isErrAnd(e => e.name == 'Error'); // false
+	   *
+	   * @param {(err: E) => boolean} predicate
+	   * @return {*}  {boolean}
+	   */
+	  isErrAnd(predicate) {
+	    if (this.status === 1 /* Ok */) {
+	      return false;
+	    }
+	    assertArgument2("isErrAnd", predicate, "function");
+	    const res = predicate(this.err);
+	    assertArgument2("isErrAnd", res, "boolean");
+	    return res;
+	  }
+	  /**
+	   * Converts from `Result<T, E>` to `Option<T>`.
+	   * 
+	   * Converts self into an `Option<T>`, consuming self, and discarding the error, if any.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(2);
+	   * x.ok() === Some(2); // true
+	   * // another example
+	   * const x: Result<number, string> = Err("Nothing here");
+	   * x.ok() === None(); // true
+	   * @return {*}  {Option<T>}
+	   */
+	  ok() {
+	    if (this.status === 1 /* Ok */) {
+	      return Some(this.value);
+	    }
+	    return None();
+	  }
+	  /**
+	   * Converts from `Result<T, E>` to `Option<E>`.
+	   * 
+	   * Converts self into an `Option<E>`, consuming self, and discarding the success value, if any.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(2);
+	   * x.err() === None(); // true
+	   * 
+	   * const x: Result<number, string> = Err("Nothing here");
+	   * x.err() === Some("Nothing here"); // true
+	   * @return {*}  {Option<E>}
+	   */
+	  err() {
+	    if (this.status === -1 /* Err */) {
+	      return Some(this.error);
+	    }
+	    return None();
+	  }
+	  /**
+	   * Maps a `Result<T, E>` to `Result<U, E>` by applying a function to a contained Ok value, leaving an `Err` value untouched.
+	   * 
+	   * This function can be used to compose the results of two functions.
+	   * 
+	   * @example
+	   * const x = Ok(1);
+	   * x.map(v => v * 2) === Ok(2) // true
+	   *
+	   * @template U
+	   * @param {(value: T) => U} mapFn
+	   * @return {*}  {Result<U, E>}
+	   */
+	  map(mapFn) {
+	    assertArgument2("map", mapFn, "function");
+	    if (this.status === 1 /* Ok */) {
+	      return Ok(mapFn(this.value));
+	    } else {
+	      return Err(this.error);
+	    }
+	  }
+	  /**
+	   * Returns the provided default (if `Err`), or applies a function to the contained value (if `Ok`),
+	   * 
+	   * Arguments passed to `mapOr` are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `mapOrElse`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const x: Result<string, string> = Ok("foo");
+	   * x.mapOr(42, v => v.length) // result is 3
+	   * // another example
+	   * const x: Result<number, string> = Err("bar");
+	   * x.mapOr(42, v => v.length) // 42
+	   * 
+	   * @template U
+	   * @param {U} another
+	   * @param {(value: T) => U} fn
+	   * @return {*}  {U}
+	   */
+	  mapOr(another, fn) {
+	    assertArgument2("mapOr", fn, "function");
+	    if (this.status === 1 /* Ok */) {
+	      return fn(this.value);
+	    }
+	    return another;
+	  }
+	  /**
+	   * Maps a `Result<T, E>` to `U` by applying fallback function default to a contained `Err` value, or function `f` to a contained `Ok` value.
+	   * 
+	   * This function can be used to unpack a successful result while handling an error.
+	   *
+	   * @example
+	   * let k = 21;
+	   * 
+	   * const x: Result<string, string> = Ok("foo");
+	   * x.mapOrElse(err => k * 2, v => v.length); // 3
+	   *
+	   * const y : Result<string, string> = Err("bar");
+	   * y.mapOrElse(e => k * 2, v => v.length) // 42
+	   * @template U
+	   * @param {(err: E) => U} errFn
+	   * @param {(value: T) => U} okFn
+	   * @return {*}  {U}
+	   */
+	  mapOrElse(errFn, okFn) {
+	    assertArgument2("mapOrElse", errFn, "function");
+	    assertArgument2("mapOrElse", okFn, "function");
+	    if (this.status === -1 /* Err */) {
+	      return errFn(this.error);
+	    }
+	    return okFn(this.value);
+	  }
+	  /**
+	   * Maps a `Result<T, E>` to `Result<T, F>` by applying a function to a contained `Err` value, leaving an `Ok` value untouched.
+	   * 
+	   * This function can be used to pass through a successful result while handling an error.
+	   *
+	   * @example
+	   * const stringify = (x: number) => `error code: ${x}`
+	   * 
+	   * const x: Result<number, number> = Ok(2);
+	   * x.mapErr(stringify) === Ok(2) // true
+	   * 
+	   * const y: Result<number, number> = Err(13);
+	   * y.mapErr(stringify) === Err("error code: 13"));
+	   * @template F
+	   * @param {(err: E) => F} errFn
+	   * @return {*}  {Result<T, F>}
+	   */
+	  mapErr(errFn) {
+	    assertArgument2("mapErr", errFn, "function");
+	    if (this.status === -1 /* Err */) {
+	      return Err(errFn(this.error));
+	    }
+	    return Ok(this.value);
+	  }
+	  /**
+	   * Returns the contained `Err` value, consuming the self value.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(10);
+	   * x.expectErr("Testing expectErr"); // throws `Testing expectErr; cause: 10`
+	   * @param {string} reason
+	   * @return {*}  {E}
+	   */
+	  expectErr(reason) {
+	    assertArgument2("expectErr", reason, "string");
+	    if (this.status === 1 /* Ok */) {
+	      throw new Error(reason, { cause: this.error ?? this.value });
+	    }
+	    return this.error;
+	  }
+	  /**
+	   * Returns the contained `Err` value, consuming the self value.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Err("emergency failure");
+	   * x.unwrapErr() === "emergency failure";
+	   * @return {*}  {E}
+	   */
+	  unwrapErr() {
+	    if (this.status === -1 /* Err */) {
+	      return this.error;
+	    }
+	    throw this.value;
+	  }
+	  /**
+	  * Returns the contained `Ok` value or computes it from a closure.
+	  *
+	  * @example
+	  * const count = (x: string) => x.length;
+	  * 
+	  * Ok(2).unwrapOrElse(count) === 2 // true
+	  * Err("foo").unwrapOrElse(count) === 3; // true
+	  *
+	  * @param {(err: E) => T} fn
+	  * @return {*}  {T}
+	  */
+	  unwrapOrElse(fn) {
+	    if (this.status === 1 /* Ok */) {
+	      return this.value;
+	    }
+	    assertArgument2("unwrapOrElse", fn, "function");
+	    return fn(this.error);
+	  }
+	  /**
+	   * Returns `res` if the result is `Ok`, otherwise returns the `Err` value of self.
+	   * 
+	   * Arguments passed to and are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `andThen`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(2);
+	   * const y: Result<string, string> = Err("late error");
+	   * x.and(y) === Err("late error"); // true
+	   * // another example
+	   * const x: Result<number, string> = Err("early error");
+	   * const y: Result<string, string> = Ok("foo");
+	   * x.and(y) === Err("early error"); // true
+	   * // another example
+	   * const x: Result<number, string> = Err("not a 2");
+	   * const y: Result<string, string> = Err("late error");
+	   * x.and(y) === Err("not a 2"); // true
+	   * // another example
+	   * const x: Result<number, string> = Ok(2);
+	   * const y: Result<string, string> = Ok("different result type");
+	   * x.and(y) === Ok("different result type"); // true
+	   * @template U
+	   * @param {Result<U, E>} res
+	   * @return {*}  {Result<U, E>}
+	   */
+	  and(res) {
+	    if (!(res instanceof _Result)) {
+	      throw new UndefinedBehaviorError(`Method "and" should accepts isntance of Result`, { cause: { value: res } });
+	    }
+	    if (this.status === -1 /* Err */) {
+	      return Err(this.error);
+	    }
+	    return res;
+	  }
+	  /**
+	   * Calls op if the result is `Ok`, otherwise returns the `Err` value of self.
+	   * 
+	   * This function can be used for control flow based on `Result` values.
+	   *
+	   * @example
+	   * const sqThenToString = (x: number) => {
+	   *     return Ok(x * x).map(sq => sq.toString())
+	   * }
+	   * 
+	   * Ok(2).andThen(sqThenToString) === Ok(4.toString())); // true
+	   * Err("not a number").andThen(sqThenToString) === Err("not a number"); // true
+	   * @template U
+	   * @param {(value: T) => Result<U, E>} fn
+	   * @return {*}  {Result<U, E>}
+	   */
+	  andThen(fn) {
+	    assertArgument2("andThen", fn, "function");
+	    if (this.status === 1 /* Ok */) {
+	      const res = fn(this.value);
+	      if (res instanceof _Result) {
+	        return res;
+	      }
+	      throw new UndefinedBehaviorError("Function result expected to be instance of Result.", { cause: res });
+	    }
+	    return Err(this.error);
+	  }
+	  /**
+	   * Returns `res` if the result is `Err`, otherwise returns the `Ok` value of self.
+	   * 
+	   * Arguments passed to or are eagerly evaluated; if you are passing the result of a function call, it is recommended to use `orElse`, which is lazily evaluated.
+	   *
+	   * @example
+	   * const x: Result<number, string> = Ok(2);
+	   * const y: Result<number, string> = Err("late error");
+	   * x.or(y) === Ok(2); // true
+	   * // another example
+	   * const x: Result<number, string> = Err("early error");
+	   * const y: Result<number, string> = Ok(2);
+	   * x.or(y) === Ok(2); // true
+	   * // another example
+	   * const x: Result<number, string> = Err("not a 2");
+	   * const y: Result<number, string> = Err("late error");
+	   * x.or(y) === Err("late error"); // true
+	   * // another example
+	   * const x: Result<number, string> = Ok(2);
+	   * const y: Result<number, string> = Ok(100);
+	   * x.or(y) === Ok(2); // true
+	   * @template F
+	   * @param {Result<T, F>} res
+	   * @return {*}  {Result<T, F>}
+	   */
+	  or(res) {
+	    if (!(res instanceof _Result)) {
+	      throw new UndefinedBehaviorError(`Operator "or" expect to pass instance of Result`, { cause: { value: res } });
+	    }
+	    if (this.status === -1 /* Err */) {
+	      return res;
+	    }
+	    return Ok(this.value);
+	  }
+	  /**
+	   * Calls `fn` if the result is `Err`, otherwise returns the `Ok` value of self.
+	   * 
+	   * This function can be used for control flow based on result values.
+	   *
+	   * @example
+	   * const sq = (x: number) =>  Ok(x * x);
+	   * const err = (x: number) => Err(x);
+	   * 
+	   * Ok(2).orElse(sq).orElse(sq) === Ok(2); // true
+	   * Ok(2).orElse(err).orElse(sq) === Ok(2); // true
+	   * Err(3).orElse(sq).orElse(err) === Ok(9); // true
+	   * Err(3).orElse(err).orElse(err) === Err(3); // true
+	   * @template F
+	   * @param {(err: E) => Result<T, F>} fn
+	   * @return {*}  {Result<T, F>}
+	   */
+	  orElse(fn) {
+	    if (this.status === -1 /* Err */) {
+	      assertArgument2("orElse", fn, "function");
+	      const res = fn(this.error);
+	      if (!(res instanceof _Result)) {
+	        throw new UndefinedBehaviorError('Operator "orElse" expected to return instance of Result. Use "Ok" or "Err" function to define them.', { cause: { value: res, type: typeof res } });
+	      }
+	      return res;
+	    }
+	    return new _Result(this.status, this.value, this.error);
+	  }
+	  /**
+	    * Converts from `Result<Result<T, E>, E>` to `Result<T, E>`
+	    *
+	    * @example
+	    * const x: Result<Result<string, number>, number> = Ok(Ok("hello"));
+	    * Ok("hello") === x.flatten() // true
+	    * 
+	    * const x: Result<Result<string, number>, number> = Ok(Err(6));
+	    * Err(6) === x.flatten(); // true
+	    * 
+	    * const x: Result<Result<string, number>, number> = Err(6);
+	    * Err(6) === x.flatten(); // true
+	    * @return {*}  {T extends Result<infer Ok, E> ? Result<Ok, E> : Result<T, E>}
+	    */
+	  flatten() {
+	    if (this.value instanceof _Result) {
+	      return this.value;
+	    }
+	    return this;
+	  }
+	  static Ok(value) {
+	    return new _Result(1 /* Ok */, value, null);
+	  }
+	  static Err(value) {
+	    return new _Result(-1 /* Err */, null, value);
+	  }
+	  equal(other) {
+	    if (other instanceof _Result) {
+	      if (this.status === 1 /* Ok */ && other.status === 1 /* Ok */) {
+	        return this.value === other.value;
+	      }
+	      if (this.status === -1 /* Err */ && other.status === -1 /* Err */) {
+	        return this.error === other.error;
+	      }
+	      return false;
+	    }
+	    return false;
+	  }
+	  toString() {
+	    const printFn = this.status === -1 /* Err */ ? `Err` : `Ok`;
+	    return `${printFn}(${this.status === -1 /* Err */ ? this.error : this.value})`;
+	  }
+	  toJSON() {
+	    return {
+	      status: this.status,
+	      value: this.value,
+	      error: this.error
+	    };
+	  }
+	  /**
+	   * @protected
+	   */
+	  [Symbol.toPrimitive]() {
+	    return this.value;
+	  }
+	  /**
+	   * @protected
+	   */
+	  get [Symbol.toStringTag]() {
+	    return "Result";
+	  }
+	};
+	function Ok(value) {
+	  return Result2.Ok(value);
+	}
+	function Err(err) {
+	  return Result2.Err(err);
+	}
+	function assertArgument2(method, value, expectedType) {
+	  const type = typeof value;
+	  if (type !== expectedType) {
+	    throw new UndefinedBehaviorError(`Method "${String(method)}" should accepts or returns ${expectedType}`, { cause: { value, type } });
+	  }
+	}
+
+	// src/match.ts
+	function match(value, okOrSomeCb, errOrNoneCb) {
+	  if (typeof okOrSomeCb !== "function") {
+	    throw new UndefinedBehaviorError(`match function expects to provide a function.`, { cause: { value: okOrSomeCb, type: typeof okOrSomeCb } });
+	  }
+	  if (typeof errOrNoneCb !== "function") {
+	    throw new UndefinedBehaviorError(`match function expects to provide a function.`, { cause: { value: okOrSomeCb, type: typeof okOrSomeCb } });
+	  }
+	  if (typeof value === "boolean") {
+	    if (value === true) {
+	      return okOrSomeCb(true);
+	    }
+	    return errOrNoneCb(false);
+	  } else if (value instanceof Option) {
+	    if (value.isSome()) {
+	      return okOrSomeCb(value.unwrap());
+	    }
+	    return errOrNoneCb(void 0);
+	  } else if (value instanceof Result2) {
+	    if (value.isOk()) {
+	      return okOrSomeCb(value.unwrap());
+	    }
+	    return errOrNoneCb(value.unwrapErr());
+	  }
+	  throw new UndefinedBehaviorError(`only boolean type, Option or Result instance are allowed`, { cause: { value, type: typeof value, ctor: value.constructor?.name } });
+	}
+
 	exports.ERROR = ERROR;
+	exports.Err = Err;
 	exports.FALSE = FALSE;
 	exports.IDENTITY = IDENTITY;
 	exports.IS_NONZERO = IS_NONZERO;
 	exports.IS_ZERO = IS_ZERO;
 	exports.NOOP = NOOP;
+	exports.None = None;
 	exports.ONE = ONE;
+	exports.Ok = Ok;
+	exports.Option = Option;
+	exports.Result = Result2;
+	exports.Some = Some;
 	exports.TRUE = TRUE;
+	exports.UndefinedBehaviorError = UndefinedBehaviorError;
 	exports.WARN = WARN;
 	exports.ZERO = ZERO;
 	exports.app = index;
-	exports.arrayDelete = arrayDelete;
-	exports.arrayFindRight = arrayFindRight;
-	exports.arrayIncludesAll = arrayIncludesAll;
-	exports.arrayInsert = arrayInsert;
-	exports.arrayNext = arrayNext;
-	exports.arrayNullify = arrayNullify;
-	exports.arrayPrev = arrayPrev;
-	exports.arrayRevEach = arrayRevEach;
-	exports.arraysIntersect = arraysIntersect;
 	exports.blob = blob;
 	exports.buffer = buffer;
 	exports.canvas = index$5;
-	exports.clamp = clamp;
 	exports.color = index$9;
 	exports.colors = colors;
 	exports.cosmetic = cosmetic;
-	exports.data = data;
-	exports.first = first;
 	exports.flag = flag;
 	exports.fov = index$7;
 	exports.frequency = frequency;
 	exports.grid = grid;
-	exports.lerp = lerp$1;
 	exports.light = index$3;
 	exports.list = list;
+	exports.match = match;
 	exports.message = message;
-	exports.nextIndex = nextIndex;
 	exports.object = object;
 	exports.path = index$6;
-	exports.prevIndex = prevIndex;
 	exports.queue = queue;
 	exports.random = random;
 	exports.range = range;
 	exports.rng = rng;
 	exports.scheduler = scheduler;
 	exports.sprite = index$4;
-	exports.sum = sum;
 	exports.tags = tags;
 	exports.text = index$8;
 	exports.tween = tween;
 	exports.types = types;
 	exports.ui = index$2;
-	exports.valueType = valueType;
+	exports.utils = utils;
 	exports.widget = index$1;
-	exports.xave = xave;
 	exports.xy = xy;
-
-	Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
 //# sourceMappingURL=gw-utils.js.map

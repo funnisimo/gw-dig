@@ -20,7 +20,7 @@ export function isDoorLoc(site: SITE.Site, loc: GWU.xy.Loc, dir: GWU.xy.Loc) {
 export type WidthBase = number | string | number[] | { [key: number]: number };
 
 export function pickWidth(width: WidthBase, rng?: GWU.rng.Random): number {
-    return GWU.clamp(_pickWidth(width, rng), 1, 3);
+    return GWU.utils.clamp(_pickWidth(width, rng), 1, 3);
 }
 
 function _pickWidth(width: WidthBase, rng?: GWU.rng.Random): number {

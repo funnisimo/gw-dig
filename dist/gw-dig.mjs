@@ -3251,7 +3251,7 @@ function isDoorLoc(site, loc, dir) {
     return true;
 }
 function pickWidth(width, rng) {
-    return GWU.clamp(_pickWidth(width, rng), 1, 3);
+    return GWU.utils.clamp(_pickWidth(width, rng), 1, 3);
 }
 function _pickWidth(width, rng) {
     if (!width)

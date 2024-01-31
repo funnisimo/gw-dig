@@ -3275,7 +3275,7 @@
         return true;
     }
     function pickWidth(width, rng) {
-        return GWU__namespace.clamp(_pickWidth(width, rng), 1, 3);
+        return GWU__namespace.utils.clamp(_pickWidth(width, rng), 1, 3);
     }
     function _pickWidth(width, rng) {
         if (!width)

@@ -1,6 +1,8 @@
 # ignore <root>/js
 /js/
 
+.vscode/
+
 # Logs
 logs
 *.log
