@@ -10,8 +10,9 @@ describe('dig', () => {
     beforeEach(() => {
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
-        Site.installTile('TEST');
-        site = new Site.Site(50, 30);
+        const tiles = new Site.TileFactory();
+        tiles.installTile('TEST');
+        site = new Site.Site(50, 30, { tiles });
     });
 
     afterEach(() => {
@@ -155,7 +156,7 @@ describe('dig', () => {
             if (site.isBoundaryXY(i, j)) {
                 expect(v).toEqual(0);
             } else {
-                expect(v).toEqual(Site.tileId('TEST'));
+                expect(v).toEqual(site.tileFactory.tileId('TEST'));
             }
         });
     });
@@ -169,7 +170,9 @@ describe('dig', () => {
         // grid.dump();
 
         expect(room).toMatchObject({ x: 22, y: 12, width: 7, height: 7 });
-        expect(site._tiles.count(Site.tileId('FLOOR'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('FLOOR'))
+        ).toBeGreaterThan(0);
         // expect(room.cx).toEqual(25);
         // expect(room.cy).toEqual(15);
         // expect(grid[room.cx][room.cy]).toEqual(1);
@@ -184,8 +187,10 @@ describe('dig', () => {
         // grid.dump();
 
         expect(room).toMatchObject({ x: 22, y: 12, width: 7, height: 7 });
-        expect(site._tiles.count(Site.tileId('DOOR'))).toEqual(0);
-        expect(site._tiles.count(Site.tileId('FLOOR'))).toBeGreaterThan(0);
+        expect(site._tiles.count(site.tileFactory.tileId('DOOR'))).toEqual(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('FLOOR'))
+        ).toBeGreaterThan(0);
         // expect(room.cx).toEqual(25);
         // expect(room.cy).toEqual(15);
         // expect(grid[room.cx][room.cy]).toEqual(10);
@@ -216,7 +221,9 @@ describe('dig', () => {
         expect(site._tiles.get(25, 15)).toEqual(0);
         expect(room).toMatchObject({ x: 18, y: 8, width: 15, height: 15 });
         expect(site._tiles.count(1)).toEqual(0);
-        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('TEST'))
+        ).toBeGreaterThan(0);
         // expect(grid[room.cx][room.cy]).toEqual(0);
     });
 
@@ -240,7 +247,9 @@ describe('dig', () => {
         // grid.dump();
         expect(room).toMatchObject({ x: 21, y: 12, width: 10, height: 8 });
         expect(site._tiles.count(1)).toEqual(0);
-        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('TEST'))
+        ).toBeGreaterThan(0);
     });
 
     test('cavern', () => {
@@ -268,7 +277,9 @@ describe('dig', () => {
 
         // grid.dump();
         expect(site._tiles.count(1)).toEqual(0);
-        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('TEST'))
+        ).toBeGreaterThan(0);
     });
 
     test('entrance', () => {
@@ -297,7 +308,9 @@ describe('dig', () => {
 
         // grid.dump();
         expect(site._tiles.count(1)).toEqual(0);
-        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('TEST'))
+        ).toBeGreaterThan(0);
         expect(room.x).toEqual(14);
         expect(room.y).toEqual(18);
         expect(room.width).toEqual(20);
@@ -330,7 +343,9 @@ describe('dig', () => {
 
         // grid.dump();
         expect(site._tiles.count(1)).toEqual(0);
-        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('TEST'))
+        ).toBeGreaterThan(0);
         expect(room.x).toEqual(19);
         expect(room.y).toEqual(5);
         expect(room.width).toEqual(12);
@@ -363,7 +378,9 @@ describe('dig', () => {
 
         // grid.dump();
         expect(site._tiles.count(1)).toEqual(0);
-        expect(site._tiles.count(Site.tileId('TEST'))).toBeGreaterThan(0);
+        expect(
+            site._tiles.count(site.tileFactory.tileId('TEST'))
+        ).toBeGreaterThan(0);
         expect(room.x).toEqual(21);
         expect(room.y).toEqual(11);
         expect(room.width).toEqual(7);

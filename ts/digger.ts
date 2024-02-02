@@ -67,9 +67,11 @@ export class Digger {
 
     seq!: number[];
     log: LOGGER.Logger;
+    tiles: SITE.TileFactory;
 
-    constructor(options: DiggerOptions = {}) {
+    constructor(options: DiggerOptions = {}, tiles?: SITE.TileFactory) {
         this.seed = options.seed || 0;
+        this.tiles = tiles || SITE.tileFactory;
 
         if (typeof options.rooms === 'number') {
             options.rooms = { count: options.rooms };

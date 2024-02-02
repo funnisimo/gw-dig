@@ -1,136 +1,175 @@
 import * as GWU from 'gw-utils';
 
-const tileIds = {};
-const allTiles = [];
-function installTile(id, opts = {}) {
-    if (typeof id !== 'string') {
-        opts = id;
-        id = id.id;
-    }
-    const base = { id, index: allTiles.length, priority: 0, tags: [] };
-    opts.extends = opts.extends || id;
-    if (opts.extends) {
-        const root = getTile(opts.extends);
-        if (root) {
-            Object.assign(base, root);
-        }
-        else if (opts.extends !== id) {
-            throw new Error('Cannot extend tile: ' + opts.extends);
+class TileFactory {
+    constructor(withDefaults = true) {
+        this.tileIds = {};
+        this.allTiles = [];
+        if (withDefaults) {
+            installDefaults(this);
         }
     }
-    const info = GWU.object.assignOmitting('priority, extends', base, opts);
-    info.id = id;
-    info.index = allTiles.length;
-    if (opts.tags) {
-        info.tags = GWU.tags.make(opts.tags);
-    }
-    if (typeof opts.priority === 'string') {
-        let text = opts.priority.replace(/ /g, '');
-        let index = text.search(/[+-]/);
-        if (index == 0) {
-            info.priority = info.priority + Number.parseInt(text);
-        }
-        else if (index == -1) {
-            if (text.search(/[a-zA-Z]/) == 0) {
-                const tile = getTile(text);
-                if (!tile)
-                    throw new Error('Failed to find tile for priority - ' + text + '.');
-                info.priority = tile.priority;
-            }
-            else {
-                info.priority = Number.parseInt(text);
+    getTile(name) {
+        let id;
+        if (typeof name === 'string') {
+            id = this.tileIds[name];
+            if (id === undefined) {
+                // TODO - Log?  Will hit this during default installs.
+                return null;
             }
         }
         else {
-            const id = text.substring(0, index);
-            const delta = Number.parseInt(text.substring(index));
-            const tile = getTile(id);
-            if (!tile)
-                throw new Error('Failed to find tile for priority - ' + id + '.');
-            info.priority = tile.priority + delta;
+            id = name;
         }
+        return this.allTiles[id] || null;
     }
-    else if (opts.priority !== undefined) {
-        info.priority = opts.priority;
+    hasTile(name) {
+        return this.getTile(name) !== null;
     }
-    if (info.blocksPathing === undefined) {
-        if (info.blocksMove) {
-            info.blocksPathing = true;
+    tileId(name) {
+        var _a;
+        if (typeof name === 'number')
+            return name;
+        return (_a = this.tileIds[name]) !== null && _a !== void 0 ? _a : -1; // TODO: -1 vs 0?
+    }
+    // TODO - Remove?
+    blocksMove(name) {
+        const info = this.getTile(name);
+        return (!!info && info.blocksMove) || false;
+    }
+    installTile(id, opts = {}) {
+        if (typeof id !== 'string') {
+            opts = id;
+            id = id.id;
         }
+        const base = { id, index: this.allTiles.length, priority: 0, tags: [] };
+        opts.extends = opts.extends || id;
+        if (opts.extends) {
+            const root = this.getTile(opts.extends);
+            if (root) {
+                Object.assign(base, root);
+            }
+            else if (opts.extends !== id) {
+                throw new Error('Cannot extend tile: ' + opts.extends);
+            }
+        }
+        const info = GWU.object.assignOmitting('priority, extends', base, opts);
+        info.id = id;
+        info.index = this.allTiles.length;
+        if (opts.tags) {
+            info.tags = GWU.tags.make(opts.tags);
+        }
+        if (typeof opts.priority === 'string') {
+            let text = opts.priority.replace(/ /g, '');
+            let index = text.search(/[+-]/);
+            if (index == 0) {
+                info.priority = info.priority + Number.parseInt(text);
+            }
+            else if (index == -1) {
+                if (text.search(/[a-zA-Z]/) == 0) {
+                    const tile = getTile(text);
+                    if (!tile)
+                        throw new Error('Failed to find tile for priority - ' + text + '.');
+                    info.priority = tile.priority;
+                }
+                else {
+                    info.priority = Number.parseInt(text);
+                }
+            }
+            else {
+                const id = text.substring(0, index);
+                const delta = Number.parseInt(text.substring(index));
+                const tile = getTile(id);
+                if (!tile)
+                    throw new Error('Failed to find tile for priority - ' + id + '.');
+                info.priority = tile.priority + delta;
+            }
+        }
+        else if (opts.priority !== undefined) {
+            info.priority = opts.priority;
+        }
+        if (info.blocksPathing === undefined) {
+            if (info.blocksMove) {
+                info.blocksPathing = true;
+            }
+        }
+        if (this.tileIds[id]) {
+            info.index = this.tileIds[id];
+            this.allTiles[info.index] = info;
+        }
+        else {
+            this.allTiles.push(info);
+            this.tileIds[id] = info.index;
+        }
+        return info;
     }
-    if (tileIds[id]) {
-        info.index = tileIds[id];
-        allTiles[info.index] = info;
+}
+// export const tileIds: Record<string, number> = {};
+// export const allTiles: TileInfo[] = [];
+const tileFactory = new TileFactory(true);
+function installTile(...args) {
+    if (args.length == 1) {
+        return tileFactory.installTile(args[0]);
     }
-    else {
-        allTiles.push(info);
-        tileIds[id] = info.index;
-    }
-    return info;
+    return tileFactory.installTile(args[0], args[1]);
 }
 function getTile(name) {
-    if (typeof name === 'string') {
-        name = tileIds[name];
-    }
-    return allTiles[name];
+    return tileFactory.getTile(name);
 }
 function tileId(name) {
-    var _a;
-    if (typeof name === 'number')
-        return name;
-    return (_a = tileIds[name]) !== null && _a !== void 0 ? _a : -1;
+    return tileFactory.tileId(name);
 }
 function blocksMove(name) {
-    const info = getTile(name);
-    return info.blocksMove || false;
+    return tileFactory.blocksMove(name);
 }
-tileIds['NOTHING'] = tileIds['NULL'] = installTile('NONE', {
-    priority: 0,
-    ch: '',
-}).index;
-installTile('FLOOR', { priority: 10, ch: '.' });
-installTile('WALL', {
-    blocksMove: true,
-    blocksVision: true,
-    priority: 50,
-    ch: '#',
-});
-installTile('DOOR', {
-    blocksVision: true,
-    door: true,
-    priority: 60,
-    ch: '+',
-});
-installTile('SECRET_DOOR', {
-    blocksMove: true,
-    secretDoor: true,
-    priority: 70,
-    ch: '%',
-});
-installTile('UP_STAIRS', {
-    stairs: true,
-    priority: 80,
-    ch: '>',
-});
-installTile('DOWN_STAIRS', {
-    stairs: true,
-    priority: 80,
-    ch: '<',
-});
-tileIds['DEEP'] = installTile('LAKE', {
-    priority: 40,
-    liquid: true,
-    ch: '~',
-}).index;
-installTile('SHALLOW', { priority: 30, ch: '`' });
-installTile('BRIDGE', { priority: 45, ch: '=' }); // layers help here
-installTile('IMPREGNABLE', {
-    priority: 200,
-    ch: '%',
-    impregnable: true,
-    blocksMove: true,
-    blocksVision: true,
-});
+function installDefaults(factory) {
+    factory.tileIds['NOTHING'] = factory.tileIds['NULL'] = factory.installTile('NONE', {
+        priority: 0,
+        ch: '',
+    }).index;
+    factory.installTile('FLOOR', { priority: 10, ch: '.' });
+    factory.installTile('WALL', {
+        blocksMove: true,
+        blocksVision: true,
+        priority: 50,
+        ch: '#',
+    });
+    factory.installTile('DOOR', {
+        blocksVision: true,
+        door: true,
+        priority: 60,
+        ch: '+',
+    });
+    factory.installTile('SECRET_DOOR', {
+        blocksMove: true,
+        secretDoor: true,
+        priority: 70,
+        ch: '%',
+    });
+    factory.installTile('UP_STAIRS', {
+        stairs: true,
+        priority: 80,
+        ch: '>',
+    });
+    factory.installTile('DOWN_STAIRS', {
+        stairs: true,
+        priority: 80,
+        ch: '<',
+    });
+    factory.tileIds['DEEP'] = factory.installTile('LAKE', {
+        priority: 40,
+        liquid: true,
+        ch: '~',
+    }).index;
+    factory.installTile('SHALLOW', { priority: 30, ch: '`' });
+    factory.installTile('BRIDGE', { priority: 45, ch: '=' }); // layers help here
+    factory.installTile('IMPREGNABLE', {
+        priority: 200,
+        ch: '%',
+        impregnable: true,
+        blocksMove: true,
+        blocksVision: true,
+    });
+}
 
 const features = {};
 function install$3(name, fn) {
@@ -1669,6 +1708,7 @@ class Site {
         this.actors = [];
         this.depth = 0;
         this.machineCount = 0;
+        this.tileFactory = opts.tiles || tileFactory;
         this._tiles = GWU.grid.alloc(width, height);
         this._doors = GWU.grid.alloc(width, height);
         this._flags = GWU.grid.alloc(width, height);
@@ -1698,7 +1738,7 @@ class Site {
         if (fmt) {
             return this._tiles.dump(fmt);
         }
-        this._tiles.dump((c) => getTile(c).ch || '?');
+        this._tiles.dump((c) => this.tileFactory.getTile(c).ch || '?');
     }
     // drawInto(buffer: GWU.canvas.Buffer): void {
     //     buffer.blackOut();
@@ -1776,7 +1816,7 @@ class Site {
         return this.blocksMove(x, y) && this.blocksVision(x, y);
     }
     blocksMove(x, y) {
-        return getTile(this._tiles[x][y]).blocksMove || false;
+        return this.tileFactory.getTile(this._tiles[x][y]).blocksMove || false;
     }
     blocksDiagonal(x, y) {
         return this.isNothing(x, y) || this.isWall(x, y);
@@ -1788,7 +1828,7 @@ class Site {
             this.isStairs(x, y));
     }
     blocksVision(x, y) {
-        return getTile(this._tiles[x][y]).blocksVision || false;
+        return (this.tileFactory.getTile(this._tiles[x][y]).blocksVision || false);
     }
     blocksItems(x, y) {
         return (this.blocksPathing(x, y) ||
@@ -1822,7 +1862,7 @@ class Site {
         return (this._tiles.get(x, y) || 0) > 0;
     }
     tileBlocksMove(tile) {
-        return getTile(tile).blocksMove || false;
+        return this.tileFactory.blocksMove(tile);
     }
     setTile(x, y, tile, _opts = {}) {
         // if (tile instanceof GWM.tile.Tile) {
@@ -1831,7 +1871,7 @@ class Site {
         if (!this._tiles.hasXY(x, y))
             return false;
         if (typeof tile === 'string') {
-            tile = tileId(tile);
+            tile = this.tileFactory.tileId(tile);
         }
         // priority checks...
         this._tiles[x][y] = tile;
@@ -1844,7 +1884,7 @@ class Site {
     }
     getTile(x, y) {
         const id = this._tiles[x][y];
-        return getTile(id);
+        return this.tileFactory.getTile(id);
     }
     makeImpregnable(x, y) {
         this._flags[x][y] |= Flags$1.IMPREGNABLE;
@@ -1855,7 +1895,7 @@ class Site {
     }
     hasTile(x, y, tile) {
         if (typeof tile === 'string') {
-            tile = tileId(tile);
+            tile = this.tileFactory.tileId(tile);
         }
         return this.hasXY(x, y) && this._tiles[x][y] == tile;
     }
@@ -2748,8 +2788,8 @@ var index$2 = /*#__PURE__*/Object.freeze({
 var index$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     log: index$2,
-    tileIds: tileIds,
-    allTiles: allTiles,
+    TileFactory: TileFactory,
+    tileFactory: tileFactory,
     installTile: installTile,
     getTile: getTile,
     tileId: tileId,
@@ -4021,7 +4061,7 @@ var loop = /*#__PURE__*/Object.freeze({
 });
 
 class Digger {
-    constructor(options = {}) {
+    constructor(options = {}, tiles) {
         var _a, _b;
         this.seed = 0;
         this.rooms = { fails: 20 };
@@ -4038,6 +4078,7 @@ class Digger {
         this._locs = {};
         this.goesUp = false;
         this.seed = options.seed || 0;
+        this.tiles = tiles || tileFactory;
         if (typeof options.rooms === 'number') {
             options.rooms = { count: options.rooms };
         }

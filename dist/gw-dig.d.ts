@@ -45,11 +45,21 @@ interface TileInfo extends TileOptions$1 {
     priority: number;
     tags: string[];
 }
-declare const tileIds: Record<string, number>;
-declare const allTiles: TileInfo[];
+declare class TileFactory {
+    tileIds: Record<string, number>;
+    allTiles: TileInfo[];
+    constructor(withDefaults?: boolean);
+    getTile(name: string | number): TileInfo | null;
+    hasTile(name: string | number): boolean;
+    tileId(name: string | number): number;
+    blocksMove(name: string | number): boolean;
+    installTile(cfg: TileOptions$1): TileInfo;
+    installTile(id: string, opts?: TileConfig): TileInfo;
+}
+declare const tileFactory: TileFactory;
 declare function installTile(cfg: TileOptions$1): TileInfo;
 declare function installTile(id: string, opts?: TileConfig): TileInfo;
-declare function getTile(name: string | number): TileInfo;
+declare function getTile(name: string | number): TileInfo | null;
 declare function tileId(name: string | number): number;
 declare function blocksMove(name: string | number): boolean;
 
@@ -341,6 +351,7 @@ interface SetTileOptions {
 declare const Flags$1: Record<string, number>;
 interface SiteOptions {
     rng?: GWU.rng.Random;
+    tiles?: TileFactory;
 }
 declare class Site implements AnalysisSite {
     _tiles: GWU.grid.NumGrid;
@@ -349,6 +360,7 @@ declare class Site implements AnalysisSite {
     _machine: GWU.grid.NumGrid;
     _chokeCounts: GWU.grid.NumGrid;
     rng: GWU.rng.Random;
+    tileFactory: TileFactory;
     items: ItemInstance[];
     actors: ActorInstance[];
     depth: number;
@@ -727,8 +739,9 @@ declare namespace index$2 {
 type index$1_TileId = TileId;
 type index$1_TileConfig = TileConfig;
 type index$1_TileInfo = TileInfo;
-declare const index$1_tileIds: typeof tileIds;
-declare const index$1_allTiles: typeof allTiles;
+type index$1_TileFactory = TileFactory;
+declare const index$1_TileFactory: typeof TileFactory;
+declare const index$1_tileFactory: typeof tileFactory;
 declare const index$1_installTile: typeof installTile;
 declare const index$1_getTile: typeof getTile;
 declare const index$1_tileId: typeof tileId;
@@ -788,8 +801,8 @@ declare namespace index$1 {
     index$1_TileConfig as TileConfig,
     TileOptions$1 as TileOptions,
     index$1_TileInfo as TileInfo,
-    index$1_tileIds as tileIds,
-    index$1_allTiles as allTiles,
+    index$1_TileFactory as TileFactory,
+    index$1_tileFactory as tileFactory,
     index$1_installTile as installTile,
     index$1_getTile as getTile,
     index$1_tileId as tileId,
@@ -1177,7 +1190,8 @@ declare class Digger {
     goesUp: boolean;
     seq: number[];
     log: Logger;
-    constructor(options?: DiggerOptions);
+    tiles: TileFactory;
+    constructor(options?: DiggerOptions, tiles?: TileFactory);
     _makeRoomSite(width: number, height: number): Site;
     _createSite(width: number, height: number): void;
     create(width: number, height: number, cb: DigFn): boolean;

@@ -16,7 +16,7 @@ describe('Mixed Item Library', () => {
             blocksVision: false,
         });
 
-        expect(GWD.site.getTile('STATUE_INERT').blocksVision).toBeFalsy(); // !L_BLOCKS_VISION!
+        expect(GWD.site.getTile('STATUE_INERT')!.blocksVision).toBeFalsy(); // !L_BLOCKS_VISION!
 
         // [FOLIAGE_CHAR,	fungusForestLightColor,0,						45,	15,	DF_PLAIN_FIRE,	0,			DF_TRAMPLED_FUNGUS_FOREST, 0,	FUNGUS_FOREST_LIGHT,(T_OBSTRUCTS_VISION | T_IS_FLAMMABLE), (TM_STAND_IN_TILE | TM_VANISHES_UPON_PROMOTION | TM_PROMOTES_ON_STEP),"a luminescent fungal forest", "luminescent fungal growth fills the area, groping upward from the rich soil."],
         // [TRAMPLED_FOLIAGE_CHAR,fungusForestLightColor,0,				60,	15,	DF_PLAIN_FIRE,	0,			DF_FUNGUS_FOREST_REGROW, 100,	FUNGUS_LIGHT,	(T_IS_FLAMMABLE), (TM_VANISHES_UPON_PROMOTION),                                                     "trampled fungal foliage", "luminescent fungal growth fills the area, groping upward from the rich soil."],
@@ -94,8 +94,7 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('MIXED_ITEM_LIBRARY', {
             size: '20-40',
             frequency: '8-40: 20',
-            flags:
-                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 {

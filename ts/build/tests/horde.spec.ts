@@ -22,7 +22,7 @@ describe('Mixed Item Library', () => {
         GWD.site.installTile('MANACLE_BL', { tags: 'MANACLES' });
         GWD.site.installTile('MANACLE_TL', { tags: 'MANACLES' });
 
-        expect(GWD.site.getTile('STATUE_INERT').blocksVision).toBeFalsy(); // !L_BLOCKS_VISION!
+        expect(GWD.site.getTile('STATUE_INERT')!.blocksVision).toBeFalsy(); // !L_BLOCKS_VISION!
 
         // [FOLIAGE_CHAR,	fungusForestLightColor,0,						45,	15,	DF_PLAIN_FIRE,	0,			DF_TRAMPLED_FUNGUS_FOREST, 0,	FUNGUS_FOREST_LIGHT,(T_OBSTRUCTS_VISION | T_IS_FLAMMABLE), (TM_STAND_IN_TILE | TM_VANISHES_UPON_PROMOTION | TM_PROMOTES_ON_STEP),"a luminescent fungal forest", "luminescent fungal growth fills the area, groping upward from the rich soil."],
         // [TRAMPLED_FOLIAGE_CHAR,fungusForestLightColor,0,				60,	15,	DF_PLAIN_FIRE,	0,			DF_FUNGUS_FOREST_REGROW, 100,	FUNGUS_LIGHT,	(T_IS_FLAMMABLE), (TM_VANISHES_UPON_PROMOTION),                                                     "trampled fungal foliage", "luminescent fungal growth fills the area, groping upward from the rich soil."],

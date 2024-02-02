@@ -27,14 +27,11 @@ describe('Hall', () => {
 
         test('array', () => {
             expect(UTILS.results(() => HALL.pickWidth([70, 30]))).toEqual([
-                1,
-                2,
+                1, 2,
             ]);
 
             expect(UTILS.results(() => HALL.pickWidth([50, 30, 20]))).toEqual([
-                1,
-                2,
-                3,
+                1, 2, 3,
             ]);
         });
 
@@ -117,8 +114,9 @@ describe('Hall', () => {
 
         beforeEach(() => {
             room = new Room(20, 20, 10, 10);
-            SITE.installTile('TEST');
-            site = new SITE.Site(50, 50);
+            const tiles = new SITE.TileFactory();
+            tiles.installTile('TEST');
+            site = new SITE.Site(50, 50, { tiles });
             site._tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
             //     [-1, -1],
@@ -268,7 +266,9 @@ describe('Hall', () => {
             expect(hall!.width).toEqual(9);
             expect(hall!.doors).toEqual([undefined, [39, 25]]);
 
-            expect(site._tiles.count(SITE.tileId('TEST'))).toBeGreaterThan(0);
+            expect(
+                site._tiles.count(site.tileFactory.tileId('TEST'))
+            ).toBeGreaterThan(0);
         });
     });
 
@@ -278,8 +278,9 @@ describe('Hall', () => {
 
         beforeEach(() => {
             room = new Room(20, 20, 10, 10);
-            SITE.installTile('TEST');
-            site = new SITE.Site(50, 50);
+            const tiles = new SITE.TileFactory();
+            tiles.installTile('TEST');
+            site = new SITE.Site(50, 50, { tiles });
             site._tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
             //     [-1, -1],
@@ -306,7 +307,9 @@ describe('Hall', () => {
             expect(hall!.width).toEqual(1);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
 
-            expect(site._tiles[hall!.x][hall!.y]).toEqual(SITE.tileId('TEST'));
+            expect(site._tiles[hall!.x][hall!.y]).toEqual(
+                site.tileFactory.tileId('TEST')
+            );
         });
     });
 });

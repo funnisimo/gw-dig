@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import * as Utils from './utils';
 
-import * as TILE from './tile';
+import { TileFactory, tileFactory, TileInfo } from './tile';
 import * as ITEM from './item';
 import * as HORDE from './horde';
 import * as ANALYZE from './analyze';
@@ -26,6 +26,7 @@ export const Flags = GWU.flag.make([
 
 export interface SiteOptions {
     rng?: GWU.rng.Random;
+    tiles?: TileFactory;
 }
 
 export class Site implements ANALYZE.AnalysisSite {
@@ -36,6 +37,7 @@ export class Site implements ANALYZE.AnalysisSite {
     _chokeCounts: GWU.grid.NumGrid;
 
     rng: GWU.rng.Random = GWU.rng.random;
+    tileFactory: TileFactory;
 
     items: ITEM.ItemInstance[] = [];
     actors: HORDE.ActorInstance[] = [];
@@ -46,6 +48,7 @@ export class Site implements ANALYZE.AnalysisSite {
     constructor(width: number, height: number, opts: SiteOptions = {}) {
         this.depth = 0;
         this.machineCount = 0;
+        this.tileFactory = opts.tiles || tileFactory;
 
         this._tiles = GWU.grid.alloc(width, height);
         this._doors = GWU.grid.alloc(width, height);
@@ -79,7 +82,7 @@ export class Site implements ANALYZE.AnalysisSite {
             return this._tiles.dump(fmt);
         }
 
-        this._tiles.dump((c) => TILE.getTile(c).ch || '?');
+        this._tiles.dump((c) => this.tileFactory.getTile(c)!.ch || '?');
     }
     // drawInto(buffer: GWU.canvas.Buffer): void {
     //     buffer.blackOut();
@@ -177,7 +180,7 @@ export class Site implements ANALYZE.AnalysisSite {
     }
 
     blocksMove(x: number, y: number): boolean {
-        return TILE.getTile(this._tiles[x][y]).blocksMove || false;
+        return this.tileFactory.getTile(this._tiles[x][y])!.blocksMove || false;
     }
 
     blocksDiagonal(x: number, y: number) {
@@ -194,7 +197,9 @@ export class Site implements ANALYZE.AnalysisSite {
     }
 
     blocksVision(x: number, y: number) {
-        return TILE.getTile(this._tiles[x][y]).blocksVision || false;
+        return (
+            this.tileFactory.getTile(this._tiles[x][y])!.blocksVision || false
+        );
     }
 
     blocksItems(x: number, y: number) {
@@ -240,7 +245,7 @@ export class Site implements ANALYZE.AnalysisSite {
     }
 
     tileBlocksMove(tile: string): boolean {
-        return TILE.getTile(tile).blocksMove || false;
+        return this.tileFactory.blocksMove(tile);
     }
 
     setTile(
@@ -255,7 +260,7 @@ export class Site implements ANALYZE.AnalysisSite {
         if (!this._tiles.hasXY(x, y)) return false;
 
         if (typeof tile === 'string') {
-            tile = TILE.tileId(tile);
+            tile = this.tileFactory.tileId(tile);
         }
 
         // priority checks...
@@ -268,9 +273,9 @@ export class Site implements ANALYZE.AnalysisSite {
             this._tiles[x][y] = 0;
         }
     }
-    getTile(x: number, y: number): TILE.TileInfo {
+    getTile(x: number, y: number): TileInfo {
         const id = this._tiles[x][y];
-        return TILE.getTile(id);
+        return this.tileFactory.getTile(id)!;
     }
 
     makeImpregnable(x: number, y: number): void {
@@ -284,7 +289,7 @@ export class Site implements ANALYZE.AnalysisSite {
 
     hasTile(x: number, y: number, tile: string | number): boolean {
         if (typeof tile === 'string') {
-            tile = TILE.tileId(tile);
+            tile = this.tileFactory.tileId(tile);
         }
         return this.hasXY(x, y) && this._tiles[x][y] == tile;
     }

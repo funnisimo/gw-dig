@@ -10594,7 +10594,6 @@ void main() {
 	        this.tweens.clear();
 	    }
 	    start(opts = {}) {
-	        this.app.scenes.stop(); // stop all running scenes
 	        this.app.scenes._start(this, opts); // start me
 	        return this;
 	    }
@@ -10655,18 +10654,23 @@ void main() {
 	        if (e.defaultPrevented || e.propagationStopped)
 	            return;
 	        if (e.type === KEYPRESS) {
+	            // TODO - check a flag that enables auto tabs
 	            let w = this.focused;
 	            if (w && (w.hidden || w.disabled)) {
 	                this.nextTabStop();
 	                w = this.focused;
 	            }
 	            w && w.keypress(e);
-	            if (!e.defaultPrevented) {
+	            if (w && !e.defaultPrevented) {
 	                if (e.key === 'Tab') {
-	                    this.nextTabStop();
+	                    if (this.nextTabStop()) {
+	                        e.stopPropagation(); // should we do this?
+	                    }
 	                }
 	                else if (e.key === 'TAB') {
-	                    this.prevTabStop();
+	                    if (this.prevTabStop()) {
+	                        e.stopPropagation(); // should we do this?
+	                    }
 	                }
 	            }
 	        }
@@ -10901,6 +10905,7 @@ void main() {
 	            want && want.focus(reverse);
 	        }
 	    }
+	    /** Returns true if the focus changed */
 	    nextTabStop() {
 	        if (!this.focused) {
 	            this.setFocusWidget(this.all.find((w) => !!w.prop('tabStop') && !w.disabled && !w.hidden) || null);
@@ -10914,6 +10919,7 @@ void main() {
 	        this.setFocusWidget(null);
 	        return false;
 	    }
+	    /** Returns true if the focus changed */
 	    prevTabStop() {
 	        if (!this.focused) {
 	            this.setFocusWidget(this.all.find((w) => !!w.prop('tabStop') && !w.disabled && !w.hidden) || null);
@@ -11017,11 +11023,12 @@ void main() {
 	    // }
 	    start(id, opts) {
 	        let scene = this.get(id) || this.create(id, {});
-	        scene.start(opts);
+	        this._start(scene, opts);
 	        return scene;
 	    }
 	    _start(scene, opts = {}) {
 	        this._app.io.clear();
+	        this.stop(); // stop all running scenes
 	        if (this.isBusy) {
 	            this._pending.push({ action: '_start', scene, data: opts });
 	        }
