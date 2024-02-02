@@ -398,7 +398,7 @@ export function siteDisruptedByXY(
         return false;
 
     const blockingGrid = GWU.grid.alloc(site.width, site.height);
-    blockingGrid[x][y] = 1;
+    blockingGrid.set(x, y, 1);
     const result = siteDisruptedBy(site, blockingGrid, options);
     GWU.grid.free(blockingGrid);
     return result;
@@ -429,7 +429,7 @@ export function siteDisruptedBy(
             (site.getMachine(i, j) == 0 ||
                 site.getMachine(i, j) == options.machine)
         ) {
-            walkableGrid[i][j] = 1;
+            walkableGrid.set(i, j, 1);
         }
     });
 
@@ -442,7 +442,7 @@ export function siteDisruptedBy(
     let first = true;
     for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
         for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-            if (walkableGrid[i][j] == 1) {
+            if (walkableGrid.get(i, j) == 1) {
                 if (first) {
                     walkableGrid.floodFill(i, j, 1, 2);
                     first = false;
@@ -478,7 +478,7 @@ export function siteDisruptedSize(
                 disrupts = site.width * site.height;
             }
         } else if (site.isPassable(i, j)) {
-            walkableGrid[i][j] = 1;
+            walkableGrid.set(i, j, 1);
         }
     });
 
@@ -489,7 +489,7 @@ export function siteDisruptedSize(
     let minSize = site.width * site.height;
     for (let i = 0; i < walkableGrid.width; ++i) {
         for (let j = 0; j < walkableGrid.height; ++j) {
-            if (walkableGrid[i][j] == 1) {
+            if (walkableGrid.get(i, j) == 1) {
                 const disrupted = walkableGrid.floodFill(i, j, 1, nextId++);
                 minSize = Math.min(minSize, disrupted);
                 if (first) {

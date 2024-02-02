@@ -115,7 +115,7 @@ export class Site implements ANALYZE.AnalysisSite {
 
             const v = other._tiles.get(otherX, otherY);
             if (!v) return;
-            this._tiles[x][y] = v;
+            this._tiles.set(x, y, v);
         });
     }
 
@@ -180,7 +180,10 @@ export class Site implements ANALYZE.AnalysisSite {
     }
 
     blocksMove(x: number, y: number): boolean {
-        return this.tileFactory.getTile(this._tiles[x][y])!.blocksMove || false;
+        return (
+            this.tileFactory.getTile(this._tiles.get(x, y)!)!.blocksMove ||
+            false
+        );
     }
 
     blocksDiagonal(x: number, y: number) {
@@ -198,7 +201,8 @@ export class Site implements ANALYZE.AnalysisSite {
 
     blocksVision(x: number, y: number) {
         return (
-            this.tileFactory.getTile(this._tiles[x][y])!.blocksVision || false
+            this.tileFactory.getTile(this._tiles.get(x, y)!)!.blocksVision ||
+            false
         );
     }
 
@@ -265,75 +269,75 @@ export class Site implements ANALYZE.AnalysisSite {
 
         // priority checks...
 
-        this._tiles[x][y] = tile;
+        this._tiles.set(x, y, tile);
         return true;
     }
     clearTile(x: number, y: number) {
         if (this.hasXY(x, y)) {
-            this._tiles[x][y] = 0;
+            this._tiles.set(x, y, 0);
         }
     }
     getTile(x: number, y: number): TileInfo {
-        const id = this._tiles[x][y];
+        const id = this._tiles.get(x, y) || 0;
         return this.tileFactory.getTile(id)!;
     }
 
     makeImpregnable(x: number, y: number): void {
-        this._flags[x][y] |= Flags.IMPREGNABLE;
+        this._flags._data[x][y] |= Flags.IMPREGNABLE;
         // site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
     }
 
     isImpregnable(x: number, y: number): boolean {
-        return !!(this._flags[x][y] & Flags.IMPREGNABLE);
+        return !!(this._flags.get(x, y)! & Flags.IMPREGNABLE);
     }
 
     hasTile(x: number, y: number, tile: string | number): boolean {
         if (typeof tile === 'string') {
             tile = this.tileFactory.tileId(tile);
         }
-        return this.hasXY(x, y) && this._tiles[x][y] == tile;
+        return this.hasXY(x, y) && this._tiles.get(x, y) == tile;
     }
 
     getChokeCount(x: number, y: number): number {
-        return this._chokeCounts[x][y];
+        return this._chokeCounts.get(x, y) || 0;
     }
     setChokeCount(x: number, y: number, count: number): void {
-        this._chokeCounts[x][y] = count;
+        this._chokeCounts.set(x, y, count);
     }
 
     getFlags(x: number, y: number): number {
-        return this._flags[x][y];
+        return this._flags.get(x, y) || 0;
     }
 
     setChokepoint(x: number, y: number): void {
-        this._flags[x][y] |= Flags.CHOKEPOINT;
+        this._flags._data[x][y] |= Flags.CHOKEPOINT;
     }
     isChokepoint(x: number, y: number): boolean {
-        return !!(this._flags[x][y] & Flags.CHOKEPOINT);
+        return !!(this._flags.get(x, y)! & Flags.CHOKEPOINT);
     }
     clearChokepoint(x: number, y: number): void {
-        this._flags[x][y] &= ~Flags.CHOKEPOINT;
+        this._flags._data[x][y] &= ~Flags.CHOKEPOINT;
     }
 
     setGateSite(x: number, y: number): void {
-        this._flags[x][y] |= Flags.GATE_SITE;
+        this._flags._data[x][y] |= Flags.GATE_SITE;
     }
     isGateSite(x: number, y: number): boolean {
-        return !!(this._flags[x][y] & Flags.GATE_SITE);
+        return !!(this._flags.get(x, y)! & Flags.GATE_SITE);
     }
 
     clearGateSite(x: number, y: number): void {
-        this._flags[x][y] &= ~Flags.GATE_SITE;
+        this._flags._data[x][y] &= ~Flags.GATE_SITE;
     }
 
     setInLoop(x: number, y: number): void {
-        this._flags[x][y] |= Flags.IN_LOOP;
+        this._flags._data[x][y] |= Flags.IN_LOOP;
     }
     isInLoop(x: number, y: number): boolean {
-        return !!(this._flags[x][y] & Flags.IN_LOOP);
+        return !!(this._flags.get(x, y)! & Flags.IN_LOOP);
     }
     clearInLoop(x: number, y: number): void {
-        this._flags[x][y] &= ~Flags.IN_LOOP;
+        this._flags._data[x][y] &= ~Flags.IN_LOOP;
     }
 
     analyze(updateChokeCounts = true): void {
@@ -354,18 +358,18 @@ export class Site implements ANALYZE.AnalysisSite {
         return this.machineCount;
     }
     setMachine(x: number, y: number, id: number, isRoom?: boolean): void {
-        this._machine[x][y] = id;
+        this._machine.set(x, y, id);
         const flag = isRoom ? Flags.IN_MACHINE : Flags.IN_AREA_MACHINE;
-        this._flags[x][y] |= flag;
+        this._flags._data[x][y] |= flag;
     }
     isAreaMachine(x: number, y: number): boolean {
-        return !!(this._machine[x][y] & Flags.IN_AREA_MACHINE);
+        return !!(this._machine.get(x, y)! & Flags.IN_AREA_MACHINE);
     }
     isInMachine(x: number, y: number): boolean {
-        return this._machine[x][y] > 0;
+        return this._machine.get(x, y)! > 0;
     }
     getMachine(x: number, y: number): number {
-        return this._machine[x][y];
+        return this._machine.get(x, y) || 0;
     }
 
     needsMachine(_x: number, _y: number): boolean {
@@ -383,7 +387,7 @@ export class Site implements ANALYZE.AnalysisSite {
         });
     }
     getDoorDir(x: number, y: number): number {
-        return this._doors[x][y];
+        return this._doors.get(x, y) || 0;
     }
 
     // tileBlocksMove(tile: number): boolean {

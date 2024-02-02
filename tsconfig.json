@@ -4,7 +4,7 @@
     "compilerOptions": {
         "strict": true,
         "outDir": "_temp",
-        "target": "es2019",
+        "target": "ESNext",
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noEmitOnError": true,

@@ -41,7 +41,7 @@ describe('spread type', () => {
             ).toBeTruthy();
 
             expect(grid.count((v) => !!v)).toEqual(1);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
         });
 
         test('0:0', () => {
@@ -59,7 +59,7 @@ describe('spread type', () => {
             ).toBeTruthy();
 
             expect(grid.count((v) => !!v)).toEqual(1);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
         });
 
         test('100:100', () => {
@@ -73,7 +73,7 @@ describe('spread type', () => {
             ).toBeTruthy();
 
             expect(grid.count((v) => !!v)).toEqual(5);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
             grid.eachNeighbor(5, 6, (v) => expect(v).toEqual(2), true);
         });
 
@@ -92,7 +92,7 @@ describe('spread type', () => {
             ).toBeTruthy();
 
             expect(grid.count((v) => !!v)).toEqual(1 + 4 + 8);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
             grid.eachNeighbor(5, 6, (v) => expect(v).toEqual(2), true);
             expect(grid.count(3)).toEqual(8);
         });
@@ -122,7 +122,7 @@ describe('spread type', () => {
 
             expect(grid.count(1)).toEqual(1);
             expect(grid.count(0)).toEqual(map.width * map.height - 1);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
         });
 
         test('must touch walls', () => {
@@ -150,7 +150,7 @@ describe('spread type', () => {
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(2)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
-            expect(grid[5][6]).toEqual(0);
+            expect(grid.get(5, 6)).toEqual(0);
 
             // next to a wall
             map.setTile(5, 6, 'FLOOR');
@@ -164,7 +164,7 @@ describe('spread type', () => {
             expect(grid.count(1)).toEqual(1);
             expect(grid.count(2)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height - 1);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
         });
 
         test('no touch walls', () => {
@@ -182,7 +182,7 @@ describe('spread type', () => {
             ).toBeTruthy();
             expect(grid.count(1)).toEqual(1);
             expect(grid.count((v) => !!v)).toEqual(5);
-            expect(grid[5][6]).toEqual(1);
+            expect(grid.get(5, 6)).toEqual(1);
 
             // on a wall - no
             map.setTile(5, 6, 'WALL');
@@ -191,7 +191,7 @@ describe('spread type', () => {
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
-            expect(grid[5][6]).toEqual(0);
+            expect(grid.get(5, 6)).toEqual(0);
 
             // next to a wall - no
             map.setTile(5, 6, 'FLOOR');
@@ -201,7 +201,7 @@ describe('spread type', () => {
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
-            expect(grid[5][6]).toEqual(0);
+            expect(grid.get(5, 6)).toEqual(0);
         });
 
         // test('spread map - blocks effects', () => {
@@ -215,7 +215,7 @@ describe('spread type', () => {
         //     ).toBeTruthy();
         //     expect(grid.count(1)).toEqual(1);
         //     expect(grid.count(2)).toEqual(4);
-        //     expect(grid[5][6]).toEqual(1);
+        //     expect(grid.get(5,6)).toEqual(1);
         //     grid.eachNeighbor(5, 6, (v) => expect(v).toEqual(2), true);
 
         //     // blocks effects
@@ -248,7 +248,7 @@ describe('spread type', () => {
         //     ).toBeTruthy();
         //     expect(grid.count(1)).toEqual(1);
         //     expect(grid.count(2)).toEqual(2);
-        //     expect(grid[5][6]).toEqual(1);
+        //     expect(grid.get(5,6)).toEqual(1);
         //     expect(grid[5 - 1][6]).toEqual(0);
         //     expect(grid[5 + 1][6]).toEqual(2);
         //     expect(grid[5][6 - 1]).toEqual(0);
@@ -267,9 +267,9 @@ describe('spread type', () => {
 
             // grid.dump();
             expect(grid.count((v) => !!v)).toEqual(3);
-            expect(grid[10][10]).toEqual(1);
-            expect(grid[10][9]).toEqual(2);
-            expect(grid[10][11]).toEqual(0);
+            expect(grid.get(10, 10)).toEqual(1);
+            expect(grid.get(10, 9)).toEqual(2);
+            expect(grid.get(10, 11)).toEqual(0);
         });
 
         // { spread: 100, decrement: 100, matchTile: "DOOR" }
@@ -310,9 +310,9 @@ describe('spread type', () => {
             ).toBeTruthy();
             // grid.dump();
             expect(grid.count((v) => !!v)).toEqual(5);
-            expect(grid[10][10]).toEqual(1);
-            expect(grid[9][8]).toEqual(0);
-            expect(grid[10][8]).toEqual(3);
+            expect(grid.get(10, 10)).toEqual(1);
+            expect(grid.get(9, 8)).toEqual(0);
+            expect(grid.get(10, 8)).toEqual(3);
         });
     });
 

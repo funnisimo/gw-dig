@@ -2874,18 +2874,18 @@
 	        return '#';
 	    }
 	}
-	class Grid extends Array {
+	class Grid {
 	    constructor(w, h, v) {
-	        super(w);
+	        this._data = []; // TODO - Can this stay protected?
 	        const grid = this;
 	        for (let x = 0; x < w; ++x) {
 	            if (typeof v === 'function') {
-	                this[x] = new Array(h)
+	                this._data[x] = new Array(h)
 	                    .fill(0)
 	                    .map((_, i) => v(x, i, grid));
 	            }
 	            else {
-	                this[x] = new Array(h).fill(v);
+	                this._data[x] = new Array(h).fill(v);
 	            }
 	        }
 	        this._width = w;
@@ -2898,27 +2898,26 @@
 	        return this._height;
 	    }
 	    get(x, y) {
-	        if (!this.hasXY(x, y))
+	        if (!this.hasXY(x, y)) {
 	            return undefined;
-	        return this[x][y];
+	        }
+	        return this._data[x][y];
 	    }
 	    set(x, y, v) {
 	        if (!this.hasXY(x, y))
 	            return false;
-	        this[x][y] = v;
+	        this._data[x][y] = v;
 	        return true;
 	    }
 	    /**
 	     * Calls the supplied function for each cell in the grid.
 	     * @param fn - The function to call on each item in the grid.
-	     * TSIGNORE
 	     */
-	    // @ts-ignore
 	    forEach(fn) {
 	        let i, j;
 	        for (i = 0; i < this.width; i++) {
 	            for (j = 0; j < this.height; j++) {
-	                fn(this[i][j], i, j, this);
+	                fn(this._data[i][j], i, j, this);
 	            }
 	        }
 	    }
@@ -2926,14 +2925,14 @@
 	        let i, j;
 	        for (i = 0; i < this.width; i++) {
 	            for (j = 0; j < this.height; j++) {
-	                await fn(this[i][j], i, j, this);
+	                await fn(this._data[i][j], i, j, this);
 	            }
 	        }
 	    }
 	    eachNeighbor(x, y, fn, only4dirs = false) {
 	        eachNeighbor(x, y, (i, j) => {
 	            if (this.hasXY(i, j)) {
-	                fn(this[i][j], i, j, this);
+	                fn(this._data[i][j], i, j, this);
 	            }
 	        }, only4dirs);
 	    }
@@ -2944,14 +2943,14 @@
 	            const i = x + dir[0];
 	            const j = y + dir[1];
 	            if (this.hasXY(i, j)) {
-	                await fn(this[i][j], i, j, this);
+	                await fn(this._data[i][j], i, j, this);
 	            }
 	        }
 	    }
 	    forRect(x, y, w, h, fn) {
 	        forRect(x, y, w, h, (i, j) => {
 	            if (this.hasXY(i, j)) {
-	                fn(this[i][j], i, j, this);
+	                fn(this._data[i][j], i, j, this);
 	            }
 	        });
 	    }
@@ -2961,7 +2960,7 @@
 	            const n = sequence[i];
 	            const x = n % this.width;
 	            const y = Math.floor(n / this.width);
-	            if (fn(this[x][y], x, y, this) === true)
+	            if (fn(this._data[x][y], x, y, this) === true)
 	                return true;
 	        }
 	        return false;
@@ -2972,9 +2971,7 @@
 	     * TODO - Do we need this???
 	     * TODO - Should this only be in NumGrid?
 	     * TODO - Should it alloc instead of using constructor?
-	     * TSIGNORE
 	     */
-	    // @ts-ignore
 	    map(fn) {
 	        // @ts-ignore
 	        const other = new this.constructor(this.width, this.height);
@@ -2988,16 +2985,14 @@
 	     * TODO - Do we need this???
 	     * TODO - Should this only be in NumGrid?
 	     * TODO - Should it alloc instead of using constructor?
-	     * TSIGNORE
 	     */
-	    // @ts-ignore
 	    some(fn) {
-	        return super.some((col, x) => col.some((data, y) => fn(data, x, y, this)));
+	        return this._data.some((col, x) => col.some((data, y) => fn(data, x, y, this)));
 	    }
 	    forCircle(x, y, radius, fn) {
 	        forCircle(x, y, radius, (i, j) => {
 	            if (this.hasXY(i, j))
-	                fn(this[i][j], i, j, this);
+	                fn(this._data[i][j], i, j, this);
 	        });
 	    }
 	    hasXY(x, y) {
@@ -3030,28 +3025,26 @@
 	    }
 	    update(fn) {
 	        forRect(this.width, this.height, (i, j) => {
-	            this[i][j] = fn(this[i][j], i, j, this);
+	            this._data[i][j] = fn(this._data[i][j], i, j, this);
 	        });
 	    }
 	    updateRect(x, y, width, height, fn) {
 	        forRect(x, y, width, height, (i, j) => {
 	            if (this.hasXY(i, j))
-	                this[i][j] = fn(this[i][j], i, j, this);
+	                this._data[i][j] = fn(this._data[i][j], i, j, this);
 	        });
 	    }
 	    updateCircle(x, y, radius, fn) {
 	        forCircle(x, y, radius, (i, j) => {
 	            if (this.hasXY(i, j)) {
-	                this[i][j] = fn(this[i][j], i, j, this);
+	                this._data[i][j] = fn(this._data[i][j], i, j, this);
 	            }
 	        });
 	    }
 	    /**
 	     * Fills the entire grid with the supplied value
 	     * @param v - The fill value or a function that returns the fill value.
-	     * TSIGNORE
 	     */
-	    // @ts-ignore
 	    fill(v) {
 	        const fn = typeof v === 'function' ? v : () => v;
 	        this.update(fn);
@@ -3069,7 +3062,7 @@
 	    }
 	    copy(from) {
 	        // TODO - check width, height?
-	        this.update((_, i, j) => from[i][j]);
+	        this.update((_, i, j) => from._data[i][j]);
 	    }
 	    count(match) {
 	        const fn = typeof match === 'function'
@@ -3086,16 +3079,14 @@
 	     * Finds the first matching value/result and returns that location as an xy.Loc
 	     * @param v - The fill value or a function that returns the fill value.
 	     * @returns xy.Loc | null - The location of the first cell matching the criteria or null if not found.
-	     * TSIGNORE
 	     */
-	    // @ts-ignore
 	    find(match) {
 	        const fn = typeof match === 'function'
 	            ? match
 	            : (v) => v == match;
 	        for (let x = 0; x < this.width; ++x) {
 	            for (let y = 0; y < this.height; ++y) {
-	                const v = this[x][y];
+	                const v = this._data[x][y];
 	                if (fn(v, x, y, this))
 	                    return [x, y];
 	            }
@@ -3144,7 +3135,7 @@
 	            : (val) => val == v;
 	        for (let i = 0; i < this.width; ++i) {
 	            for (let j = 0; j < this.height; ++j) {
-	                if (fn(this[i][j], i, j, this)) {
+	                if (fn(this._data[i][j], i, j, this)) {
 	                    return [i, j];
 	                }
 	            }
@@ -3153,13 +3144,13 @@
 	    }
 	    randomMatchingLoc(v) {
 	        const fn = typeof v === 'function'
-	            ? (x, y) => v(this[x][y], x, y, this)
+	            ? (x, y) => v(this._data[x][y], x, y, this)
 	            : (x, y) => this.get(x, y) === v;
 	        return random.matchingLoc(this.width, this.height, fn);
 	    }
 	    matchingLocNear(x, y, v) {
 	        const fn = typeof v === 'function'
-	            ? (x, y) => v(this[x][y], x, y, this)
+	            ? (x, y) => v(this._data[x][y], x, y, this)
 	            : (x, y) => this.get(x, y) === v;
 	        return random.matchingLocNear(x, y, fn);
 	    }
@@ -3172,7 +3163,7 @@
 	    //		Five or more means there is a bug.
 	    arcCount(x, y, testFn) {
 	        return arcCount(x, y, (i, j) => {
-	            return this.hasXY(i, j) && testFn(this[i][j], i, j, this);
+	            return this.hasXY(i, j) && testFn(this._data[i][j], i, j, this);
 	        });
 	    }
 	}
@@ -3220,13 +3211,13 @@
 	    }
 	    _resize(width, height, v) {
 	        const fn = typeof v === 'function' ? v : () => v;
-	        while (this.length < width)
-	            this.push([]);
-	        this.length = width;
+	        while (this._data.length < width)
+	            this._data.push([]);
+	        this._data.length = width;
 	        let x = 0;
 	        let y = 0;
 	        for (x = 0; x < width; ++x) {
-	            const col = this[x];
+	            const col = this._data[x];
 	            for (y = 0; y < height; ++y) {
 	                col[y] = fn(x, y, this);
 	            }
@@ -3238,6 +3229,10 @@
 	            this.x = undefined;
 	            this.y = undefined;
 	        }
+	    }
+	    increment(x, y, inc = 1) {
+	        this._data[x][y] += inc;
+	        return this._data[x][y];
 	    }
 	    findReplaceRange(findValueMin, findValueMax, fillValue) {
 	        this.update((v) => {
@@ -3257,12 +3252,12 @@
 	        }
 	        const ok = (x, y) => {
 	            return (this.hasXY(x, y) &&
-	                this[x][y] >= eligibleValueMin &&
-	                this[x][y] <= eligibleValueMax);
+	                this._data[x][y] >= eligibleValueMin &&
+	                this._data[x][y] <= eligibleValueMax);
 	        };
 	        if (!ok(x, y))
 	            return 0;
-	        this[x][y] = fillValue;
+	        this._data[x][y] = fillValue;
 	        for (dir = 0; dir < 4; dir++) {
 	            newX = x + DIRS$1[dir][0];
 	            newY = y + DIRS$1[dir][1];
@@ -3297,7 +3292,7 @@
 	        for (i = 0; i < this.width; i++) {
 	            foundValueAtThisLine = false;
 	            for (j = 0; j < this.height; j++) {
-	                if (this[i][j] == value) {
+	                if (this._data[i][j] == value) {
 	                    foundValueAtThisLine = true;
 	                    break;
 	                }
@@ -3315,7 +3310,7 @@
 	        for (j = 0; j < this.height; j++) {
 	            foundValueAtThisLine = false;
 	            for (i = 0; i < this.width; i++) {
-	                if (this[i][j] == value) {
+	                if (this._data[i][j] == value) {
 	                    foundValueAtThisLine = true;
 	                    break;
 	                }
@@ -3351,12 +3346,12 @@
 	            const item = todo.pop();
 	            [x, y] = item;
 	            free.push(item);
-	            if (!this.hasXY(x, y) || done[x][y])
+	            if (!this.hasXY(x, y) || done._data[x][y])
 	                continue;
-	            if (!matchFn(this[x][y], x, y, this))
+	            if (!matchFn(this._data[x][y], x, y, this))
 	                continue;
-	            this[x][y] = fillFn(this[x][y], x, y, this);
-	            done[x][y] = 1;
+	            this._data[x][y] = fillFn(this._data[x][y], x, y, this);
+	            done._data[x][y] = 1;
 	            ++count;
 	            // Iterate through the four cardinal neighbors.
 	            for (let dir = 0; dir < 4; dir++) {
@@ -3386,7 +3381,7 @@
 	function offsetZip(destGrid, srcGrid, srcToDestX, srcToDestY, value) {
 	    const fn = typeof value === 'function'
 	        ? value
-	        : (_d, _s, dx, dy) => (destGrid[dx][dy] = value);
+	        : (_d, _s, dx, dy) => (destGrid._data[dx][dy] = value);
 	    srcGrid.forEach((c, i, j) => {
 	        const destX = i + srcToDestX;
 	        const destY = j + srcToDestY;
@@ -3394,20 +3389,20 @@
 	            return;
 	        if (!c)
 	            return;
-	        fn(destGrid[destX][destY], c, destX, destY, i, j, destGrid, srcGrid);
+	        fn(destGrid._data[destX][destY], c, destX, destY, i, j, destGrid, srcGrid);
 	    });
 	}
 	// Grid.offsetZip = offsetZip;
 	function intersection(onto, a, b) {
 	    b = b || onto;
 	    // @ts-ignore
-	    onto.update((_, i, j) => (a[i][j] && b[i][j]) || 0);
+	    onto.update((_, i, j) => (a.get(i, j) && b.get(i, j)) || 0);
 	}
 	// Grid.intersection = intersection;
 	function unite(onto, a, b) {
 	    b = b || onto;
 	    // @ts-ignore
-	    onto.update((_, i, j) => b[i][j] || a[i][j]);
+	    onto.update((_, i, j) => b.get(i, j) || a.get(i, j));
 	}
 
 	var grid = /*#__PURE__*/Object.freeze({
@@ -3668,7 +3663,7 @@
 	            index = this.range(0, locationCount - 1);
 	            for (i = 0; i < width && index >= 0; i++) {
 	                for (j = 0; j < height && index >= 0; j++) {
-	                    if (grid$1[i][j]) {
+	                    if (grid$1.get(i, j)) {
 	                        if (index == 0) {
 	                            free$1(grid$1);
 	                            return [i, j];
@@ -6484,38 +6479,38 @@
 	        }
 	    }
 	    getFlag(x, y) {
-	        return this.flags[x][y];
+	        return this.flags.get(x, y) || 0;
 	    }
 	    isVisible(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.VISIBLE);
+	        return !!(this.getFlag(x, y) & FovFlags.VISIBLE);
 	    }
 	    isAnyKindOfVisible(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.ANY_KIND_OF_VISIBLE);
+	        return !!(this.getFlag(x, y) & FovFlags.ANY_KIND_OF_VISIBLE);
 	    }
 	    isClairvoyantVisible(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.CLAIRVOYANT_VISIBLE);
+	        return !!(this.getFlag(x, y) & FovFlags.CLAIRVOYANT_VISIBLE);
 	    }
 	    isTelepathicVisible(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.TELEPATHIC_VISIBLE);
+	        return !!(this.getFlag(x, y) & FovFlags.TELEPATHIC_VISIBLE);
 	    }
 	    isInFov(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.IN_FOV);
+	        return !!(this.getFlag(x, y) & FovFlags.IN_FOV);
 	    }
 	    isDirectlyVisible(x, y) {
 	        const flags = FovFlags.VISIBLE | FovFlags.IN_FOV;
-	        return ((this.flags.get(x, y) || 0) & flags) === flags;
+	        return (this.getFlag(x, y) & flags) === flags;
 	    }
 	    isActorDetected(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.ACTOR_DETECTED);
+	        return !!(this.getFlag(x, y) & FovFlags.ACTOR_DETECTED);
 	    }
 	    isItemDetected(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.ITEM_DETECTED);
+	        return !!(this.getFlag(x, y) & FovFlags.ITEM_DETECTED);
 	    }
 	    isMagicMapped(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.MAGIC_MAPPED);
+	        return !!(this.getFlag(x, y) & FovFlags.MAGIC_MAPPED);
 	    }
 	    isRevealed(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.REVEALED);
+	        return !!(this.getFlag(x, y) & FovFlags.REVEALED);
 	    }
 	    fovChanged(x, y) {
 	        const flags = this.flags.get(x, y) || 0;
@@ -6524,19 +6519,19 @@
 	        return isVisible !== wasVisible;
 	    }
 	    wasAnyKindOfVisible(x, y) {
-	        return !!((this.flags.get(x, y) || 0) & FovFlags.WAS_ANY_KIND_OF_VISIBLE);
+	        return !!(this.getFlag(x, y) & FovFlags.WAS_ANY_KIND_OF_VISIBLE);
 	    }
 	    makeAlwaysVisible() {
 	        this.changed = true;
 	        this.flags.forEach((_v, x, y) => {
-	            this.flags[x][y] |=
+	            this.flags._data[x][y] |=
 	                FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
 	            this.callback(x, y, true);
 	        });
 	    }
 	    makeCellAlwaysVisible(x, y) {
 	        this.changed = true;
-	        this.flags[x][y] |=
+	        this.flags._data[x][y] |=
 	            FovFlags.ALWAYS_VISIBLE | FovFlags.REVEALED | FovFlags.VISIBLE;
 	        this.callback(x, y, true);
 	    }
@@ -6551,21 +6546,21 @@
 	    revealCell(x, y, radius = 0, makeVisibleToo = true) {
 	        const flag = FovFlags.REVEALED | (makeVisibleToo ? FovFlags.VISIBLE : 0);
 	        this.fov.calculate(x, y, radius, (x0, y0) => {
-	            this.flags[x0][y0] |= flag;
+	            this.flags._data[x0][y0] |= flag;
 	            this.callback(x0, y0, !!(flag & FovFlags.VISIBLE));
 	        });
 	        this.changed = true;
 	    }
 	    hideCell(x, y) {
-	        this.flags[x][y] &= ~(FovFlags.MAGIC_MAPPED |
+	        this.flags._data[x][y] &= ~(FovFlags.MAGIC_MAPPED |
 	            FovFlags.REVEALED |
 	            FovFlags.ALWAYS_VISIBLE);
-	        this.flags[x][y] = this.demoteCellVisibility(this.flags[x][y]); // clears visible, etc...
+	        this.flags._data[x][y] = this.demoteCellVisibility(this.flags._data[x][y]); // clears visible, etc...
 	        this.callback(x, y, false);
 	        this.changed = true;
 	    }
 	    magicMapCell(x, y) {
-	        this.flags[x][y] |= FovFlags.MAGIC_MAPPED;
+	        this.flags._data[x][y] |= FovFlags.MAGIC_MAPPED;
 	        this.changed = true;
 	        this.callback(x, y, true);
 	    }
@@ -6588,7 +6583,7 @@
 	        if (!keep) {
 	            this.flags.update((f) => f & ~FovFlags.IS_CURSOR);
 	        }
-	        this.flags[x][y] |= FovFlags.IS_CURSOR;
+	        this.flags._data[x][y] |= FovFlags.IS_CURSOR;
 	        this.changed = true;
 	    }
 	    clearCursor(x, y) {
@@ -6596,19 +6591,19 @@
 	            this.flags.update((f) => f & ~FovFlags.IS_CURSOR);
 	        }
 	        else {
-	            this.flags[x][y] &= ~FovFlags.IS_CURSOR;
+	            this.flags._data[x][y] &= ~FovFlags.IS_CURSOR;
 	        }
 	        this.changed = true;
 	    }
 	    isCursor(x, y) {
-	        return !!(this.flags[x][y] & FovFlags.IS_CURSOR);
+	        return !!(this.flags._data[x][y] & FovFlags.IS_CURSOR);
 	    }
 	    // HIGHLIGHT
 	    setHighlight(x, y, keep = false) {
 	        if (!keep) {
 	            this.flags.update((f) => f & ~FovFlags.IS_HIGHLIGHTED);
 	        }
-	        this.flags[x][y] |= FovFlags.IS_HIGHLIGHTED;
+	        this.flags._data[x][y] |= FovFlags.IS_HIGHLIGHTED;
 	        this.changed = true;
 	    }
 	    clearHighlight(x, y) {
@@ -6616,12 +6611,12 @@
 	            this.flags.update((f) => f & ~FovFlags.IS_HIGHLIGHTED);
 	        }
 	        else {
-	            this.flags[x][y] &= ~FovFlags.IS_HIGHLIGHTED;
+	            this.flags._data[x][y] &= ~FovFlags.IS_HIGHLIGHTED;
 	        }
 	        this.changed = true;
 	    }
 	    isHighlight(x, y) {
-	        return !!(this.flags[x][y] & FovFlags.IS_HIGHLIGHTED);
+	        return !!(this.flags._data[x][y] & FovFlags.IS_HIGHLIGHTED);
 	    }
 	    // COPY
 	    // copy(other: FovSystem) {
@@ -6674,7 +6669,7 @@
 	        if (isVisible && wasVisible) ;
 	        else if (isVisible && !wasVisible) {
 	            // if the cell became visible this move
-	            this.flags[x][y] |= FovFlags.REVEALED;
+	            this.flags._data[x][y] |= FovFlags.REVEALED;
 	            this._callback(x, y, isVisible);
 	            this.changed = true;
 	        }
@@ -6758,7 +6753,7 @@
 	            this.site.hasVisibleLight(x, y) // &&
 	        // !(cell.flags.cellMech & FovFlagsMech.DARKENED)
 	        ) {
-	            flag = this.flags[x][y] |= FovFlags.VISIBLE;
+	            flag = this.flags._data[x][y] |= FovFlags.VISIBLE;
 	        }
 	        if (this.updateCellVisibility(flag, x, y))
 	            return;
@@ -6797,19 +6792,19 @@
 	            // if (!flag)
 	            //     throw new Error('Received invalid viewport type: ' + Flag.toString(FovFlags, type));
 	            if (radius == 0) {
-	                this.flags[x][y] |= flag;
+	                this.flags._data[x][y] |= flag;
 	                return;
 	            }
 	            this.fov.calculate(x, y, radius, (x, y, v) => {
 	                if (v) {
-	                    this.flags[x][y] |= flag;
+	                    this.flags._data[x][y] |= flag;
 	                }
 	            });
 	        });
 	        if (cx !== undefined && cy !== undefined) {
 	            this.fov.calculate(cx, cy, cr, (x, y, v) => {
 	                if (v) {
-	                    this.flags[x][y] |= FovFlags.PLAYER;
+	                    this.flags._data[x][y] |= FovFlags.PLAYER;
 	                }
 	            });
 	        }
@@ -7184,7 +7179,7 @@
 	    dm.reset(grid.width, grid.height);
 	    dm.setGoal(from);
 	    dm.calculate(costFn, only4dirs);
-	    dm.forEach((v, x, y) => (grid[x][y] = v));
+	    dm.forEach((v, x, y) => grid.set(x, y, v));
 	}
 	const maps = [];
 	function alloc() {
@@ -8979,8 +8974,10 @@ void main() {
 	            survivalParameters: 'ffffttttt',
 	        };
 	        Object.assign(this.options, opts);
-	        this.options.birthParameters = this.options.birthParameters.toLowerCase();
-	        this.options.survivalParameters = this.options.survivalParameters.toLowerCase();
+	        this.options.birthParameters =
+	            this.options.birthParameters.toLowerCase();
+	        this.options.survivalParameters =
+	            this.options.survivalParameters.toLowerCase();
 	        if (this.options.minWidth >= this.options.maxWidth) {
 	            this.options.minWidth = Math.round(0.75 * this.options.maxWidth);
 	            this.options.maxWidth = Math.round(1.25 * this.options.maxWidth);
@@ -9009,7 +9006,7 @@ void main() {
 	            // Fill relevant portion with noise based on the percentSeeded argument.
 	            for (i = 0; i < maxWidth; i++) {
 	                for (j = 0; j < maxHeight; j++) {
-	                    dest[i + left][j + top] = this.options.rng.chance(this.options.percentSeeded)
+	                    dest._data[i + left][j + top] = this.options.rng.chance(this.options.percentSeeded)
 	                        ? 1
 	                        : 0;
 	                }
@@ -9027,7 +9024,7 @@ void main() {
 	            blobNumber = 2;
 	            for (i = 0; i < dest.width; i++) {
 	                for (j = 0; j < dest.height; j++) {
-	                    if (dest[i][j] == 1) {
+	                    if (dest._data[i][j] == 1) {
 	                        // an unmarked blob
 	                        // Mark all the cells and returns the total size:
 	                        blobSize = dest.floodFill(i, j, 1, blobNumber);
@@ -9049,7 +9046,7 @@ void main() {
 	        // Replace the winning blob with 1's, and everything else with 0's:
 	        for (i = 0; i < dest.width; i++) {
 	            for (j = 0; j < dest.height; j++) {
-	                if (dest[i][j] == topBlobNumber) {
+	                if (dest._data[i][j] == topBlobNumber) {
 	                    setFn(i, j);
 	                }
 	            }
@@ -9071,19 +9068,19 @@ void main() {
 	                for (dir = 0; dir < DIRS$2.length; dir++) {
 	                    newX = i + DIRS$2[dir][0];
 	                    newY = j + DIRS$2[dir][1];
-	                    if (grid$1.hasXY(newX, newY) && buffer2[newX][newY]) {
+	                    if (grid$1.hasXY(newX, newY) && buffer2._data[newX][newY]) {
 	                        nbCount++;
 	                    }
 	                }
-	                if (!buffer2[i][j] &&
+	                if (!buffer2._data[i][j] &&
 	                    this.options.birthParameters[nbCount] == 't') {
-	                    grid$1[i][j] = 1; // birth
+	                    grid$1._data[i][j] = 1; // birth
 	                    didSomething = true;
 	                }
-	                else if (buffer2[i][j] &&
+	                else if (buffer2._data[i][j] &&
 	                    this.options.survivalParameters[nbCount] == 't') ;
 	                else {
-	                    grid$1[i][j] = 0; // death
+	                    grid$1._data[i][j] = 0; // death
 	                    didSomething = true;
 	                }
 	            }
@@ -9094,7 +9091,7 @@ void main() {
 	}
 	function fillBlob(grid, opts = {}) {
 	    const blob = new Blob(opts);
-	    return blob.carve(grid.width, grid.height, (x, y) => (grid[x][y] = 1));
+	    return blob.carve(grid.width, grid.height, (x, y) => (grid._data[x][y] = 1));
 	}
 	function make$4(opts = {}) {
 	    return new Blob(opts);
@@ -9154,7 +9151,7 @@ void main() {
 	        const fadeToPercent = this.fadeTo;
 	        const grid$1 = alloc$1(site.width, site.height, 0);
 	        site.calcFov(x, y, outerRadius, this.passThroughActors, (i, j) => {
-	            grid$1[i][j] = 1;
+	            grid$1.set(i, j, 1);
 	        });
 	        // let overlappedFieldOfView = false;
 	        const lightValue = [0, 0, 0];
@@ -9321,34 +9318,39 @@ void main() {
 	        return this.glowLightChanged || this.dynamicLightChanged;
 	    }
 	    getLight(x, y) {
-	        return this.light[x][y];
+	        return this.light.get(x, y) || [0, 0, 0];
 	    }
 	    setLight(x, y, light) {
-	        const val = this.light[x][y];
+	        const val = this.light.get(x, y);
+	        if (!val)
+	            return;
 	        for (let i = 0; i < 3; ++i) {
 	            val[i] = light[i];
 	        }
 	    }
+	    _getFlag(x, y) {
+	        return this.flags.get(x, y) || 0;
+	    }
 	    isLit(x, y) {
-	        return !!(this.flags[x][y] & LightFlags.LIT);
+	        return !!(this._getFlag(x, y) & LightFlags.LIT);
 	    }
 	    isDark(x, y) {
-	        return !!(this.flags[x][y] & LightFlags.DARK);
+	        return !!(this._getFlag(x, y) & LightFlags.DARK);
 	    }
 	    isInShadow(x, y) {
-	        return !!(this.flags[x][y] & LightFlags.IN_SHADOW);
+	        return !!(this._getFlag(x, y) & LightFlags.IN_SHADOW);
 	    }
 	    // isMagicDark(x: number, y: number): boolean {
-	    //     return !!(this.flags[x][y] & LightFlags.MAGIC_DARK);
+	    //     return !!(this.flags.get(x,y) & LightFlags.MAGIC_DARK);
 	    // }
 	    lightChanged(x, y) {
-	        return !!(this.flags[x][y] & LightFlags.CHANGED);
+	        return !!(this._getFlag(x, y) & LightFlags.CHANGED);
 	    }
 	    // setMagicDark(x: number, y: number, isDark = true) {
 	    //     if (isDark) {
 	    //         this.flags[x][y] |= LightFlags.MAGIC_DARK;
 	    //     } else {
-	    //         this.flags[x][y] &= ~LightFlags.MAGIC_DARK;
+	    //         this.flags.get(x,y) &= ~LightFlags.MAGIC_DARK;
 	    //     }
 	    // }
 	    get width() {
@@ -9473,33 +9475,33 @@ void main() {
 	            : 0;
 	        this.light.forEach((val, x, y) => {
 	            for (i = 0; i < 3; ++i) {
-	                this.oldLight[x][y][i] = val[i];
+	                this.oldLight._data[x][y][i] = val[i];
 	                val[i] = this.ambient[i];
 	            }
-	            this.flags[x][y] = flag;
+	            this.flags.set(x, y, flag);
 	        });
 	    }
 	    finishLightUpdate() {
 	        forRect(this.width, this.height, (x, y) => {
 	            // clear light flags
-	            // this.flags[x][y] &= ~(LightFlags.LIT | LightFlags.DARK);
-	            const oldLight = this.oldLight[x][y];
-	            const light = this.light[x][y];
+	            // this.flags.get(x,y) &= ~(LightFlags.LIT | LightFlags.DARK);
+	            const oldLight = this.oldLight.get(x, y) || [0, 0, 0];
+	            const light = this.light.get(x, y) || [0, 0, 0];
 	            if (light.some((v, i) => v !== oldLight[i])) {
-	                this.flags[x][y] |= LightFlags.CHANGED;
+	                this.flags._data[x][y] |= LightFlags.CHANGED;
 	            }
 	            if (isDarkLight(light)) {
-	                this.flags[x][y] |= LightFlags.DARK;
+	                this.flags._data[x][y] |= LightFlags.DARK;
 	            }
 	            else if (!isShadowLight(light)) {
-	                this.flags[x][y] |= LightFlags.LIT;
+	                this.flags._data[x][y] |= LightFlags.LIT;
 	            }
 	        });
 	    }
 	    recordGlowLights() {
 	        let i = 0;
 	        this.light.forEach((val, x, y) => {
-	            const glowLight = this.glowLight[x][y];
+	            const glowLight = this.glowLight.get(x, y);
 	            for (i = 0; i < 3; ++i) {
 	                glowLight[i] = val[i];
 	            }
@@ -9508,7 +9510,7 @@ void main() {
 	    restoreGlowLights() {
 	        let i = 0;
 	        this.light.forEach((val, x, y) => {
-	            const glowLight = this.glowLight[x][y];
+	            const glowLight = this.glowLight.get(x, y);
 	            for (i = 0; i < 3; ++i) {
 	                val[i] = glowLight[i];
 	            }
@@ -9530,12 +9532,12 @@ void main() {
 	        fov.calculate(x, y, radius, cb);
 	    }
 	    addCellLight(x, y, light, dispelShadows) {
-	        const val = this.light[x][y];
+	        const val = this.light.get(x, y);
 	        for (let i = 0; i < 3; ++i) {
 	            val[i] += light[i];
 	        }
 	        if (dispelShadows && !isShadowLight(light)) {
-	            this.flags[x][y] &= ~LightFlags.IN_SHADOW;
+	            this.flags._data[x][y] &= ~LightFlags.IN_SHADOW;
 	        }
 	    }
 	}

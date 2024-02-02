@@ -319,8 +319,8 @@ export class BuildStep {
         for (let i = x - this.pad; i <= x + this.pad; i++) {
             for (let j = y - this.pad; j <= y + this.pad; j++) {
                 if (candidates.hasXY(i, j)) {
-                    if (candidates[i][j] == 1) {
-                        candidates[i][j] = 0;
+                    if (candidates.get(i, j) == 1) {
+                        candidates.set(i, j, 0);
                         ++count;
                     }
                     // builder.occupied[i][j] = 1;
@@ -377,7 +377,7 @@ export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
                 },
             });
             fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                builder.viewMap[x][y] = 1;
+                builder.viewMap.set(x, y, 1);
             });
         } else {
             const fov = new GWU.fov.FOV({
@@ -389,10 +389,10 @@ export function updateViewMap(builder: BuildData, buildStep: BuildStep): void {
                 },
             });
             fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                builder.viewMap[x][y] = 1;
+                builder.viewMap.set(x, y, 1);
             });
         }
-        builder.viewMap[builder.originX][builder.originY] = 1;
+        builder.viewMap.set(builder.originX, builder.originY, 1);
     }
 }
 
@@ -488,7 +488,7 @@ export function cellIsCandidate(
     }
 
     // No building in another feature's personal space!
-    if (builder.occupied[x][y]) {
+    if (builder.occupied.get(x, y)) {
         return CandidateType.OCCUPIED;
     }
 
@@ -497,7 +497,7 @@ export function cellIsCandidate(
         buildStep.flags &
             (StepFlags.BS_IN_VIEW_OF_ORIGIN |
                 StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) &&
-        !builder.viewMap[x][y]
+        !builder.viewMap.get(x, y)
     ) {
         return CandidateType.NOT_IN_VIEW;
     }
@@ -531,7 +531,7 @@ export function cellIsCandidate(
         // If we're supposed to build in a wall...
         const cellMachine = site.getMachine(x, y);
         if (
-            !builder.interior[x][y] &&
+            !builder.interior.get(x, y) &&
             (!cellMachine || cellMachine == builder.machineNumber) &&
             site.isWall(x, y)
         ) {
@@ -545,7 +545,7 @@ export function cellIsCandidate(
                     if (failed) return;
                     if (!site.hasXY(newX, newY)) return;
                     if (
-                        !builder.interior[newX][newY] &&
+                        !builder.interior.get(newX, newY) &&
                         !buildStep.buildAnywhere
                     ) {
                         return;
@@ -589,7 +589,7 @@ export function cellIsCandidate(
         } else {
             return CandidateType.OK;
         }
-    } else if (builder.interior[x][y]) {
+    } else if (builder.interior.get(x, y)) {
         return CandidateType.OK;
     }
     return CandidateType.FAILED;

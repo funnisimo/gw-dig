@@ -196,7 +196,7 @@ export function spreadFeature(
 
             if (fn(site, x, y)) {
                 didSomething = true;
-                spawnMap[x][y] += 1;
+                spawnMap.increment(x, y);
             }
         });
     });
@@ -226,14 +226,14 @@ export function mapDisruptedBy(
                 disrupts = true;
             }
         } else if (!map.blocksMove(i, j)) {
-            walkableGrid[i][j] = 1;
+            walkableGrid.set(i, j, 1);
         }
     });
 
     let first = true;
     for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
         for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-            if (walkableGrid[i][j] == 1) {
+            if (walkableGrid.get(i, j) == 1) {
                 if (first) {
                     walkableGrid.floodFill(i, j, 1, 2);
                     first = false;
@@ -331,7 +331,8 @@ export function computeSpawnMap(
         return false;
     }
 
-    spawnMap[x][y] = t = 1; // incremented before anything else happens
+    spawnMap.set(x, y, 1);
+    t = 1; // incremented before anything else happens
     let count = 1;
 
     if (startProb) {
@@ -348,17 +349,17 @@ export function computeSpawnMap(
             t++;
             for (i = 0; i < map.width; i++) {
                 for (j = 0; j < map.height; j++) {
-                    if (spawnMap[i][j] == t - 1) {
+                    if (spawnMap.get(i, j) == t - 1) {
                         for (dir = 0; dir < 4; dir++) {
                             x2 = i + GWU.xy.DIRS[dir][0];
                             y2 = j + GWU.xy.DIRS[dir][1];
                             if (
                                 spawnMap.hasXY(x2, y2) &&
-                                !spawnMap[x2][y2] &&
+                                !spawnMap.get(x2, y2) &&
                                 map.rng.chance(startProb) &&
                                 cellIsOk(effect, map, x2, y2, false)
                             ) {
-                                spawnMap[x2][y2] = t;
+                                spawnMap.set(x2, y2, t);
                                 madeChange = true;
                                 ++count;
                             }
@@ -403,10 +404,10 @@ export function clearCells(map: Site, spawnMap: GWU.grid.NumGrid, _flags = 0) {
 export function evacuateCreatures(map: Site, blockingMap: GWU.grid.NumGrid) {
     let didSomething = false;
     map.eachActor((a) => {
-        if (!blockingMap[a.x][a.y]) return;
+        if (!blockingMap.get(a.x, a.y)) return;
         const loc = map.rng.matchingLocNear(a.x, a.y, (x, y) => {
             if (!map.hasXY(x, y)) return false;
-            if (blockingMap[x][y]) return false;
+            if (blockingMap.get(x, y)) return false;
             return !map.forbidsActor(x, y, a);
         });
         if (loc && loc[0] >= 0 && loc[1] >= 0) {
@@ -422,10 +423,10 @@ export function evacuateCreatures(map: Site, blockingMap: GWU.grid.NumGrid) {
 export function evacuateItems(map: Site, blockingMap: GWU.grid.NumGrid) {
     let didSomething = false;
     map.eachItem((i) => {
-        if (!blockingMap[i.x][i.y]) return;
+        if (!blockingMap.get(i.x, i.y)) return;
         const loc = map.rng.matchingLocNear(i.x, i.y, (x, y) => {
             if (!map.hasXY(x, y)) return false;
-            if (blockingMap[x][y]) return false;
+            if (blockingMap.get(x, y)) return false;
             return !map.forbidsItem(x, y, i);
         });
         if (loc && loc[0] >= 0 && loc[1] >= 0) {

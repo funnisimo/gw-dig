@@ -247,7 +247,7 @@ export class Blueprint {
                     const j = seq[n] % site.height;
 
                     if (Math.round(distanceMap.getDistance(i, j)) == k) {
-                        interior[i][j] = 1;
+                        interior.set(i, j, 1);
                         qualifyingTileCount++;
 
                         const machine = site.getMachine(i, j);
@@ -278,7 +278,7 @@ export class Blueprint {
 
     //     for (i=0; i<DCOLS; i++) {
     //         for (j=0; j<DROWS; j++) {
-    //             if (interior[i][j]) {
+    //             if (interior.get(i,j)) {
     //                 if (i == originX && j == originY) {
     //                     grid[i][j] = 1; // All rooms must grow from this space.
     //                 } else {
@@ -324,7 +324,7 @@ export class Blueprint {
 
     //             for (i=0; i<DCOLS; i++) {
     //                 for (j=0; j<DROWS; j++) {
-    //                     if (interior[i][j]) {
+    //                     if (interior.get(i,j)) {
     //                         if (grid[i][j] > 0) {
     //                             pathingGrid[i][j] = 0;
     //                             costGrid[i][j] = 1;
@@ -372,13 +372,13 @@ export class Blueprint {
     //     await addLoops(grid, 10);
     //     for(i=0; i<DCOLS; i++) {
     //         for(j=0; j<DROWS; j++) {
-    //             if (interior[i][j]) {
+    //             if (interior.get(i,j)) {
     //                 if (grid[i][j] >= 0) {
     //                     pmap[i][j].layers[SURFACE] = pmap[i][j].layers[GAS] = NOTHING;
     //                 }
     //                 if (grid[i][j] == 0) {
     //                     pmap[i][j].layers[DUNGEON] = GRANITE;
-    //                     interior[i][j] = false;
+    //                     interior.get(i,j) = false;
     //                 }
     //                 if (grid[i][j] >= 1) {
     //                     pmap[i][j].layers[DUNGEON] = FLOOR;
@@ -434,7 +434,7 @@ export function pickCandidateLoc(buildData: BuildData): GWU.xy.Loc | null {
     const randSite = site.rng.matchingLoc(
         site.width,
         site.height,
-        (x, y) => candidates[x][y] == 1
+        (x, y) => candidates.get(x, y)! == 1
     );
 
     if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
@@ -505,7 +505,7 @@ export function computeVestibuleInterior(
     interior.fill(0);
 
     if (blueprint.size.hi == 1) {
-        interior[builder.originX][builder.originY] = 1;
+        interior.set(builder.originX, builder.originY, 1);
         return 1;
     }
 
@@ -581,7 +581,7 @@ export function computeVestibuleInterior(
             }
             if (site.getChokeCount(x, y) <= doorChokeCount) continue;
 
-            interior[x][y] = 1;
+            interior.set(x, y, 1);
             qualifyingTileCount += 1;
         }
     }
@@ -602,14 +602,14 @@ function addTileToInteriorAndIterate(
     const site = builder.site;
 
     let count = 1;
-    interior[startX][startY] = 1;
+    interior.set(startX, startY, 1);
     const startChokeCount = site.getChokeCount(startX, startY);
 
     for (let dir = 0; dir < 4 && goodSoFar; dir++) {
         const newX = startX + GWU.xy.DIRS[dir][0];
         const newY = startY + GWU.xy.DIRS[dir][1];
         if (!site.hasXY(newX, newY)) continue;
-        if (interior[newX][newY]) continue; // already done
+        if (interior.get(newX, newY)) continue; // already done
 
         if (
             site.isOccupied(newX, newY) ||
@@ -661,7 +661,7 @@ export function maximizeInterior(
                 x,
                 y,
                 (i, j) => {
-                    if (!interior.hasXY(i, j) || interior[i][j]) return;
+                    if (!interior.hasXY(i, j) || interior.get(i, j)) return;
                     if (interior.isBoundaryXY(i, j)) return;
 
                     interiorNeighborCount = 0;
@@ -670,7 +670,7 @@ export function maximizeInterior(
                         i,
                         j,
                         (x2, y2) => {
-                            if (interior[x2][y2]) {
+                            if (interior.get(x2, y2)) {
                                 ++interiorNeighborCount;
                             } else if (!site.isWall(x2, y2)) {
                                 ok = false; // non-interior and not wall
@@ -684,7 +684,7 @@ export function maximizeInterior(
                     if (!ok || interiorNeighborCount < minimumInteriorNeighbors)
                         return;
 
-                    interior[i][j] = gen + 1;
+                    interior.set(i, j, gen + 1);
                     ++interiorCount;
                     if (site.blocksPathing(i, j)) {
                         site.setTile(i, j, 'FLOOR');
@@ -745,7 +745,7 @@ export function prepareInterior(builder: BuildData) {
                 y,
                 (i, j) => {
                     if (!interior.hasXY(i, j)) return; // Not valid x,y
-                    if (interior[i][j]) return; // is part of machine
+                    if (interior.get(i, j)) return; // is part of machine
                     if (site.isWall(i, j)) return; // is already a wall (of some sort)
 
                     if (site.isGateSite(i, j)) return; // is a door site
@@ -775,7 +775,7 @@ export function prepareInterior(builder: BuildData) {
                 y,
                 (i, j) => {
                     if (!interior.hasXY(i, j)) return;
-                    if (interior[i][j]) return;
+                    if (interior.get(i, j)) return;
                     if (site.isGateSite(i, j)) return;
                     site.makeImpregnable(i, j);
                 },
@@ -827,7 +827,7 @@ export function prepareInterior(builder: BuildData) {
 //                     if (!interior.hasXY(i, j)) return; // Not in map
 //                     if (interior.isBoundaryXY(i, j)) return; // Not on boundary
 
-//                     if (interior[i][j] && !site.blocksPathing(i, j)) {
+//                     if (interior.get(i,j) && !site.blocksPathing(i, j)) {
 //                         ++nbcount; // in machine and open tile
 //                     }
 //                 },
@@ -842,7 +842,7 @@ export function prepareInterior(builder: BuildData) {
 //                 y,
 //                 (i, j) => {
 //                     if (!interior.hasXY(i, j)) return; // not on map
-//                     if (interior[i][j]) return; // already part of machine
+//                     if (interior.get(i,j)) return; // already part of machine
 //                     if (
 //                         !site.isWall(i, j) ||
 //                         site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)

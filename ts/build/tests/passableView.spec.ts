@@ -51,13 +51,11 @@ describe('inPassableViewOfOrigin', () => {
             steps: [
                 {
                     tile: 'PORTCULLIS_CLOSED',
-                    flags:
-                        'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
+                    flags: 'BS_BUILD_AT_ORIGIN, BS_PERMIT_BLOCKING, BS_IMPREGNABLE',
                 },
                 {
                     tile: 'WALL_LEVER',
-                    flags:
-                        'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAY',
+                    flags: 'BS_BUILD_IN_WALLS, BS_IN_PASSABLE_VIEW_OF_ORIGIN, BS_BUILD_ANYWHERE_ON_LEVEL, BS_NOT_IN_HALLWAY',
                 },
             ],
         });
@@ -107,7 +105,7 @@ describe('inPassableViewOfOrigin', () => {
         // candidates.dump((v) => (v == 7 ? ' ' : '' + v.toString(16)));
 
         expect(candidates.count((v) => v == CandidateType.OK)).toEqual(3);
-        expect(candidates[72][14]).toEqual(CandidateType.INVALID_WALL);
-        expect(candidates[74][14]).toEqual(CandidateType.INVALID_WALL);
+        expect(candidates.get(72, 14)).toEqual(CandidateType.INVALID_WALL);
+        expect(candidates.get(74, 14)).toEqual(CandidateType.INVALID_WALL);
     });
 });

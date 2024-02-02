@@ -354,7 +354,7 @@ export class Builder {
             didSomething = false;
 
             if (buildStep.buildAtOrigin) {
-                candidates[data.originX][data.originY] = 1;
+                candidates.set(data.originX, data.originY, 1);
                 qualifyingTileCount = 1;
                 wantCount = 1;
             } else {
@@ -411,11 +411,11 @@ export class Builder {
                     [x, y] = data.rng.matchingLoc(
                         candidates.width,
                         candidates.height,
-                        (x, y) => candidates[x][y] == 1
+                        (x, y) => candidates.get(x, y) == 1
                     );
                 }
                 // Don't waste time trying the same place again whether or not this attempt succeeds.
-                candidates[x][y] = 0;
+                candidates.set(x, y, 0);
                 qualifyingTileCount--;
 
                 const snapshot = data.site.snapshot();
@@ -481,7 +481,7 @@ export class Builder {
             };
             if (buildStep.noBlockOrigin) {
                 options.updateWalkable = (g) => {
-                    g[data.originX][data.originY] = 1;
+                    g.set(data.originX, data.originY, 1);
                     return true;
                 };
             }

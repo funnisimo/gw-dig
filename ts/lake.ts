@@ -88,10 +88,8 @@ export class Lakes {
             });
 
             lakeGrid.fill(0);
-            const bounds = blob.carve(
-                lakeGrid.width,
-                lakeGrid.height,
-                (x, y) => (lakeGrid[x][y] = 1)
+            const bounds = blob.carve(lakeGrid.width, lakeGrid.height, (x, y) =>
+                lakeGrid.set(x, y, 1)
             );
 
             // console.log('LAKE ATTEMPT');
@@ -120,7 +118,7 @@ export class Lakes {
                         // skip boundary
                         for (j = 0; j < bounds.height; j++) {
                             // skip boundary
-                            if (lakeGrid[i + bounds.x][j + bounds.y]) {
+                            if (lakeGrid.get(i + bounds.x, j + bounds.y)) {
                                 const sx = i + bounds.x + x;
                                 const sy = j + bounds.y + y;
                                 site.setTile(sx, sy, tile);
@@ -136,7 +134,7 @@ export class Lakes {
                                         (i2, j2) => {
                                             if (
                                                 site.isPassable(i2, j2) &&
-                                                !lakeGrid[i2 - x][j2 - y]
+                                                !lakeGrid.get(i2 - x, j2 - y)
                                                 // SITE.isFloor(map, i, j) ||
                                                 // SITE.isDoor(map, i, j)
                                             ) {
@@ -185,14 +183,14 @@ export class Lakes {
                     disrupts = true;
                 }
             } else if (site.isPassable(i, j)) {
-                walkableGrid[i][j] = 1;
+                walkableGrid.set(i, j, 1);
             }
         });
 
         let first = true;
         for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
             for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-                if (walkableGrid[i][j] == 1) {
+                if (walkableGrid.get(i, j) == 1) {
                     if (first) {
                         walkableGrid.floodFill(i, j, 1, 2);
                         first = false;

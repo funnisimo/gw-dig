@@ -54,10 +54,9 @@
             return this.getTile(name) !== null;
         }
         tileId(name) {
-            var _a;
             if (typeof name === 'number')
                 return name;
-            return (_a = this.tileIds[name]) !== null && _a !== void 0 ? _a : -1; // TODO: -1 vs 0?
+            return this.tileIds[name] ?? -1; // TODO: -1 vs 0?
         }
         // TODO - Remove?
         blocksMove(name) {
@@ -505,7 +504,7 @@
                     return;
                 if (fn(site, x, y)) {
                     didSomething = true;
-                    spawnMap[x][y] += 1;
+                    spawnMap.increment(x, y);
                 }
             });
         });
@@ -528,13 +527,13 @@
                 }
             }
             else if (!map.blocksMove(i, j)) {
-                walkableGrid[i][j] = 1;
+                walkableGrid.set(i, j, 1);
             }
         });
         let first = true;
         for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
             for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-                if (walkableGrid[i][j] == 1) {
+                if (walkableGrid.get(i, j) == 1) {
                     if (first) {
                         walkableGrid.floodFill(i, j, 1, 2);
                         first = false;
@@ -605,7 +604,8 @@
         if (!cellIsOk(effect, map, x, y, true)) {
             return false;
         }
-        spawnMap[x][y] = t = 1; // incremented before anything else happens
+        spawnMap.set(x, y, 1);
+        t = 1; // incremented before anything else happens
         let count = 1;
         if (startProb) {
             madeChange = true;
@@ -620,15 +620,15 @@
                 t++;
                 for (i = 0; i < map.width; i++) {
                     for (j = 0; j < map.height; j++) {
-                        if (spawnMap[i][j] == t - 1) {
+                        if (spawnMap.get(i, j) == t - 1) {
                             for (dir = 0; dir < 4; dir++) {
                                 x2 = i + GWU__namespace.xy.DIRS[dir][0];
                                 y2 = j + GWU__namespace.xy.DIRS[dir][1];
                                 if (spawnMap.hasXY(x2, y2) &&
-                                    !spawnMap[x2][y2] &&
+                                    !spawnMap.get(x2, y2) &&
                                     map.rng.chance(startProb) &&
                                     cellIsOk(effect, map, x2, y2, false)) {
-                                    spawnMap[x2][y2] = t;
+                                    spawnMap.set(x2, y2, t);
                                     madeChange = true;
                                     ++count;
                                 }
@@ -670,12 +670,12 @@
     function evacuateCreatures(map, blockingMap) {
         let didSomething = false;
         map.eachActor((a) => {
-            if (!blockingMap[a.x][a.y])
+            if (!blockingMap.get(a.x, a.y))
                 return;
             const loc = map.rng.matchingLocNear(a.x, a.y, (x, y) => {
                 if (!map.hasXY(x, y))
                     return false;
-                if (blockingMap[x][y])
+                if (blockingMap.get(x, y))
                     return false;
                 return !map.forbidsActor(x, y, a);
             });
@@ -691,12 +691,12 @@
     function evacuateItems(map, blockingMap) {
         let didSomething = false;
         map.eachItem((i) => {
-            if (!blockingMap[i.x][i.y])
+            if (!blockingMap.get(i.x, i.y))
                 return;
             const loc = map.rng.matchingLocNear(i.x, i.y, (x, y) => {
                 if (!map.hasXY(x, y))
                     return false;
-                if (blockingMap[x][y])
+                if (blockingMap.get(x, y))
                     return false;
                 return !map.forbidsItem(x, y, i);
             });
@@ -1264,25 +1264,23 @@
         costGrid.update((_v, x, y) => source.isPassable(x, y) ? 1 : GWU__namespace.path.OBSTRUCTION);
     }
     function siteDisruptedByXY(site, x, y, options = {}) {
-        var _a, _b, _c;
-        (_a = options.offsetX) !== null && _a !== void 0 ? _a : (options.offsetX = 0);
-        (_b = options.offsetY) !== null && _b !== void 0 ? _b : (options.offsetY = 0);
-        (_c = options.machine) !== null && _c !== void 0 ? _c : (options.machine = 0);
+        options.offsetX ??= 0;
+        options.offsetY ??= 0;
+        options.machine ??= 0;
         if (GWU__namespace.xy.arcCount(x, y, (i, j) => {
             return site.isPassable(i, j);
         }) <= 1)
             return false;
         const blockingGrid = GWU__namespace.grid.alloc(site.width, site.height);
-        blockingGrid[x][y] = 1;
+        blockingGrid.set(x, y, 1);
         const result = siteDisruptedBy(site, blockingGrid, options);
         GWU__namespace.grid.free(blockingGrid);
         return result;
     }
     function siteDisruptedBy(site, blockingGrid, options = {}) {
-        var _a, _b, _c;
-        (_a = options.offsetX) !== null && _a !== void 0 ? _a : (options.offsetX = 0);
-        (_b = options.offsetY) !== null && _b !== void 0 ? _b : (options.offsetY = 0);
-        (_c = options.machine) !== null && _c !== void 0 ? _c : (options.machine = 0);
+        options.offsetX ??= 0;
+        options.offsetY ??= 0;
+        options.machine ??= 0;
         const walkableGrid = GWU__namespace.grid.alloc(site.width, site.height);
         let disrupts = false;
         // Get all walkable locations after lake added
@@ -1297,7 +1295,7 @@
             else if (site.isPassable(i, j) &&
                 (site.getMachine(i, j) == 0 ||
                     site.getMachine(i, j) == options.machine)) {
-                walkableGrid[i][j] = 1;
+                walkableGrid.set(i, j, 1);
             }
         });
         if (options.updateWalkable) {
@@ -1308,7 +1306,7 @@
         let first = true;
         for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
             for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-                if (walkableGrid[i][j] == 1) {
+                if (walkableGrid.get(i, j) == 1) {
                     if (first) {
                         walkableGrid.floodFill(i, j, 1, 2);
                         first = false;
@@ -1337,7 +1335,7 @@
                 }
             }
             else if (site.isPassable(i, j)) {
-                walkableGrid[i][j] = 1;
+                walkableGrid.set(i, j, 1);
             }
         });
         if (disrupts)
@@ -1347,7 +1345,7 @@
         let minSize = site.width * site.height;
         for (let i = 0; i < walkableGrid.width; ++i) {
             for (let j = 0; j < walkableGrid.height; ++j) {
-                if (walkableGrid[i][j] == 1) {
+                if (walkableGrid.get(i, j) == 1) {
                     const disrupted = walkableGrid.floodFill(i, j, 1, nextId++);
                     minSize = Math.min(minSize, disrupted);
                     if (first) {
@@ -1400,16 +1398,16 @@
         for (let i = 0; i < map.width; i++) {
             for (let j = 0; j < map.height; j++) {
                 if (map.blocksDiagonal(i, j)) {
-                    blockMap[i][j] = 2;
+                    blockMap.set(i, j, 2);
                 }
                 else if ((map.blocksPathing(i, j) || map.blocksMove(i, j)) &&
                     !map.isSecretDoor(i, j)) {
                     // cell.flags &= ~Flags.Cell.IS_IN_LOOP;
-                    blockMap[i][j] = 1;
+                    blockMap.set(i, j, 1);
                 }
                 else {
                     // cell.flags |= Flags.Cell.IS_IN_LOOP;
-                    blockMap[i][j] = 0;
+                    blockMap.set(i, j, 0);
                 }
             }
         }
@@ -1418,7 +1416,7 @@
         for (let i = 1; i < blockMap.width - 1; i++) {
             for (let j = 1; j < blockMap.height - 1; j++) {
                 map.clearChokepoint(i, j);
-                if (!blockMap[i][j]) {
+                if (!blockMap.get(i, j)) {
                     if (!map.isInLoop(i, j)) {
                         passableArcCount = 0;
                         for (let dir = 0; dir < 8; dir++) {
@@ -1427,13 +1425,14 @@
                             const newX = i + GWU__namespace.xy.CLOCK_DIRS[dir][0];
                             const newY = j + GWU__namespace.xy.CLOCK_DIRS[dir][1];
                             if ((map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                                blockMap[newX][newY] > 0) !=
+                                blockMap.get(newX, newY) > 0) !=
                                 (map.hasXY(oldX, oldY) && // RUT.Map.makeValidXy(map, oldXy) &&
-                                    blockMap[oldX][oldY] > 0)) {
+                                    blockMap.get(oldX, oldY) > 0)) {
                                 if (++passableArcCount > 2) {
-                                    if ((blockMap[i - 1][j] &&
-                                        blockMap[i + 1][j]) ||
-                                        (blockMap[i][j - 1] && blockMap[i][j + 1])) {
+                                    if ((blockMap.get(i - 1, j) &&
+                                        blockMap.get(i + 1, j)) ||
+                                        (blockMap.get(i, j - 1) &&
+                                            blockMap.get(i, j + 1))) {
                                         map.setChokepoint(i, j);
                                     }
                                     break;
@@ -1445,22 +1444,22 @@
                     const right = i + 1;
                     const up = j - 1;
                     const down = j + 1;
-                    if (blockMap[i][up] && blockMap[i][down]) {
-                        if (!blockMap[left][j] && !blockMap[right][j]) {
-                            if (!blockMap[left][up] ||
-                                !blockMap[left][down] ||
-                                !blockMap[right][up] ||
-                                !blockMap[right][down]) {
+                    if (blockMap.get(i, up) && blockMap.get(i, down)) {
+                        if (!blockMap.get(left, j) && !blockMap.get(right, j)) {
+                            if (!blockMap.get(left, up) ||
+                                !blockMap.get(left, down) ||
+                                !blockMap.get(right, up) ||
+                                !blockMap.get(right, down)) {
                                 map.setGateSite(i, j);
                             }
                         }
                     }
-                    else if (blockMap[left][j] && blockMap[right][j]) {
-                        if (!blockMap[i][up] && !blockMap[i][down]) {
-                            if (!blockMap[left][up] ||
-                                !blockMap[left][down] ||
-                                !blockMap[right][up] ||
-                                !blockMap[right][down]) {
+                    else if (blockMap.get(left, j) && blockMap.get(right, j)) {
+                        if (!blockMap.get(i, up) && !blockMap.get(i, down)) {
+                            if (!blockMap.get(left, up) ||
+                                !blockMap.get(left, down) ||
+                                !blockMap.get(right, up) ||
+                                !blockMap.get(right, down)) {
                                 map.setGateSite(i, j);
                             }
                         }
@@ -1489,27 +1488,27 @@
             // Scan through and find a chokepoint next to an open point.
             for (let i = 0; i < map.width; i++) {
                 for (let j = 0; j < map.height; j++) {
-                    if (!blockMap[i][j] && map.isChokepoint(i, j)) {
+                    if (!blockMap.get(i, j) && map.isChokepoint(i, j)) {
                         for (let dir = 0; dir < 4; dir++) {
                             const newX = i + GWU__namespace.xy.DIRS[dir][0];
                             const newY = j + GWU__namespace.xy.DIRS[dir][1];
                             if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                                !blockMap[newX][newY] &&
+                                !blockMap.get(newX, newY) &&
                                 !map.isChokepoint(newX, newY)) {
                                 // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
                                 // Pretend (i, j) is blocked by changing passMap, and run a flood-fill cell count starting on (newX, newY).
                                 // Keep track of the flooded region in grid[][].
                                 grid.fill(0);
-                                blockMap[i][j] = 1;
+                                blockMap.set(i, j, 1);
                                 let cellCount = floodFillCount(map, grid, blockMap, newX, newY);
-                                blockMap[i][j] = 0;
+                                blockMap.set(i, j, 0);
                                 // CellCount is the size of the region that would be obstructed if the chokepoint were blocked.
                                 // CellCounts less than 4 are not useful, so we skip those cases.
                                 if (cellCount >= 4) {
                                     // Now, on the chokemap, all of those flooded cells should take the lesser of their current value or this resultant number.
                                     for (let i2 = 0; i2 < grid.width; i2++) {
                                         for (let j2 = 0; j2 < grid.height; j2++) {
-                                            if (grid[i2][j2] &&
+                                            if (grid.get(i2, j2) &&
                                                 cellCount <
                                                     map.getChokeCount(i2, j2)) {
                                                 map.setChokeCount(i2, j2, cellCount);
@@ -1551,16 +1550,16 @@
             free.push(item);
             const x = item[0];
             const y = item[1];
-            if (results[x][y])
+            if (results.get(x, y))
                 continue;
-            results[x][y] = 1;
+            results.set(x, y, 1);
             count += getCount(x, y);
             for (let dir = 0; dir < 4; dir++) {
                 const newX = x + GWU__namespace.xy.DIRS[dir][0];
                 const newY = y + GWU__namespace.xy.DIRS[dir][1];
                 if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-                    !blockMap[newX][newY] &&
-                    !results[newX][newY]) {
+                    !blockMap.get(newX, newY) &&
+                    !results.get(newX, newY)) {
                     const item = free.pop() || [-1, -1];
                     item[0] = newX;
                     item[1] = newY;
@@ -1604,7 +1603,7 @@
                 if (!v)
                     return;
                 // const cell = map.cell(x, y);
-                todo[x][y] = 0;
+                todo.set(x, y, 0);
                 if (!map.isInLoop(x, y)) {
                     return;
                 }
@@ -1667,7 +1666,7 @@
                         newX = x + GWU__namespace.xy.CLOCK_DIRS[dir][0];
                         newY = y + GWU__namespace.xy.CLOCK_DIRS[dir][1];
                         if (map.hasXY(newX, newY) && map.isInLoop(newX, newY)) {
-                            todo[newX][newY] = 1;
+                            todo.set(newX, newY, 1);
                             tryAgain = true;
                         }
                     }
@@ -1680,7 +1679,7 @@
             for (let y = 0; y < map.height; ++y) {
                 // const cell = map.cell(x, y);
                 if (map.isInLoop(x, y)) {
-                    grid[x][y] = 1;
+                    grid.set(x, y, 1);
                 }
                 else if (x > 0 && y > 0) {
                     // const up = map.cell(x, y - 1);
@@ -1690,7 +1689,7 @@
                     // up.flags.cell & Flags.Cell.IS_IN_LOOP &&
                     // left.flags.cell & Flags.Cell.IS_IN_LOOP
                     ) {
-                        grid[x][y] = 1;
+                        grid.set(x, y, 1);
                     }
                 }
             }
@@ -1711,14 +1710,14 @@
                         let newX = i + GWU__namespace.xy.CLOCK_DIRS[dir][0];
                         let newY = j + GWU__namespace.xy.CLOCK_DIRS[dir][1];
                         if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
-                            !grid[newX][newY] &&
+                            !grid.get(newX, newY) &&
                             !map.isInLoop(newX, newY)) {
                             designationSurvives = true;
                             break;
                         }
                     }
                     if (!designationSurvives) {
-                        grid[i][j] = 1;
+                        grid.set(i, j, 1);
                         map.clearInLoop(i, j);
                         // map.cell(i, j).flags.cell &= ~Flags.Cell.IS_IN_LOOP;
                     }
@@ -1803,7 +1802,7 @@
                 const v = other._tiles.get(otherX, otherY);
                 if (!v)
                     return;
-                this._tiles[x][y] = v;
+                this._tiles.set(x, y, v);
             });
         }
         setSeed(seed) {
@@ -1853,7 +1852,8 @@
             return this.blocksMove(x, y) && this.blocksVision(x, y);
         }
         blocksMove(x, y) {
-            return this.tileFactory.getTile(this._tiles[x][y]).blocksMove || false;
+            return (this.tileFactory.getTile(this._tiles.get(x, y)).blocksMove ||
+                false);
         }
         blocksDiagonal(x, y) {
             return this.isNothing(x, y) || this.isWall(x, y);
@@ -1865,7 +1865,8 @@
                 this.isStairs(x, y));
         }
         blocksVision(x, y) {
-            return (this.tileFactory.getTile(this._tiles[x][y]).blocksVision || false);
+            return (this.tileFactory.getTile(this._tiles.get(x, y)).blocksVision ||
+                false);
         }
         blocksItems(x, y) {
             return (this.blocksPathing(x, y) ||
@@ -1911,66 +1912,66 @@
                 tile = this.tileFactory.tileId(tile);
             }
             // priority checks...
-            this._tiles[x][y] = tile;
+            this._tiles.set(x, y, tile);
             return true;
         }
         clearTile(x, y) {
             if (this.hasXY(x, y)) {
-                this._tiles[x][y] = 0;
+                this._tiles.set(x, y, 0);
             }
         }
         getTile(x, y) {
-            const id = this._tiles[x][y];
+            const id = this._tiles.get(x, y) || 0;
             return this.tileFactory.getTile(id);
         }
         makeImpregnable(x, y) {
-            this._flags[x][y] |= Flags$1.IMPREGNABLE;
+            this._flags._data[x][y] |= Flags$1.IMPREGNABLE;
             // site.setCellFlag(x, y, GWM.flags.Cell.IMPREGNABLE);
         }
         isImpregnable(x, y) {
-            return !!(this._flags[x][y] & Flags$1.IMPREGNABLE);
+            return !!(this._flags.get(x, y) & Flags$1.IMPREGNABLE);
         }
         hasTile(x, y, tile) {
             if (typeof tile === 'string') {
                 tile = this.tileFactory.tileId(tile);
             }
-            return this.hasXY(x, y) && this._tiles[x][y] == tile;
+            return this.hasXY(x, y) && this._tiles.get(x, y) == tile;
         }
         getChokeCount(x, y) {
-            return this._chokeCounts[x][y];
+            return this._chokeCounts.get(x, y) || 0;
         }
         setChokeCount(x, y, count) {
-            this._chokeCounts[x][y] = count;
+            this._chokeCounts.set(x, y, count);
         }
         getFlags(x, y) {
-            return this._flags[x][y];
+            return this._flags.get(x, y) || 0;
         }
         setChokepoint(x, y) {
-            this._flags[x][y] |= Flags$1.CHOKEPOINT;
+            this._flags._data[x][y] |= Flags$1.CHOKEPOINT;
         }
         isChokepoint(x, y) {
-            return !!(this._flags[x][y] & Flags$1.CHOKEPOINT);
+            return !!(this._flags.get(x, y) & Flags$1.CHOKEPOINT);
         }
         clearChokepoint(x, y) {
-            this._flags[x][y] &= ~Flags$1.CHOKEPOINT;
+            this._flags._data[x][y] &= ~Flags$1.CHOKEPOINT;
         }
         setGateSite(x, y) {
-            this._flags[x][y] |= Flags$1.GATE_SITE;
+            this._flags._data[x][y] |= Flags$1.GATE_SITE;
         }
         isGateSite(x, y) {
-            return !!(this._flags[x][y] & Flags$1.GATE_SITE);
+            return !!(this._flags.get(x, y) & Flags$1.GATE_SITE);
         }
         clearGateSite(x, y) {
-            this._flags[x][y] &= ~Flags$1.GATE_SITE;
+            this._flags._data[x][y] &= ~Flags$1.GATE_SITE;
         }
         setInLoop(x, y) {
-            this._flags[x][y] |= Flags$1.IN_LOOP;
+            this._flags._data[x][y] |= Flags$1.IN_LOOP;
         }
         isInLoop(x, y) {
-            return !!(this._flags[x][y] & Flags$1.IN_LOOP);
+            return !!(this._flags.get(x, y) & Flags$1.IN_LOOP);
         }
         clearInLoop(x, y) {
-            this._flags[x][y] &= ~Flags$1.IN_LOOP;
+            this._flags._data[x][y] &= ~Flags$1.IN_LOOP;
         }
         analyze(updateChokeCounts = true) {
             analyze(this, updateChokeCounts);
@@ -1988,18 +1989,18 @@
             return this.machineCount;
         }
         setMachine(x, y, id, isRoom) {
-            this._machine[x][y] = id;
+            this._machine.set(x, y, id);
             const flag = isRoom ? Flags$1.IN_MACHINE : Flags$1.IN_AREA_MACHINE;
-            this._flags[x][y] |= flag;
+            this._flags._data[x][y] |= flag;
         }
         isAreaMachine(x, y) {
-            return !!(this._machine[x][y] & Flags$1.IN_AREA_MACHINE);
+            return !!(this._machine.get(x, y) & Flags$1.IN_AREA_MACHINE);
         }
         isInMachine(x, y) {
-            return this._machine[x][y] > 0;
+            return this._machine.get(x, y) > 0;
         }
         getMachine(x, y) {
-            return this._machine[x][y];
+            return this._machine.get(x, y) || 0;
         }
         needsMachine(_x, _y) {
             // site.hasCellFlag(
@@ -2015,7 +2016,7 @@
             });
         }
         getDoorDir(x, y) {
-            return this._doors[x][y];
+            return this._doors.get(x, y) || 0;
         }
         // tileBlocksMove(tile: number): boolean {
         //     return (
@@ -2317,8 +2318,8 @@
             for (let i = x - this.pad; i <= x + this.pad; i++) {
                 for (let j = y - this.pad; j <= y + this.pad; j++) {
                     if (candidates.hasXY(i, j)) {
-                        if (candidates[i][j] == 1) {
-                            candidates[i][j] = 0;
+                        if (candidates.get(i, j) == 1) {
+                            candidates.set(i, j, 0);
                             ++count;
                         }
                         // builder.occupied[i][j] = 1;
@@ -2371,7 +2372,7 @@
                     },
                 });
                 fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                    builder.viewMap[x][y] = 1;
+                    builder.viewMap.set(x, y, 1);
                 });
             }
             else {
@@ -2384,10 +2385,10 @@
                     },
                 });
                 fov.calculate(builder.originX, builder.originY, 50, (x, y) => {
-                    builder.viewMap[x][y] = 1;
+                    builder.viewMap.set(x, y, 1);
                 });
             }
-            builder.viewMap[builder.originX][builder.originY] = 1;
+            builder.viewMap.set(builder.originX, builder.originY, 1);
         }
     }
     function calcDistanceBound(builder, buildStep) {
@@ -2457,14 +2458,14 @@
             return CandidateType.NOT_ORIGIN;
         }
         // No building in another feature's personal space!
-        if (builder.occupied[x][y]) {
+        if (builder.occupied.get(x, y)) {
             return CandidateType.OCCUPIED;
         }
         // Must be in the viewmap if the appropriate flag is set.
         if (buildStep.flags &
             (StepFlags.BS_IN_VIEW_OF_ORIGIN |
                 StepFlags.BS_IN_PASSABLE_VIEW_OF_ORIGIN) &&
-            !builder.viewMap[x][y]) {
+            !builder.viewMap.get(x, y)) {
             return CandidateType.NOT_IN_VIEW;
         }
         // Do a distance check if the feature requests it.
@@ -2490,7 +2491,7 @@
         if (buildStep.buildInWalls) {
             // If we're supposed to build in a wall...
             const cellMachine = site.getMachine(x, y);
-            if (!builder.interior[x][y] &&
+            if (!builder.interior.get(x, y) &&
                 (!cellMachine || cellMachine == builder.machineNumber) &&
                 site.isWall(x, y)) {
                 let ok = false;
@@ -2501,7 +2502,7 @@
                         return;
                     if (!site.hasXY(newX, newY))
                         return;
-                    if (!builder.interior[newX][newY] &&
+                    if (!builder.interior.get(newX, newY) &&
                         !buildStep.buildAnywhere) {
                         return;
                     }
@@ -2538,7 +2539,7 @@
                 return CandidateType.OK;
             }
         }
-        else if (builder.interior[x][y]) {
+        else if (builder.interior.get(x, y)) {
             return CandidateType.OK;
         }
         return CandidateType.FAILED;
@@ -3042,7 +3043,7 @@
                 birthParameters: 'ffffftttt',
                 survivalParameters: 'ffffttttt',
             });
-            const bounds = blob.carve(blobGrid.width, blobGrid.height, (x, y) => (blobGrid[x][y] = 1));
+            const bounds = blob.carve(blobGrid.width, blobGrid.height, (x, y) => blobGrid.set(x, y, 1));
             // Position the new cave in the middle of the grid...
             const destX = Math.floor((site.width - bounds.width) / 2);
             const dx = destX - bounds.x;
@@ -3335,7 +3336,7 @@
             return 1;
         if (typeof width === 'number')
             return width;
-        rng = rng !== null && rng !== void 0 ? rng : GWU__namespace.rng.random;
+        rng = rng ?? GWU__namespace.rng.random;
         if (Array.isArray(width)) {
             width = rng.weighted(width) + 1;
         }
@@ -3576,7 +3577,7 @@
                     // survivalParameters: 'ffffttttt',
                 });
                 lakeGrid.fill(0);
-                const bounds = blob.carve(lakeGrid.width, lakeGrid.height, (x, y) => (lakeGrid[x][y] = 1));
+                const bounds = blob.carve(lakeGrid.width, lakeGrid.height, (x, y) => lakeGrid.set(x, y, 1));
                 // console.log('LAKE ATTEMPT');
                 // lakeGrid.dump();
                 let success = false;
@@ -3594,7 +3595,7 @@
                             // skip boundary
                             for (j = 0; j < bounds.height; j++) {
                                 // skip boundary
-                                if (lakeGrid[i + bounds.x][j + bounds.y]) {
+                                if (lakeGrid.get(i + bounds.x, j + bounds.y)) {
                                     const sx = i + bounds.x + x;
                                     const sy = j + bounds.y + y;
                                     site.setTile(sx, sy, tile);
@@ -3604,7 +3605,7 @@
                                         // }
                                         GWU__namespace.xy.forCircle(sx, sy, wreathSize, (i2, j2) => {
                                             if (site.isPassable(i2, j2) &&
-                                                !lakeGrid[i2 - x][j2 - y]
+                                                !lakeGrid.get(i2 - x, j2 - y)
                                             // SITE.isFloor(map, i, j) ||
                                             // SITE.isDoor(map, i, j)
                                             ) {
@@ -3642,13 +3643,13 @@
                     }
                 }
                 else if (site.isPassable(i, j)) {
-                    walkableGrid[i][j] = 1;
+                    walkableGrid.set(i, j, 1);
                 }
             });
             let first = true;
             for (let i = 0; i < walkableGrid.width && !disrupts; ++i) {
                 for (let j = 0; j < walkableGrid.height && !disrupts; ++j) {
-                    if (walkableGrid[i][j] == 1) {
+                    if (walkableGrid.get(i, j) == 1) {
                         if (first) {
                             walkableGrid.floodFill(i, j, 1, 2);
                             first = false;
@@ -4099,7 +4100,6 @@
 
     class Digger {
         constructor(options = {}, tiles) {
-            var _a, _b;
             this.seed = 0;
             this.rooms = { fails: 20 };
             this.doors = { chance: 15 };
@@ -4155,7 +4155,7 @@
                 }
                 options.loops = options.loops || {};
                 options.loops.doorChance =
-                    (_a = options.loops.doorChance) !== null && _a !== void 0 ? _a : (_b = options.doors) === null || _b === void 0 ? void 0 : _b.chance;
+                    options.loops.doorChance ?? options.doors?.chance;
                 // @ts-ignore
                 GWU__namespace.object.setOptions(this.loops, options.loops);
             }
@@ -4236,7 +4236,7 @@
             const cb = args[2] || null;
             if (cb) {
                 GWU__namespace.xy.forRect(this.site.width, this.site.height, (x, y) => {
-                    const t = this.site._tiles[x][y];
+                    const t = this.site._tiles.get(x, y);
                     if (t)
                         cb(x, y, t);
                 });
@@ -5062,7 +5062,7 @@
                         const i = Math.floor(seq[n] / site.height);
                         const j = seq[n] % site.height;
                         if (Math.round(distanceMap.getDistance(i, j)) == k) {
-                            interior[i][j] = 1;
+                            interior.set(i, j, 1);
                             qualifyingTileCount++;
                             const machine = site.getMachine(i, j);
                             if (site.isOccupied(i, j) ||
@@ -5116,7 +5116,7 @@
     function pickCandidateLoc(buildData) {
         const site = buildData.site;
         const candidates = buildData.candidates;
-        const randSite = site.rng.matchingLoc(site.width, site.height, (x, y) => candidates[x][y] == 1);
+        const randSite = site.rng.matchingLoc(site.width, site.height, (x, y) => candidates.get(x, y) == 1);
         if (!randSite || randSite[0] < 0 || randSite[1] < 0) {
             // If no suitable sites, abort.
             return null;
@@ -5172,7 +5172,7 @@
         const interior = builder.interior;
         interior.fill(0);
         if (blueprint.size.hi == 1) {
-            interior[builder.originX][builder.originY] = 1;
+            interior.set(builder.originX, builder.originY, 1);
             return 1;
         }
         // If this is a wall - it is really an error (maybe manually trying a build location?)
@@ -5225,7 +5225,7 @@
                 }
                 if (site.getChokeCount(x, y) <= doorChokeCount)
                     continue;
-                interior[x][y] = 1;
+                interior.set(x, y, 1);
                 qualifyingTileCount += 1;
             }
         }
@@ -5239,14 +5239,14 @@
         const interior = builder.interior;
         const site = builder.site;
         let count = 1;
-        interior[startX][startY] = 1;
+        interior.set(startX, startY, 1);
         const startChokeCount = site.getChokeCount(startX, startY);
         for (let dir = 0; dir < 4 && goodSoFar; dir++) {
             const newX = startX + GWU__namespace.xy.DIRS[dir][0];
             const newY = startY + GWU__namespace.xy.DIRS[dir][1];
             if (!site.hasXY(newX, newY))
                 continue;
-            if (interior[newX][newY])
+            if (interior.get(newX, newY))
                 continue; // already done
             if (site.isOccupied(newX, newY) ||
                 (site.getMachine(newX, newY) && !site.isGateSite(newX, newY))) {
@@ -5286,14 +5286,14 @@
                 if (i != gen)
                     return;
                 GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
-                    if (!interior.hasXY(i, j) || interior[i][j])
+                    if (!interior.hasXY(i, j) || interior.get(i, j))
                         return;
                     if (interior.isBoundaryXY(i, j))
                         return;
                     interiorNeighborCount = 0;
                     let ok = true;
                     GWU__namespace.xy.eachNeighbor(i, j, (x2, y2) => {
-                        if (interior[x2][y2]) {
+                        if (interior.get(x2, y2)) {
                             ++interiorNeighborCount;
                         }
                         else if (!site.isWall(x2, y2)) {
@@ -5306,7 +5306,7 @@
                     );
                     if (!ok || interiorNeighborCount < minimumInteriorNeighbors)
                         return;
-                    interior[i][j] = gen + 1;
+                    interior.set(i, j, gen + 1);
                     ++interiorCount;
                     if (site.blocksPathing(i, j)) {
                         site.setTile(i, j, 'FLOOR');
@@ -5364,7 +5364,7 @@
                 GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
                         return; // Not valid x,y
-                    if (interior[i][j])
+                    if (interior.get(i, j))
                         return; // is part of machine
                     if (site.isWall(i, j))
                         return; // is already a wall (of some sort)
@@ -5393,7 +5393,7 @@
                 GWU__namespace.xy.eachNeighbor(x, y, (i, j) => {
                     if (!interior.hasXY(i, j))
                         return;
-                    if (interior[i][j])
+                    if (interior.get(i, j))
                         return;
                     if (site.isGateSite(i, j))
                         return;
@@ -5439,7 +5439,7 @@
     //                 (i, j) => {
     //                     if (!interior.hasXY(i, j)) return; // Not in map
     //                     if (interior.isBoundaryXY(i, j)) return; // Not on boundary
-    //                     if (interior[i][j] && !site.blocksPathing(i, j)) {
+    //                     if (interior.get(i,j) && !site.blocksPathing(i, j)) {
     //                         ++nbcount; // in machine and open tile
     //                     }
     //                 },
@@ -5452,7 +5452,7 @@
     //                 y,
     //                 (i, j) => {
     //                     if (!interior.hasXY(i, j)) return; // not on map
-    //                     if (interior[i][j]) return; // already part of machine
+    //                     if (interior.get(i,j)) return; // already part of machine
     //                     if (
     //                         !site.isWall(i, j) ||
     //                         site.hasCellFlag(i, j, GWM.flags.Cell.IS_IN_MACHINE)
@@ -5716,7 +5716,7 @@
             do {
                 didSomething = false;
                 if (buildStep.buildAtOrigin) {
-                    candidates[data.originX][data.originY] = 1;
+                    candidates.set(data.originX, data.originY, 1);
                     qualifyingTileCount = 1;
                     wantCount = 1;
                 }
@@ -5749,10 +5749,10 @@
                     else {
                         // Pick our candidate location randomly, and also strike it from
                         // the candidates map so that subsequent instances of this same feature can't choose it.
-                        [x, y] = data.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates[x][y] == 1);
+                        [x, y] = data.rng.matchingLoc(candidates.width, candidates.height, (x, y) => candidates.get(x, y) == 1);
                     }
                     // Don't waste time trying the same place again whether or not this attempt succeeds.
-                    candidates[x][y] = 0;
+                    candidates.set(x, y, 0);
                     qualifyingTileCount--;
                     const snapshot = data.site.snapshot();
                     if (this._buildStepInstance(data, buildStep, x, y, adoptedItem)) {
@@ -5790,7 +5790,7 @@
                 };
                 if (buildStep.noBlockOrigin) {
                     options.updateWalkable = (g) => {
-                        g[data.originX][data.originY] = 1;
+                        g.set(data.originX, data.originY, 1);
                         return true;
                     };
                 }

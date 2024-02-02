@@ -307,7 +307,7 @@ describe('Hall', () => {
             expect(hall!.width).toEqual(1);
             expect(hall!.doors).toEqual([undefined, undefined, [25, 36]]);
 
-            expect(site._tiles[hall!.x][hall!.y]).toEqual(
+            expect(site._tiles.get(hall!.x, hall!.y)).toEqual(
                 site.tileFactory.tileId('TEST')
             );
         });

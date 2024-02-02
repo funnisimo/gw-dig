@@ -196,7 +196,7 @@ export class Digger {
         const cb = args[2] || null;
         if (cb) {
             GWU.xy.forRect(this.site.width, this.site.height, (x, y) => {
-                const t = this.site._tiles[x][y];
+                const t = this.site._tiles.get(x, y);
                 if (t) cb(x, y, t);
             });
         } else if (args.length == 1 && needsFree) {

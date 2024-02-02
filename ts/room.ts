@@ -147,10 +147,8 @@ export class Cavern extends RoomDigger {
             survivalParameters: 'ffffttttt',
         });
 
-        const bounds = blob.carve(
-            blobGrid.width,
-            blobGrid.height,
-            (x, y) => (blobGrid[x][y] = 1)
+        const bounds = blob.carve(blobGrid.width, blobGrid.height, (x, y) =>
+            blobGrid.set(x, y, 1)
         );
 
         // Position the new cave in the middle of the grid...

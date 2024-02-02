@@ -31,7 +31,7 @@ describe('Level', () => {
             stairs: { up: [20, 38], down: true },
         });
         digger.create(40, 40, (x, y, v) => {
-            grid[x][y] = v;
+            grid.set(x, y, v);
         });
 
         // grid.dump((v) => {
@@ -154,7 +154,7 @@ describe('Level', () => {
             lakes: false,
         });
         digger.create(40, 40, (x, y, v) => {
-            grid[x][y] = v;
+            grid.set(x, y, v);
         });
 
         let lines: string[] = [];
@@ -164,7 +164,7 @@ describe('Level', () => {
         grid.fill(0);
 
         digger.create(40, 40, (x, y, v) => {
-            grid[x][y] = v;
+            grid.set(x, y, v);
         });
         let lines2: string[] = [];
         grid.dump(undefined, (line: string) => {
@@ -184,7 +184,7 @@ describe('Level', () => {
                 stairs: false,
             });
             digger.create(80, 40, (x, y, v) => {
-                grid[x][y] = v;
+                grid.set(x, y, v);
             });
 
             // grid.dump();
@@ -203,7 +203,7 @@ describe('Level', () => {
                 bridges: 10,
             });
             digger.create(80, 40, (x, y, v) => {
-                grid[x][y] = v;
+                grid.set(x, y, v);
             });
 
             grid.dump();
@@ -219,7 +219,7 @@ describe('Level', () => {
                 stairs: false,
             });
             digger.create(80, 40, (x, y, v) => {
-                grid[x][y] = v;
+                grid.set(x, y, v);
             });
 
             // grid.dump();
