@@ -115,7 +115,7 @@ describe('Hall', () => {
         beforeEach(() => {
             room = new Room(20, 20, 10, 10);
             const tiles = new SITE.TileFactory();
-            tiles.installTile('TEST');
+            tiles.install('TEST');
             site = new SITE.Site(50, 50, { tiles });
             site._tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [
@@ -279,7 +279,7 @@ describe('Hall', () => {
         beforeEach(() => {
             room = new Room(20, 20, 10, 10);
             const tiles = new SITE.TileFactory();
-            tiles.installTile('TEST');
+            tiles.install('TEST');
             site = new SITE.Site(50, 50, { tiles });
             site._tiles.fillRect(20, 20, 10, 10, 1);
             // room.doors = [

@@ -26,11 +26,15 @@
 
     class TileFactory {
         constructor(withDefaults = true) {
+            this.plugins = [];
             this.tileIds = {};
             this.allTiles = [];
             if (withDefaults) {
                 installDefaults(this);
             }
+        }
+        use(plugin) {
+            this.plugins.push(plugin);
         }
         getTile(name) {
             let id;
@@ -60,7 +64,7 @@
             const info = this.getTile(name);
             return (!!info && info.blocksMove) || false;
         }
-        installTile(id, opts = {}) {
+        install(id, opts = {}) {
             if (typeof id !== 'string') {
                 opts = id;
                 id = id.id;
@@ -116,6 +120,8 @@
                     info.blocksPathing = true;
                 }
             }
+            // Do any custom tile setup
+            this.apply(info, opts);
             if (this.tileIds[id]) {
                 info.index = this.tileIds[id];
                 this.allTiles[info.index] = info;
@@ -126,15 +132,22 @@
             }
             return info;
         }
+        apply(tile, config) {
+            this.plugins.forEach((p) => {
+                if (p.createTile) {
+                    p.createTile(tile, config);
+                }
+            });
+        }
     }
     // export const tileIds: Record<string, number> = {};
     // export const allTiles: TileInfo[] = [];
     const tileFactory = new TileFactory(true);
     function installTile(...args) {
         if (args.length == 1) {
-            return tileFactory.installTile(args[0]);
+            return tileFactory.install(args[0]);
         }
-        return tileFactory.installTile(args[0], args[1]);
+        return tileFactory.install(args[0], args[1]);
     }
     function getTile(name) {
         return tileFactory.getTile(name);
@@ -146,47 +159,47 @@
         return tileFactory.blocksMove(name);
     }
     function installDefaults(factory) {
-        factory.tileIds['NOTHING'] = factory.tileIds['NULL'] = factory.installTile('NONE', {
+        factory.tileIds['NOTHING'] = factory.tileIds['NULL'] = factory.install('NONE', {
             priority: 0,
             ch: '',
         }).index;
-        factory.installTile('FLOOR', { priority: 10, ch: '.' });
-        factory.installTile('WALL', {
+        factory.install('FLOOR', { priority: 10, ch: '.' });
+        factory.install('WALL', {
             blocksMove: true,
             blocksVision: true,
             priority: 50,
             ch: '#',
         });
-        factory.installTile('DOOR', {
+        factory.install('DOOR', {
             blocksVision: true,
             door: true,
             priority: 60,
             ch: '+',
         });
-        factory.installTile('SECRET_DOOR', {
+        factory.install('SECRET_DOOR', {
             blocksMove: true,
             secretDoor: true,
             priority: 70,
             ch: '%',
         });
-        factory.installTile('UP_STAIRS', {
+        factory.install('UP_STAIRS', {
             stairs: true,
             priority: 80,
             ch: '>',
         });
-        factory.installTile('DOWN_STAIRS', {
+        factory.install('DOWN_STAIRS', {
             stairs: true,
             priority: 80,
             ch: '<',
         });
-        factory.tileIds['DEEP'] = factory.installTile('LAKE', {
+        factory.tileIds['DEEP'] = factory.install('LAKE', {
             priority: 40,
             liquid: true,
             ch: '~',
         }).index;
-        factory.installTile('SHALLOW', { priority: 30, ch: '`' });
-        factory.installTile('BRIDGE', { priority: 45, ch: '=' }); // layers help here
-        factory.installTile('IMPREGNABLE', {
+        factory.install('SHALLOW', { priority: 30, ch: '`' });
+        factory.install('BRIDGE', { priority: 45, ch: '=' }); // layers help here
+        factory.install('IMPREGNABLE', {
             priority: 200,
             ch: '%',
             impregnable: true,

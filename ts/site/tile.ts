@@ -34,7 +34,12 @@ export interface TileInfo extends TileOptions {
     tags: string[];
 }
 
+export interface TilePlugin {
+    createTile: (tile: TileInfo, cfg: TileConfig) => void;
+}
+
 export class TileFactory {
+    plugins: TilePlugin[] = [];
     tileIds: Record<string, number> = {};
     allTiles: TileInfo[] = [];
 
@@ -42,6 +47,10 @@ export class TileFactory {
         if (withDefaults) {
             installDefaults(this);
         }
+    }
+
+    use(plugin: TilePlugin) {
+        this.plugins.push(plugin);
     }
 
     getTile(name: string | number): TileInfo | null {
@@ -73,9 +82,9 @@ export class TileFactory {
         return (!!info && info.blocksMove) || false;
     }
 
-    installTile(cfg: TileOptions): TileInfo;
-    installTile(id: string, opts?: TileConfig): TileInfo;
-    installTile(id: string | TileOptions, opts: TileConfig = {}): TileInfo {
+    install(cfg: TileOptions): TileInfo;
+    install(id: string, opts?: TileConfig): TileInfo;
+    install(id: string | TileOptions, opts: TileConfig = {}): TileInfo {
         if (typeof id !== 'string') {
             opts = id;
             id = id.id;
@@ -143,6 +152,9 @@ export class TileFactory {
             }
         }
 
+        // Do any custom tile setup
+        this.apply(info, opts);
+
         if (this.tileIds[id]) {
             info.index = this.tileIds[id];
             this.allTiles[info.index] = info;
@@ -152,6 +164,14 @@ export class TileFactory {
         }
 
         return info;
+    }
+
+    apply(tile: TileInfo, config: TileConfig) {
+        this.plugins.forEach((p) => {
+            if (p.createTile) {
+                p.createTile(tile, config);
+            }
+        });
     }
 }
 
@@ -164,9 +184,9 @@ export function installTile(cfg: TileOptions): TileInfo;
 export function installTile(id: string, opts?: TileConfig): TileInfo;
 export function installTile(...args: any[]): TileInfo {
     if (args.length == 1) {
-        return tileFactory.installTile(args[0]);
+        return tileFactory.install(args[0]);
     }
-    return tileFactory.installTile(args[0], args[1]);
+    return tileFactory.install(args[0], args[1]);
 }
 
 export function getTile(name: string | number): TileInfo | null {
@@ -182,7 +202,7 @@ export function blocksMove(name: string | number): boolean {
 }
 
 function installDefaults(factory: TileFactory) {
-    factory.tileIds['NOTHING'] = factory.tileIds['NULL'] = factory.installTile(
+    factory.tileIds['NOTHING'] = factory.tileIds['NULL'] = factory.install(
         'NONE',
         {
             priority: 0,
@@ -190,43 +210,43 @@ function installDefaults(factory: TileFactory) {
         }
     ).index;
 
-    factory.installTile('FLOOR', { priority: 10, ch: '.' });
-    factory.installTile('WALL', {
+    factory.install('FLOOR', { priority: 10, ch: '.' });
+    factory.install('WALL', {
         blocksMove: true,
         blocksVision: true,
         priority: 50,
         ch: '#',
     });
-    factory.installTile('DOOR', {
+    factory.install('DOOR', {
         blocksVision: true,
         door: true,
         priority: 60,
         ch: '+',
     });
-    factory.installTile('SECRET_DOOR', {
+    factory.install('SECRET_DOOR', {
         blocksMove: true,
         secretDoor: true,
         priority: 70,
         ch: '%',
     });
-    factory.installTile('UP_STAIRS', {
+    factory.install('UP_STAIRS', {
         stairs: true,
         priority: 80,
         ch: '>',
     });
-    factory.installTile('DOWN_STAIRS', {
+    factory.install('DOWN_STAIRS', {
         stairs: true,
         priority: 80,
         ch: '<',
     });
-    factory.tileIds['DEEP'] = factory.installTile('LAKE', {
+    factory.tileIds['DEEP'] = factory.install('LAKE', {
         priority: 40,
         liquid: true,
         ch: '~',
     }).index;
-    factory.installTile('SHALLOW', { priority: 30, ch: '`' });
-    factory.installTile('BRIDGE', { priority: 45, ch: '=' }); // layers help here
-    factory.installTile('IMPREGNABLE', {
+    factory.install('SHALLOW', { priority: 30, ch: '`' });
+    factory.install('BRIDGE', { priority: 45, ch: '=' }); // layers help here
+    factory.install('IMPREGNABLE', {
         priority: 200,
         ch: '%',
         impregnable: true,

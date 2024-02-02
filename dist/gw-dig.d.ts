@@ -45,16 +45,22 @@ interface TileInfo extends TileOptions$1 {
     priority: number;
     tags: string[];
 }
+interface TilePlugin {
+    createTile: (tile: TileInfo, cfg: TileConfig) => void;
+}
 declare class TileFactory {
+    plugins: TilePlugin[];
     tileIds: Record<string, number>;
     allTiles: TileInfo[];
     constructor(withDefaults?: boolean);
+    use(plugin: TilePlugin): void;
     getTile(name: string | number): TileInfo | null;
     hasTile(name: string | number): boolean;
     tileId(name: string | number): number;
     blocksMove(name: string | number): boolean;
-    installTile(cfg: TileOptions$1): TileInfo;
-    installTile(id: string, opts?: TileConfig): TileInfo;
+    install(cfg: TileOptions$1): TileInfo;
+    install(id: string, opts?: TileConfig): TileInfo;
+    apply(tile: TileInfo, config: TileConfig): void;
 }
 declare const tileFactory: TileFactory;
 declare function installTile(cfg: TileOptions$1): TileInfo;
@@ -739,6 +745,7 @@ declare namespace index$2 {
 type index$1_TileId = TileId;
 type index$1_TileConfig = TileConfig;
 type index$1_TileInfo = TileInfo;
+type index$1_TilePlugin = TilePlugin;
 type index$1_TileFactory = TileFactory;
 declare const index$1_TileFactory: typeof TileFactory;
 declare const index$1_tileFactory: typeof tileFactory;
@@ -801,6 +808,7 @@ declare namespace index$1 {
     index$1_TileConfig as TileConfig,
     TileOptions$1 as TileOptions,
     index$1_TileInfo as TileInfo,
+    index$1_TilePlugin as TilePlugin,
     index$1_TileFactory as TileFactory,
     index$1_tileFactory as tileFactory,
     index$1_installTile as installTile,

@@ -11,7 +11,7 @@ describe('dig', () => {
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
         const tiles = new Site.TileFactory();
-        tiles.installTile('TEST');
+        tiles.install('TEST');
         site = new Site.Site(50, 30, { tiles });
     });
 
