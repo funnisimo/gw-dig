@@ -3,15 +3,18 @@
     "exclude": ["ts/**/*.spec.ts"],
     "compilerOptions": {
         "strict": true,
-        "outDir": "_temp",
-        "target": "ESNext",
+        "module": "es2022",
+        "outDir": "./dist",
+        "target": "esNext",
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noEmitOnError": true,
-
         "declaration": true,
-        "moduleResolution": "node",
+        "moduleResolution": "Bundler",
         "esModuleInterop": true,
+        "sourceMap": true,
+        "allowJs": true,
+        "skipLibCheck": false,
 
         // see: https://github.com/Swatinem/rollup-plugin-dts/issues/156
         "useDefineForClassFields": false

@@ -1,6 +1,6 @@
 import 'jest-extended';
 
-// import * as GWU from 'gw-utils';
+// import * as GWU from 'gw-utils/index';
 // import * as GWM from 'gw-map';
 import * as GWD from '../../index';
 
@@ -42,8 +42,7 @@ describe('Surround With Walls', () => {
         const room = GWD.blueprint.install('SEALED_ROOM', {
             size: '20-40',
             frequency: '8-40: 20',
-            flags:
-                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [],
         });
 

@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 
 export interface AnalysisBase {
     readonly height: number;

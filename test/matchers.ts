@@ -1,4 +1,4 @@
-const { diff } = require('jest-diff');
+import { diff } from 'jest-diff';
 
 export {};
 

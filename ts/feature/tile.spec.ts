@@ -1,6 +1,8 @@
 import 'jest-extended';
+import { jest } from '@jest/globals';
 import '../../test/matchers';
-import * as GWU from 'gw-utils';
+
+import * as GWU from 'gw-utils/index';
 
 import { Site } from '../site';
 import * as FEATURE from './index';

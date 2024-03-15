@@ -1,4 +1,4 @@
-// import * as GWU from 'gw-utils';
+// import * as GWU from 'gw-utils/index';
 // import * as GWM from 'gw-map';
 // import { BuildData, BuildStep } from '../blueprint';
 // import { Site } from '../site';

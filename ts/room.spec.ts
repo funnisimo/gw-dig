@@ -1,8 +1,9 @@
 import 'jest-extended';
+import { jest } from '@jest/globals';
 // import * as UTILS from '../test/utils';
-import * as GWU from 'gw-utils';
-import * as Dig from './index';
-import * as Site from './site';
+import * as GWU from 'gw-utils/index';
+import * as Dig from './index.js';
+import * as Site from './site/index.js';
 
 describe('dig', () => {
     let site: Site.Site;

@@ -10,3 +10,4 @@ export * from './digger';
 export * from './dungeon';
 export * as feature from './feature';
 export * as blueprint from './build';
+export * as carve from "./carve";

@@ -1,19 +1,18 @@
-// GW-CANVAS: rollup.config.js
+// GW-DIG: rollup.config.js
 
-import { terser } from 'rollup-plugin-terser';
+// GW-UTILS: rollup.config.js
+
+import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
-
-// import peerDepsExternal from 'rollup-plugin-peer-deps-external';
-// import { nodeResolve } from '@rollup/plugin-node-resolve';
-// import commonjs from '@rollup/plugin-commonjs';
 
 export default [
     {
         input: 'ts/index.ts',
         external: ['gw-utils'],
-        plugins: [nodeResolve(), typescript()],
+        plugins: [nodeResolve(), commonjs(), typescript()],
         output: [
             {
                 file: 'dist/gw-dig.min.js',

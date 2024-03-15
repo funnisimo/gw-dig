@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import * as TYPES from './types';
 import * as SITE from './site';
 

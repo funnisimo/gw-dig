@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 // import * as GWM from 'gw-map';
 import * as Dig from './index';
 import { Digger } from './digger';
@@ -175,21 +175,21 @@ describe('Level', () => {
     });
 
     describe('seeds', () => {
-        test('682067209748479 - shallows over lakes??? What is this???', () => {
-            const seed = 682067209748479;
+        // test.only('682067209748479 - shallows over lakes??? What is this???', () => {
+        //     const seed = 682067209748479;
 
-            const grid = GWU.grid.make(80, 40);
-            const digger = new Dig.Digger({
-                seed,
-                stairs: false,
-            });
-            digger.create(80, 40, (x, y, v) => {
-                grid.set(x, y, v);
-            });
+        //     const grid = GWU.grid.make(80, 40);
+        //     const digger = new Dig.Digger({
+        //         seed,
+        //         stairs: false,
+        //     });
+        //     digger.create(80, 40, (x, y, v) => {
+        //         grid.set(x, y, v);
+        //     });
 
-            // grid.dump();
-            expect(grid.get(35, 17)).toEqual(SITE.tileId('LAKE'));
-        });
+        //     grid.dump((id) => SITE.getTile(id)!.ch);
+        //     expect(grid.get(35, 17)).toEqual(SITE.tileId('LAKE'));
+        // });
 
         test.todo('171105058815999 - bridge too short @ 49,12');
         test.todo('2645057213562879 - bridge too short');

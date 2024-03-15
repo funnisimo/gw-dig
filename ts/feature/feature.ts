@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import { Site } from '../site';
 
 export interface FeatureObj {

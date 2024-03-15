@@ -1,6 +1,8 @@
 import 'jest-extended';
+import { jest } from '@jest/globals';
+
 import * as UTILS from '../test/utils';
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import * as HALL from './hall';
 import * as SITE from './site';
 import { Room, Hall } from './types';

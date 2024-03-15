@@ -1,6 +1,6 @@
 import 'jest-extended';
 
-// import * as GWU from 'gw-utils';
+// import * as GWU from 'gw-utils/index';
 // import * as GWM from 'gw-map';
 import * as GWD from '../../index';
 
@@ -91,8 +91,7 @@ describe('Mixed Item Library', () => {
         const room = GWD.blueprint.install('MIXED_ITEM_LIBRARY', {
             size: '30-60', // did 60 to make it large enough to use on chosen room (to force openInterior into action)
             frequency: '1-12: 30',
-            flags:
-                'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
+            flags: 'BP_ROOM | BP_PURGE_INTERIOR | BP_SURROUND_WITH_WALLS | BP_OPEN_INTERIOR | BP_IMPREGNABLE | BP_REWARD',
             steps: [
                 { tile: 'CARPET', flags: 'BS_EVERYWHERE' },
                 { flags: 'BS_BUILD_VESTIBULE' },

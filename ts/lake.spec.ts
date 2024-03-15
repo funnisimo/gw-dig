@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 // import * as GWM from 'gw-map';
 import * as Digger from './digger';
 // import * as Lake from './lake';

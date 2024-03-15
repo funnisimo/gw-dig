@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import { ItemInstance } from './item';
 import * as FEATURE from '../feature';
 import { Site } from '../site';

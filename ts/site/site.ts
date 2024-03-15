@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import * as Utils from './utils';
 
 import { TileFactory, tileFactory, TileInfo } from './tile';
@@ -187,7 +187,10 @@ export class Site implements ANALYZE.AnalysisSite {
     }
 
     blocksDiagonal(x: number, y: number) {
-        return this.isNothing(x, y) || this.isWall(x, y);
+        return (
+            this.tileFactory.getTile(this._tiles.get(x, y)!)!.blocksDiagonal ||
+            false
+        );
     }
 
     blocksPathing(x: number, y: number) {

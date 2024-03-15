@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import { Room } from '../../types';
 import { Site } from '../site';
 import { Logger } from './logger';

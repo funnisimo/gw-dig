@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+import * as GWU from 'gw-utils/index';
 import { Site, tileId } from '../site';
 import { FeatureFn, FeatureConfig, installType, makeArray } from './feature';
 
