@@ -1,5 +1,5 @@
-# ignore <root>/js
-/js/
+# ignore build ouptut
+dist/
 
 .vscode/
 
